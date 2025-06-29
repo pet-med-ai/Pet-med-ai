@@ -107,3 +107,62 @@ pet-ai-diagnosis/
 ## 📬 联系作者
 
 GitHub: [pet-med-ai](https://github.com/pet-med-ai)
+from fastapi import APIRouter, Request
+from pydantic import BaseModel
+from typing import List, Optional
+
+router = APIRouter()
+
+# 模拟诊断逻辑树结构（简化）
+logic_tree = {
+    "持续性瘙痒": {
+        "是": {
+            "question": "近期是否仍发现跳蚤、螨虫或耳垢增多？",
+            "options": ["是", "否"],
+            "followUp": {
+                "是": "可能寄生虫感染（疥螨、耳螨）",
+                "否": "持续瘙痒但无寄生虫证据，建议检查过敏或感染"
+            }
+        },
+        "否": "优先考虑寄生虫性皮肤病（跳蚤/螨虫）"
+    },
+    "季节性瘙痒": {
+        "是": "考虑季节性特应性皮炎",
+        "否": {
+            "question": "是否近期更换饮食或接触新环境？",
+            "options": ["是", "否"],
+            "followUp": {
+                "是": "可能为食物或接触性过敏",
+                "否": "建议进一步过敏原筛查"
+            }
+        }
+    }
+}
+
+class PathInput(BaseModel):
+    history: List[str]
+
+@router.get("/init")
+def get_root(chief: Optional[str] = "itching"):
+    return {
+        "question": "宠物是否存在以下情况？",
+        "options": list(logic_tree.keys())
+    }
+
+@router.post("/next")
+def get_next_step(data: PathInput):
+    current = logic_tree
+    for i, answer in enumerate(data.history):
+        if isinstance(current, dict) and answer in current:
+            current = current[answer]
+        elif isinstance(current, dict) and "followUp" in current and answer in current["followUp"]:
+            current = current["followUp"][answer]
+        else:
+            return {"error": "无效路径", "at": i, "value": answer}
+
+    if isinstance(current, str):
+        return {"diagnosis": current}
+    elif isinstance(current, dict) and "question" in current:
+        return {"question": current["question"], "options": current["options"]}
+    else:
+        return {"diagnosis": current}
