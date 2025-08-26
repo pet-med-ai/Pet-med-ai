@@ -4,22 +4,27 @@ services:
     name: pet-med-ai-backend
     env: python
     plan: starter
+    rootDir: backend
     buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /docs
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
 
-  # ===== Frontend (React) =====
-  - type: web
+  # ===== Frontend (React / Static) =====
+  - type: static_site
     name: pet-med-ai-frontend
-    env: node
     plan: starter
     buildCommand: cd frontend && npm ci && npm run build
-    startCommand: npx serve -s frontend/build -l $PORT
+    staticPublishPath: frontend/build
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: 20
+    routes:
+      # SPA 重写，刷新不会 404
+      - type: rewrite
+        source: /*
+        destination: /index.html
