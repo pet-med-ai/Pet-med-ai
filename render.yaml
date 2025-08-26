@@ -1,4 +1,40 @@
-# Render Blueprint specification
+## Render Blueprint: Pet-med-ai full stack
+
+services:
+  # ===== Backend (FastAPI) =====
+  - type: web
+    name: pet-med-ai-backend
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      # 如需后端密钥/数据库连接，把它们加在这里：
+      # - key: OPENAI_API_KEY
+      #   sync: false   # 用控制台手动填值
+
+  # ===== Frontend (React SPA，静态站点) =====
+  - type: static_site
+    name: pet-med-ai-frontend
+    # 前端在 frontend/ 目录：进入目录再构建
+    buildCommand: bash -lc "cd frontend && npm ci && npm run build"
+    # CRA 构建产物默认在 build/
+    staticPublishPath: frontend/build
+    # 如果你的前端用的是 Vite，请把上一行改为：
+    # staticPublishPath: frontend/dist
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+    routes:
+      # SPA 回退规则：所有未知路由回到 index.html
+      - type: rewrite
+        source: /*
+        destination: /index.html
+ Render Blueprint specification
 services:
   - type: web
     name: Pet-med-ai
