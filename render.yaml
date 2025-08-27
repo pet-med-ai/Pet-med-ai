@@ -6,10 +6,7 @@ services:
     plan: starter
     rootDir: backend
     buildCommand: pip install -r requirements.txt
-    # ←—— 这里二选一：按你的文件结构选用合适的 StartCommand（默认先用第1条）
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-    # startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    # startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /docs
     autoDeploy: true
     envVars:
@@ -20,12 +17,16 @@ services:
   - type: static_site
     name: pet-med-ai-frontend
     plan: starter
-    buildCommand: cd frontend && npm ci && npm run build
-    staticPublishPath: frontend/build
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: 20
+      # 配置后端 API 地址（等后端部署好，把 URL 填进去）
+      # - key: VITE_API_BASE
+      #   value: https://pet-med-ai-backend.onrender.com
     routes:
       - type: rewrite
         source: /*
