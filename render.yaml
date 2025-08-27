@@ -14,7 +14,7 @@ services:
         value: 3.11.9
 
   # ===== Frontend (React / Static) =====
-  - type: static_site
+  - type: static
     name: pet-med-ai-frontend
     plan: starter
     rootDir: frontend
