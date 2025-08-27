@@ -14,16 +14,17 @@ services:
         value: 3.11.9
 
   # ===== Frontend (React as Node Web) =====
-  - type: web
-    name: pet-med-ai-frontend-v2   # ← 换一个新名字，避免“类型不可变”冲突
+    - type: web
+    name: pet-med-ai-frontend-v2
     env: node
     plan: starter
     rootDir: frontend
     buildCommand: npm install && npm run build
-    startCommand: npx serve -s dist -l $PORT   # ← -s 处理 SPA 重写
+    startCommand: npm run start         # ← 用脚本启动，而不是 npx
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
         value: 20
       - key: VITE_API_BASE
         value: https://pet-med-ai-backend.onrender.com
+
