@@ -1,11 +1,20 @@
-frontend/
-├── package.json
-├── index.html
-├── vite.config.js
-├── .gitignore
-├── README.md
-├── public/
-│   └── ...（静态资源）
-└── src/
-    ├── main.jsx
-    └── App.jsx
+{
+  "name": "pet-med-ai-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "serve -s dist -l $PORT"   // ← 新增
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "serve": "^14.2.1"                  // ← 新增
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.2.0",
+    "vite": "^5.4.0"
+  }
+}
