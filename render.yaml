@@ -1,8 +1,8 @@
 services:
   # ===== Backend (FastAPI) =====
   - type: web
-    runtime: python          # <= 推荐写法；等价于 env: python
     name: pet-med-ai-backend
+    env: python
     plan: starter
     rootDir: backend
     buildCommand: pip install -r requirements.txt
@@ -15,12 +15,12 @@ services:
 
   # ===== Frontend (React / Static Site) =====
   - type: web
-    runtime: static          # <= 关键！静态站点用 runtime: static
     name: pet-med-ai-frontend
+    env: static              # <= 关键点：用 env: static
     plan: starter
     rootDir: frontend
     buildCommand: npm install && npm run build
-    staticPublishPath: dist  # 要与 Vite 的 outDir 一致
+    staticPublishPath: dist
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
