@@ -18,3 +18,12 @@
     "vite": "^5.4.0"
   }
 }
+frontend/
+├── package.json
+├── index.html
+├── vite.config.js
+├── src/
+│   ├── main.jsx
+│   └── App.jsx
+├── public/
+│   └── favicon.svg （随便一个静态文件也行）
