@@ -6,7 +6,10 @@ services:
     plan: starter
     rootDir: backend
     buildCommand: pip install -r requirements.txt
+    # ←—— 这里二选一：按你的文件结构选用合适的 StartCommand（默认先用第1条）
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    # startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # startCommand: uvicorn src.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /docs
     autoDeploy: true
     envVars:
@@ -24,7 +27,6 @@ services:
       - key: NODE_VERSION
         value: 20
     routes:
-      # SPA 重写，刷新不会 404
       - type: rewrite
         source: /*
         destination: /index.html
