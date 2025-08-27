@@ -25,7 +25,8 @@ services:
       - key: NODE_VERSION
         value: 20
       # 配置后端 API 地址（等后端部署好，把 URL 填进去）
-      # - key: VITE_API_BASE
+      # - key: VITE_API_BASE = https://pet-med-ai-backend.onrender.com
+
       #   value: https://pet-med-ai-backend.onrender.com
     routes:
       - type: rewrite
