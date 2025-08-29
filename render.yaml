@@ -12,12 +12,14 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.9"
 
-  - type: web
+    - type: web
     name: pet-med-ai-frontend-v3
     env: node
     plan: starter
     rootDir: .
-    buildCommand: npm --prefix frontend install && npm --prefix frontend run build
+    buildCommand: |
+      npm --prefix frontend install --include=dev
+      npm --prefix frontend run build
     startCommand: npx serve -s frontend/dist -l $PORT
     autoDeploy: true
     envVars:
