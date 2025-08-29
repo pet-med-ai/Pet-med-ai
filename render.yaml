@@ -13,7 +13,7 @@ services:
         value: "3.11.9"
 
   - type: web
-    name: pet-med-ai-frontend-v2
+    name: pet-med-ai-frontend-v3
     env: node
     plan: starter
     rootDir: .
