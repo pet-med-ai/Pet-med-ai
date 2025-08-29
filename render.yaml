@@ -11,17 +11,3 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
-
-  - type: web
-    name: pet-med-ai-frontend-v2
-    env: node
-    plan: starter
-    rootDir: .
-    buildCommand: npm --prefix frontend install && npm --prefix frontend run build
-    startCommand: npx serve -s frontend/dist -l $PORT
-    autoDeploy: true
-    envVars:
-      - key: NODE_VERSION
-        value: "20"
-      - key: VITE_API_BASE
-        value: https://pet-med-ai-backend.onrender.com
