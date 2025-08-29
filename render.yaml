@@ -12,7 +12,7 @@ services:
       - key: PYTHON_VERSION
         value: "3.11.9"
 
-    - type: web
+  - type: web
     name: pet-med-ai-frontend-v3
     env: node
     plan: starter
