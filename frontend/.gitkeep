@@ -1,1 +1,10 @@
+frontend/
+  ├── package.json
+  ├── index.html
+  ├── vite.config.js
+  ├── src/
+  │   ├── main.jsx
+  │   └── App.jsx
+  └── public/
+      └── favicon.svg
 
