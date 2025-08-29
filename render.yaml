@@ -1,15 +1,17 @@
-- type: web
-  name: pet-med-ai-backend
-  env: python
-  plan: starter
-  rootDir: backend
-  buildCommand: pip install -r requirements.txt
-  startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
-  healthCheckPath: /docs
-  autoDeploy: true
-  envVars:
-    - key: PYTHON_VERSION
-      value: 3.11.9
+services:
+  - type: web
+    name: pet-med-ai-backend
+    env: python
+    plan: starter
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /docs
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+
   - type: web
     name: pet-med-ai-frontend-v2
     env: node
