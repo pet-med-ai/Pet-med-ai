@@ -4,4 +4,11 @@ pydantic==2.7.0
 python-dotenv==1.0.1
 requests==2.31.0
 httpx==0.27.0
+fastapi
+uvicorn[standard]
+pydantic>=2
+SQLAlchemy>=2.0
+psycopg2-binary      # 连接 Render Postgres（若本地用SQLite可不装）
+passlib[bcrypt]      # 密码哈希
+python-multipart     # 以后支持表单/上传用
 
