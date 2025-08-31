@@ -1,5 +1,6 @@
 # backend/main.py
 from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
@@ -9,7 +10,11 @@ from . import models, schemas, crud
 from .auth import router as auth_router
 
 app = FastAPI(title="Pet Med AI Backend")
-
+# 定义请求数据结构
+class CaseData(BaseModel):
+    chief_complaint: str
+    history: str
+    exam_findings: str
 # 创建表（生产建议 Alembic 迁移，这里为简化直接建表）
 Base.metadata.create_all(bind=engine)
 
