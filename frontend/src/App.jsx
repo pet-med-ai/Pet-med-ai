@@ -1,28 +1,62 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+// 后端基地址：优先取环境变量，没配就用你当前后端域名
 const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.onrender.com";
 
 export default function App() {
+  // ====== 分析表单 ======
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [history, setHistory] = useState("");
   const [examFindings, setExamFindings] = useState("");
   const [analysis, setAnalysis] = useState("");
   const [treatment, setTreatment] = useState("");
   const [prognosis, setPrognosis] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loadingAnalyze, setLoadingAnalyze] = useState(false);
   const [errMsg, setErrMsg] = useState("");
 
-  const handleSubmit = async (e) => {
+  // ====== 病例数据 ======
+  const [patientName, setPatientName] = useState("");
+  const [species, setSpecies] = useState("dog");
+  const [sex, setSex] = useState("");
+  const [ageInfo, setAgeInfo] = useState("");
+  const [cases, setCases] = useState([]);
+  const [loadingCases, setLoadingCases] = useState(false);
+  const [loadingCreate, setLoadingCreate] = useState(false);
+  const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null); // 正在重分析的病例ID
+
+  // 首次加载拉一次病例列表
+  useEffect(() => {
+    fetchCases();
+  }, []);
+
+  // 拉取病例列表
+  const fetchCases = async () => {
+    try {
+      setLoadingCases(true);
+      const res = await axios.get(`${API_BASE}/cases`);
+      setCases(res.data || []);
+    } catch (e) {
+      console.error("拉取病例失败：", e);
+    } finally {
+      setLoadingCases(false);
+    }
+  };
+
+  // 提交分析（不存库，只取分析结果展示）
+  const handleAnalyzeSubmit = async (e) => {
     e.preventDefault();
     setErrMsg("");
-    setLoading(true);
+    setAnalysis(""); setTreatment(""); setPrognosis("");
+    setLoadingAnalyze(true);
     try {
       const url = `${API_BASE}/analyze`;
       const res = await axios.post(url, {
         chief_complaint: chiefComplaint,
         history,
         exam_findings: examFindings,
+        species,
+        age_info: ageInfo,
       });
       setAnalysis(res.data.analysis || "");
       setTreatment(res.data.treatment || "");
@@ -31,66 +65,205 @@ export default function App() {
       console.error("Analyze error:", err);
       setErrMsg("分析请求失败，请稍后重试或检查后端日志。");
     } finally {
-      setLoading(false);
+      setLoadingAnalyze(false);
+    }
+  };
+
+  // 创建病例（把当前表单 + 分析结果一起存入后端 /cases）
+  const handleCreateCase = async () => {
+    if (!patientName || !chiefComplaint) {
+      alert("请至少填写病例名与主诉");
+      return;
+    }
+    try {
+      setLoadingCreate(true);
+      const res = await axios.post(`${API_BASE}/cases`, {
+        patient_name: patientName,
+        species,
+        sex: sex || null,
+        age_info: ageInfo || null,
+        chief_complaint: chiefComplaint,
+        history: history || null,
+        exam_findings: examFindings || null,
+      });
+      // 创建完成后刷新列表
+      await fetchCases();
+      alert(`创建成功：病例ID = ${res.data.id}`);
+    } catch (e) {
+      console.error("创建病例失败：", e);
+      alert("创建病例失败，请查看控制台或后端日志");
+    } finally {
+      setLoadingCreate(false);
+    }
+  };
+
+  // 对某条病例再次分析并写回（POST /cases/{id}/analyze）
+  const handleReAnalyze = async (caseItem) => {
+    try {
+      setLoadingReAnalyzeId(caseItem.id);
+      const res = await axios.post(`${API_BASE}/cases/${caseItem.id}/analyze`, {
+        chief_complaint: caseItem.chief_complaint,
+        history: caseItem.history || "",
+        exam_findings: caseItem.exam_findings || "",
+        species: caseItem.species || "dog",
+        age_info: caseItem.age_info || "",
+      });
+      // 刷新列表，显示最新的 analysis/treatment/prognosis
+      await fetchCases();
+      alert(`病例 ${caseItem.id} 已更新分析结果`);
+    } catch (e) {
+      console.error("病例重分析失败：", e);
+      alert("病例重分析失败，请查看控制台或后端日志");
+    } finally {
+      setLoadingReAnalyzeId(null);
     }
   };
 
   return (
-    <div style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24 }}>
-      <h1 style={{ marginTop: 0 }}>Pet Med AI — Frontend</h1>
-      <p>Vite + React scaffold is working.</p>
+    <div style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
+      <h1 style={{ marginTop: 0 }}>Pet Med AI — 前端联调面板</h1>
 
-      <form onSubmit={handleSubmit} style={{ maxWidth: 720 }}>
-        <label style={{ display: "block", marginTop: 12 }}>主诉</label>
-        <textarea
-          value={chiefComplaint}
-          onChange={(e) => setChiefComplaint(e.target.value)}
-          required
-          style={{ width: "100%", height: 80 }}
-        />
+      {/* ====== 病例信息（基础） ====== */}
+      <section style={card}>
+        <h2 style={h2}>1) 填写病例基础信息</h2>
+        <div style={grid2}>
+          <Field label="病例名 / 宠物名">
+            <input value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="如：乐乐 / Lucky" />
+          </Field>
+          <Field label="物种">
+            <select value={species} onChange={(e) => setSpecies(e.target.value)}>
+              <option value="dog">dog</option>
+              <option value="cat">cat</option>
+              <option value="other">other</option>
+            </select>
+          </Field>
+          <Field label="性别">
+            <input value={sex} onChange={(e) => setSex(e.target.value)} placeholder="M / F / 已绝育等" />
+          </Field>
+          <Field label="年龄信息">
+            <input value={ageInfo} onChange={(e) => setAgeInfo(e.target.value)} placeholder="如 4y / 6m" />
+          </Field>
+        </div>
+      </section>
 
-        <label style={{ display: "block", marginTop: 12 }}>既往史</label>
-        <textarea
-          value={history}
-          onChange={(e) => setHistory(e.target.value)}
-          style={{ width: "100%", height: 80 }}
-        />
+      {/* ====== 分析表单 ====== */}
+      <section style={card}>
+        <h2 style={h2}>2) 主诉 / 既往史 / 体检化验 & 即时分析</h2>
+        <form onSubmit={handleAnalyzeSubmit}>
+          <Field label="主诉（必填）">
+            <textarea value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} required rows={3} />
+          </Field>
+          <Field label="既往史">
+            <textarea value={history} onChange={(e) => setHistory(e.target.value)} rows={3} />
+          </Field>
+          <Field label="体检/化验摘要">
+            <textarea value={examFindings} onChange={(e) => setExamFindings(e.target.value)} rows={3} />
+          </Field>
+          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+            <button type="submit" disabled={loadingAnalyze} style={btn}>
+              {loadingAnalyze ? "分析中…" : "提交分析（不入库）"}
+            </button>
+            <button type="button" onClick={handleCreateCase} disabled={loadingCreate} style={btnSecondary}>
+              {loadingCreate ? "保存中…" : "保存为病例（入库）"}
+            </button>
+          </div>
+        </form>
 
-        <label style={{ display: "block", marginTop: 12 }}>体检/化验摘要</label>
-        <textarea
-          value={examFindings}
-          onChange={(e) => setExamFindings(e.target.value)}
-          style={{ width: "100%", height: 80 }}
-        />
+        {errMsg && <p style={{ color: "crimson", marginTop: 8 }}>{errMsg}</p>}
 
-        <div style={{ marginTop: 16 }}>
-          <button type="submit" disabled={loading} style={{ padding: "8px 16px" }}>
-            {loading ? "分析中…" : "提交分析"}
+        {(analysis || treatment || prognosis) && (
+          <div style={{ marginTop: 16 }}>
+            <h3>即时分析结果</h3>
+            {analysis && <Block title="分析">{analysis}</Block>}
+            {treatment && <Block title="治疗建议">{treatment}</Block>}
+            {prognosis && <Block title="预后">{prognosis}</Block>}
+          </div>
+        )}
+      </section>
+
+      {/* ====== 病例列表 ====== */}
+      <section style={card}>
+        <h2 style={h2}>3) 病例列表</h2>
+        <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+          <button onClick={fetchCases} disabled={loadingCases} style={btn}>
+            {loadingCases ? "刷新中…" : "刷新列表"}
           </button>
-          <span style={{ marginLeft: 12, opacity: 0.7, fontSize: 12 }}>
-            后端：{API_BASE}/analyze
-          </span>
         </div>
-      </form>
 
-      {errMsg && (
-        <p style={{ color: "crimson", marginTop: 12 }}>
-          {errMsg}
-        </p>
-      )}
+        {cases.length === 0 ? (
+          <p style={{ opacity: 0.7 }}>暂无病例。</p>
+        ) : (
+          <table style={table}>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>病例名</th>
+                <th>物种</th>
+                <th>主诉</th>
+                <th>已存分析</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              {cases.map((c) => (
+                <tr key={c.id}>
+                  <td>{c.id}</td>
+                  <td>{c.patient_name}</td>
+                  <td>{c.species}</td>
+                  <td title={c.chief_complaint} style={{ maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {c.chief_complaint}
+                  </td>
+                  <td style={{ color: c.analysis ? "#16a34a" : "#999" }}>
+                    {c.analysis ? "✓" : "—"}
+                  </td>
+                  <td>
+                    <button
+                      style={btnTiny}
+                      onClick={() => handleReAnalyze(c)}
+                      disabled={loadingReAnalyzeId === c.id}
+                      title="用当前字段重新分析并写回病例"
+                    >
+                      {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </section>
 
-      {analysis && (
-        <div style={{ marginTop: 24 }}>
-          <h2>分析结果</h2>
-          <pre style={{ whiteSpace: "pre-wrap" }}>{analysis}</pre>
-
-          <h3>治疗建议</h3>
-          <pre style={{ whiteSpace: "pre-wrap" }}>{treatment}</pre>
-
-          <h3>预后</h3>
-          <pre style={{ whiteSpace: "pre-wrap" }}>{prognosis}</pre>
-        </div>
-      )}
+      <p style={{ marginTop: 24, opacity: 0.7, fontSize: 12 }}>
+        后端：{API_BASE}
+      </p>
     </div>
   );
 }
+
+/* ----------------- 小组件 & 样式 ----------------- */
+
+function Field({ label, children }) {
+  return (
+    <label style={{ display: "block", marginTop: 12 }}>
+      <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 4 }}>{label}</div>
+      {children}
+    </label>
+  );
+}
+
+function Block({ title, children }) {
+  return (
+    <div style={{ background: "#f6f8fa", padding: 12, borderRadius: 8, whiteSpace: "pre-wrap", marginTop: 8 }}>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+
+const h2 = { margin: "0 0 12px" };
+const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, marginTop: 16 };
+const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
+const btn = { padding: "8px 14px", borderRadius: 8, border: "1px solid #0ea5e9", background: "#0ea5e9", color: "#fff", cursor: "pointer" };
+const btnSecondary = { padding: "8px 14px", borderRadius: 8, border: "1px solid #64748b", background: "#fff", color: "#111", cursor: "pointer" };
+const btnTiny = { padding: "6px 10px", borderRadius: 8, border: "1px solid #64748b", background: "#fff", color: "#111", cursor: "pointer", fontSize: 12 };
+const table = { width: "100%", borderCollapse: "collapse" };
