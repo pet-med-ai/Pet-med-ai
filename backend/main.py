@@ -203,6 +203,17 @@ def analyze_and_save(case_id: int, data: AnalyzeIn, db: Session = Depends(get_db
     obj = db.get(Case, case_id)
     if not obj:
         raise HTTPException(status_code=404, detail="Case not found")
+from fastapi import Response
+
+@app.delete("/cases/{case_id}", status_code=204)
+def delete_case(case_id: int, db: Session = Depends(get_db)):
+    obj = db.get(Case, case_id)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Case not found")
+    db.delete(obj)
+    db.commit()
+    # 204 No Content
+    return Response(status_code=204)
 
     # 复用上面的分析逻辑
     res = analyze(data)
