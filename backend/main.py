@@ -1,3 +1,7 @@
+import os
+from auth_jwt import router as auth_router, get_current_user, SECRET_KEY  # 引入路由和依赖
+from sqlalchemy.orm import Session
+
 # backend/main.py
 from __future__ import annotations
 
