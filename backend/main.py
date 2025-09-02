@@ -5,56 +5,52 @@ import os
 from datetime import datetime
 from typing import Optional, List
 
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, String, Text, Integer, DateTime, ForeignKey, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, sessionmaker, Session
 
 # ------------------------------------------------------------------------------
-# 数据库配置：Render 上建议设置环境变量 DATABASE_URL=postgresql://...
-# 未设置时默认使用本地 sqlite 文件
+# 数据库：Render 上建议在后端服务 Environment 设置 DATABASE_URL=postgresql://...
+# 未设置时默认落地到本地 sqlite 文件 ./app.db
 # ------------------------------------------------------------------------------
 DATABASE_URL = os.getenv("DATABASE_URL") or "sqlite:///./app.db"
 connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, echo=False, future=True, connect_args=connect_args)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False, future=True)
 
-
 class Base(DeclarativeBase):
     pass
 
-
 # ------------------------------------------------------------------------------
-# 数据表模型
+# 表模型
 # ------------------------------------------------------------------------------
 class Case(Base):
     __tablename__ = "cases"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    # 如需用户体系，后续可加 owner_id 外键
+    # 如需用户体系，后续加 owner_id 外键
     patient_name: Mapped[str] = mapped_column(String(255), index=True)
-    species: Mapped[str] = mapped_column(String(50), default="dog")    # dog/cat/other
+    species: Mapped[str] = mapped_column(String(50), default="dog")          # dog/cat/other
     sex: Mapped[Optional[str]] = mapped_column(String(10), default=None)
     age_info: Mapped[Optional[str]] = mapped_column(String(50), default=None)
 
-    chief_complaint: Mapped[str] = mapped_column(Text)                 # 主诉（必填）
-    history: Mapped[Optional[str]] = mapped_column(Text, default=None) # 既往史
-    exam_findings: Mapped[Optional[str]] = mapped_column(Text, default=None)  # 体检/化验摘要
+    chief_complaint: Mapped[str] = mapped_column(Text)                       # 主诉
+    history: Mapped[Optional[str]] = mapped_column(Text, default=None)       # 既往史
+    exam_findings: Mapped[Optional[str]] = mapped_column(Text, default=None) # 体检/化验摘要
 
-    # 分析结果保存字段
-    analysis: Mapped[Optional[str]] = mapped_column(Text, default=None)
-    treatment: Mapped[Optional[str]] = mapped_column(Text, default=None)
-    prognosis: Mapped[Optional[str]] = mapped_column(Text, default=None)
+    analysis: Mapped[Optional[str]] = mapped_column(Text, default=None)      # 分析结果
+    treatment: Mapped[Optional[str]] = mapped_column(Text, default=None)     # 治疗建议
+    prognosis: Mapped[Optional[str]] = mapped_column(Text, default=None)     # 预后
 
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
-
 # ------------------------------------------------------------------------------
-# Pydantic 模型（兼容 Pydantic v2）
+# Pydantic 模型
 # ------------------------------------------------------------------------------
 class CaseBase(BaseModel):
-    patient_name: str = Field(..., description="宠物名/病例名")
+    patient_name: str = Field(..., description="病例名/宠物名")
     species: str = Field("dog", description="物种：dog/cat/other")
     sex: Optional[str] = None
     age_info: Optional[str] = None
@@ -62,10 +58,21 @@ class CaseBase(BaseModel):
     history: Optional[str] = None
     exam_findings: Optional[str] = None
 
-
 class CaseCreate(CaseBase):
     pass
 
+class CaseUpdate(BaseModel):
+    # 可选更新字段
+    patient_name: Optional[str] = None
+    species: Optional[str] = None
+    sex: Optional[str] = None
+    age_info: Optional[str] = None
+    chief_complaint: Optional[str] = None
+    history: Optional[str] = None
+    exam_findings: Optional[str] = None
+    analysis: Optional[str] = None
+    treatment: Optional[str] = None
+    prognosis: Optional[str] = None
 
 class CaseOut(CaseBase):
     id: int
@@ -73,10 +80,8 @@ class CaseOut(CaseBase):
     treatment: Optional[str] = None
     prognosis: Optional[str] = None
     created_at: datetime
-
     class Config:
         from_attributes = True
-
 
 class AnalyzeIn(BaseModel):
     chief_complaint: str
@@ -85,30 +90,25 @@ class AnalyzeIn(BaseModel):
     species: Optional[str] = "dog"
     age_info: Optional[str] = None
 
-
 class AnalyzeOut(BaseModel):
     analysis: str
     treatment: str
     prognosis: str
 
-
 # ------------------------------------------------------------------------------
-# FastAPI 初始化 & CORS
+# FastAPI & CORS
 # ------------------------------------------------------------------------------
-app = FastAPI(title="Pet Med AI Backend (Cases + Analyze)")
+app = FastAPI(title="Pet Med AI Backend")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # 上线建议改为你的前端域名，如 "https://pet-med-ai-frontend-v6.onrender.com"
+    allow_origins=["*"],  # 上线建议改成你的前端域名
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-# ------------------------------------------------------------------------------
 # DB 依赖
-# ------------------------------------------------------------------------------
 def get_db() -> Session:
     db = SessionLocal()
     try:
@@ -116,10 +116,8 @@ def get_db() -> Session:
     finally:
         db.close()
 
-
-# 首次启动自动建表（生产环境建议改为 Alembic 迁移）
+# 首次自动建表（生产建议 Alembic 迁移）
 Base.metadata.create_all(bind=engine)
-
 
 # ------------------------------------------------------------------------------
 # 健康检查
@@ -128,14 +126,12 @@ Base.metadata.create_all(bind=engine)
 def healthz():
     return {"status": "ok"}
 
-
 @app.get("/ping")
 def ping():
     return {"ok": True}
 
-
 # ------------------------------------------------------------------------------
-# /analyze 规则占位（后续可替换为模型推理）
+# /analyze 占位分析逻辑（后续可替换为你的 AI 推理）
 # ------------------------------------------------------------------------------
 @app.post("/analyze", response_model=AnalyzeOut)
 def analyze(data: AnalyzeIn):
@@ -171,7 +167,6 @@ def analyze(data: AnalyzeIn):
 
     return AnalyzeOut(analysis=analysis, treatment=treatment, prognosis=px)
 
-
 # ------------------------------------------------------------------------------
 # 病例 CRUD
 # ------------------------------------------------------------------------------
@@ -183,12 +178,10 @@ def create_case(data: CaseCreate, db: Session = Depends(get_db)):
     db.refresh(obj)
     return obj
 
-
 @app.get("/cases", response_model=List[CaseOut])
 def list_cases(limit: int = 50, offset: int = 0, db: Session = Depends(get_db)):
     stmt = select(Case).order_by(Case.id.desc()).limit(limit).offset(offset)
     return db.scalars(stmt).all()
-
 
 @app.get("/cases/{case_id}", response_model=CaseOut)
 def get_case(case_id: int, db: Session = Depends(get_db)):
@@ -197,13 +190,18 @@ def get_case(case_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Case not found")
     return obj
 
-
-@app.post("/cases/{case_id}/analyze", response_model=CaseOut)
-def analyze_and_save(case_id: int, data: AnalyzeIn, db: Session = Depends(get_db)):
+@app.put("/cases/{case_id}", response_model=CaseOut)
+def update_case(case_id: int, data: CaseUpdate, db: Session = Depends(get_db)):
     obj = db.get(Case, case_id)
     if not obj:
         raise HTTPException(status_code=404, detail="Case not found")
-from fastapi import Response
+    updates = {k: v for k, v in data.model_dump(exclude_unset=True).items()}
+    for k, v in updates.items():
+        setattr(obj, k, v)
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
 
 @app.delete("/cases/{case_id}", status_code=204)
 def delete_case(case_id: int, db: Session = Depends(get_db)):
@@ -212,15 +210,16 @@ def delete_case(case_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Case not found")
     db.delete(obj)
     db.commit()
-    # 204 No Content
     return Response(status_code=204)
 
-    # 复用上面的分析逻辑
+# 分析并写回该病例
+@app.post("/cases/{case_id}/analyze", response_model=CaseOut)
+def analyze_and_save(case_id: int, data: AnalyzeIn, db: Session = Depends(get_db)):
+    obj = db.get(Case, case_id)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Case not found")
     res = analyze(data)
-    obj.analysis = res.analysis
-    obj.treatment = res.treatment
-    obj.prognosis = res.prognosis
-
+    obj.analysis, obj.treatment, obj.prognosis = res.analysis, res.treatment, res.prognosis
     db.add(obj)
     db.commit()
     db.refresh(obj)
