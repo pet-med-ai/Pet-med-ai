@@ -10,6 +10,8 @@ pydantic>=2
 SQLAlchemy>=2.0
 psycopg2-binary      # 连接 Render Postgres（若本地用SQLite可不装）
 passlib[bcrypt]      # 密码哈希
+python-jose[cryptography]
+
 python-multipart     # 以后支持表单/上传用
 alembic
 
