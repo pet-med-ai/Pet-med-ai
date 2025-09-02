@@ -61,6 +61,18 @@ class CaseOut(BaseModel):
     prognosis: Optional[str] = None
     class Config:
         from_attributes = True
+class CaseUpdate(BaseModel):
+    # 全部为可选字段，按需更新
+    patient_name: Optional[str] = None
+    species: Optional[str] = None
+    sex: Optional[str] = None
+    age_info: Optional[str] = None
+    chief_complaint: Optional[str] = None
+    history: Optional[str] = None
+    exam_findings: Optional[str] = None
+    analysis: Optional[str] = None
+    treatment: Optional[str] = None
+    prognosis: Optional[str] = None
 
 # -------------------- 规则占位：生成三段文本 --------------------
 def rule_infer(data: AnalyzeIn) -> AnalyzeOut:
