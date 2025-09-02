@@ -73,6 +73,33 @@ class CaseUpdate(BaseModel):
     analysis: Optional[str] = None
     treatment: Optional[str] = None
     prognosis: Optional[str] = None
+from fastapi import Response
+
+@app.put("/cases/{case_id}", response_model=CaseOut)
+def update_case(case_id: int, data: CaseUpdate, db: Session = Depends(get_db)):
+    obj = db.get(Case, case_id)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    # 仅更新传入的字段
+    updates = {k: v for k, v in data.model_dump(exclude_unset=True).items()}
+    for k, v in updates.items():
+        setattr(obj, k, v)
+
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
+
+
+@app.delete("/cases/{case_id}", status_code=204)
+def delete_case(case_id: int, db: Session = Depends(get_db)):
+    obj = db.get(Case, case_id)
+    if not obj:
+        raise HTTPException(status_code=404, detail="Case not found")
+    db.delete(obj)
+    db.commit()
+    return Response(status_code=204)
 
 # -------------------- 规则占位：生成三段文本 --------------------
 def rule_infer(data: AnalyzeIn) -> AnalyzeOut:
