@@ -12,7 +12,9 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
-
+# 如果用 Postgres，这里加
+    # - key: DATABASE_URL
+    #   value: postgresql://<user>:<pass>@<host>:5432/<db>
   - type: web
     name: pet-med-ai-frontend-v6
     env: node
