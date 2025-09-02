@@ -6,6 +6,9 @@ const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.on
 
 export default function App() {
   // ====== 分析表单 ======
+  const [detailCase, setDetailCase] = useState(null);   // 当前查看的病例
+  const [loadingDeleteId, setLoadingDeleteId] = useState(null); // 正在删除的病例ID
+
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [history, setHistory] = useState("");
   const [examFindings, setExamFindings] = useState("");
