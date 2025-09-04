@@ -18,11 +18,6 @@ from sqlalchemy.orm import Session
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Pet Med AI Backend (analyze & save)")
-# 覆盖 SECRET_KEY（从环境变量）
-if os.getenv("SECRET_KEY"):
-    from auth_jwt import SECRET_KEY as _SK  # 仅为了清晰，实质同一对象
-    # jose 的 SECRET_KEY 是 module 级常量；这里覆盖运行时读取的值
-    # 若你想更严谨，可在 auth_jwt 里读取环境变量，这里就不用处理。
 
 app.add_middleware(
     CORSMiddleware,
@@ -31,6 +26,11 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# 覆盖 SECRET_KEY（从环境变量）
+if os.getenv("SECRET_KEY"):
+    from auth_jwt import SECRET_KEY as _SK  # 仅为了清晰，实质同一对象
+    # jose 的 SECRET_KEY 是 module 级常量；这里覆盖运行时读取的值
+    # 若你想更严谨，可在 auth_jwt 里读取环境变量，这里就不用处理。
 
 # -------------------- 依赖：获取 DB 会话 --------------------
 def get_db() -> Session:
