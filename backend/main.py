@@ -1,4 +1,4 @@
-    # backend/main.py
+# backend/main.py
 from __future__ import annotations
 
 import os
@@ -9,9 +9,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from db import SessionLocal, Base, engine
-from models import Case
-from auth_jwt import router as auth_router, get_current_user  # JWT 路由与依赖
+# ★ 导入统一使用 backend. 前缀
+from backend.db import SessionLocal, Base, engine
+from backend.models import Case
+from backend.auth_jwt import router as auth_router, get_current_user
 
 # ---------------------- DB 初始化（Alembic 时可省） ----------------------
 Base.metadata.create_all(bind=engine)
@@ -46,12 +47,11 @@ def ping():
     return {"ok": True}
 
 # ---------------------- 注册 Auth 路由 & SECRET_KEY 覆盖 ----------------------
-# 若在 Render/环境变量设置了 SECRET_KEY，启动时覆盖 auth_jwt 内的常量
 if os.getenv("SECRET_KEY"):
-    import auth_jwt
+    # 覆盖 auth_jwt 内的 SECRET_KEY（从环境变量）
+    import backend.auth_jwt as auth_jwt
     auth_jwt.SECRET_KEY = os.getenv("SECRET_KEY")
 
-# /auth/signup, /auth/login 等
 app.include_router(auth_router)
 
 # ---------------------- Pydantic I/O 模型 ----------------------
