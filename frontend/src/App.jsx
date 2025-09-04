@@ -6,6 +6,41 @@ const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.on
 
 export default function App() {
   // ====== 分析表单 ======
+  // state
+const [email, setEmail] = useState("");
+const [password, setPassword] = useState("");
+const isAuthed = !!localStorage.getItem("token");
+
+// 登录
+const handleLogin = async (e) => {
+  e.preventDefault();
+  try {
+    const form = new FormData();
+    form.append("username", email);   // OAuth2PasswordRequestForm 需要 username 字段
+    form.append("password", password);
+    const res = await api.post("/auth/login", form);
+    localStorage.setItem("token", res.data.access_token);
+    alert("登录成功"); window.location.reload();
+  } catch (err) {
+    console.error(err);
+    alert("登录失败，请检查账号或密码");
+  }
+};
+
+// 注册（可选）
+const handleSignup = async () => {
+  try {
+    await api.post("/auth/signup", { email, password, full_name: "" });
+    alert("注册成功，请登录");
+  } catch (err) {
+    console.error(err);
+    alert("注册失败，邮箱可能已存在");
+  }
+};
+
+// 退出
+const handleLogout = () => { localStorage.removeItem("token"); window.location.reload(); };
+
   const [detailCase, setDetailCase] = useState(null);   // 当前查看的病例
   const [loadingDeleteId, setLoadingDeleteId] = useState(null); // 正在删除的病例ID
 
