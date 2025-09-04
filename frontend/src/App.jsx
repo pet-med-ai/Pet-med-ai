@@ -1,3 +1,17 @@
+{!isAuthed ? (
+  <form onSubmit={handleLogin} style={{ display:"flex", gap:8, alignItems:"center", margin:"8px 0" }}>
+    <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="邮箱" />
+    <input value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="密码" type="password" />
+    <button type="submit" style={btnTiny}>登录</button>
+    <button type="button" onClick={handleSignup} style={btnTiny}>注册</button>
+  </form>
+) : (
+  <div style={{ margin:"8px 0" }}>
+    <span style={{ opacity:.7, marginRight:8 }}>已登录</span>
+    <button onClick={handleLogout} style={btnTiny}>退出</button>
+  </div>
+)}
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
