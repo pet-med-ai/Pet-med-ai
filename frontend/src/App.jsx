@@ -1,4 +1,6 @@
 // src/App.jsx
+import CaseDetail from "./pages/CaseDetail";
+
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
