@@ -2,7 +2,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import CaseEditorPage from "./pages/CaseEditor"; // ← 这是你刚放进 pages 的编辑器页面
+import CaseEditorPage from "./pages/CaseEditorLite";
+
 
 // 后端基地址：优先取环境变量，没配就用你当前后端域名
 const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.onrender.com";
