@@ -1,62 +1,56 @@
-{!isAuthed ? (
-  <form onSubmit={handleLogin} style={{ display:"flex", gap:8, alignItems:"center", margin:"8px 0" }}>
-    <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="邮箱" />
-    <input value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="密码" type="password" />
-    <button type="submit" style={btnTiny}>登录</button>
-    <button type="button" onClick={handleSignup} style={btnTiny}>注册</button>
-  </form>
-) : (
-  <div style={{ margin:"8px 0" }}>
-    <span style={{ opacity:.7, marginRight:8 }}>已登录</span>
-    <button onClick={handleLogout} style={btnTiny}>退出</button>
-  </div>
-)}
-
+// src/App.jsx
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import CaseEditorPage from "./pages/CaseEditor"; // ← 这是你刚放进 pages 的编辑器页面
 
 // 后端基地址：优先取环境变量，没配就用你当前后端域名
 const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.onrender.com";
 
-export default function App() {
-  // ====== 分析表单 ======
-  // state
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-const isAuthed = !!localStorage.getItem("token");
+/** ===== 把你现有的界面封装为 Home 页面，并保持原样 ===== */
+function Home() {
+  // ====== 登录区 ======
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const isAuthed = !!localStorage.getItem("token");
 
-// 登录
-const handleLogin = async (e) => {
-  e.preventDefault();
-  try {
-    const form = new FormData();
-    form.append("username", email);   // OAuth2PasswordRequestForm 需要 username 字段
-    form.append("password", password);
-    const res = await api.post("/auth/login", form);
-    localStorage.setItem("token", res.data.access_token);
-    alert("登录成功"); window.location.reload();
-  } catch (err) {
-    console.error(err);
-    alert("登录失败，请检查账号或密码");
-  }
-};
+  const api = axios.create({
+    baseURL: API_BASE,
+    headers: isAuthed ? { Authorization: `Bearer ${localStorage.getItem("token")}` } : {},
+    withCredentials: true,
+  });
 
-// 注册（可选）
-const handleSignup = async () => {
-  try {
-    await api.post("/auth/signup", { email, password, full_name: "" });
-    alert("注册成功，请登录");
-  } catch (err) {
-    console.error(err);
-    alert("注册失败，邮箱可能已存在");
-  }
-};
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    try {
+      const form = new FormData();
+      form.append("username", email);   // OAuth2PasswordRequestForm 需要 username 字段
+      form.append("password", password);
+      const res = await api.post("/auth/login", form);
+      localStorage.setItem("token", res.data.access_token);
+      alert("登录成功");
+      window.location.reload();
+    } catch (err) {
+      console.error(err);
+      alert("登录失败，请检查账号或密码");
+    }
+  };
 
-// 退出
-const handleLogout = () => { localStorage.removeItem("token"); window.location.reload(); };
+  const handleSignup = async () => {
+    try {
+      await api.post("/auth/signup", { email, password, full_name: "" });
+      alert("注册成功，请登录");
+    } catch (err) {
+      console.error(err);
+      alert("注册失败，邮箱可能已存在");
+    }
+  };
 
-  const [detailCase, setDetailCase] = useState(null);   // 当前查看的病例
-  const [loadingDeleteId, setLoadingDeleteId] = useState(null); // 正在删除的病例ID
+  const handleLogout = () => { localStorage.removeItem("token"); window.location.reload(); };
+
+  // ====== 你原有的状态与逻辑（保持不变） ======
+  const [detailCase, setDetailCase] = useState(null);
+  const [loadingDeleteId, setLoadingDeleteId] = useState(null);
 
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [history, setHistory] = useState("");
@@ -67,7 +61,6 @@ const handleLogout = () => { localStorage.removeItem("token"); window.location.r
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
   const [errMsg, setErrMsg] = useState("");
 
-  // ====== 病例数据 ======
   const [patientName, setPatientName] = useState("");
   const [species, setSpecies] = useState("dog");
   const [sex, setSex] = useState("");
@@ -75,14 +68,10 @@ const handleLogout = () => { localStorage.removeItem("token"); window.location.r
   const [cases, setCases] = useState([]);
   const [loadingCases, setLoadingCases] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
-  const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null); // 正在重分析的病例ID
+  const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null);
 
-  // 首次加载拉一次病例列表
-  useEffect(() => {
-    fetchCases();
-  }, []);
+  useEffect(() => { fetchCases(); }, []);
 
-  // 拉取病例列表
   const fetchCases = async () => {
     try {
       setLoadingCases(true);
@@ -95,7 +84,6 @@ const handleLogout = () => { localStorage.removeItem("token"); window.location.r
     }
   };
 
-  // 提交分析（不存库，只取分析结果展示）
   const handleAnalyzeSubmit = async (e) => {
     e.preventDefault();
     setErrMsg("");
@@ -121,7 +109,6 @@ const handleLogout = () => { localStorage.removeItem("token"); window.location.r
     }
   };
 
-  // 创建病例（把当前表单 + 分析结果一起存入后端 /cases）
   const handleCreateCase = async () => {
     if (!patientName || !chiefComplaint) {
       alert("请至少填写病例名与主诉");
@@ -138,7 +125,6 @@ const handleLogout = () => { localStorage.removeItem("token"); window.location.r
         history: history || null,
         exam_findings: examFindings || null,
       });
-      // 创建完成后刷新列表
       await fetchCases();
       alert(`创建成功：病例ID = ${res.data.id}`);
     } catch (e) {
@@ -149,7 +135,6 @@ const handleLogout = () => { localStorage.removeItem("token"); window.location.r
     }
   };
 
-  // 对某条病例再次分析并写回（POST /cases/{id}/analyze）
   const handleReAnalyze = async (caseItem) => {
     try {
       setLoadingReAnalyzeId(caseItem.id);
@@ -160,7 +145,6 @@ const handleLogout = () => { localStorage.removeItem("token"); window.location.r
         species: caseItem.species || "dog",
         age_info: caseItem.age_info || "",
       });
-      // 刷新列表，显示最新的 analysis/treatment/prognosis
       await fetchCases();
       alert(`病例 ${caseItem.id} 已更新分析结果`);
     } catch (e) {
@@ -174,6 +158,21 @@ const handleLogout = () => { localStorage.removeItem("token"); window.location.r
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
       <h1 style={{ marginTop: 0 }}>Pet Med AI — 前端联调面板</h1>
+
+      {/* 登录区（你发的那段 JSX 放这里） */}
+      {!isAuthed ? (
+        <form onSubmit={handleLogin} style={{ display:"flex", gap:8, alignItems:"center", margin:"8px 0" }}>
+          <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="邮箱" />
+          <input value={password} onChange={(e)=>setPassword(e.target.value)} placeholder="密码" type="password" />
+          <button type="submit" style={btnTiny}>登录</button>
+          <button type="button" onClick={handleSignup} style={btnTiny}>注册</button>
+        </form>
+      ) : (
+        <div style={{ margin:"8px 0" }}>
+          <span style={{ opacity:.7, marginRight:8 }}>已登录</span>
+          <button onClick={handleLogout} style={btnTiny}>退出</button>
+        </div>
+      )}
 
       {/* ====== 病例信息（基础） ====== */}
       <section style={card}>
@@ -292,8 +291,25 @@ const handleLogout = () => { localStorage.removeItem("token"); window.location.r
   );
 }
 
-/* ----------------- 小组件 & 样式 ----------------- */
+/** ===== 路由容器：这里是“放入的位置” =====
+ * 你原来的 <div>...return(...) 全部被收纳到 <Home/>，
+ * 然后在 <Routes> 里声明：
+ *   "/"             -> <Home/>
+ *   "/cases/new/edit" 和 "/cases/:id/edit" -> <CaseEditorPage/>
+ */
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/cases/new/edit" element={<CaseEditorPage />} />
+        <Route path="/cases/:id/edit" element={<CaseEditorPage />} />
+      </Routes>
+    </Router>
+  );
+}
 
+/* ----------------- 你原来的小组件 & 样式，保持不变 ----------------- */
 function Field({ label, children }) {
   return (
     <label style={{ display: "block", marginTop: 12 }}>
@@ -302,7 +318,6 @@ function Field({ label, children }) {
     </label>
   );
 }
-
 function Block({ title, children }) {
   return (
     <div style={{ background: "#f6f8fa", padding: 12, borderRadius: 8, whiteSpace: "pre-wrap", marginTop: 8 }}>
@@ -311,7 +326,6 @@ function Block({ title, children }) {
     </div>
   );
 }
-
 const h2 = { margin: "0 0 12px" };
 const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, marginTop: 16 };
 const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
