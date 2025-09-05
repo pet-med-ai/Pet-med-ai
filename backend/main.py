@@ -10,8 +10,8 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 # ★ 导入统一使用 backend. 前缀
-from db import SessionLocal, Base, engine
-from models import Case
+from backend.db import SessionLocal, Base, engine
+from backend.models import Case
 from auth_jwt import router as auth_router, get_current_user
 
 
