@@ -1,11 +1,8 @@
 // src/App.jsx
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
-
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import CaseEditorPage from "./pages/CaseEditorLite";
-
 
 // 后端基地址：优先取环境变量，没配就用你当前后端域名
 const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.onrender.com";
@@ -52,9 +49,6 @@ function Home() {
   const handleLogout = () => { localStorage.removeItem("token"); window.location.reload(); };
 
   // ====== 你原有的状态与逻辑（保持不变） ======
-  const [detailCase, setDetailCase] = useState(null);
-  const [loadingDeleteId, setLoadingDeleteId] = useState(null);
-
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [history, setHistory] = useState("");
   const [examFindings, setExamFindings] = useState("");
@@ -141,7 +135,7 @@ function Home() {
   const handleReAnalyze = async (caseItem) => {
     try {
       setLoadingReAnalyzeId(caseItem.id);
-      const res = await axios.post(`${API_BASE}/cases/${caseItem.id}/analyze`, {
+      await axios.post(`${API_BASE}/cases/${caseItem.id}/analyze`, {
         chief_complaint: caseItem.chief_complaint,
         history: caseItem.history || "",
         exam_findings: caseItem.exam_findings || "",
@@ -159,45 +153,10 @@ function Home() {
   };
 
   return (
-
-// 病例列表 section 上面的操作区，加入“新建病例”
-<div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
-  <button onClick={fetchCases} disabled={loadingCases} style={btn}>
-    {loadingCases ? "刷新中…" : "刷新列表"}
-  </button>
-  <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
-    新建病例（进入编辑器）
-  </Link>
-</div>
-
-// 表格每行操作列里，加入“编辑”跳转
-<td>
-  <div style={{ display: "inline-flex", gap: 8 }}>
-    <Link
-      to={`/cases/${c.id}/edit`}
-      style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
-    >
-      编辑
-    </Link>
-
-    <button
-      type="button"
-      style={{ ...btnTiny }}
-      onClick={() => handleReAnalyze(c)}
-      disabled={loadingReAnalyzeId === c.id}
-      title="用当前字段重新分析并写回病例"
-    >
-      {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
-    </button>
-  </div>
-</td>
-
-
-
     <div style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
       <h1 style={{ marginTop: 0 }}>Pet Med AI — 前端联调面板</h1>
 
-      {/* 登录区（你发的那段 JSX 放这里） */}
+      {/* 登录区 */}
       {!isAuthed ? (
         <form onSubmit={handleLogin} style={{ display:"flex", gap:8, alignItems:"center", margin:"8px 0" }}>
           <input value={email} onChange={(e)=>setEmail(e.target.value)} placeholder="邮箱" />
@@ -255,6 +214,9 @@ function Home() {
             <button type="button" onClick={handleCreateCase} disabled={loadingCreate} style={btnSecondary}>
               {loadingCreate ? "保存中…" : "保存为病例（入库）"}
             </button>
+            <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
+              新建病例（进入编辑器）
+            </Link>
           </div>
         </form>
 
@@ -277,6 +239,9 @@ function Home() {
           <button onClick={fetchCases} disabled={loadingCases} style={btn}>
             {loadingCases ? "刷新中…" : "刷新列表"}
           </button>
+          <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
+            新建病例（进入编辑器）
+          </Link>
         </div>
 
         {cases.length === 0 ? (
@@ -306,14 +271,23 @@ function Home() {
                     {c.analysis ? "✓" : "—"}
                   </td>
                   <td>
-                    <button
-                      style={btnTiny}
-                      onClick={() => handleReAnalyze(c)}
-                      disabled={loadingReAnalyzeId === c.id}
-                      title="用当前字段重新分析并写回病例"
-                    >
-                      {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
-                    </button>
+                    <div style={{ display: "inline-flex", gap: 8 }}>
+                      <Link
+                        to={`/cases/${c.id}/edit`}
+                        style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
+                      >
+                        编辑
+                      </Link>
+                      <button
+                        type="button"
+                        style={{ ...btnTiny }}
+                        onClick={() => handleReAnalyze(c)}
+                        disabled={loadingReAnalyzeId === c.id}
+                        title="用当前字段重新分析并写回病例"
+                      >
+                        {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -329,12 +303,7 @@ function Home() {
   );
 }
 
-/** ===== 路由容器：这里是“放入的位置” =====
- * 你原来的 <div>...return(...) 全部被收纳到 <Home/>，
- * 然后在 <Routes> 里声明：
- *   "/"             -> <Home/>
- *   "/cases/new/edit" 和 "/cases/:id/edit" -> <CaseEditorPage/>
- */
+/** ===== 路由容器 ===== */
 export default function App() {
   return (
     <Router>
@@ -342,12 +311,13 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/cases/new/edit" element={<CaseEditorPage />} />
         <Route path="/cases/:id/edit" element={<CaseEditorPage />} />
+        <Route path="*" element={<div style={{ padding: 24 }}>页面不存在（404）。</div>} />
       </Routes>
     </Router>
   );
 }
 
-/* ----------------- 你原来的小组件 & 样式，保持不变 ----------------- */
+/* ----------------- 小组件 & 样式 ----------------- */
 function Field({ label, children }) {
   return (
     <label style={{ display: "block", marginTop: 12 }}>
