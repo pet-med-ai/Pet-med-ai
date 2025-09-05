@@ -1,4 +1,5 @@
 // src/App.jsx
+import { Link } from "react-router-dom";
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
@@ -157,8 +158,6 @@ function Home() {
   };
 
   return (
-    // 顶部导入
-import { Link } from "react-router-dom";
 
 // 病例列表 section 上面的操作区，加入“新建病例”
 <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
