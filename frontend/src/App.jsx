@@ -171,22 +171,26 @@ function Home() {
 
 // 表格每行操作列里，加入“编辑”跳转
 <td>
-  <Link
-    to={`/cases/${c.id}/edit`}
-    style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
-  >
-    编辑
-  </Link>
+  <div style={{ display: "inline-flex", gap: 8 }}>
+    <Link
+      to={`/cases/${c.id}/edit`}
+      style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
+    >
+      编辑
+    </Link>
 
-  <button
-    style={{ ...btnTiny, marginLeft: 8 }}
-    onClick={() => handleReAnalyze(c)}
-    disabled={loadingReAnalyzeId === c.id}
-    title="用当前字段重新分析并写回病例"
-  >
-    {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
-  </button>
+    <button
+      type="button"
+      style={{ ...btnTiny }}
+      onClick={() => handleReAnalyze(c)}
+      disabled={loadingReAnalyzeId === c.id}
+      title="用当前字段重新分析并写回病例"
+    >
+      {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
+    </button>
+  </div>
 </td>
+
 
 
     <div style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
