@@ -171,7 +171,13 @@ function Home() {
 
 // 表格每行操作列里，加入“编辑”跳转
 <td>
-  <Link to={`/cases/${c.id}/edit`} style={{ ...btnTiny, textDecoration:"none" }}>编辑</Link>
+  <Link
+    to={`/cases/${c.id}/edit`}
+    style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
+  >
+    编辑
+  </Link>
+
   <button
     style={{ ...btnTiny, marginLeft: 8 }}
     onClick={() => handleReAnalyze(c)}
@@ -181,6 +187,7 @@ function Home() {
     {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
   </button>
 </td>
+
 
     <div style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
       <h1 style={{ marginTop: 0 }}>Pet Med AI — 前端联调面板</h1>
