@@ -157,6 +157,32 @@ function Home() {
   };
 
   return (
+    // 顶部导入
+import { Link } from "react-router-dom";
+
+// 病例列表 section 上面的操作区，加入“新建病例”
+<div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
+  <button onClick={fetchCases} disabled={loadingCases} style={btn}>
+    {loadingCases ? "刷新中…" : "刷新列表"}
+  </button>
+  <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
+    新建病例（进入编辑器）
+  </Link>
+</div>
+
+// 表格每行操作列里，加入“编辑”跳转
+<td>
+  <Link to={`/cases/${c.id}/edit`} style={{ ...btnTiny, textDecoration:"none" }}>编辑</Link>
+  <button
+    style={{ ...btnTiny, marginLeft: 8 }}
+    onClick={() => handleReAnalyze(c)}
+    disabled={loadingReAnalyzeId === c.id}
+    title="用当前字段重新分析并写回病例"
+  >
+    {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
+  </button>
+</td>
+
     <div style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
       <h1 style={{ marginTop: 0 }}>Pet Med AI — 前端联调面板</h1>
 
