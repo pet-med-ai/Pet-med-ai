@@ -311,6 +311,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/cases/new/edit" element={<CaseEditorPage />} />
         <Route path="/cases/:id/edit" element={<CaseEditorPage />} />
+        <Route path="/cases/:id" element={<CaseDetail />} />
         <Route path="*" element={<div style={{ padding: 24 }}>页面不存在（404）。</div>} />
       </Routes>
     </Router>
