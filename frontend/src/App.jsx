@@ -275,8 +275,14 @@ function Home() {
                   <td>
                     <div style={{ display: "inline-flex", gap: 8 }}>
                       <Link
-                        to={`/cases/${c.id}/edit`}
+                        to={`/cases/${c.id}`}
                         style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
+                      >
+                        查看
+                      </Link>
+                      <Link
+                        to={`/cases/${c.id}/edit`} 
+                       style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
                       >
                         编辑
                       </Link>
