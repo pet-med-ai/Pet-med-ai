@@ -1,34 +1,26 @@
 // src/App.jsx
-import api from "./api";
-
-import CaseDetail from "./pages/CaseDetail";
-
 import React, { useEffect, useState } from "react";
-import axios from "axios";
 import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import api from "./api";
+import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
 
-// 后端基地址：优先取环境变量，没配就用你当前后端域名
+// 仅用于页面底部显示后端地址（不参与请求）
 const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.onrender.com";
 
-/** ===== 把你现有的界面封装为 Home 页面，并保持原样 ===== */
+/** ===== 首页（病例列表 + 即时分析 + 新建） ===== */
 function Home() {
   // ====== 登录区 ======
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const isAuthed = !!localStorage.getItem("token");
 
-  const api = axios.create({
-    baseURL: API_BASE,
-    headers: isAuthed ? { Authorization: `Bearer ${localStorage.getItem("token")}` } : {},
-    withCredentials: true,
-  });
-
+  // 登录
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
       const form = new FormData();
-      form.append("username", email);   // OAuth2PasswordRequestForm 需要 username 字段
+      form.append("username", email);   // OAuth2PasswordRequestForm 需要 username
       form.append("password", password);
       const res = await api.post("/auth/login", form);
       localStorage.setItem("token", res.data.access_token);
@@ -40,6 +32,7 @@ function Home() {
     }
   };
 
+  // 注册
   const handleSignup = async () => {
     try {
       await api.post("/auth/signup", { email, password, full_name: "" });
@@ -52,7 +45,7 @@ function Home() {
 
   const handleLogout = () => { localStorage.removeItem("token"); window.location.reload(); };
 
-  // ====== 你原有的状态与逻辑（保持不变） ======
+  // ====== 业务状态 ======
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [history, setHistory] = useState("");
   const [examFindings, setExamFindings] = useState("");
@@ -66,6 +59,7 @@ function Home() {
   const [species, setSpecies] = useState("dog");
   const [sex, setSex] = useState("");
   const [ageInfo, setAgeInfo] = useState("");
+
   const [cases, setCases] = useState([]);
   const [loadingCases, setLoadingCases] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
@@ -73,10 +67,11 @@ function Home() {
 
   useEffect(() => { fetchCases(); }, []);
 
+  // 拉取病例列表  GET /api/cases
   const fetchCases = async () => {
     try {
       setLoadingCases(true);
-      const res = await axios.get(`${API_BASE}/cases`);
+      const res = await api.get("/api/cases");
       setCases(res.data || []);
     } catch (e) {
       console.error("拉取病例失败：", e);
@@ -85,14 +80,14 @@ function Home() {
     }
   };
 
+  // 即时分析（不入库） POST /api/analyze
   const handleAnalyzeSubmit = async (e) => {
     e.preventDefault();
     setErrMsg("");
     setAnalysis(""); setTreatment(""); setPrognosis("");
     setLoadingAnalyze(true);
     try {
-      const url = `${API_BASE}/analyze`;
-      const res = await axios.post(url, {
+      const res = await api.post("/api/analyze", {
         chief_complaint: chiefComplaint,
         history,
         exam_findings: examFindings,
@@ -110,6 +105,7 @@ function Home() {
     }
   };
 
+  // 新建病例  POST /api/cases
   const handleCreateCase = async () => {
     if (!patientName || !chiefComplaint) {
       alert("请至少填写病例名与主诉");
@@ -117,7 +113,7 @@ function Home() {
     }
     try {
       setLoadingCreate(true);
-      const res = await axios.post(`${API_BASE}/cases`, {
+      const res = await api.post("/api/cases", {
         patient_name: patientName,
         species,
         sex: sex || null,
@@ -136,10 +132,11 @@ function Home() {
     }
   };
 
+  // 重分析并写回  POST /api/cases/:id/analyze
   const handleReAnalyze = async (caseItem) => {
     try {
       setLoadingReAnalyzeId(caseItem.id);
-      await axios.post(`${API_BASE}/cases/${caseItem.id}/analyze`, {
+      await api.post(`/api/cases/${caseItem.id}/analyze`, {
         chief_complaint: caseItem.chief_complaint,
         history: caseItem.history || "",
         exam_findings: caseItem.exam_findings || "",
@@ -283,8 +280,8 @@ function Home() {
                         查看
                       </Link>
                       <Link
-                        to={`/cases/${c.id}/edit`} 
-                       style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
+                        to={`/cases/${c.id}/edit`}
+                        style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
                       >
                         编辑
                       </Link>
