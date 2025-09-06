@@ -1,4 +1,6 @@
 // src/App.jsx
+import api from "./api";
+
 import CaseDetail from "./pages/CaseDetail";
 
 import React, { useEffect, useState } from "react";
