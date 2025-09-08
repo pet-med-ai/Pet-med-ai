@@ -239,6 +239,21 @@ function Home() {
 
       {/* ====== 病例列表 ====== */}
       <section style={card}>
+       <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
+         <input
+           value={q}
+           onChange={(e) => { setQ(e.target.value); setPage(1); }}
+           placeholder="搜索：病例名 / 物种 / 主诉"
+           style={{ flex: 1, padding: "8px 10px", border: "1px solid #e5e7eb", borderRadius: 8 }}
+         />
+         <button onClick={fetchCases} disabled={loadingCases} style={btn}>
+           {loadingCases ? "刷新中…" : "刷新列表"}
+         </button>
+         <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
+           新建病例（进入编辑器）
+         </Link>
+       </div>
+
         <h2 style={h2}>3) 病例列表</h2>
         <div style={{ display: "flex", gap: 8, marginBottom: 8 }}>
           <button onClick={fetchCases} disabled={loadingCases} style={btn}>
