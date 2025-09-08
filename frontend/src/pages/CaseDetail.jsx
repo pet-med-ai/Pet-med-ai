@@ -1,8 +1,7 @@
 // src/pages/CaseDetail.jsx
 import React, { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.onrender.com";
+import api from "../api"; // 统一使用全局 axios 实例（自动带 token）
 
 export default function CaseDetail() {
   const { id } = useParams();
@@ -16,10 +15,8 @@ export default function CaseDetail() {
     let stop = false;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/cases/${id}`, { credentials: "include" });
-        if (!res.ok) throw new Error(await res.text());
-        const json = await res.json();
-        if (!stop) setData(json);
+        const res = await api.get(`/api/cases/${id}`);
+        if (!stop) setData(res.data);
       } catch (e) {
         setErr(String(e));
       } finally {
@@ -33,10 +30,7 @@ export default function CaseDetail() {
     if (!confirm("确定删除该病例？此操作不可恢复。")) return;
     try {
       setDeleting(true);
-      const res = await fetch(`${API_BASE}/cases/${id}`, {
-        method: "DELETE",
-        credentials: "include"
-      });
+      const res = await api.delete(`/api/cases/${id}`);
       if (!res.ok) throw new Error(await res.text());
       alert("已删除");
       navigate("/");
