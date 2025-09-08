@@ -14,6 +14,10 @@ function Home() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const isAuthed = !!localStorage.getItem("token");
+  // 搜索 & 分页
+  const [q, setQ] = useState("");        // 搜索关键字
+  const [page, setPage] = useState(1);   // 当前页
+  const pageSize = 10;                   // 每页条数
 
   // 登录
   const handleLogin = async (e) => {
