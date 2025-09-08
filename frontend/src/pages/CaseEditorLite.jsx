@@ -1,9 +1,7 @@
 // src/pages/CaseEditorLite.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import axios from "axios";
-
-const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.onrender.com";
+import api from "../api"; // ← 统一使用全局 axios 实例（自动带 token）
 
 export default function CaseEditorLite() {
   const { id } = useParams();
@@ -40,10 +38,8 @@ export default function CaseEditorLite() {
     let stop = false;
     (async () => {
       try {
-        const res = await fetch(`${API_BASE}/api/cases/${id}`, { credentials: "include" });
-        if (!res.ok) throw new Error(await res.text());
-        const data = await res.json();
-        if (!stop) setForm((f) => ({ ...f, ...data }));
+        const res = await api.get(`/api/cases/${id}`);
+        if (!stop) setForm((f) => ({ ...f, ...res.data }));
       } catch (e) {
         setError(String(e));
       } finally {
@@ -68,15 +64,12 @@ export default function CaseEditorLite() {
     setSaving(true);
     setError("");
     try {
-      const body = JSON.stringify(form);
       if (isNew) {
-        const res = await fetch(`${API_BASE}/api/cases`, { method: "POST", headers: { "Content-Type": "application/json" }, credentials: "include", body });
-        if (!res.ok) throw new Error(await res.text());
-        const created = await res.json();
+        const res = await api.post(`/api/cases`, form);
+        const created = res.data;
         navigate(`/cases/${created.id}/edit`, { replace: true });
       } else {
-        const res = await fetch(`${API_BASE}/api/cases/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, credentials: "include", body });
-        if (!res.ok) throw new Error(await res.text());
+        await api.put(`/api/cases/${id}`, form);
         alert("已保存");
       }
     } catch (e) {
@@ -93,9 +86,10 @@ export default function CaseEditorLite() {
       for (const file of files) {
         const fd = new FormData();
         fd.append("file", file);
-        const res = await fetch(`${API_BASE}/api/files`, { method: "POST", body: fd, credentials: "include" });
-        if (!res.ok) throw new Error(await res.text());
-        uploaded.push(await res.json());
+        const res = await api.post(`/api/files`, fd, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        uploaded.push(res.data);
       }
       set("attachments", [...form.attachments, ...uploaded]);
     } catch (e) {
