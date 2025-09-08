@@ -5,17 +5,13 @@ import api from "./api";
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
 
-// 仅用于页面底部显示后端地址（不参与请求）
-const API_BASE = import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.onrender.com";
-
-/** ===== 首页（病例列表 + 即时分析 + 新建） ===== */
+/** ===== 首页 Home 组件 ===== */
 function Home() {
-  // ====== 登录区 ======
+  // ===== 登录区 =====
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const isAuthed = !!localStorage.getItem("token");
 
-  // 登录/注册/退出
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
@@ -31,6 +27,7 @@ function Home() {
       alert("登录失败，请检查账号或密码");
     }
   };
+
   const handleSignup = async () => {
     try {
       await api.post("/auth/signup", { email, password, full_name: "" });
@@ -40,9 +37,10 @@ function Home() {
       alert("注册失败，邮箱可能已存在");
     }
   };
+
   const handleLogout = () => { localStorage.removeItem("token"); window.location.reload(); };
 
-  // ====== 业务状态（分析区） ======
+  // ===== 分析区状态 =====
   const [chiefComplaint, setChiefComplaint] = useState("");
   const [history, setHistory] = useState("");
   const [examFindings, setExamFindings] = useState("");
@@ -57,19 +55,19 @@ function Home() {
   const [sex, setSex] = useState("");
   const [ageInfo, setAgeInfo] = useState("");
 
-  // ====== 列表（服务端搜索 + 分页） ======
-  const [q, setQ] = useState("");          // 搜索关键字
-  const [page, setPage] = useState(1);     // 当前页（从 1 开始）
-  const [pageSize] = useState(10);         // 每页条数
-  const [cases, setCases] = useState([]);  // 当前页数据
-  const [total, setTotal] = useState(0);   // 总条数
+  // ===== 列表搜索+分页 =====
+  const [q, setQ] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize] = useState(10);
+  const [cases, setCases] = useState([]);
+  const [total, setTotal] = useState(0);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const [loadingCases, setLoadingCases] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null);
 
-  // 小工具：输入防抖
-  const debounce = (fn, delay=300) => {
+  // 防抖工具
+  const debounce = (fn, delay = 300) => {
     let t;
     return (...args) => {
       clearTimeout(t);
@@ -77,7 +75,7 @@ function Home() {
     };
   };
 
-  // 拉取病例列表：GET /api/cases?q=&page=&page_size=
+  // 拉取病例列表
   const fetchCases = async (paramsOverride = {}) => {
     try {
       setLoadingCases(true);
@@ -89,7 +87,6 @@ function Home() {
           ...paramsOverride,
         },
       });
-      // 兼容两种返回结构：{items,total} 或 直接是数组
       const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
       const totalCount = Array.isArray(res.data) ? items.length : (res.data.total ?? items.length);
       setCases(items);
@@ -101,10 +98,8 @@ function Home() {
     }
   };
 
-  // 初次加载
   useEffect(() => { fetchCases(); }, []);
 
-  // 搜索关键字变化 → 300ms 防抖请求（页码重置为 1）
   useEffect(() => {
     const run = debounce(() => {
       setPage(1);
@@ -114,13 +109,9 @@ function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
 
-  // 页码变化时请求
-  useEffect(() => {
-    fetchCases();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page]);
+  useEffect(() => { fetchCases(); }, [page]);
 
-  // 即时分析（不入库） POST /api/analyze
+  // 即时分析
   const handleAnalyzeSubmit = async (e) => {
     e.preventDefault();
     setErrMsg("");
@@ -145,7 +136,7 @@ function Home() {
     }
   };
 
-  // 新建病例  POST /api/cases
+  // 新建病例
   const handleCreateCase = async () => {
     if (!patientName || !chiefComplaint) {
       alert("请至少填写病例名与主诉");
@@ -162,7 +153,6 @@ function Home() {
         history: history || null,
         exam_findings: examFindings || null,
       });
-      // 刷新当前页
       await fetchCases();
       alert(`创建成功：病例ID = ${res.data.id}`);
     } catch (e) {
@@ -173,7 +163,7 @@ function Home() {
     }
   };
 
-  // 重分析并写回  POST /api/cases/:id/analyze
+  // 重分析并写回
   const handleReAnalyze = async (caseItem) => {
     try {
       setLoadingReAnalyzeId(caseItem.id);
@@ -213,7 +203,7 @@ function Home() {
         </div>
       )}
 
-      {/* ====== 病例信息（基础） ====== */}
+      {/* ====== 基础信息表单 ====== */}
       <section style={card}>
         <h2 style={h2}>1) 填写病例基础信息</h2>
         <div style={grid2}>
@@ -261,9 +251,7 @@ function Home() {
             </Link>
           </div>
         </form>
-
         {errMsg && <p style={{ color: "crimson", marginTop: 8 }}>{errMsg}</p>}
-
         {(analysis || treatment || prognosis) && (
           <div style={{ marginTop: 16 }}>
             <h3>即时分析结果</h3>
@@ -274,11 +262,9 @@ function Home() {
         )}
       </section>
 
-      {/* ====== 病例列表（搜索 + 分页） ====== */}
+      {/* ====== 列表（搜索+分页） ====== */}
       <section style={card}>
         <h2 style={h2}>3) 病例列表</h2>
-
-        {/* 搜索 + 操作 */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
           <input
             value={q}
@@ -294,7 +280,6 @@ function Home() {
           </Link>
         </div>
 
-        {/* 表格 */}
         {cases.length === 0 ? (
           <p style={{ opacity: 0.7 }}>暂无病例。</p>
         ) : (
@@ -346,36 +331,57 @@ function Home() {
               </tbody>
             </table>
 
-            {/* 分页器 */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
-              <div style={{ opacity: 0.7, fontSize: 12 }}>
-                共 {total} 条，{pageSize} 条/页
-              </div>
+              <div style={{ opacity: 0.7, fontSize: 12 }}>共 {total} 条，{pageSize} 条/页</div>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <button
-                  style={btnTiny}
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                >
-                  上一页
-                </button>
+                <button style={btnTiny} disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页</button>
                 <span style={{ padding: "6px 10px" }}>{page} / {totalPages}</span>
-                <button
-                  style={btnTiny}
-                  disabled={page >= totalPages}
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                >
-                  下一页
-                </button>
+                <button style={btnTiny} disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>下一页</button>
               </div>
             </div>
           </>
         )}
       </section>
-
-      <p style={{ marginTop: 24, opacity: 0.7, fontSize: 12 }}>
-        后端：{import.meta.env.VITE_API_BASE}
-      </p>
     </div>
   );
 }
+
+/** ===== 路由容器 ===== */
+export default function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/cases/new/edit" element={<CaseEditorPage />} />
+        <Route path="/cases/:id/edit" element={<CaseEditorPage />} />
+        <Route path="/cases/:id" element={<CaseDetail />} />
+        <Route path="*" element={<div style={{ padding: 24 }}>页面不存在（404）。</div>} />
+      </Routes>
+    </Router>
+  );
+}
+
+/* ----------------- 小组件 & 样式 ----------------- */
+function Field({ label, children }) {
+  return (
+    <label style={{ display: "block", marginTop: 12 }}>
+      <div style={{ fontSize: 13, opacity: 0.8, marginBottom: 4 }}>{label}</div>
+      {children}
+    </label>
+  );
+}
+function Block({ title, children }) {
+  return (
+    <div style={{ background: "#f6f8fa", padding: 12, borderRadius: 8, whiteSpace: "pre-wrap", marginTop: 8 }}>
+      <div style={{ fontWeight: 600, marginBottom: 6 }}>{title}</div>
+      {children}
+    </div>
+  );
+}
+const h2 = { margin: "0 0 12px" };
+const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, marginTop: 16 };
+const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
+const btn = { padding: "8px 14px", borderRadius: 8, border: "1px solid #0ea5e9", background: "#0ea5e9", color: "#fff", cursor: "pointer" };
+const btnSecondary = { padding: "8px 14px", borderRadius: 8, border: "1px solid #64748b", background: "#fff", color: "#111", cursor: "pointer" };
+const btnTiny = { padding: "6px 10px", borderRadius: 8, border: "1px solid #64748b", background: "#fff", color: "#111", cursor: "pointer", fontSize: 12 };
+const table = { width: "100%", borderCollapse: "collapse" };
