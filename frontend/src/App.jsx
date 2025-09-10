@@ -55,7 +55,7 @@ function Home() {
   const [sex, setSex] = useState("");
   const [ageInfo, setAgeInfo] = useState("");
 
-  // ===== 列表搜索+分页 =====
+  // ===== 列表 搜索 + 分页 =====
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
@@ -66,31 +66,82 @@ function Home() {
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null);
 
-  // 防抖工具
-  const debounce = (fn, delay = 300) => {
-    let t;
-    return (...args) => {
-      clearTimeout(t);
-      t = setTimeout(() => fn(...args), delay);
+  // ===== 批量选择 / 导出 / 批量删除 =====
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+
+  const toggleOne = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const selectAllCurrentPage = () => setSelectedIds(new Set(cases.map((c) => c.id)));
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const wrap = (v) => {
+    const s = (v ?? "").toString();
+    if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
     };
+  const exportCSV = () => {
+    if (!cases.length) { alert("当前没有可导出的数据"); return; }
+    const headers = ["id","patient_name","species","chief_complaint","has_analysis"];
+    const rows = cases.map(c => [
+      c.id,
+      wrap(c.patient_name),
+      wrap(c.species),
+      wrap(c.chief_complaint),
+      c.analysis ? "1" : "0",
+    ]);
+    const bom = "\ufeff";
+    const csv = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    const dt = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+    a.download = `cases_page${page}_${dt}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
   };
 
-  // 拉取病例列表
+  const handleBulkDelete = async () => {
+    if (!selectedIds.size) { alert("请先勾选要删除的病例"); return; }
+    if (!confirm(`确定删除选中的 ${selectedIds.size} 条病例？此操作不可恢复。`)) return;
+    try {
+      setBulkDeleting(true);
+      await Promise.all(Array.from(selectedIds).map(id => api.delete(`/api/cases/${id}`)));
+      clearSelection();
+      await fetchCases();
+      alert("删除完成");
+    } catch (e) {
+      console.error(e);
+      alert("部分或全部删除失败，请查看控制台或后端日志");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  // ===== 工具：输入防抖 =====
+  const debounce = (fn, delay = 300) => {
+    let t;
+    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
+  };
+
+  // ===== 拉取病例列表（服务端分页/搜索） =====
   const fetchCases = async (paramsOverride = {}) => {
     try {
       setLoadingCases(true);
       const res = await api.get("/api/cases", {
-        params: {
-          q,
-          page,
-          page_size: pageSize,
-          ...paramsOverride,
-        },
+        params: { q, page, page_size: pageSize, ...paramsOverride },
       });
       const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
       const totalCount = Array.isArray(res.data) ? items.length : (res.data.total ?? items.length);
       setCases(items);
       setTotal(totalCount);
+      clearSelection(); // 翻页/搜索后清选择，避免跨页误删
     } catch (e) {
       console.error("拉取病例失败：", e);
     } finally {
@@ -99,23 +150,17 @@ function Home() {
   };
 
   useEffect(() => { fetchCases(); }, []);
-
   useEffect(() => {
-    const run = debounce(() => {
-      setPage(1);
-      fetchCases({ page: 1 });
-    }, 300);
+    const run = debounce(() => { setPage(1); fetchCases({ page: 1 }); }, 300);
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
-
   useEffect(() => { fetchCases(); }, [page]);
 
-  // 即时分析
+  // ===== 即时分析（不入库） =====
   const handleAnalyzeSubmit = async (e) => {
     e.preventDefault();
-    setErrMsg("");
-    setAnalysis(""); setTreatment(""); setPrognosis("");
+    setErrMsg(""); setAnalysis(""); setTreatment(""); setPrognosis("");
     setLoadingAnalyze(true);
     try {
       const res = await api.post("/api/analyze", {
@@ -136,11 +181,10 @@ function Home() {
     }
   };
 
-  // 新建病例
+  // ===== 新建病例 =====
   const handleCreateCase = async () => {
     if (!patientName || !chiefComplaint) {
-      alert("请至少填写病例名与主诉");
-      return;
+      alert("请至少填写病例名与主诉"); return;
     }
     try {
       setLoadingCreate(true);
@@ -163,7 +207,7 @@ function Home() {
     }
   };
 
-  // 重分析并写回
+  // ===== 重分析并写回 =====
   const handleReAnalyze = async (caseItem) => {
     try {
       setLoadingReAnalyzeId(caseItem.id);
@@ -262,9 +306,11 @@ function Home() {
         )}
       </section>
 
-      {/* ====== 列表（搜索+分页） ====== */}
+      {/* ====== 列表（搜索+分页 + 批量操作） ====== */}
       <section style={card}>
         <h2 style={h2}>3) 病例列表</h2>
+
+        {/* 搜索 + 操作 */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
           <input
             value={q}
@@ -275,11 +321,18 @@ function Home() {
           <button onClick={() => { setPage(1); fetchCases({ page: 1 }); }} disabled={loadingCases} style={btn}>
             {loadingCases ? "刷新中…" : "刷新列表"}
           </button>
+          <button onClick={exportCSV} style={btnSecondary}>导出 CSV</button>
+          <button onClick={selectAllCurrentPage} style={btnSecondary}>本页全选</button>
+          <button onClick={clearSelection} style={btnSecondary}>清空选择</button>
+          <button onClick={handleBulkDelete} disabled={bulkDeleting || selectedIds.size === 0} style={btnDanger}>
+            {bulkDeleting ? "删除中…" : `批量删除(${selectedIds.size})`}
+          </button>
           <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
-            新建病例（进入编辑器）
+            新建病例
           </Link>
         </div>
 
+        {/* 表格 */}
         {cases.length === 0 ? (
           <p style={{ opacity: 0.7 }}>暂无病例。</p>
         ) : (
@@ -287,6 +340,7 @@ function Home() {
             <table style={table}>
               <thead>
                 <tr>
+                  <th style={{ width: 52, textAlign: "center" }}>选择</th>
                   <th>ID</th>
                   <th>病例名</th>
                   <th>物种</th>
@@ -298,10 +352,20 @@ function Home() {
               <tbody>
                 {cases.map((c) => (
                   <tr key={c.id}>
+                    <td style={{ textAlign: "center" }}>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(c.id)}
+                        onChange={() => toggleOne(c.id)}
+                      />
+                    </td>
                     <td>{c.id}</td>
                     <td>{c.patient_name}</td>
                     <td>{c.species}</td>
-                    <td title={c.chief_complaint} style={{ maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    <td
+                      title={c.chief_complaint}
+                      style={{ maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                    >
                       {c.chief_complaint}
                     </td>
                     <td style={{ color: c.analysis ? "#16a34a" : "#999" }}>
@@ -331,12 +395,17 @@ function Home() {
               </tbody>
             </table>
 
+            {/* 分页器 */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
               <div style={{ opacity: 0.7, fontSize: 12 }}>共 {total} 条，{pageSize} 条/页</div>
               <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <button style={btnTiny} disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>上一页</button>
+                <button style={btnTiny} disabled={page <= 1} onClick={() => setPage((p) => Math.max(1, p - 1))}>
+                  上一页
+                </button>
                 <span style={{ padding: "6px 10px" }}>{page} / {totalPages}</span>
-                <button style={btnTiny} disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>下一页</button>
+                <button style={btnTiny} disabled={page >= totalPages} onClick={() => setPage((p) => Math.min(totalPages, p + 1))}>
+                  下一页
+                </button>
               </div>
             </div>
           </>
@@ -383,5 +452,6 @@ const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12
 const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
 const btn = { padding: "8px 14px", borderRadius: 8, border: "1px solid #0ea5e9", background: "#0ea5e9", color: "#fff", cursor: "pointer" };
 const btnSecondary = { padding: "8px 14px", borderRadius: 8, border: "1px solid #64748b", background: "#fff", color: "#111", cursor: "pointer" };
+const btnDanger = { padding:"8px 14px", borderRadius:8, border:"1px solid #ef4444", background:"#ef4444", color:"#fff", cursor:"pointer" };
 const btnTiny = { padding: "6px 10px", borderRadius: 8, border: "1px solid #64748b", background: "#fff", color: "#111", cursor: "pointer", fontSize: 12 };
 const table = { width: "100%", borderCollapse: "collapse" };
