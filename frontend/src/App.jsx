@@ -70,6 +70,10 @@ function Home() {
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
+  // ===== 单条删除 / 撤销 =====
+  const [deletingId, setDeletingId] = useState(null);     // 正在删除的行
+  const [lastDeleted, setLastDeleted] = useState(null);   // { id, data } 最近删除的完整对象（用于撤销）
+
   const toggleOne = (id) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -109,25 +113,7 @@ function Home() {
     URL.revokeObjectURL(url);
   };
 
-  // ===== 批量删除 =====
-  const handleBulkDelete = async () => {
-    if (!selectedIds.size) { alert("请先勾选要删除的病例"); return; }
-    if (!confirm(`确定删除选中的 ${selectedIds.size} 条病例？此操作不可恢复。`)) return;
-    try {
-      setBulkDeleting(true);
-      await Promise.all(Array.from(selectedIds).map(id => api.delete(`/api/cases/${id}`)));
-      clearSelection();
-      await fetchCases();
-      alert("删除完成");
-    } catch (e) {
-      console.error(e);
-      alert("部分或全部删除失败，请查看控制台或后端日志");
-    } finally {
-      setBulkDeleting(false);
-    }
-  };
-
-  // ===== 导出“本次搜索”的全量结果（自动分页抓取） =====
+  // 导出“本次搜索”的全量结果（自动分页抓取）
   const [exportingAll, setExportingAll] = useState(false);
   const MAX_PAGES = 1000; // 防御上限
 
@@ -144,17 +130,9 @@ function Home() {
       while (cur <= MAX_PAGES) {
         const res = await api.get("/api/cases", { params: { q, page: cur, page_size: pageSizeAll } });
         const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
-        if (totalCount == null) {
-          totalCount = Array.isArray(res.data) ? items.length : (res.data.total ?? items.length);
-        }
+        if (totalCount == null) totalCount = Array.isArray(res.data) ? items.length : (res.data.total ?? items.length);
         for (const c of items) {
-          allRows.push([
-            c.id,
-            wrap(c.patient_name),
-            wrap(c.species),
-            wrap(c.chief_complaint),
-            c.analysis ? "1" : "0",
-          ]);
+          allRows.push([ c.id, wrap(c.patient_name), wrap(c.species), wrap(c.chief_complaint), c.analysis ? "1" : "0" ]);
         }
         if (items.length < pageSizeAll || (totalCount != null && allRows.length >= totalCount)) break;
         cur += 1;
@@ -178,6 +156,56 @@ function Home() {
       alert("导出失败，请检查网络或后端日志");
     } finally {
       setExportingAll(false);
+    }
+  };
+
+  // 批量删除
+  const handleBulkDelete = async () => {
+    if (!selectedIds.size) { alert("请先勾选要删除的病例"); return; }
+    if (!confirm(`确定删除选中的 ${selectedIds.size} 条病例？此操作不可恢复。`)) return;
+    try {
+      setBulkDeleting(true);
+      await Promise.all(Array.from(selectedIds).map(id => api.delete(`/api/cases/${id}`)));
+      clearSelection();
+      await fetchCases();
+      alert("删除完成");
+    } catch (e) {
+      console.error(e);
+      alert("部分或全部删除失败，请查看控制台或后端日志");
+    } finally {
+      setBulkDeleting(false);
+    }
+  };
+
+  // 单条删除（缓存最新删除用于撤销）
+  const handleDeleteOne = async (row) => {
+    if (!confirm(`确定删除病例 ${row.id}？此操作不可恢复。`)) return;
+    try {
+      setDeletingId(row.id);
+      setLastDeleted({ id: row.id, data: row }); // 缓存
+      await api.delete(`/api/cases/${row.id}`);
+      await fetchCases();
+    } catch (e) {
+      console.error(e);
+      alert("删除失败，请查看控制台或后端日志");
+      setLastDeleted(null);
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  // 撤销删除（软还原）
+  const handleUndoDelete = async () => {
+    if (!lastDeleted) return;
+    try {
+      // 还原接口：按需改成你的后端路径
+      await api.post(`/api/cases/${lastDeleted.id}/restore`);
+      setLastDeleted(null);
+      await fetchCases();
+    } catch (e) {
+      console.error(e);
+      // 如果后端没有 restore 接口，可以尝试用 PUT/POST 重建（字段以你后端为准）
+      alert("撤销失败：请检查后端是否提供 /restore 接口");
     }
   };
 
@@ -210,7 +238,7 @@ function Home() {
   useEffect(() => {
     const run = debounce(() => { setPage(1); fetchCases({ page: 1 }); }, 300);
     run();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
   useEffect(() => { fetchCases(); }, [page]);
 
@@ -279,7 +307,7 @@ function Home() {
       alert(`病例 ${caseItem.id} 已更新分析结果`);
     } catch (e) {
       console.error("病例重分析失败：", e);
-      alert("病例重分析失败，请查看控制台或后端日志");
+      alert("病例重分析失败，请查看后端日志");
     } finally {
       setLoadingReAnalyzeId(null);
     }
@@ -379,7 +407,6 @@ function Home() {
             {loadingCases ? "刷新中…" : "刷新列表"}
           </button>
           <button onClick={exportCSV} style={btnSecondary}>导出 CSV</button>
-          {/* 新增：导出全量 CSV */}
           <button onClick={exportCSVAll} disabled={exportingAll} style={btnSecondary}>
             {exportingAll ? "导出中…" : "导出全量 CSV"}
           </button>
@@ -458,6 +485,16 @@ function Home() {
                         >
                           打印
                         </Link>
+                        {/* 单条删除 */}
+                        <button
+                          type="button"
+                          style={{ ...btnTiny, borderColor: "#ef4444", color: "#ef4444" }}
+                          onClick={() => handleDeleteOne(c)}
+                          disabled={deletingId === c.id}
+                          title="删除该病例"
+                        >
+                          {deletingId === c.id ? "删除中…" : "删除"}
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -481,6 +518,17 @@ function Home() {
           </>
         )}
       </section>
+
+      {/* 撤销提示条（最近删除） */}
+      {lastDeleted && (
+        <div style={undoBar}>
+          <div>病例 <b>#{lastDeleted.id}</b> 已删除。</div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={handleUndoDelete} style={btnUndo}>撤销</button>
+            <button onClick={() => setLastDeleted(null)} style={btnTiny}>关闭</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -523,5 +571,15 @@ const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };
 const btn = { padding: "8px 14px", borderRadius: 8, border: "1px solid #0ea5e9", background: "#0ea5e9", color: "#fff", cursor: "pointer" };
 const btnSecondary = { padding: "8px 14px", borderRadius: 8, border: "1px solid #64748b", background: "#fff", color: "#111", cursor: "pointer" };
 const btnDanger = { padding:"8px 14px", borderRadius:8, border:"1px solid #ef4444", background:"#ef4444", color:"#fff", cursor:"pointer" };
+const btnUndo = { padding:"6px 12px", borderRadius:8, border:"1px solid #10b981", background:"#10b981", color:"#fff", cursor:"pointer", fontSize: 12 };
 const btnTiny = { padding: "6px 10px", borderRadius: 8, border: "1px solid #64748b", background: "#fff", color: "#111", cursor: "pointer", fontSize: 12 };
 const table = { width: "100%", borderCollapse: "collapse" };
+const undoBar = {
+  position: "fixed",
+  left: 16, right: 16, bottom: 16,
+  background: "#111827", color: "#fff",
+  borderRadius: 12, padding: "10px 14px",
+  display: "flex", alignItems: "center", justifyContent: "space-between",
+  boxShadow: "0 8px 24px rgba(0,0,0,.2)",
+  zIndex: 50,
+};
