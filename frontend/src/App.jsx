@@ -85,6 +85,8 @@ function Home() {
     if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
   };
+
+  // 导出当前页 CSV
   const exportCSV = () => {
     if (!cases.length) { alert("当前没有可导出的数据"); return; }
     const headers = ["id","patient_name","species","chief_complaint","has_analysis"];
@@ -107,6 +109,7 @@ function Home() {
     URL.revokeObjectURL(url);
   };
 
+  // ===== 批量删除 =====
   const handleBulkDelete = async () => {
     if (!selectedIds.size) { alert("请先勾选要删除的病例"); return; }
     if (!confirm(`确定删除选中的 ${selectedIds.size} 条病例？此操作不可恢复。`)) return;
@@ -121,6 +124,60 @@ function Home() {
       alert("部分或全部删除失败，请查看控制台或后端日志");
     } finally {
       setBulkDeleting(false);
+    }
+  };
+
+  // ===== 导出“本次搜索”的全量结果（自动分页抓取） =====
+  const [exportingAll, setExportingAll] = useState(false);
+  const MAX_PAGES = 1000; // 防御上限
+
+  const exportCSVAll = async () => {
+    try {
+      setExportingAll(true);
+
+      const headers = ["id","patient_name","species","chief_complaint","has_analysis"];
+      const allRows = [];
+      const pageSizeAll = 200; // 建议 100~500
+      let cur = 1;
+      let totalCount = null;
+
+      while (cur <= MAX_PAGES) {
+        const res = await api.get("/api/cases", { params: { q, page: cur, page_size: pageSizeAll } });
+        const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
+        if (totalCount == null) {
+          totalCount = Array.isArray(res.data) ? items.length : (res.data.total ?? items.length);
+        }
+        for (const c of items) {
+          allRows.push([
+            c.id,
+            wrap(c.patient_name),
+            wrap(c.species),
+            wrap(c.chief_complaint),
+            c.analysis ? "1" : "0",
+          ]);
+        }
+        if (items.length < pageSizeAll || (totalCount != null && allRows.length >= totalCount)) break;
+        cur += 1;
+        await new Promise(r => setTimeout(r, 80)); // 轻微节流
+      }
+
+      if (!allRows.length) { alert("没有匹配到可导出的数据"); return; }
+
+      const bom = "\ufeff";
+      const csv = [headers.join(","), ...allRows.map(r => r.join(","))].join("\n");
+      const blob = new Blob([bom + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      const dt = new Date().toISOString().slice(0,19).replace(/[:T]/g,"-");
+      a.download = `cases_full_${dt}.csv`;
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error(e);
+      alert("导出失败，请检查网络或后端日志");
+    } finally {
+      setExportingAll(false);
     }
   };
 
@@ -322,6 +379,10 @@ function Home() {
             {loadingCases ? "刷新中…" : "刷新列表"}
           </button>
           <button onClick={exportCSV} style={btnSecondary}>导出 CSV</button>
+          {/* 新增：导出全量 CSV */}
+          <button onClick={exportCSVAll} disabled={exportingAll} style={btnSecondary}>
+            {exportingAll ? "导出中…" : "导出全量 CSV"}
+          </button>
           <button onClick={selectAllCurrentPage} style={btnSecondary}>本页全选</button>
           <button onClick={clearSelection} style={btnSecondary}>清空选择</button>
           <button onClick={handleBulkDelete} disabled={bulkDeleting || selectedIds.size === 0} style={btnDanger}>
@@ -388,7 +449,7 @@ function Home() {
                         >
                           {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
                         </button>
-                        {/* 新增：打印（跳转详情并自动打印） */}
+                        {/* 打印：跳转详情并自动打印 */}
                         <Link
                           to={`/cases/${c.id}`}
                           state={{ autoPrint: true }}
