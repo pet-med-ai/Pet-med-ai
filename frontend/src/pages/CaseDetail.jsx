@@ -1,16 +1,20 @@
 // src/pages/CaseDetail.jsx
 import React, { useEffect, useState } from "react";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
 
 export default function CaseDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+  const autoPrint = Boolean(location.state?.autoPrint);
+
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
 
+  // 拉取详情
   useEffect(() => {
     let stop = false;
     (async () => {
@@ -26,6 +30,20 @@ export default function CaseDetail() {
     return () => { stop = true; };
   }, [id]);
 
+  // 自动打印（来自列表 state 的 autoPrint）
+  useEffect(() => {
+    if (!loading && data && autoPrint) {
+      const t = setTimeout(() => {
+        window.print();
+        // 清掉一次性 state，避免刷新后再次自动打印
+        if (history.replaceState) {
+          history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
+      }, 80);
+      return () => clearTimeout(t);
+    }
+  }, [loading, data, autoPrint]);
+
   const doDelete = async () => {
     if (!confirm("确定删除该病例？此操作不可恢复。")) return;
     try {
@@ -40,25 +58,22 @@ export default function CaseDetail() {
     }
   };
 
-  const doPrint = () => {
-    // 为了防止图片没加载完就打印，给一点延迟（有图片时可按需调大）
-    setTimeout(() => window.print(), 80);
-  };
+  const doPrint = () => setTimeout(() => window.print(), 40);
 
   if (loading) return <div style={{ padding: 24 }}>加载中…</div>;
   if (err) return <div style={{ padding: 24, color: "crimson" }}>加载失败：{err}</div>;
   if (!data) return <div style={{ padding: 24 }}>未找到病例</div>;
 
-  // 简单的字段兜底
-  const patientName = data.patient_name || data?.patient?.name || "-";
-  const species = data.species || data?.patient?.species || "-";
+  // 字段兜底
+  const patientName = data.patient_name || data?.patient?.name || "—";
+  const species = data.species || data?.patient?.species || "—";
 
   return (
     <div style={{ padding: 24, maxWidth: 940, margin: "0 auto", fontFamily: "system-ui,-apple-system,Arial" }}>
-      {/* 打印专用样式 */}
+      {/* 打印友好样式 */}
       <style>{css}</style>
 
-      {/* 顶部工具栏（仅屏幕显示，打印隐藏） */}
+      {/* 屏幕工具栏（打印时隐藏） */}
       <div className="screen-toolbar" style={toolbar}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
           <Link to="/" style={btn}>返回首页</Link>
@@ -81,7 +96,7 @@ export default function CaseDetail() {
         </div>
       </div>
 
-      {/* 标题（屏幕/打印都显示） */}
+      {/* 标题（屏幕&打印） */}
       <h1 style={{ margin: "8px 0 12px" }}>病例详情 #{data.id}</h1>
 
       {/* 基本信息 */}
@@ -122,7 +137,7 @@ export default function CaseDetail() {
         </section>
       )}
 
-      {/* 附件（如果你的后端返回 attachments，可打印为清单） */}
+      {/* 附件（可选） */}
       {Array.isArray(data.attachments) && data.attachments.length > 0 && (
         <section className="print-block">
           <h3 className="print-section-title">附件</h3>
@@ -142,52 +157,37 @@ export default function CaseDetail() {
       )}
 
       {/* 打印页脚（仅打印显示） */}
-      <div className="print-footer">
-        由 Pet Med AI 生成 · {formatDateTime(new Date())}
-      </div>
+      <div className="print-footer">由 Pet Med AI 生成 · {formatDateTime(new Date())}</div>
     </div>
   );
 }
 
-/* ===== 帮助函数 & 样式 ===== */
-function safeText(v) {
-  return v ? String(v) : "—";
-}
-function safeMulti(v) {
-  return <div style={{ whiteSpace: "pre-wrap" }}>{v || "—"}</div>;
-}
+/* ===== 工具函数 ===== */
+function safeText(v) { return v ? String(v) : "—"; }
+function safeMulti(v) { return <div style={{ whiteSpace: "pre-wrap" }}>{v || "—"}</div>; }
 function pad(n) { return n < 10 ? `0${n}` : `${n}`; }
 function formatDateTime(d) {
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const hh = pad(d.getHours());
-  const mm = pad(d.getMinutes());
+  const y = d.getFullYear(); const m = pad(d.getMonth() + 1); const day = pad(d.getDate());
+  const hh = pad(d.getHours()); const mm = pad(d.getMinutes());
   return `${y}-${m}-${day} ${hh}:${mm}`;
 }
 
-/* ---- 屏幕按钮样式 ---- */
+/* ===== 屏幕工具栏样式 ===== */
 const toolbar = {
-  display: "flex",
-  justifyContent: "space-between",
-  alignItems: "center",
-  gap: 12,
-  marginBottom: 12,
-  flexWrap: "wrap",
+  display: "flex", justifyContent: "space-between", alignItems: "center",
+  gap: 12, marginBottom: 12, flexWrap: "wrap",
 };
 const btn = { padding: "8px 14px", borderRadius: 8, border: "1px solid #64748b", background: "#fff", color: "#111", textDecoration: "none", display: "inline-block", cursor: "pointer" };
 const btnPrimary = { ...btn, border: "1px solid #0ea5e9", background: "#0ea5e9", color: "#fff" };
 const btnSecondary = { ...btn, border: "1px solid #111", background: "#fff" };
 const btnDanger = { ...btn, border: "1px solid #ef4444", background: "#ef4444", color: "#fff" };
 
-/* ---- 打印友好样式（屏幕也适用的基础样式 + @media print） ---- */
+/* ===== 打印友好样式 ===== */
 const css = `
-  /* 全局 */
   @page { size: A4; margin: 14mm 14mm 16mm 14mm; }
   body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   * { box-sizing: border-box; }
 
-  /* 屏幕工具栏在打印时隐藏 */
   @media print {
     .screen-toolbar { display: none !important; }
     a { color: #000 !important; text-decoration: none !important; }
@@ -195,26 +195,21 @@ const css = `
     .print-header, .print-footer { position: fixed; left: 0; right: 0; }
     .print-header { top: 0; padding: 4mm 14mm; border-bottom: 1px solid #ddd; }
     .print-footer { bottom: 0; padding: 4mm 14mm; border-top: 1px solid #ddd; font-size: 11px; color: #555; }
-    /* 让正文避开页眉页脚 */
     body { margin: 0; }
     .print-block, h1 { page-break-inside: avoid; }
   }
 
-  /* 标题样式 */
   h1 { font-size: 22px; margin: 6px 0 12px 0; }
   .print-section-title { font-size: 16px; font-weight: 600; margin: 12px 0 8px; }
 
-  /* 关键值表 */
   table.kv { width: 100%; border-collapse: collapse; border: 1px solid #e5e7eb; }
   table.kv th, table.kv td { border: 1px solid #e5e7eb; padding: 8px 10px; vertical-align: top; }
   table.kv th { width: 120px; background: #f8fafc; text-align: left; font-weight: 600; }
 
-  /* 卡片 */
   .card { border: 1px solid #e5e7eb; border-radius: 10px; margin: 10px 0; }
   .card-title { font-weight: 600; padding: 8px 12px; background: #f8fafc; border-bottom: 1px solid #e5e7eb; }
   .card-body { padding: 10px 12px; white-space: pre-wrap; }
 
-  /* 附件列表 */
   .attach-list { padding-left: 18px; margin: 6px 0; }
   .attach-name { font-weight: 600; margin-right: 6px; }
 `;
