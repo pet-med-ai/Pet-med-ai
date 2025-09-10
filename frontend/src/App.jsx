@@ -84,7 +84,7 @@ function Home() {
     const s = (v ?? "").toString();
     if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
     return s;
-    };
+  };
   const exportCSV = () => {
     if (!cases.length) { alert("当前没有可导出的数据"); return; }
     const headers = ["id","patient_name","species","chief_complaint","has_analysis"];
@@ -153,7 +153,7 @@ function Home() {
   useEffect(() => {
     const run = debounce(() => { setPage(1); fetchCases({ page: 1 }); }, 300);
     run();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q]);
   useEffect(() => { fetchCases(); }, [page]);
 
@@ -388,6 +388,15 @@ function Home() {
                         >
                           {loadingReAnalyzeId === c.id ? "分析中…" : "重分析并写回"}
                         </button>
+                        {/* 新增：打印（跳转详情并自动打印） */}
+                        <Link
+                          to={`/cases/${c.id}`}
+                          state={{ autoPrint: true }}
+                          style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
+                          title="打开详情并自动打印"
+                        >
+                          打印
+                        </Link>
                       </div>
                     </td>
                   </tr>
