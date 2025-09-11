@@ -1,4 +1,6 @@
 # backend/main.py
+from __future__ import annotations
+
 from fastapi import FastAPI
 from routers.cases import router as cases_router  # 路径按你的项目结构调整
 
@@ -10,7 +12,7 @@ app.include_router(cases_router)
 def root():
     return {"ok": True}
 
-from __future__ import annotations
+
 
 import os
 from typing import List, Optional
