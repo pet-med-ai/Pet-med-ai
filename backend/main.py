@@ -1,4 +1,15 @@
 # backend/main.py
+from fastapi import FastAPI
+from routers.cases import router as cases_router  # 路径按你的项目结构调整
+
+app = FastAPI()
+app.include_router(cases_router)
+
+# 可选：健康检查
+@app.get("/")
+def root():
+    return {"ok": True}
+
 from __future__ import annotations
 
 import os
