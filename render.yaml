@@ -4,17 +4,22 @@ services:
     env: python
     plan: starter
     rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: alembic -c backend/alembic.ini upgrade head && uvicorn backend.main:app --host 0.0.0.0 --port $PORT
-
-    healthCheckPath: /healthz
+    buildCommand: |
+      pip install -U pip wheel
+      pip install -r requirements.txt
+      # 如果第一次切换数据库且用 Alembic 想在 build 阶段迁移，也可以放这里：
+      # alembic upgrade head
+    startCommand: |
+      alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT
+    # 如果你的应用里没有 /healthz 路由，就改成 "/"（或去 main.py 加一个 /healthz）
+    healthCheckPath: /
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
-# 如果用 Postgres，这里加
-    # - key: DATABASE_URL
-    #   value: postgresql://<user>:<pass>@<host>:5432/<db>
+      # 用环境组或控制台设置具体值更安全；要直填也可以：
+      # - key: DATABASE_URL
+      #   sync: false  # 在控制台填写具体连接串
   - type: web
     name: pet-med-ai-frontend-v6
     env: node
