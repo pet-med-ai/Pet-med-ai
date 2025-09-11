@@ -1,6 +1,4 @@
 # backend/main.py
-from __future__ import annotations
-
 from fastapi import FastAPI
 from routers.cases import router as cases_router  # 路径按你的项目结构调整
 
