@@ -1,4 +1,4 @@
-t > ~/Desktop/pet-ai-diagnosis-v1/backend/alembic/env.py <<'PY'
+cat > ~/Desktop/pet-ai-diagnosis-v1/backend/alembic/env.py <<'PY'
 from __future__ import annotations
 import os, sys
 from logging.config import fileConfig
@@ -54,3 +54,11 @@ if context.is_offline_mode():
 else:
     run_migrations_online()
 PY
+
+
+
+
+
+
+
+
