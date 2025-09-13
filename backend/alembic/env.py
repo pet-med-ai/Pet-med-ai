@@ -1,4 +1,4 @@
-cat > ~/Desktop/pet-ai-diagnosis-v1/backend/alembic/env.py <<'PY'
+t > ~/Desktop/pet-ai-diagnosis-v1/backend/alembic/env.py <<'PY'
 from __future__ import annotations
 import os, sys
 from logging.config import fileConfig
