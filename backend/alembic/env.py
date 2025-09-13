@@ -1,9 +1,10 @@
+cat > ~/Desktop/pet-ai-diagnosis-v1/backend/alembic/env.py <<'PY'
 from __future__ import annotations
 import os, sys
 from logging.config import fileConfig
 from alembic import context
 
-# 保证能 import backend 下的 db 和 models
+# 把 backend 加进 sys.path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from db import Base, engine
@@ -52,3 +53,4 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
+PY
