@@ -1,14 +1,13 @@
-cat > alembic/env.py <<'PY'
 from __future__ import annotations
 import os, sys
 from logging.config import fileConfig
 from alembic import context
 
-# 确保能 import 到 backend 下的模块（本文件位于 backend/alembic/）
+# 把 backend 加进 sys.path
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
-from db import Base, engine     # 复用项目的 Engine
-import models                   # 确保模型加载
+from db import Base, engine     # 复用项目的 engine
+import models                   # 确保加载模型
 config = context.config
 
 if config.config_file_name is not None:
@@ -16,7 +15,7 @@ if config.config_file_name is not None:
 
 target_metadata = Base.metadata
 
-# 统一连接串：优先 DATABASE_URL，否则取项目 engine.url
+# 统一连接串：优先 DATABASE_URL，否则用项目 engine.url
 db_url = os.getenv("DATABASE_URL") or str(engine.url)
 config.set_main_option("sqlalchemy.url", db_url)
 
@@ -39,7 +38,7 @@ def run_migrations_offline() -> None:
         context.run_migrations()
 
 def run_migrations_online() -> None:
-    connectable = engine  # ✅ 不再用 engine_from_config
+    connectable = engine   # ✅ 用项目的 engine，不再用 engine_from_config
     with connectable.connect() as connection:
         context.configure(
             connection=connection,
@@ -54,4 +53,3 @@ if context.is_offline_mode():
     run_migrations_offline()
 else:
     run_migrations_online()
-PY
