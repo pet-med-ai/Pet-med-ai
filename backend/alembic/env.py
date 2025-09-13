@@ -1,10 +1,4 @@
-cd ~/Desktop/pet-ai-diagnosis-v1/backend/alembic
-
-# 1) 先备份（可回退）
-cp env.py env.py.bak
-
-# 2) 用 here-doc 方式一次性写入最终版 env.py
-cat > env.py <<'PY'
+cat > ~/Desktop/pet-ai-diagnosis-v1/backend/alembic/env.py <<'PY'
 from __future__ import annotations
 import os, sys
 from logging.config import fileConfig
