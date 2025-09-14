@@ -8,7 +8,8 @@ from alembic import context
 sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 
 from db import Base, engine
-import models
+# import models   # no models.py present, not needed for running migrations
+
 
 config = context.config
 
