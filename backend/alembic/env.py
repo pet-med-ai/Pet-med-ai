@@ -1,6 +1,7 @@
 cd ~/Desktop/pet-ai-diagnosis-v1/backend/alembic
 
 # 1) 先备份（可回退）
+
 cp env.py env.py.bak
 
 # 2) 用 here-doc 方式一次性写入最终版 env.py
@@ -61,3 +62,4 @@ if context.is_offline_mode():
 else:
     run_migrations_online()
 PY
+
