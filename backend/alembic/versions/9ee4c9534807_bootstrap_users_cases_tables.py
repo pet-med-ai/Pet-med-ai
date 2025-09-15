@@ -2,16 +2,16 @@
 
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect
 
-# === Alembic identifiers（按你的实际值替换）===
-revision = "9ee4c9534807"       # ← 这里填这条迁移的 revision（一般与文件名开头一致）
-down_revision = "664a5f32576b"  # ← 这里填上一条迁移的 revision
+# === Alembic identifiers ===
+revision = "9ee4c9534807"       # ← 替换成实际 revision（一般等于文件名前缀）
+down_revision = "664a5f32576b"  # ← 上一个迁移的 revision
 branch_labels = None
 depends_on = None
 
 
-# --------- 工具：存在性检测，避免重复创建 ----------
+# --------- 工具函数 ---------
 def _has_table(bind, name: str) -> bool:
     return inspect(bind).has_table(name)
 
@@ -24,11 +24,11 @@ def _has_index(bind, table: str, index_name: str) -> bool:
     return index_name in idxs
 
 
-# ===================== 迁移：升级 =====================
+# ===================== 升级 =====================
 def upgrade() -> None:
     bind = op.get_bind()
 
-    # 1) users 表（若不存在则创建）
+    # users 表
     if not _has_table(bind, "users"):
         op.create_table(
             "users",
@@ -45,7 +45,7 @@ def upgrade() -> None:
         if not _has_index(bind, "users", "ix_users_email"):
             op.create_index("ix_users_email", "users", ["email"])
 
-    # 2) cases 表（若不存在则创建）
+    # cases 表
     if not _has_table(bind, "cases"):
         op.create_table(
             "cases",
@@ -77,8 +77,6 @@ def upgrade() -> None:
                 name="fk_cases_owner_id_users", ondelete="CASCADE"
             ),
         )
-
-        # 索引（若不存在则创建）
         if not _has_index(bind, "cases", "ix_cases_id"):
             op.create_index("ix_cases_id", "cases", ["id"])
         if not _has_index(bind, "cases", "ix_cases_owner_id"):
@@ -89,11 +87,11 @@ def upgrade() -> None:
             op.create_index("ix_cases_deleted_at", "cases", ["deleted_at"])
 
 
-# ===================== 迁移：回退 =====================
+# ===================== 回退 =====================
 def downgrade() -> None:
     bind = op.get_bind()
 
-    # 先删 cases（先索引、再外键、再表）
+    # cases
     if _has_table(bind, "cases"):
         for ix in ("ix_cases_deleted_at", "ix_cases_patient_name", "ix_cases_owner_id", "ix_cases_id"):
             if _has_index(bind, "cases", ix):
@@ -104,7 +102,7 @@ def downgrade() -> None:
             pass
         op.drop_table("cases")
 
-    # 再删 users（先索引、再唯一约束、再表）
+    # users
     if _has_table(bind, "users"):
         for ix in ("ix_users_email", "ix_users_id"):
             if _has_index(bind, "users", ix):
