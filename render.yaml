@@ -7,29 +7,26 @@ services:
     buildCommand: |
       pip install -U pip wheel
       pip install -r requirements.txt
-      # 如果第一次切换数据库且用 Alembic 想在 build 阶段迁移，也可以放这里：
-      # alembic upgrade head
     startCommand: |
       alembic upgrade head && uvicorn main:app --host 0.0.0.0 --port $PORT
-    # 如果你的应用里没有 /healthz 路由，就改成 "/"（或去 main.py 加一个 /healthz）
     healthCheckPath: /
     autoDeploy: true
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
-      # 用环境组或控制台设置具体值更安全；要直填也可以：
+      # 数据库连接串建议在控制台或环境组里配置，不直接写在 yaml：
       # - key: DATABASE_URL
-      #   sync: false  # 在控制台填写具体连接串
+      #   sync: false
+
   - type: web
     name: pet-med-ai-frontend-v6
     env: node
     plan: starter
-    rootDir: .
+    rootDir: frontend           # ← 改为 frontend 子目录
     buildCommand: |
-     npm --prefix frontend ci
-     npm --prefix frontend run build
-
-    startCommand: npx serve -s frontend/dist -l $PORT
+      npm ci                    # ← 在 frontend 下执行
+      npm run build
+    startCommand: npx serve -s dist -l $PORT
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
