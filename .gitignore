@@ -1,0 +1,18 @@
+# node / vite
+node_modules/
+dist/
+frontend/node_modules/
+frontend/dist/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.env
+
+# db (本地)
+backend/app.db
+
+# tooling
+.DS_Store
