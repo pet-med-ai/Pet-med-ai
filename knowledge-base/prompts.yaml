@@ -1,0 +1,44 @@
+meta:
+  version: 1.0.0
+  locale: ["zh", "en"]
+
+prompts:
+  - id: Q_LIVER_01
+    zh: "最近有食欲波动、体重下降或黄疸吗？化验肝酶（ALT/AST/ALP）是否升高？"
+    en: "Any appetite fluctuation, weight loss, or jaundice? Were liver enzymes (ALT/AST/ALP) elevated?"
+
+  - id: Q_PSS_01
+    zh: "是幼龄发作吗？是否伴有流涎、发呆、走路不稳等神经症状？做过胆盐刺激试验或影像检查吗？"
+    en: "Is onset in a young animal? Any drooling, dullness, ataxia? Any bile acids test or imaging?"
+
+  - id: Q_CKD_01
+    zh: "是否多饮多尿、口腔异味？以往肾功能（肌酐/尿素氮/SDMA）有异常吗？"
+    en: "Polydipsia/polyuria, uremic halitosis? Any history of creatinine/BUN/SDMA elevation?"
+
+  - id: Q_AKI_01
+    zh: "呕吐是否突然发生？是否接触可疑毒物或人用药？有少尿/无尿吗？"
+    en: "Was vomiting sudden? Any toxin or human meds exposure? Oliguria/anuria present?"
+
+  - id: Q_NEM_01
+    zh: "是否未按时驱虫？呕吐物或粪便中是否可见虫体？"
+    en: "Is deworming overdue? Any visible worms in vomit or stool?"
+
+  - id: Q_GI_TUMOR_01
+    zh: "进食后呕吐是否加重？影像是否提示肠壁增厚或肿块？"
+    en: "Worse vomiting post-prandially? Imaging showing bowel wall thickening or mass?"
+
+  - id: Q_HM_01
+    zh: "是否可能啃咬金属物件（电池、硬币、老旧管道）？有反复呕吐或神经症状吗？"
+    en: "Chewing metal items (battery/coins/old pipes)? Recurrent vomiting or neuro signs?"
+
+  - id: Q_CARDIAC_01
+    zh: "是否有咳嗽、腹胀、运动耐力下降或已知心脏病史？"
+    en: "Cough, abdominal distension, exercise intolerance, or known cardiac history?"
+
+  - id: Q_GASTRO_01
+    zh: "进食数小时后吐未消化食物？伴腹胀或嗳气？"
+    en: "Vomits undigested food hours after meals? Bloating or belching?"
+
+  - id: Q_BEHAV_01
+    zh: "是否在分离、环境改变或焦虑时更易呕吐？已排除器质性病因吗？"
+    en: "More vomiting with separation, environmental change, anxiety? Organic causes excluded?"
