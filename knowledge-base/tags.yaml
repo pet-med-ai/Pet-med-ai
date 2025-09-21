@@ -1,0 +1,33 @@
+branches:
+  hepatic:
+    zh: "肝脏"
+    en: "Hepatic"
+    color: "#8E44AD"
+  renal:
+    zh: "肾脏"
+    en: "Renal"
+    color: "#2E86C1"
+  parasites:
+    zh: "寄生虫"
+    en: "Parasitic"
+    color: "#27AE60"
+  neoplastic:
+    zh: "肿瘤"
+    en: "Neoplastic"
+    color: "#7F8C8D"
+  toxicity:
+    zh: "中毒"
+    en: "Toxicity"
+    color: "#D35400"
+  cardiac:
+    zh: "心脏"
+    en: "Cardiac"
+    color: "#C0392B"
+  gi_motility:
+    zh: "动力"
+    en: "Motility"
+    color: "#16A085"
+  functional:
+    zh: "功能性"
+    en: "Functional"
+    color: "#34495E"
