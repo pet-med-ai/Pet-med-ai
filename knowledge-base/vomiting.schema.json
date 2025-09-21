@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Vomiting Logic Tree",
+  "type": "object",
+  "required": ["version", "updated_at", "root"],
+  "properties": {
+    "version": { "type": "string" },
+    "updated_at": { "type": "string", "format": "date-time" },
+    "root": {
+      "type": "object",
+      "required": ["id", "label_zh", "label_en", "children"],
+      "properties": {
+        "id": { "type": "string" },
+        "label_zh": { "type": "string" },
+        "label_en": { "type": "string" },
+        "questions_ref": { "type": "array", "items": { "type": "string" } },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/node" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "node": {
+      "type": "object",
+      "required": ["id", "label_zh", "label_en"],
+      "properties": {
+        "id": { "type": "string" },
+        "label_zh": { "type": "string" },
+        "label_en": { "type": "string" },
+        "tags": { "type": "array", "items": { "type": "string" } },
+        "questions_ref": { "type": "array", "items": { "type": "string" } },
+        "signals": { "type": "array", "items": { "type": "string" } },
+        "next": { "type": "array", "items": { "type": "string" } },
+        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } }
+      }
+    }
+  }
+}
