@@ -1,0 +1,13 @@
+knowledge-base/
+  vomiting/
+    data/
+      vomiting.json                 # 逻辑树（双语+可引用问句）
+      vomiting.schema.json          # 逻辑树 JSON Schema（校验用）
+      prompts.yaml                  # 问诊引导语库（双语）
+      tags.yaml                     # 统一标签/分支枚举（双语）
+    diagrams/
+      overview_prompt.txt           # 整合总图 DALL·E/MJ Prompt
+      liver_prompt.txt              # 子分支图 Prompt（肝脏）
+      kidney_prompt.txt             # 子分支图 Prompt（肾脏）
+      ...                           # 其余分支按需添加
+    README.md                       # 使用说明（数据约定、字段解释）
