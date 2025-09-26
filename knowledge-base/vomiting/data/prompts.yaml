@@ -1,0 +1,119 @@
+meta:
+  version: 1.0.0
+  locale: ["zh","en"]
+
+prompts:
+  # ——— 肝脏 ———
+  - id: Q_LIVER_01
+    zh: "最近是否有食欲波动、体重下降或黄疸（眼白/牙龈发黄）？肝酶（ALT/AST/ALP/GGT）是否升高？"
+    en: "Any appetite fluctuation, weight loss, or jaundice (sclera/gums)? Were liver enzymes (ALT/AST/ALP/GGT) elevated?"
+  - id: Q_LIVER_INF_01
+    zh: "近期有发热、精神差或腹围增大吗？是否提示肝胆感染（如FIP肝型/犬肝炎）？"
+    en: "Any fever, lethargy, or abdominal distension? Any suspicion of hepatobiliary infections (e.g., FIP-liver, canine hepatitis)?"
+  - id: Q_PSS_01
+    zh: "是否为幼龄发作？有流涎、发呆、步态不稳等神经症状？是否做过胆盐刺激试验或影像学（B超/CT血管造影）？"
+    en: "Is the onset in a young animal? Drooling, dullness, ataxia? Any bile acids test or imaging (US/CT angiography)?"
+  - id: Q_LIVER_TUMOR_01
+    zh: "是否出现体重下降、腹部触痛或包块？影像是否提示肝实质占位或异质性回声？"
+    en: "Any weight loss, abdominal pain/mass? Did imaging suggest hepatic mass or heterogeneous parenchyma?"
+  - id: Q_DILI_01
+    zh: "近期是否使用过新药或接触化学制剂（保健品、杀虫剂、清洁剂）？肝酶是否急性升高？"
+    en: "Recent new meds or chemical exposure (supplements, insecticides, cleaners)? Acute rise in liver enzymes?"
+
+  # ——— 肾脏 ———
+  - id: Q_KIDNEY_01
+    zh: "是否有肾脏疾病史？近期是否出现多饮多尿、口腔异味或精神变差？"
+    en: "Any history of kidney disease? Polydipsia/polyuria, uremic odor, or lethargy recently?"
+  - id: Q_CKD_01
+    zh: "是否多饮多尿、体重下降？以往肾功能（肌酐/尿素氮/SDMA）或尿比重有异常吗？"
+    en: "Polydipsia/polyuria, weight loss? Any prior abnormalities in creatinine/BUN/SDMA or urine specific gravity?"
+  - id: Q_AKI_01
+    zh: "呕吐是否突然发生？是否误食百合/葡萄/人用止痛药等可疑毒物？出现少尿或无尿吗？"
+    en: "Sudden onset of vomiting? Any ingestion of lilies/grapes/human painkillers? Oliguria or anuria?"
+  - id: Q_RENAL_TUMOR_01
+    zh: "是否有不明原因消瘦或B超提示肾形态异常/肿块？"
+    en: "Unexplained weight loss or US showing renal structural abnormality/mass?"
+
+  # ——— 寄生虫 ———
+  - id: Q_PARASITE_01
+    zh: "体内驱虫是否按时？是否有与其他动物密切接触或户外活动史？"
+    en: "Is deworming on schedule? Any close contact with other animals or outdoor exposure?"
+  - id: Q_NEM_01
+    zh: "呕吐物/粪便中是否可见虫体？是否腹胀、营养不良或幼年个体？"
+    en: "Any worms visible in vomit/feces? Bloating, poor body condition, or young age?"
+  - id: Q_PROTOZOA_01
+    zh: "是否出现呕吐与腹泻交替、粪便恶臭或黏液？粪检是否提示贾第/球虫？"
+    en: "Alternating vomiting/diarrhea, foul odor or mucus in stool? Fecal test suggest Giardia/Coccidia?"
+  - id: Q_ECTOPIC_01
+    zh: "是否出现剧烈呕吐、腹痛或影像提示肠道阻塞/虫体迁移（钡餐异常）？"
+    en: "Severe vomiting/abdominal pain or imaging signs of obstruction/parasite migration (abnormal barium study)?"
+
+  # ——— 肿瘤性 ———
+  - id: Q_NEOPLASIA_01
+    zh: "是否长时间体重下降、食欲减退或不明原因反复呕吐？"
+    en: "Longstanding weight loss, reduced appetite, or unexplained recurrent vomiting?"
+  - id: Q_GI_TUMOR_01
+    zh: "呕吐是否在进食后加重？影像是否提示肠壁增厚或胃肠道肿块？"
+    en: "Worse after meals? Imaging suggesting bowel wall thickening or GI mass?"
+  - id: Q_META_01
+    zh: "是否有肝/胰/子宫等原发肿瘤病史或体检异常（腹水、黄疸、淋巴结肿大）？"
+    en: "History of primary tumors (liver/pancreas/uterus) or exam findings (ascites, jaundice, lymphadenopathy)?"
+  - id: Q_TUMOR_COMP_01
+    zh: "呕吐物是否为咖啡渣样/带血？是否提示幽门梗阻或胃肠蠕动异常？"
+    en: "Coffee-ground/bloody emesis? Any signs of pyloric obstruction or abnormal GI motility?"
+
+  # ——— 中毒 ———
+  - id: Q_TOX_01
+    zh: "近期是否可能接触异常物品或环境（金属、植物、化学剂）？"
+    en: "Any recent exposure to unusual items/environments (metals, plants, chemicals)?"
+  - id: Q_HM_01
+    zh: "是否喜欢啃咬金属物件（电池/硬币/老旧管道）？有反复呕吐或神经异常吗？"
+    en: "Chewing metals (batteries/coins/old pipes)? Recurrent vomiting or neurologic signs?"
+  - id: Q_PLANT_01
+    zh: "家中是否有百合/滴水观音/常春藤等有毒植物？有咀嚼叶片/花瓣或尿量骤减吗？"
+    en: "Any lilies/dieffenbachia/ivy at home? Chewing leaves/flowers or decreased urination?"
+  - id: Q_CHEM_01
+    zh: "近期是否使用体表滴剂/杀虫喷雾/强力清洁剂？是否可能舔舐导致中毒？"
+    en: "Recent flea/tick topicals, sprays, strong cleaners? Possible licking leading to toxicity?"
+
+  # ——— 心源性 ———
+  - id: Q_CARDIAC_01
+    zh: "是否有已知心脏病史、咳嗽、运动耐力下降或腹部膨隆？"
+    en: "Known heart disease, cough, reduced exercise tolerance, or abdominal distension?"
+  - id: Q_HF_01
+    zh: "是否可见腹水或四肢水肿？近期做过心脏彩超/X光/BNP检测吗？"
+    en: "Ascites or limb edema present? Any recent echo/chest X-ray/BNP?"
+  - id: Q_PH_01
+    zh: "是否出现突发呼吸困难/晕厥？心音是否减弱或听到杂音？心包超声是否提示积液？"
+    en: "Sudden dyspnea/syncope? Muffled heart sounds or murmur? Pericardial fluid on echo?"
+  - id: Q_HEP_CONG_01
+    zh: "是否长期轻度反复呕吐、食欲下降并伴右心衰体征？肝功能是否异常？"
+    en: "Ongoing mild recurrent vomiting with right-sided HF signs? Abnormal liver enzymes?"
+
+  # ——— 动力障碍 ———
+  - id: Q_GIM_01
+    zh: "是否排除器质性病变后仍反复呕吐？与进食时间的关系如何？"
+    en: "Recurrent vomiting after excluding structural disease? Relation to feeding time?"
+  - id: Q_GASTRO_01
+    zh: "进食后数小时吐出未消化食物？伴腹胀/嗳气或胃排空延迟提示？"
+    en: "Undigested food hours after meals? Bloating/belching or delayed gastric emptying?"
+  - id: Q_PYL_01
+    zh: "是否出现喷射状呕吐、呕吐后缓解？钡餐/胃镜是否提示幽门异常？"
+    en: "Projectile vomiting with relief after emesis? Barium/endoscopy showing pyloric issues?"
+  - id: Q_GINM_01
+    zh: "是否存在感染后或特发性的胃肠动力异常、肠鸣音减弱而查无器质性病灶？"
+    en: "Post-infectious or idiopathic GI dysmotility with reduced bowel sounds but no structural lesions?"
+
+  # ——— 功能性/少见 ———
+  - id: Q_FUNC_01
+    zh: "是否在排除器质性原因后仍需考虑功能性或少见病因？"
+    en: "Consider functional or rare causes after structural etiologies ruled out?"
+  - id: Q_BEHAV_01
+    zh: "是否在分离/环境变化/焦虑时更易呕吐？已排除器质性病因吗？"
+    en: "More vomiting with separation/environmental change/anxiety? Organic causes excluded?"
+  - id: Q_MOTION_01
+    zh: "是否仅在乘车/移动途中出现呕吐？停止旅行后是否迅速缓解？"
+    en: "Vomiting only during travel? Rapid resolution after trip ends?"
+  - id: Q_STRESS_01
+    zh: "是否处于长期高压力环境并伴异食癖/过度舔舐/叫声增多等压力指征？"
+    en: "Chronic stress environment with pica/over-licking/increased vocalization?"
