@@ -1,0 +1,83 @@
+{
+  "meta": {
+    "symptom_id": "derm_pruritus",
+    "name_cn": "瘙痒",
+    "name_en": "Pruritus",
+    "version": "1.0.0",
+    "updated_at": "2025-10-04T06:50:00Z",
+    "species": ["dog", "cat"],
+    "notes": "首选按寄生虫→感染→过敏→内分泌/其他的顺序排查。"
+  },
+  "branches": [
+    {
+      "id": "ticks_fleas",
+      "title_cn": "跳蚤/蜱寄生",
+      "title_en": "Fleas/Ticks",
+      "red_flags": [
+        { "cn": "严重贫血或极度虚弱", "en": "Severe anemia or collapse" }
+      ],
+      "history": [
+        "近1-2个月外出草地/与其他动物接触",
+        "未规律驱虫或驱虫不全"
+      ],
+      "exam": [
+        "跳蚤粪（湿纸测试）",
+        "尾根、腰背区抓痕结痂，猫多见颈项与头部"
+      ],
+      "tests": [
+        "皮屑显微镜找虫卵/粪便",
+        "必要时皮肤刮片排除疥螨/毛囊螨"
+      ],
+      "differentials": [
+        { "dx_cn": "疥螨病", "dx_en": "Sarcoptic mange", "clues": ["强烈瘙痒，耳缘肘部腹部结痂"] },
+        { "dx_cn": "过敏性皮炎", "dx_en": "Allergic dermatitis", "clues": ["季节性/食物相关，复发史"] }
+      ],
+      "first_aid": [
+        "环境与接触动物一并处理",
+        "快速止痒：口服/注射抗组胺或短程糖皮质激素（排除感染后）"
+      ],
+      "management": [
+        "等距长效驱虫（异丙氟氯菊酯、塞拉菌素等）",
+        "二次随访评估复发"
+      ],
+      "when_to_refer": [
+        "疑似耐药或严重继发细菌/马拉色菌感染需培养与药敏",
+        "一线治疗失败>2次"
+      ]
+    },
+    {
+      "id": "ad_atopy_food",
+      "title_cn": "过敏性皮炎（环境/食物）",
+      "title_en": "Allergic dermatitis (atopy/food)",
+      "red_flags": [{ "cn": "全身性荨麻疹/面部肿胀", "en": "Urticaria/angioedema" }],
+      "history": [
+        "季节性加重（花粉/尘螨）或换粮后加重",
+        "耳炎、足趾间舔咬史"
+      ],
+      "exam": [
+        "腋下腹股沟红斑苔藓样变",
+        "外耳炎、足趾间潮湿棕色分泌物"
+      ],
+      "tests": [
+        "排除寄生虫后行严格食物排除试验8-12周",
+        "继发感染拭子镜检/培养"
+      ],
+      "differentials": [
+        { "dx_cn": "马拉色菌皮炎", "dx_en": "Malassezia dermatitis", "clues": ["油腻臭味+棕色分泌物"] },
+        { "dx_cn": "细菌性表皮脓疱病", "dx_en": "Superficial pyoderma", "clues": ["环状脱毛+脓疱痂皮"] }
+      ],
+      "first_aid": [
+        "短程止痒：奥拉替尼/阿布昔替尼按体重，或短程激素",
+        "合并感染先处理感染再控痒"
+      ],
+      "management": [
+        "长期：环孢素、阿波米克拉斯、免疫疗法（舌下/注射）",
+        "皮肤屏障修复：ω-3/6、洗剂"
+      ],
+      "when_to_refer": [
+        "复发难治、需过敏原免疫治疗设计",
+        "复杂并发症需皮科会诊"
+      ]
+    }
+  ]
+}
