@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "symptom_id": "resp_cough",
+    "name_cn": "咳嗽",
+    "name_en": "Cough",
+    "version": "1.0.0",
+    "updated_at": "2025-10-06T07:00:00Z",
+    "species": ["dog", "cat"],
+    "notes": "先分上气道/下气道/心源性；胸片与超声分层。"
+  },
+  "branches": [
+    {
+      "id": "infectious_tracheobronchitis",
+      "title_cn": "传染性气管支气管炎",
+      "title_en": "Infectious tracheobronchitis",
+      "when_to_refer": ["呼吸困难或发绀", "持续高热>39.5°C"],
+      "history": ["犬舍/寄养接触史", "近期疫苗史"],
+      "exam": ["咽喉刺激易咳", "体温升高"],
+      "tests": ["胸片排除肺炎"],
+      "differentials": [
+        { "dx_cn": "气管塌陷", "dx_en": "Tracheal collapse" },
+        { "dx_cn": "心源性咳嗽", "dx_en": "Cardiac cough" }
+      ],
+      "first_aid": ["休息", "止咳药物（评估后使用）"],
+      "management": ["经验性抗菌±雾化", "7-10天随访"]
+    }
+  ]
+}
+

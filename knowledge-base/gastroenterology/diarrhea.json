@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "symptom_id": "gi_diarrhea",
+    "name_cn": "腹泻",
+    "name_en": "Diarrhea",
+    "version": "1.0.0",
+    "updated_at": "2025-10-06T06:55:00Z",
+    "species": ["dog", "cat"],
+    "notes": "先判断急慢性与出血/脱水严重度；粪检优先。"
+  },
+  "branches": [
+    {
+      "id": "acute_uncomplicated",
+      "title_cn": "急性非复杂腹泻",
+      "title_en": "Acute uncomplicated diarrhea",
+      "when_to_refer": ["持续腹泻超过48小时", "出现血便或明显脱水"],
+      "history": ["近期换粮/误食", "疫苗与驱虫史"],
+      "exam": ["黏膜色泽", "腹部压痛"],
+      "tests": ["粪便漂浮+直接涂片"],
+      "differentials": [
+        { "dx_cn": "饮食不当", "dx_en": "Dietary indiscretion" },
+        { "dx_cn": "寄生虫感染", "dx_en": "Parasitism" }
+      ],
+      "first_aid": ["口服补液", "短期禁食或易消化饮食"],
+      "management": ["益生菌", "监测排便情况"]
+    }
+  ]
+}
+

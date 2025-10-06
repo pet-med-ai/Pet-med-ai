@@ -1,0 +1,70 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pet-med-ai/schema/symptom_kb.schema.json",
+  "title": "PetMedAI Symptom Knowledge Base",
+  "type": "object",
+  "required": ["meta", "branches"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "required": ["symptom_id", "name_cn", "name_en", "version", "updated_at", "species"],
+      "properties": {
+        "symptom_id": { "type": "string" },
+        "name_cn": { "type": "string" },
+        "name_en": { "type": "string" },
+        "version": { "type": "string" },
+        "updated_at": { "type": "string", "format": "date-time" },
+        "species": { "type": "array", "items": { "enum": ["dog", "cat"] } },
+        "notes": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+    "branches": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title_cn", "title_en", "when_to_refer", "history", "exam", "tests", "differentials", "first_aid", "management"],
+        "properties": {
+          "id": { "type": "string" },
+          "title_cn": { "type": "string" },
+          "title_en": { "type": "string" },
+          "red_flags": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["cn", "en"],
+              "properties": {
+                "cn": { "type": "string" },
+                "en": { "type": "string" }
+              },
+              "additionalProperties": false
+            }
+          },
+          "history": { "type": "array", "items": { "type": "string" } },
+          "exam": { "type": "array", "items": { "type": "string" } },
+          "tests": { "type": "array", "items": { "type": "string" } },
+          "differentials": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["dx_cn", "dx_en"],
+              "properties": {
+                "dx_cn": { "type": "string" },
+                "dx_en": { "type": "string" },
+                "clues": { "type": "array", "items": { "type": "string" } }
+              },
+              "additionalProperties": false
+            }
+          },
+          "first_aid": { "type": "array", "items": { "type": "string" } },
+          "management": { "type": "array", "items": { "type": "string" } },
+          "when_to_refer": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
+

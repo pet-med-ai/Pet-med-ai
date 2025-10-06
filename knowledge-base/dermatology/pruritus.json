@@ -1,0 +1,35 @@
+{
+  "meta": {
+    "symptom_id": "derm_pruritus",
+    "name_cn": "瘙痒",
+    "name_en": "Pruritus",
+    "version": "1.0.0",
+    "updated_at": "2025-10-06T06:50:00Z",
+    "species": ["dog", "cat"],
+    "notes": "首选按寄生虫→感染→过敏→内分泌/其他的顺序排查。"
+  },
+  "branches": [
+    {
+      "id": "ticks_fleas",
+      "title_cn": "跳蚤/蜱寄生",
+      "title_en": "Fleas/Ticks",
+      "when_to_refer": [
+        "严重贫血或极度虚弱",
+        "疑似耐药或严重继发感染"
+      ],
+      "history": [
+        "近1-2个月外出草地/与其他动物接触",
+        "未规律驱虫或驱虫不全"
+      ],
+      "exam": ["尾根、腰背区抓痕结痂"],
+      "tests": ["皮屑显微镜找虫卵/粪便"],
+      "differentials": [
+        { "dx_cn": "疥螨病", "dx_en": "Sarcoptic mange" },
+        { "dx_cn": "过敏性皮炎", "dx_en": "Allergic dermatitis" }
+      ],
+      "first_aid": ["环境与接触动物一并处理"],
+      "management": ["定期驱虫", "复查皮肤情况"]
+    }
+  ]
+}
+
