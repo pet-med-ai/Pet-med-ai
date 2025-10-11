@@ -4,7 +4,7 @@
     "name_cn": "腹泻",
     "name_en": "Diarrhea",
     "version": "1.0.0",
-    "updated_at": "2025-10-04T06:55:00Z",
+    "updated_at": "2025-10-06T06:55:00Z",
     "species": ["dog", "cat"],
     "notes": "先判断急慢性与出血/脱水严重度；粪检优先。"
   },
@@ -13,44 +13,17 @@
       "id": "acute_uncomplicated",
       "title_cn": "急性非复杂腹泻",
       "title_en": "Acute uncomplicated diarrhea",
-      "red_flags": [
-        { "cn": "中重度脱水/血便/持续呕吐", "en": "Moderate-severe dehydration, hematochezia, persistent vomiting" }
-      ],
+      "when_to_refer": ["持续腹泻超过48小时", "出现血便或明显脱水"],
       "history": ["近期换粮/误食", "疫苗与驱虫史"],
-      "exam": ["黏膜色、脱水度", "腹部压痛"],
-      "tests": ["粪便漂浮+直接涂片", "犬细小/猫瘟快速检测（按流行病学）"],
+      "exam": ["黏膜色泽", "腹部压痛"],
+      "tests": ["粪便漂浮+直接涂片"],
       "differentials": [
         { "dx_cn": "饮食不当", "dx_en": "Dietary indiscretion" },
         { "dx_cn": "寄生虫感染", "dx_en": "Parasitism" }
       ],
-      "first_aid": ["口服补液电解质", "短期清淡处方饮食"],
-      "management": ["益生菌/蒙脱石", "48-72小时复查，恶化则升级检查"],
-      "when_to_refer": ["出现红旗征或伴发发热/持续恶化"]
-    },
-    {
-      "id": "chronic_maldigestion",
-      "title_cn": "慢性腹泻/吸收不良",
-      "title_en": "Chronic diarrhea/malabsorption",
-      "red_flags": [{ "cn": "体重下降+低白蛋白", "en": "Weight loss + hypoalbuminemia" }],
-      "history": [">3周腹泻", "间歇或持续、与饮食关系"],
-      "exam": ["体况评分下降", "腹部超声肠管壁厚度"],
-      "tests": [
-        "全血生化CBC+T4（猫）",
-        "TLI/PLI（胰外分泌不足/胰腺炎）",
-        "B12/叶酸（小肠细菌过度生长）",
-        "腹部超声 ± 内镜活检"
-      ],
-      "differentials": [
-        { "dx_cn": "炎症性肠病", "dx_en": "IBD" },
-        { "dx_cn": "胰外分泌不足", "dx_en": "EPI" },
-        { "dx_cn": "寄生虫/贾第鞭毛虫", "dx_en": "Giardia" }
-      ],
-      "first_aid": ["纠正脱水与电解质紊乱"],
-      "management": [
-        "易消化/水解蛋白处方饮食试验",
-        "靶向治疗：抗生素试验、免疫抑制（按活检）"
-      ],
-      "when_to_refer": ["低白蛋白、出血、体重显著下降或需内镜/活检"]
+      "first_aid": ["口服补液", "短期禁食或易消化饮食"],
+      "management": ["益生菌", "监测排便情况"]
     }
   ]
 }
+

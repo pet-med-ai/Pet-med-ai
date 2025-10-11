@@ -4,7 +4,7 @@
     "name_cn": "咳嗽",
     "name_en": "Cough",
     "version": "1.0.0",
-    "updated_at": "2025-10-04T07:00:00Z",
+    "updated_at": "2025-10-06T07:00:00Z",
     "species": ["dog", "cat"],
     "notes": "先分上气道/下气道/心源性；胸片与超声分层。"
   },
@@ -13,32 +13,17 @@
       "id": "infectious_tracheobronchitis",
       "title_cn": "传染性气管支气管炎",
       "title_en": "Infectious tracheobronchitis",
-      "red_flags": [{ "cn": "呼吸窘迫/低氧", "en": "Respiratory distress/hypoxemia" }],
+      "when_to_refer": ["呼吸困难或发绀", "持续高热>39.5°C"],
       "history": ["犬舍/寄养接触史", "近期疫苗史"],
-      "exam": ["咽喉刺激易诱发咳嗽", "体温±"],
-      "tests": ["胸片排除肺炎", "必要时PCR/气管冲洗细菌培养"],
+      "exam": ["咽喉刺激易咳", "体温升高"],
+      "tests": ["胸片排除肺炎"],
       "differentials": [
-        { "dx_cn": "气管塌陷", "dx_en": "Tracheal collapse", "clues": ["小型犬、兴奋/牵引加重"] },
-        { "dx_cn": "心源性咳嗽", "dx_en": "Cardiac cough", "clues": ["心杂音/心影增大"] }
+        { "dx_cn": "气管塌陷", "dx_en": "Tracheal collapse" },
+        { "dx_cn": "心源性咳嗽", "dx_en": "Cardiac cough" }
       ],
-      "first_aid": ["休息、避免牵引压迫", "止咳药物（评估后）"],
-      "management": ["经验性抗菌±雾化，7-10天随访"],
-      "when_to_refer": ["影像见肺炎/呼吸衰竭/免疫抑制个体"]
-    },
-    {
-      "id": "cardiac_cough",
-      "title_cn": "心源性咳嗽/肺水肿",
-      "title_en": "Cardiac cough/pulmonary edema",
-      "red_flags": [{ "cn": "急性呼吸窘迫、青紫", "en": "Acute dyspnea, cyanosis" }],
-      "history": ["既往心脏病（瓣膜/心肌）", "劳累后加重"],
-      "exam": ["湿啰音/心杂音/呼吸频率↑"],
-      "tests": ["胸片肺静脉扩张+间质/肺泡纹理", "心超/NT-proBNP"],
-      "differentials": [
-        { "dx_cn": "支气管炎/哮喘（猫）", "dx_en": "Bronchitis/asthma" }
-      ],
-      "first_aid": ["吸氧+速尿（评估电解质/脱水）"],
-      "management": ["标准心衰方案：ACEI/吡莫维丹/利尿剂", "体重与呼吸率家庭监测"],
-      "when_to_refer": ["需要ICU或高级影像/心超评估"]
+      "first_aid": ["休息", "止咳药物（评估后使用）"],
+      "management": ["经验性抗菌±雾化", "7-10天随访"]
     }
   ]
 }
+

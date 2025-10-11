@@ -29,29 +29,21 @@
           "id": { "type": "string" },
           "title_cn": { "type": "string" },
           "title_en": { "type": "string" },
-
           "red_flags": {
             "type": "array",
             "items": {
               "type": "object",
               "required": ["cn", "en"],
-              "properties": { "cn": { "type": "string" }, "en": { "type": "string" } },
+              "properties": {
+                "cn": { "type": "string" },
+                "en": { "type": "string" }
+              },
               "additionalProperties": false
             }
           },
-
-          "history": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "exam": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "tests": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
+          "history": { "type": "array", "items": { "type": "string" } },
+          "exam": { "type": "array", "items": { "type": "string" } },
+          "tests": { "type": "array", "items": { "type": "string" } },
           "differentials": {
             "type": "array",
             "items": {
@@ -65,18 +57,9 @@
               "additionalProperties": false
             }
           },
-          "first_aid": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "management": {
-            "type": "array",
-            "items": { "type": "string" }
-          },
-          "when_to_refer": {
-            "type": "array",
-            "items": { "type": "string" }
-          }
+          "first_aid": { "type": "array", "items": { "type": "string" } },
+          "management": { "type": "array", "items": { "type": "string" } },
+          "when_to_refer": { "type": "array", "items": { "type": "string" } }
         },
         "additionalProperties": false
       }
@@ -84,3 +67,4 @@
   },
   "additionalProperties": false
 }
+
