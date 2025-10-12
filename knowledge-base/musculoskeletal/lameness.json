@@ -1,0 +1,10 @@
+{
+  "meta": {
+  "symptom_id": "musculoskeletal_lameness",
+  "name_cn": "跛行",
+  "name_en": "Lameness",
+  "version": "1.0.0",
+  "updated_at": "2025-10-12T07:10:00Z",
+  "species": ["dog", "cat"],
+  "notes": "常见原因：创伤、关节炎、韧带撕裂、髋关节发育不良。"
+},

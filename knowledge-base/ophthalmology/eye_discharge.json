@@ -1,0 +1,10 @@
+{
+  "meta": {
+  "symptom_id": "oph_eye_discharge",
+  "name_cn": "眼部分泌物",
+  "name_en": "Ocular discharge",
+  "version": "1.0.0",
+  "updated_at": "2025-10-12T07:10:00Z",
+  "species": ["dog", "cat"],
+  "notes": "常见原因：角膜炎、结膜炎、泪道阻塞、感染。"
+},

@@ -1,0 +1,10 @@
+{
+ "meta": {
+  "symptom_id": "digestive_vomiting_refine",
+  "name_cn": "呕吐（细化版）",
+  "name_en": "Vomiting (refined)",
+  "version": "1.0.0",
+  "updated_at": "2025-10-12T07:10:00Z",
+  "species": ["dog", "cat"],
+  "notes": "细化呕吐原因：胃肠炎、异物、肾病、肝病、代谢紊乱等。"
+},
