@@ -4,7 +4,9 @@
     "name_cn": "血尿",
     "name_en": "Hematuria",
     "version": "1.0.0",
-    "updated_at": "2025-10-12T07:20:00Z",
+
+ 
+    
     "species": ["dog", "cat"],
     "notes": "注意区分血红蛋白尿/肌红蛋白尿；采样方式影响显微镜结果。"
   },
@@ -20,14 +22,14 @@
       "id": "history_exam",
       "title_cn": "问诊/体检",
       "title_en": "History/exam",
-      "history": ["发病急慢、排尿频率/疼痛", "是否外出打斗/创伤", "药物/毒物史（NSAIDs、抗凝）"],
+
       "exam": ["膀胱触诊（张力/疼痛）", "雄性猫是否尿道阻塞征象", "外阴/包皮出血来源排查"]
     },
     {
       "id": "tests",
       "title_cn": "实验室与影像",
       "title_en": "Labs & imaging",
-      "tests": ["尿常规+沉渣显微镜", "尿培养（疑UTI）", "CBC/凝血功能（PT/aPTT）", "腹部超声（结石/肿瘤/炎症）"]
+
     },
     {
       "id": "differentials",
