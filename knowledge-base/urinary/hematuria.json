@@ -1,10 +1,54 @@
 {
   "meta": {
-  "symptom_id": "urinary_hematuria",
-  "name_cn": "血尿",
-  "name_en": "Hematuria",
-  "version": "1.0.0",
-  "updated_at": "2025-10-12T07:05:00Z",
-  "species": ["dog", "cat"],
-  "notes": "首选逐步查生虫-感染-过敏-内分泌/其他的顺序排查。"
-},
+    "symptom_id": "urinary_hematuria",
+    "name_cn": "血尿",
+    "name_en": "Hematuria",
+    "version": "1.0.0",
+    "updated_at": "2025-10-12T07:20:00Z",
+    "species": ["dog", "cat"],
+    "notes": "注意区分血红蛋白尿/肌红蛋白尿；采样方式影响显微镜结果。"
+  },
+  "branches": [
+    {
+      "id": "triage",
+      "title_cn": "分诊与红旗",
+      "title_en": "Triage/red flags",
+      "when_to_refer": ["无尿/少尿伴精神差", "明显凝血异常/牙龈出血/紫癜"],
+      "red_flags": { "cn": "尿闭或出血倾向", "en": "Obstruction or coagulopathy" }
+    },
+    {
+      "id": "history_exam",
+      "title_cn": "问诊/体检",
+      "title_en": "History/exam",
+      "history": ["发病急慢、排尿频率/疼痛", "是否外出打斗/创伤", "药物/毒物史（NSAIDs、抗凝）"],
+      "exam": ["膀胱触诊（张力/疼痛）", "雄性猫是否尿道阻塞征象", "外阴/包皮出血来源排查"]
+    },
+    {
+      "id": "tests",
+      "title_cn": "实验室与影像",
+      "title_en": "Labs & imaging",
+      "tests": ["尿常规+沉渣显微镜", "尿培养（疑UTI）", "CBC/凝血功能（PT/aPTT）", "腹部超声（结石/肿瘤/炎症）"]
+    },
+    {
+      "id": "differentials",
+      "title_cn": "主要鉴别",
+      "title_en": "Differentials",
+      "differentials": [
+        {"dx_cn": "下尿路感染/特发性膀胱炎（猫）", "dx_en": "UTI/FIC (cats)"},
+        {"dx_cn": "膀胱/肾结石", "dx_en": "Urolithiasis"},
+        {"dx_cn": "肿瘤（TCC等）", "dx_en": "Neoplasia"},
+        {"dx_cn": "凝血功能障碍/毒物", "dx_en": "Coagulopathy/toxins"}
+      ]
+    },
+    {
+      "id": "initial_plan",
+      "title_cn": "初始处理",
+      "title_en": "Initial plan",
+      "plan": [
+        "疼痛管理与补液；阻塞按导尿/解除阻塞流程",
+        "疑感染：培养后经验性抗生素→根据药敏调整",
+        "结石：饮食溶石或外科/微创取石；复查尿检与影像"
+      ]
+    }
+  ]
+}

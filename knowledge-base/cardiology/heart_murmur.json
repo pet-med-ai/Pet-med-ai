@@ -1,12 +1,54 @@
 {
   "meta": {
-  "symptom_id": "card_heart_murmur",
-  "name_cn": "心杂音",
-  "name_en": "Heart murmur",
-  "version": "1.0.0",
-  "updated_at": "2025-10-12T07:05:00Z",
-  "species": ["dog", "cat"],
-  "notes": "首选逐步查生虫-感染-过敏-内分泌/其他的顺序排查。"
-},
-
-    
+    "symptom_id": "card_heart_murmur",
+    "name_cn": "心杂音",
+    "name_en": "Heart murmur",
+    "version": "1.0.0",
+    "updated_at": "2025-10-12T07:20:00Z",
+    "species": ["dog", "cat"],
+    "notes": "区分生理性与病理性，按年龄与品种导向性鉴别。"
+  },
+  "branches": [
+    {
+      "id": "triage",
+      "title_cn": "分诊与危险信号",
+      "title_en": "Triage/red flags",
+      "when_to_refer": ["呼吸困难/紫绀/晕厥", "快速进行性咳嗽/肺水肿迹象"],
+      "red_flags": { "cn": "急性心衰或晕厥", "en": "Acute CHF or syncope" }
+    },
+    {
+      "id": "history_exam",
+      "title_cn": "问诊与体检要点",
+      "title_en": "History & exam",
+      "history": ["年龄/品种（小型犬MMVD常见；幼龄大型犬PDA等）", "运动耐受、咳嗽/晕厥史", "心丝虫预防史"],
+      "exam": ["杂音部位/强度/时相", "心前区震颤、脉搏品质、呼吸音"]
+    },
+    {
+      "id": "tests",
+      "title_cn": "检查建议",
+      "title_en": "Recommended tests",
+      "tests": ["胸片", "心脏超声", "NT-proBNP/心丝虫检测（地区流行时）", "血压测量"]
+    },
+    {
+      "id": "differentials",
+      "title_cn": "主要鉴别",
+      "title_en": "Differentials",
+      "differentials": [
+        {"dx_cn": "二尖瓣退行性改变（MMVD）", "dx_en": "MMVD"},
+        {"dx_cn": "先天性缺陷（PDA/PS/VSD）", "dx_en": "Congenital defects"},
+        {"dx_cn": "肥厚型心肌病（猫）", "dx_en": "HCM (cats)"},
+        {"dx_cn": "生理性杂音（幼龄/贫血/发热）", "dx_en": "Physiologic/flow murmur"}
+      ]
+    },
+    {
+      "id": "initial_plan",
+      "title_cn": "初步计划",
+      "title_en": "Initial plan",
+      "plan": [
+        "稳定者安排心超确诊；必要时心丝虫筛查与血压",
+        "怀疑心衰：利尿剂+氧疗；犬考虑匹莫苯丹/ACEI（依指南）",
+        "教育主人：运动限制、呼吸频率监测、复查心超"
+      ]
+    }
+  ]
+}

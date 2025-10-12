@@ -1,10 +1,61 @@
 {
   "meta": {
-  "symptom_id": "neuro_seizure",
-  "name_cn": "癫痫发作",
-  "name_en": "Seizure",
-  "version": "1.0.0",
-  "updated_at": "2025-10-12T07:05:00Z",
-  "species": ["dog", "cat"],
-  "notes": "首选逐步查生虫-感染-过敏-内分泌/其他的顺序排查。"
-},
+    "symptom_id": "neuro_seizure",
+    "name_cn": "癫痫发作",
+    "name_en": "Seizure",
+    "version": "1.0.0",
+    "updated_at": "2025-10-12T07:20:00Z",
+    "species": ["dog", "cat"],
+    "notes": "首次发作需排除低血糖、肝性脑病、电解质紊乱、中毒与感染。"
+  },
+  "branches": [
+    {
+      "id": "red_flags",
+      "title_cn": "危险信号",
+      "title_en": "Red flags",
+      "when_to_refer": ["持续发作或癫痫持续状态", "伴严重外伤/昏迷/体温>41℃"],
+      "red_flags": { "cn": "频繁串发、意识不恢复、体温过高", "en": "Cluster/status seizures, hyperthermia" }
+    },
+    {
+      "id": "history",
+      "title_cn": "问诊要点",
+      "title_en": "History",
+      "history": [
+        "起始年龄/频率/持续时间/诱因（兴奋、睡眠、进食）",
+        "是否接触毒物/药物（异烟肼、杀鼠剂）",
+        "是否近期换粮/禁食/呕吐（低血糖风险）"
+      ]
+    },
+    {
+      "id": "exam",
+      "title_cn": "体检/床旁检查",
+      "title_en": "Exam/POC",
+      "exam": ["体温、黏膜、神经定位检查", "血糖指尖测定（POC）"],
+      "tests": ["CBC/生化+电解质", "胆汁酸/氨（疑肝性脑病）", "脑部影像+CSF（原发癫痫除外时）"]
+    },
+    {
+      "id": "differentials",
+      "title_cn": "主要鉴别诊断",
+      "title_en": "Differentials",
+      "differentials": [
+        {"dx_cn": "原发性癫痫", "dx_en": "Idiopathic epilepsy"},
+        {"dx_cn": "低血糖", "dx_en": "Hypoglycemia"},
+        {"dx_cn": "肝性脑病", "dx_en": "Hepatic encephalopathy"},
+        {"dx_cn": "电解质紊乱（低钠/低钙）", "dx_en": "Electrolyte disorders"},
+        {"dx_cn": "脑炎/脑膜炎/脑肿瘤", "dx_en": "Encephalitis/meningitis/neoplasia"},
+        {"dx_cn": "中毒（异烟肼等）", "dx_en": "Toxins (isoniazid, etc.)"}
+      ]
+    },
+    {
+      "id": "initial_tx",
+      "title_cn": "初始处理",
+      "title_en": "Initial treatment",
+      "plan": [
+        "急性发作：地西泮/咪达唑仑静/鼻黏膜给药；高温降温",
+        "纠正低血糖（5–10%葡萄糖缓慢静滴）",
+        "怀疑异烟肼：注射吡哆醇",
+        "稳定后评估长期抗癫痫方案（按地区指南）"
+      ]
+    }
+  ]
+}
