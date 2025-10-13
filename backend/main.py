@@ -1,6 +1,8 @@
 # backend/main.py
 from fastapi import FastAPI, APIRouter, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles  # ← 新增：用于挂载静态目录
+from pathlib import Path                    # ← 新增：定位 knowledge-base 目录
 from typing import Optional, List
 import os
 
@@ -24,6 +26,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# === 新增：挂载知识库静态目录为 /kb（只读） =========================
+# 目录定位：backend/main.py 的上一级是 backend，再上一级是仓库根目录
+KB_DIR = Path(__file__).resolve().parents[1] / "knowledge-base"
+app.mount("/kb", StaticFiles(directory=str(KB_DIR), html=False), name="kb")
+# 现在可通过 /kb/tags.yaml、/kb/neurology/seizure.json 等路径直接访问
+# ===============================================================
 
 # 健康检查（与 render.yaml 的 / 一致；也提供 /healthz 以备需要）
 @app.get("/", tags=["health"])
@@ -253,9 +262,9 @@ def reanalyze_case(
     if payload.age_info is not None:
         obj.age_info = payload.age_info
 
-    obj.analysis = f"[Auto] 根据主诉『{obj.chief_complaint or '无'}』生成的分析示例。"
-    obj.treatment = "示例治疗建议：对症支持、必要时完善影像/实验室检查。"
-    obj.prognosis = "示例预后：需随访。"
+    analysis = f"[Auto] 根据主诉『{obj.chief_complaint or '无'}』生成的分析示例。"
+    treatment = "示例治疗建议：对症支持、必要时完善影像/实验室检查。"
+    prognosis = "示例预后：需随访。"
 
     db.add(obj); db.commit(); db.refresh(obj)
     return obj
