@@ -5,6 +5,10 @@ on:
     paths:
       - 'knowledge-base/**'
       - 'tools/validate_kb.py'
+      - 'requirements.txt'
+      - '.github/workflows/validate-kb.yml'
+  workflow_dispatch:
+
 jobs:
   validate:
     runs-on: ubuntu-latest
@@ -13,4 +17,13 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python tools/validate_kb.py
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then
+            pip install -r requirements.txt
+          else
+            pip install jsonschema pyyaml
+          fi
+      - name: Run validator
+        run: python tools/validate_kb.py
