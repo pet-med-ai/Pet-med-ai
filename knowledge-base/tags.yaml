@@ -31,3 +31,24 @@ branches:
     zh: "功能性"
     en: "Functional"
     color: "#34495E"
+
+# === 在这里新增症状索引 ===
+symptoms:
+  - id: neuro_seizure
+    name_cn: 癫痫发作
+    path: neurology/seizure.json
+  - id: card_heart_murmur
+    name_cn: 心杂音
+    path: cardiology/heart_murmur.json
+  - id: urinary_hematuria
+    name_cn: 血尿
+    path: urinary/hematuria.json
+  - id: derm_alopecia
+    name_cn: 脱毛/毛发稀疏
+    path: dermatology/alopecia.json
+  - id: oph_red_eye
+    name_cn: 红眼/结膜充血
+    path: ophthalmology/red_eye.json
+  - id: endo_pupd
+    name_cn: 多饮多尿
+    path: endocrinology/polyuria_polydipsia.json
