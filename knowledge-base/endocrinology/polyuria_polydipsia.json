@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "symptom_id": "endo_pupd",
+    "name_cn": "多饮多尿",
+    "name_en": "Polyuria/Polydipsia",
+    "version": "1.0.0",
+    "updated_at": "2025-10-12T08:10:00Z",
+    "species": ["dog", "cat"],
+    "notes": "先确认真实多饮多尿，再按分层查糖尿病、肾病、库兴、甲减/甲亢等。"
+  },
+  "branches": [
+    {
+      "id": "history_exam",
+      "title_cn": "问诊/体检",
+      "title_en": "History/exam",
+      "history": ["饮水量/尿量客观估计", "用药史（糖皮质激素/利尿剂）", "体重变化"],
+      "exam": ["脱水/肥胖体况", "肾区痛", "皮肤毛发改变"]
+    },
+    {
+      "id": "tests",
+      "title_cn": "检查",
+      "title_en": "Tests",
+      "tests": ["尿比重/尿常规", "血糖/果糖胺（猫）", "CBC/生化+电解质", "甲状腺（猫）/皮质醇筛查（犬）", "腹部超声（肾/肝/肾上腺）"]
+    },
+    {
+      "id": "differentials",
+      "title_cn": "主要鉴别",
+      "title_en": "Differentials",
+      "differentials": [
+        {"dx_cn": "糖尿病", "dx_en": "Diabetes mellitus"},
+        {"dx_cn": "慢性肾病", "dx_en": "CKD"},
+        {"dx_cn": "库兴综合征（犬）", "dx_en": "Cushing's disease"},
+        {"dx_cn": "甲状腺机能亢进（猫）", "dx_en": "Hyperthyroidism (cats)"},
+        {"dx_cn": "尿崩症/心理性多饮", "dx_en": "DI/psychogenic polydipsia"}
+      ]
+    },
+    {
+      "id": "initial_plan",
+      "title_cn": "初始处理",
+      "title_en": "Initial plan",
+      "plan": [
+        "纠正脱水与电解质紊乱",
+        "依据筛查结果制定内分泌/肾病管理方案",
+        "教育主人：记录饮水与尿量，随访复查"
+      ]
+    }
+  ]
+}

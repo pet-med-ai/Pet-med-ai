@@ -1,0 +1,56 @@
+{
+  "meta": {
+    "symptom_id": "derm_alopecia",
+    "name_cn": "脱毛/毛发稀疏",
+    "name_en": "Alopecia",
+    "version": "1.0.0",
+    "updated_at": "2025-10-12T08:10:00Z",
+    "species": ["dog", "cat"],
+    "notes": "按瘙痒性与非瘙痒性、对称性与局灶性区分路径。"
+  },
+  "branches": [
+    {
+      "id": "triage",
+      "title_cn": "分诊与红旗",
+      "title_en": "Triage/red flags",
+      "when_to_refer": ["全身性糜烂渗出并伴精神差", "广泛脓皮症合并发热"],
+      "red_flags": { "cn": "重度继发感染或坏死", "en": "Severe secondary infection/necrosis" }
+    },
+    {
+      "id": "history_exam",
+      "title_cn": "问诊/体检要点",
+      "title_en": "History/exam",
+      "history": ["是否瘙痒", "起始部位与分布", "同居动物是否相似症状", "最近洗护与驱虫史", "季节性"],
+      "exam": ["拔毛镜检", "皮屑/痂样检测", "皮肤划痕+镜检（螨）", "伍德灯/真菌培养"]
+    },
+    {
+      "id": "tests",
+      "title_cn": "实验室与进一步检查",
+      "title_en": "Tests",
+      "tests": ["皮肤细胞学", "真菌培养", "甲状腺/肾上腺皮质功能（非瘙痒性对称性脱毛）"]
+    },
+    {
+      "id": "differentials",
+      "title_cn": "主要鉴别",
+      "title_en": "Differentials",
+      "differentials": [
+        {"dx_cn": "跳蚤过敏性皮炎/食物过敏/环境过敏", "dx_en": "FAD/food/environmental allergy"},
+        {"dx_cn": "疥螨/蠕形螨", "dx_en": "Sarcoptes/Demodex"},
+        {"dx_cn": "皮肤真菌病", "dx_en": "Dermatophytosis"},
+        {"dx_cn": "甲状腺机能减退/库兴综合征", "dx_en": "Hypothyroidism/Cushing's"},
+        {"dx_cn": "特发性休止期脱毛/内分泌性对称脱毛", "dx_en": "Endocrine alopecia"}
+      ]
+    },
+    {
+      "id": "initial_plan",
+      "title_cn": "初步处理",
+      "title_en": "Initial plan",
+      "plan": [
+        "瘙痒性优先：严格外寄生虫控制（等布局部/口服异噻唑啉酮类）",
+        "继发感染：按细胞学选择抗菌/抗酵母治疗",
+        "疑真菌：伍德灯+培养，阳性按指南处理",
+        "疑内分泌：先稳定皮肤屏障与感染，再做内分泌筛查"
+      ]
+    }
+  ]
+}
