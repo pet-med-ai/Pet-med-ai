@@ -1,0 +1,48 @@
+{
+  "meta": {
+    "symptom_id": "oph_red_eye",
+    "name_cn": "红眼/结膜充血",
+    "name_en": "Red eye",
+    "version": "1.0.0",
+    "updated_at": "2025-10-12T08:10:00Z",
+    "species": ["dog", "cat"],
+    "notes": "痛感存在与否、分泌物类型与角膜完整性决定处理优先级。"
+  },
+  "branches": [
+    {
+      "id": "triage",
+      "title_cn": "分诊红旗",
+      "title_en": "Red flags",
+      "when_to_refer": ["明显疼痛闭眼畏光", "角膜可疑溃疡/穿孔", "眼压明显升高/下降"],
+      "red_flags": { "cn": "角膜溃疡或青光眼急症", "en": "Corneal ulcer or glaucoma emergency" }
+    },
+    {
+      "id": "history_exam",
+      "title_cn": "问诊/体检",
+      "title_en": "History/exam",
+      "history": ["单眼或双眼", "外伤/异物", "分泌物性状", "系统性疾病史"],
+      "exam": ["荧光素染色", "泪液分泌试验（STT）", "眼压（注意角膜完整性）", "倒像镜/裂隙灯检查"]
+    },
+    {
+      "id": "differentials",
+      "title_cn": "鉴别诊断",
+      "title_en": "Differentials",
+      "differentials": [
+        {"dx_cn": "结膜炎/干眼症", "dx_en": "Conjunctivitis/KCS"},
+        {"dx_cn": "角膜溃疡/擦伤", "dx_en": "Corneal ulcer/abrasion"},
+        {"dx_cn": "葡萄膜炎", "dx_en": "Uveitis"},
+        {"dx_cn": "青光眼", "dx_en": "Glaucoma"}
+      ]
+    },
+    {
+      "id": "initial_plan",
+      "title_cn": "初步处理",
+      "title_en": "Initial plan",
+      "plan": [
+        "角膜染色阳性：抗生素眼药+止痛，避免含激素制剂",
+        "KCS：人工泪液+环孢素/他克莫司按指南",
+        "疑葡萄膜炎/青光眼：尽快眼科处理，按压降/抗炎/缩瞳方案"
+      ]
+    }
+  ]
+}
