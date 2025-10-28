@@ -4,6 +4,15 @@ from ..kb_loader import get_vomiting_payload, get_prompts_by_ids, KBLoadError
 
 router = APIRouter(prefix="/api/v1", tags=["vomiting"])
 
+from fastapi import APIRouter, HTTPException
+
+@router.get("/kb/{symptom}/tree")
+def api_kb_tree(symptom: str, locale: str = "zh", embed: str = "prompts"):
+    if symptom != "vomiting":
+        raise HTTPException(status_code=404, detail="symptom not available yet")
+    from ..kb_loader import get_vomiting_payload
+    return get_vomiting_payload(locale=locale, embed_prompts=(embed != "ids"))
+
 @router.get("/vomiting/tree")
 def api_vomiting_tree(locale: str = "zh", embed: Optional[str] = "prompts"):
     """
