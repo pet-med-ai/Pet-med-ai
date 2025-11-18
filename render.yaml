@@ -17,11 +17,10 @@ services:
         value: "3.11.9"
       - key: KB_ROOT
         value: /app/knowledge-base
-      # 如有数据库再在控制台设置：
       # - key: DATABASE_URL
       #   sync: false
 
-  # === Frontend: Vite/React (Node serve 静态文件) ===
+  # === Frontend: Vite/React ===
   - type: web
     name: pet-med-ai-frontend-v6
     env: node
@@ -35,6 +34,5 @@ services:
     envVars:
       - key: NODE_VERSION
         value: "20"
-      # 部署完成后，把它改成后端实际域名（Render 后端上线后可在控制台复制）
       - key: VITE_API_BASE
         value: https://pet-med-ai-backend.onrender.com
