@@ -1,9 +1,8 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE || "https://pet-med-ai-backend.onrender.com",
+  baseURL: import.meta.env.VITE_API_BASE,
 });
-
 // 请求拦截：带上 JWT
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -25,3 +24,7 @@ api.interceptors.response.use(
 );
 
 export default api;
+
+
+
+
