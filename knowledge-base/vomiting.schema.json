@@ -6,6 +6,17 @@
   "properties": {
     "version": { "type": "string" },
     "updated_at": { "type": "string", "format": "date-time" },
+
+    "meta": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "kb_id": { "type": "string" },
+        "species_supported": { "type": "array", "items": { "type": "string" } },
+        "slot_def_version": { "type": "string" }
+      }
+    },
+
     "root": {
       "type": "object",
       "required": ["id", "label_zh", "label_en", "children"],
@@ -18,10 +29,53 @@
           "type": "array",
           "items": { "$ref": "#/$defs/node" }
         }
-      }
+      },
+      "additionalProperties": false
     }
   },
+
   "$defs": {
+    "triage": {
+      "type": "object",
+      "required": ["level"],
+      "properties": {
+        "level": {
+          "type": "string",
+          "enum": ["emergency", "urgent", "routine", "home_observe"]
+        },
+        "triggers": { "type": "array", "items": { "type": "string" } },
+        "action_zh": { "type": "string" },
+        "action_en": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "slot_requirement": {
+      "type": "object",
+      "required": ["slot"],
+      "properties": {
+        "slot": { "type": "string" },
+        "required": { "type": "boolean", "default": true },
+        "when_missing_ref": { "type": "string" }
+      },
+      "additionalProperties": false
+    },
+
+    "effects": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "add_tags": { "type": "array", "items": { "type": "string" } },
+        "set_signals": { "type": "array", "items": { "type": "string" } },
+        "set_slots": {
+          "type": "object",
+          "additionalProperties": {
+            "type": ["string", "number", "boolean", "null"]
+          }
+        }
+      }
+    },
+
     "node": {
       "type": "object",
       "required": ["id", "label_zh", "label_en"],
@@ -29,12 +83,50 @@
         "id": { "type": "string" },
         "label_zh": { "type": "string" },
         "label_en": { "type": "string" },
+
         "tags": { "type": "array", "items": { "type": "string" } },
         "questions_ref": { "type": "array", "items": { "type": "string" } },
+
         "signals": { "type": "array", "items": { "type": "string" } },
         "next": { "type": "array", "items": { "type": "string" } },
-        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } }
-      }
+        "children": { "type": "array", "items": { "$ref": "#/$defs/node" } },
+
+        "triage": { "$ref": "#/$defs/triage" },
+
+        "required_slots": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/slot_requirement" }
+        },
+
+        "effects": { "$ref": "#/$defs/effects" },
+
+        "recommendations_ref": { "type": "array", "items": { "type": "string" } },
+
+        "contraindications": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "prescription_drug_names",
+              "dosage_instructions",
+              "injectable_treatment",
+              "delay_emergency_care",
+              "definitive_diagnosis_claim"
+            ]
+          }
+        },
+
+        "confidence_hint": {
+          "type": "object",
+          "properties": {
+            "base": { "type": "number", "minimum": 0, "maximum": 1 },
+            "boost_if_tags": { "type": "array", "items": { "type": "string" } },
+            "penalize_if_tags": { "type": "array", "items": { "type": "string" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
     }
   }
 }
