@@ -1,3 +1,47 @@
+{
+  "id": "triage",
+  "label_zh": "先做风险分诊",
+  "label_en": "Risk Triage",
+  "tags": [],
+  "signals": [],
+  "questions_ref": ["Q_TRIAGE_01", "Q_TRIAGE_02", "Q_TRIAGE_03", "Q_TRIAGE_04", "Q_TRIAGE_05"],
+  "children": [
+    {
+      "id": "triage.red_flags",
+      "label_zh": "存在红旗信号（建议立即就医）",
+      "label_en": "Red Flags Present (Seek Vet Care Now)",
+      "tags": ["red_flag"],
+      "signals": [
+        "blood_vomit",
+        "coffee_ground_emesis",
+        "severe_lethargy",
+        "abdominal_distension",
+        "unproductive_retching",
+        "suspected_toxin",
+        "anuria",
+        "oliguria",
+        "black_stool"
+      ],
+      "questions_ref": ["Q_TRIAGE_02", "Q_TRIAGE_03", "Q_TRIAGE_04"]
+    },
+    {
+      "id": "triage.acute",
+      "label_zh": "急性呕吐（优先排除异物/中毒/急腹症）",
+      "label_en": "Acute Vomiting (Rule out foreign body/toxin/acute abdomen)",
+      "tags": ["acute"],
+      "signals": ["sudden_onset"],
+      "questions_ref": ["Q_TRIAGE_01", "Q_TRIAGE_03"]
+    },
+    {
+      "id": "triage.chronic",
+      "label_zh": "慢性或反复呕吐（考虑系统性疾病/肿瘤/慢性炎症等）",
+      "label_en": "Chronic/Recurrent Vomiting (Systemic/chronic causes)",
+      "tags": ["chronic"],
+      "signals": ["recurrent"],
+      "questions_ref": ["Q_TRIAGE_01"]
+    }
+  ]
+}
 
 git add knowledge-base/vomiting/data/vomiting.json
 git commit -m "feat(kb): update vomiting.json (CN/EN, 12 branches)"
