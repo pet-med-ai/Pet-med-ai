@@ -9,23 +9,67 @@
     "signals": [],
     "questions_ref": [],
     "children": [
-  {
-     "id": "liver",
-     "label_zh": "肝脏疾病相关",
-     "label_en": "Liver Diseases",
-     "tags": ["hepatic"],
-     "signals": ["jaundice±", "ALT/AST↑", "ALP/GGT↑", "ascites±"],
-     "questions_ref": ["Q_LIVER_01"],
-     "children": [
-   {
-     "id": "liver.chronic",
-     "label_zh": "慢性肝炎/慢性肝病",
-      "label_en": "Chronic Hepatitis/Liver Disease",
-      "tags": ["hepatic"],
-      "signals": ["weight_loss", "appetite_variation", "ALT/AST↑"],
-      "questions_ref": ["Q_LIVER_01"]
-     },
-     {
+      {
+        "id": "triage",
+        "label_zh": "先做风险分诊",
+        "label_en": "Risk Triage",
+        "tags": [],
+        "signals": [],
+        "questions_ref": ["Q_TRIAGE_01", "Q_TRIAGE_02", "Q_TRIAGE_03", "Q_TRIAGE_04", "Q_TRIAGE_05"],
+        "children": [
+          {
+            "id": "triage.red_flags",
+            "label_zh": "存在红旗信号（建议立即就医）",
+            "label_en": "Red Flags Present (Seek Vet Care Now)",
+            "tags": ["red_flag"],
+            "signals": [
+              "blood_vomit",
+              "coffee_ground_emesis",
+              "severe_lethargy",
+              "abdominal_distension",
+              "unproductive_retching",
+              "suspected_toxin",
+              "anuria",
+              "oliguria",
+              "black_stool"
+            ],
+            "questions_ref": ["Q_TRIAGE_02", "Q_TRIAGE_03", "Q_TRIAGE_04"]
+          },
+          {
+            "id": "triage.acute",
+            "label_zh": "急性呕吐（优先排除异物/中毒/急腹症）",
+            "label_en": "Acute Vomiting (Rule out foreign body/toxin/acute abdomen)",
+            "tags": ["acute"],
+            "signals": ["sudden_onset"],
+            "questions_ref": ["Q_TRIAGE_01", "Q_TRIAGE_03"]
+          },
+          {
+            "id": "triage.chronic",
+            "label_zh": "慢性或反复呕吐（考虑系统性疾病/肿瘤/慢性炎症等）",
+            "label_en": "Chronic/Recurrent Vomiting (Systemic/chronic causes)",
+            "tags": ["chronic"],
+            "signals": ["recurrent"],
+            "questions_ref": ["Q_TRIAGE_01"]
+          }
+        ]
+      },
+      {
+        "id": "liver",
+        "label_zh": "肝脏疾病相关",
+        "label_en": "Liver Diseases",
+        "tags": ["hepatic"],
+        "signals": ["jaundice±", "ALT/AST↑", "ALP/GGT↑", "ascites±"],
+        "questions_ref": ["Q_LIVER_01"],
+        "children": [
+          {
+            "id": "liver.chronic",
+            "label_zh": "慢性肝炎/慢性肝病",
+            "label_en": "Chronic Hepatitis/Liver Disease",
+            "tags": ["hepatic"],
+            "signals": ["weight_loss", "appetite_variation", "ALT/AST↑"],
+            "questions_ref": ["Q_LIVER_01"]
+          },
+          {
             "id": "liver.infectious",
             "label_zh": "肝胆系统感染性疾病",
             "label_en": "Hepatobiliary Infections",
@@ -50,12 +94,12 @@
             "questions_ref": ["Q_LIVER_TUMOR_01"]
           },
           {
-         "id": "liver.dili",
-         "label_zh": "药物/毒物性肝损伤",
-         "label_en": "Drug/Toxin-Induced Liver Injury",
-         "tags": ["hepatic", "toxicity"],
-         "signals": ["ALT/AST↑", "GGT↑", "drug_chem_exposure"],
-         "questions_ref": ["Q_DILI_01"]
+            "id": "liver.dili",
+            "label_zh": "药物/毒物性肝损伤",
+            "label_en": "Drug/Toxin-Induced Liver Injury",
+            "tags": ["hepatic", "toxicity"],
+            "signals": ["ALT/AST↑", "GGT↑", "drug_chem_exposure"],
+            "questions_ref": ["Q_DILI_01"]
           }
         ]
       },
@@ -67,51 +111,6 @@
         "signals": ["PU/PD", "halitosis_uremic±", "azotemia±", "USG↓"],
         "questions_ref": ["Q_KIDNEY_01"],
         "children": [
-          {
-        "id": "triage",
-        "label_zh": "先做风险分诊",
-        "label_en": "Risk Triage",
-        "tags": [],
-        "signals": [],
-        "questions_ref": ["Q_TRIAGE_01", "Q_TRIAGE_02", "Q_TRIAGE_03", "Q_TRIAGE_04", "Q_TRIAGE_05"],
-        "children": [
-      {
-        "id": "triage.red_flags",
-        "label_zh": "存在红旗信号（建议立即就医）",
-        "label_en": "Red Flags Present (Seek Vet Care Now)",
-        "tags": ["red_flag"],
-        "signals": [
-        "blood_vomit",
-        "coffee_ground_emesis",
-        "severe_lethargy",
-        "abdominal_distension",
-        "unproductive_retching",
-        "suspected_toxin",
-        "anuria",
-        "oliguria",
-        "black_stool"
-      ],
-        "questions_ref": ["Q_TRIAGE_02", "Q_TRIAGE_03", "Q_TRIAGE_04"]
-    },
-    {
-        "id": "triage.acute",
-        "label_zh": "急性呕吐（优先排除异物/中毒/急腹症）",
-        "label_en": "Acute Vomiting (Rule out foreign body/toxin/acute abdomen)",
-        "tags": ["acute"],
-        "signals": ["sudden_onset"],
-        "questions_ref": ["Q_TRIAGE_01", "Q_TRIAGE_03"]
-    },
-    {
-        "id": "triage.chronic",
-        "label_zh": "慢性或反复呕吐（考虑系统性疾病/肿瘤/慢性炎症等）",
-        "label_en": "Chronic/Recurrent Vomiting (Systemic/chronic causes)",
-        "tags": ["chronic"],
-        "signals": ["recurrent"],
-        "questions_ref": ["Q_TRIAGE_01"]
-     }
-     ]
-   }
-
           {
             "id": "kidney.ckd",
             "label_zh": "慢性肾病（CKD）",
@@ -142,7 +141,7 @@
         "id": "parasites",
         "label_zh": "寄生虫感染",
         "label_en": "Parasitic Infections",
-        "tags": ["parasitic"],
+        "tags": ["parasites"],
         "signals": ["worms_visible±", "diarrhea±", "multi_cat_env±"],
         "questions_ref": ["Q_PARASITE_01"],
         "children": [
@@ -150,7 +149,7 @@
             "id": "parasites.nematodes",
             "label_zh": "胃肠道线虫（蛔虫/钩虫等）",
             "label_en": "GI Nematodes (roundworms/hookworms)",
-            "tags": ["parasitic"],
+            "tags": ["parasites"],
             "signals": ["worms_in_vomit/stool", "poor_BCS", "young"],
             "questions_ref": ["Q_NEM_01"]
           },
@@ -158,7 +157,7 @@
             "id": "parasites.protozoa",
             "label_zh": "原虫感染（贾第鞭毛虫/球虫等）",
             "label_en": "Protozoal Infections (Giardia/Coccidia)",
-            "tags": ["parasitic"],
+            "tags": ["parasites"],
             "signals": ["vomit+diarrhea", "foul_stool", "mucus_stool"],
             "questions_ref": ["Q_PROTOZOA_01"]
           },
@@ -166,7 +165,7 @@
             "id": "parasites.ectopic",
             "label_zh": "异所寄生/严重寄生反应",
             "label_en": "Ectopic Parasite Migration/Severe Reaction",
-            "tags": ["parasitic"],
+            "tags": ["parasites"],
             "signals": ["obstruction_signs", "barium_abnormal"],
             "questions_ref": ["Q_ECTOPIC_01"]
           }
@@ -278,7 +277,7 @@
         "id": "gi_motility",
         "label_zh": "胃肠动力障碍",
         "label_en": "GI Motility Disorders",
-        "tags": ["motility"],
+        "tags": ["gi_motility"],
         "signals": ["postprandial_or_delayed_vomit", "no_structural_lesion"],
         "questions_ref": ["Q_GIM_01"],
         "children": [
@@ -286,7 +285,7 @@
             "id": "gi_motility.gastroparesis",
             "label_zh": "胃轻瘫",
             "label_en": "Gastroparesis",
-            "tags": ["motility"],
+            "tags": ["gi_motility"],
             "signals": ["hours_after_meal_undigested_food", "bloating"],
             "questions_ref": ["Q_GASTRO_01"]
           },
@@ -294,7 +293,7 @@
             "id": "gi_motility.pyloric_stenosis",
             "label_zh": "幽门狭窄/功能障碍",
             "label_en": "Pyloric Stenosis/Dysfunction",
-            "tags": ["motility"],
+            "tags": ["gi_motility"],
             "signals": ["projectile_vomit", "relief_after_vomit", "contrast_abnormal"],
             "questions_ref": ["Q_PYL_01"]
           },
@@ -302,7 +301,7 @@
             "id": "gi_motility.neuromuscular",
             "label_zh": "胃肠神经-肌肉功能紊乱",
             "label_en": "GI Neuromuscular Dysfunction",
-            "tags": ["motility"],
+            "tags": ["gi_motility"],
             "signals": ["functional_disorder", "no_structural_lesion"],
             "questions_ref": ["Q_GINM_01"]
           }
