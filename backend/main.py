@@ -103,6 +103,41 @@ class AnalyzeOut(BaseModel):
 
 # ---------- 统一前缀 /api ----------
 api = APIRouter(prefix="/api", tags=["cases"])
+# --- triage (hospital) ---
+from app.triage_vomiting import triage_vomiting, VomitingTriageInput as _VTInput
+
+class VomitingTriageIn(BaseModel):
+    duration_hours: Optional[float] = None
+    vomit_count_24h: Optional[int] = None
+    energy_level: Optional[str] = None  # normal|reduced|severe
+    blood: Optional[str] = None         # none|fresh|coffee_ground
+    abd_distension: Optional[bool] = None
+    unproductive_retching: Optional[bool] = None
+    suspected_toxin: Optional[bool] = None
+    urine: Optional[str] = None         # normal|oliguria|anuria|unknown
+    black_stool: Optional[bool] = None
+    locale: Optional[str] = "zh"
+
+@api.post("/triage/vomiting", tags=["triage"])
+def triage_vomiting_api(
+    data: VomitingTriageIn,
+    user = Depends(get_current_user),
+):
+    try:
+        inp = _VTInput(
+            duration_hours=data.duration_hours,
+            vomit_count_24h=data.vomit_count_24h,
+            energy_level=data.energy_level,
+            blood=data.blood,
+            abd_distension=data.abd_distension,
+            unproductive_retching=data.unproductive_retching,
+            suspected_toxin=data.suspected_toxin,
+            urine=data.urine,
+            black_stool=data.black_stool,
+        )
+        return triage_vomiting(inp, locale=data.locale or "zh")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 # 即时分析（与前端 /api/analyze 对齐）
 @api.post("/analyze", response_model=AnalyzeOut, tags=["analyze"])
