@@ -42,3 +42,22 @@ prompts:
   - id: Q_BEHAV_01
     zh: "是否在分离、环境改变或焦虑时更易呕吐？已排除器质性病因吗？"
     en: "More vomiting with separation, environmental change, anxiety? Organic causes excluded?"
+   - id: Q_TRIAGE_01
+    zh: "呕吐从什么时候开始？24小时内大概吐了几次？精神状态如何（正常/变差/很差）？"
+    en: "When did vomiting start? How many times in the last 24 hours? Energy level (normal/reduced/severely low)?"
+
+  - id: Q_TRIAGE_02
+    zh: "呕吐物里有没有血（鲜红或咖啡渣样）？有没有明显腹胀、干呕吐不出、持续流口水？"
+    en: "Any blood (fresh red or coffee-ground)? Any marked abdominal distension, unproductive retching, or persistent drooling?"
+
+  - id: Q_TRIAGE_03
+    zh: "是否可能误食异物（玩具、骨头、布、线）或接触毒物/人用药/杀虫剂？"
+    en: "Possible foreign body (toy/bone/fabric/string) or exposure to toxins/human meds/insecticides?"
+
+  - id: Q_TRIAGE_04
+    zh: "有无腹泻或黑便？是否不吃不喝？是否尿量明显减少或无尿？"
+    en: "Diarrhea or black stool? Refusing food/water? Urine output markedly reduced or absent?"
+
+  - id: Q_TRIAGE_05
+    zh: "年龄多大？是否幼龄且免疫不全/未完成疫苗？"
+    en: "Age? Is it very young and unvaccinated/incompletely vaccinated?"
