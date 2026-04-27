@@ -13,6 +13,7 @@ from pydantic import BaseModel
 from db import SessionLocal, Base, engine
 from models import Case
 from auth_jwt import router as auth_router, get_current_user
+from agent_orchestrator import run_agent
 
 # ---------- 初始化 ----------
 Base.metadata.create_all(bind=engine)
@@ -101,6 +102,10 @@ class AnalyzeOut(BaseModel):
     treatment: str
     prognosis: str
 
+
+class AgentConsultIn(BaseModel):
+    text: str
+
 # ---------- 统一前缀 /api ----------
 api = APIRouter(prefix="/api", tags=["cases"])
 # --- triage (hospital) ---
@@ -159,6 +164,11 @@ def analyze(data: AnalyzeIn):
     analysis = "可能的鉴别诊断：\n- " + "\n- ".join(dict.fromkeys(ddx)) if ddx else "需进一步完善检查以明确病因。"
     treatment = "建议的处理/治疗：\n- " + "\n- ".join(dict.fromkeys(plan)) if plan else "建议完善血常规/生化/电解质/影像后再定方案。"
     return AnalyzeOut(analysis=analysis, treatment=treatment, prognosis=prognosis)
+
+
+@app.post("/ai/consult", tags=["agent"])
+def ai_consult(data: AgentConsultIn):
+    return run_agent(data.text)
 
 # 工具：检测是否有软删字段
 def supports_soft_delete() -> bool:

@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
 import api from "./api";
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
+import AISection from "./components/AISection";
 
 /** ===== 首页 Home 组件 ===== */
 function Home() {
@@ -389,6 +390,11 @@ function Home() {
             {prognosis && <Block title="预后">{prognosis}</Block>}
           </div>
         )}
+      </section>
+
+      <section style={card}>
+        <h2 style={h2}>2.1) 半自动 Agent v1（实用级）</h2>
+        <AISection />
       </section>
 
       {/* ====== 列表（搜索+分页 + 批量操作） ====== */}
