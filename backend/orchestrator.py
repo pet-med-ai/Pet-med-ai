@@ -1,7 +1,7 @@
-from feature_engine import extract_features
-from risk_engine import evaluate
-from question_engine import generate
-from diagnosis_engine import rank
+from backend.feature_engine import extract_features
+from backend.risk_engine import evaluate
+from backend.question_engine import generate
+from backend.diagnosis_engine import rank
 
 
 def run_agent(text: str):
