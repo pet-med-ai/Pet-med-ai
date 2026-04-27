@@ -59,6 +59,10 @@ def get_db():
     finally:
         db.close()
 
+
+def run_agent(text: str):
+    return text
+
 # ---------- Pydantic IO ----------
 class CaseCreate(BaseModel):
     patient_name: str
@@ -100,6 +104,9 @@ class AnalyzeOut(BaseModel):
     analysis: str
     treatment: str
     prognosis: str
+
+class AIConsultIn(BaseModel):
+    text: str
 
 # ---------- 统一前缀 /api ----------
 api = APIRouter(prefix="/api", tags=["cases"])
@@ -303,6 +310,15 @@ def reanalyze_case(
 
     db.add(obj); db.commit(); db.refresh(obj)
     return obj
+
+
+@app.post("/ai/consult", tags=["ai"])
+@app.post("/api/ai/consult", tags=["ai"])
+async def ai_consult(data: AIConsultIn):
+    result = run_agent(data.text)
+    if isinstance(result, dict):
+        return result
+    return {"result": result}
 
 # 将 /api 路由挂载到应用
 app.include_router(api)
