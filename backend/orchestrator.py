@@ -16,9 +16,9 @@ def run_agent(text: str):
     diseases = rank(features, tree_path)
 
     return {
-        "risk_level": risk,
-        "tree_path": tree_path,
-        "diseases": diseases,
-        "next_questions": questions,
-        "actions": ["建议进一步检查血常规、生化、影像学"]
-    }
+    "risk_level": risk,
+    "tree_path": tree_path,
+    "diseases": diseases,
+    "next_questions": questions,   # 保持 list
+    "actions": ["建议进一步检查血常规、生化、影像学"]
+}
