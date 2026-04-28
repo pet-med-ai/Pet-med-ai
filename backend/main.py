@@ -13,7 +13,10 @@ from pydantic import BaseModel
 from db import SessionLocal, Base, engine
 from models import Case
 from auth_jwt import router as auth_router, get_current_user
-from backend.orchestrator import run_agent
+try:
+    from backend.orchestrator import run_agent
+except ModuleNotFoundError:
+    from orchestrator import run_agent
 # ---------- 初始化 ----------
 Base.metadata.create_all(bind=engine)
 
