@@ -47,6 +47,8 @@ function Home() {
   const [analysis, setAnalysis] = useState("");
   const [treatment, setTreatment] = useState("");
   const [prognosis, setPrognosis] = useState("");
+  
+  const [result, setResult] = useState(null);
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
   const [errMsg, setErrMsg] = useState("");
 
@@ -243,29 +245,108 @@ function Home() {
   useEffect(() => { fetchCases(); }, [page]);
 
   // ===== 即时分析（不入库） =====
-  const handleAnalyzeSubmit = async (e) => {
-    e.preventDefault();
-    setErrMsg(""); setAnalysis(""); setTreatment(""); setPrognosis("");
-    setLoadingAnalyze(true);
-    try {
-      const res = await api.post("/api/analyze", {
-        chief_complaint: chiefComplaint,
-        history,
-        exam_findings: examFindings,
-        species,
-        age_info: ageInfo,
-      });
-      setAnalysis(res.data.analysis || "");
-      setTreatment(res.data.treatment || "");
-      setPrognosis(res.data.prognosis || "");
-    } catch (err) {
-      console.error("Analyze error:", err);
-      setErrMsg("分析请求失败，请稍后重试或检查后端日志。");
-    } finally {
-      setLoadingAnalyze(false);
-    }
-  };
+ const handleAnalyzeSubmit = async (e) => {
+  e.preventDefault();
 
+  setErrMsg("");
+  setAnalysis("");
+  setTreatment("");
+  setPrognosis("");
+  setResult(null);
+  setLoadingAnalyze(true);
+
+  try {
+    const text = [
+      chiefComplaint ? `主诉：${chiefComplaint}` : "",
+      history ? `既往史：${history}` : "",
+      examFindings ? `体检/化验：${examFindings}` : "",
+      species ? `物种：${species}` : "",
+      ageInfo ? `年龄：${ageInfo}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const res = await api.post("/ai/consult", {
+      text,
+    });
+
+    const data = res.data;
+    console.log("RAW AI DATA =", data);
+    setResult(data);
+
+    const formatList = (items) => {
+      if (!items) return "";
+      if (!Array.isArray(items)) return String(items);
+
+      return items
+        .map((item) => {
+          if (typeof item === "string") return `- ${item}`;
+          return `- ${
+            item.name ||
+            item.disease ||
+            item.label ||
+            JSON.stringify(item)
+          }`;
+        })
+        .join("\n");
+    };
+
+    const diseaseData = data.diseases || {};
+
+    const diseaseList = Array.isArray(diseaseData)
+      ? diseaseData
+      : diseaseData.diseases || [];
+
+    const checks = diseaseData.checks || [];
+    const actions = diseaseData.actions || data.actions || [];
+    const nextQuestionData =
+      data.next_questions || diseaseData.next_questions || [];
+
+    const nextQuestions = Array.isArray(nextQuestionData)
+      ? nextQuestionData
+      : Array.isArray(nextQuestionData?.questions)
+        ? nextQuestionData.questions
+        : [];
+    console.log("NORMALIZED AI DATA =", {
+      risk_level: data.risk_level,
+      tree_path: data.tree_path,
+      diseaseList,
+      checks,
+      actions,
+      nextQuestions,
+  });
+    setAnalysis(
+      [
+        data.tree_path?.length
+          ? `诊断路径：${data.tree_path.join(" > ")}`
+          : "",
+        diseaseList.length
+          ? `可能的鉴别诊断：\n${formatList(diseaseList)}`
+          : "",
+        checks.length ? `建议检查：\n${formatList(checks)}` : "",
+      ]
+        .filter(Boolean)
+        .join("\n\n")
+    );
+
+    setTreatment(
+      actions.length
+        ? `建议处理/治疗：\n${formatList(actions)}`
+        : data.treatment || ""
+    );
+
+    setPrognosis(
+      nextQuestions.length
+        ? `下一步追问：\n${formatList(nextQuestions)}`
+        : data.prognosis || "需结合体征、影像与实验室检查进一步判断。"
+    );
+  } catch (err) {
+    console.error("Analyze error:", err);
+    setErrMsg("分析请求失败，请稍后重试或检查后端日志。");
+  } finally {
+    setLoadingAnalyze(false);
+  }
+};
   // ===== 新建病例 =====
   const handleCreateCase = async () => {
     if (!patientName || !chiefComplaint) {
@@ -383,7 +464,33 @@ function Home() {
         {errMsg && <p style={{ color: "crimson", marginTop: 8 }}>{errMsg}</p>}
         {(analysis || treatment || prognosis) && (
           <div style={{ marginTop: 16 }}>
-            <h3>即时分析结果</h3>
+           <h3>即时分析结果</h3>
+      
+      {result && (
+  <div style={{ marginBottom: 10 }}>
+    <strong>风险等级：</strong>
+    <span
+      style={{
+        color:
+          result.risk_level === "high" || result.risk_level === "高"
+            ? "red"
+            : result.risk_level === "medium" || result.risk_level === "中"
+            ? "orange"
+            : "green",
+        fontWeight: "bold",
+      }}
+    >
+      {result.risk_level === "high" || result.risk_level === "高"
+        ? "高风险"
+        : result.risk_level === "medium" || result.risk_level === "中"
+        ? "中风险"
+        : result.risk_level === "low" || result.risk_level === "低"
+        ? "低风险"
+        : result.risk_level || "未知"}
+    </span>
+  </div>
+)}
+            
             {analysis && <Block title="分析">{analysis}</Block>}
             {treatment && <Block title="治疗建议">{treatment}</Block>}
             {prognosis && <Block title="预后">{prognosis}</Block>}
