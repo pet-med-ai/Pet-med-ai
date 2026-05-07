@@ -110,6 +110,14 @@ class AnalyzeOut(BaseModel):
 class AIConsultIn(BaseModel):
     text: str
 
+class AIConsultAnswer(BaseModel):
+    question: str
+    answer: str
+
+class AIConsultDynamicIn(BaseModel):
+    text: str
+    answers: Optional[List[AIConsultAnswer]] = None
+
 # ---------- 统一前缀 /api ----------
 api = APIRouter(prefix="/api", tags=["cases"])
 # --- triage (hospital) ---
@@ -321,6 +329,22 @@ async def ai_consult(data: AIConsultIn):
     if isinstance(result, dict):
         return result
     return result
+
+
+@app.post("/ai/consult/dynamic", tags=["ai"])
+@app.post("/api/ai/consult/dynamic", tags=["ai"])
+async def ai_consult_dynamic(data: AIConsultDynamicIn):
+    try:
+        from backend.dynamic_consult import run_dynamic_consult
+    except ModuleNotFoundError:
+        from dynamic_consult import run_dynamic_consult
+
+    answers = [
+        item.model_dump()
+        for item in (data.answers or [])
+    ]
+
+    return run_dynamic_consult(data.text, answers)
 
 # 将 /api 路由挂载到应用
 app.include_router(api)
