@@ -49,7 +49,10 @@ function Home() {
   const [prognosis, setPrognosis] = useState("");
   
   const [result, setResult] = useState(null);
+  const [consultAnswers, setConsultAnswers] = useState([]);
+  const [followupAnswer, setFollowupAnswer] = useState("");
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
+  const [loadingFollowup, setLoadingFollowup] = useState(false);
   const [errMsg, setErrMsg] = useState("");
 
   const [patientName, setPatientName] = useState("");
@@ -244,77 +247,58 @@ function Home() {
   }, [q]);
   useEffect(() => { fetchCases(); }, [page]);
 
-  // ===== 即时分析（不入库） =====
- const handleAnalyzeSubmit = async (e) => {
-  e.preventDefault();
+  const formatList = (items) => {
+    if (!items) return "";
+    if (!Array.isArray(items)) return String(items);
 
-  setErrMsg("");
-  setAnalysis("");
-  setTreatment("");
-  setPrognosis("");
-  setResult(null);
-  setLoadingAnalyze(true);
-
-  try {
-    const text = [
-      chiefComplaint ? `主诉：${chiefComplaint}` : "",
-      history ? `既往史：${history}` : "",
-      examFindings ? `体检/化验：${examFindings}` : "",
-      species ? `物种：${species}` : "",
-      ageInfo ? `年龄：${ageInfo}` : "",
-    ]
-      .filter(Boolean)
+    return items
+      .map((item) => {
+        if (typeof item === "string") return `- ${item}`;
+        return `- ${
+          item.name ||
+          item.disease ||
+          item.label ||
+          JSON.stringify(item)
+        }`;
+      })
       .join("\n");
+  };
 
-    const res = await api.post("/ai/consult", {
-      text,
-    });
+  const getQuestionList = (questionData) => {
+    if (Array.isArray(questionData)) return questionData;
+    if (Array.isArray(questionData?.questions)) return questionData.questions;
+    return [];
+  };
 
-    const data = res.data;
-    console.log("RAW AI DATA =", data);
-    setResult(data);
+  const getCurrentQuestion = () => {
+    const questions = getQuestionList(result?.next_questions);
+    return questions[0] || "";
+  };
 
-    const formatList = (items) => {
-      if (!items) return "";
-      if (!Array.isArray(items)) return String(items);
-
-      return items
-        .map((item) => {
-          if (typeof item === "string") return `- ${item}`;
-          return `- ${
-            item.name ||
-            item.disease ||
-            item.label ||
-            JSON.stringify(item)
-          }`;
-        })
-        .join("\n");
-    };
-
+  const applyConsultResult = (data, logLabel = "NORMALIZED AI DATA") => {
     const diseaseData = data.diseases || {};
 
     const diseaseList = Array.isArray(diseaseData)
       ? diseaseData
       : diseaseData.diseases || [];
 
-    const checks = diseaseData.checks || [];
-    const actions = diseaseData.actions || data.actions || [];
+    const checks = Array.isArray(diseaseData) ? [] : diseaseData.checks || [];
+    const actions = Array.isArray(diseaseData)
+      ? data.actions || []
+      : diseaseData.actions || data.actions || [];
     const nextQuestionData =
-      data.next_questions || diseaseData.next_questions || [];
+      data.next_questions || (!Array.isArray(diseaseData) ? diseaseData.next_questions : []) || [];
+    const nextQuestions = getQuestionList(nextQuestionData);
 
-    const nextQuestions = Array.isArray(nextQuestionData)
-      ? nextQuestionData
-      : Array.isArray(nextQuestionData?.questions)
-        ? nextQuestionData.questions
-        : [];
-    console.log("NORMALIZED AI DATA =", {
+    console.log(logLabel, {
       risk_level: data.risk_level,
       tree_path: data.tree_path,
       diseaseList,
       checks,
       actions,
       nextQuestions,
-  });
+    });
+
     setAnalysis(
       [
         data.tree_path?.length
@@ -340,6 +324,43 @@ function Home() {
         ? `下一步追问：\n${formatList(nextQuestions)}`
         : data.prognosis || "需结合体征、影像与实验室检查进一步判断。"
     );
+  };
+
+  // ===== 即时分析（不入库） =====
+ const handleAnalyzeSubmit = async (e) => {
+  e.preventDefault();
+
+  setErrMsg("");
+  setAnalysis("");
+  setTreatment("");
+  setPrognosis("");
+  setResult(null);
+  setConsultAnswers([]);
+  setFollowupAnswer("");
+  setLoadingFollowup(false);
+  setLoadingAnalyze(true);
+
+  try {
+    const text = [
+      chiefComplaint ? `主诉：${chiefComplaint}` : "",
+      history ? `既往史：${history}` : "",
+      examFindings ? `体检/化验：${examFindings}` : "",
+      species ? `物种：${species}` : "",
+      ageInfo ? `年龄：${ageInfo}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const res = await api.post("/ai/consult", {
+      text,
+    });
+
+    const data = res.data;
+    console.log("RAW AI DATA =", data);
+    setResult(data);
+    setConsultAnswers([]);
+    setFollowupAnswer("");
+    applyConsultResult(data);
   } catch (err) {
     console.error("Analyze error:", err);
     setErrMsg("分析请求失败，请稍后重试或检查后端日志。");
@@ -347,6 +368,54 @@ function Home() {
     setLoadingAnalyze(false);
   }
 };
+
+  const handleFollowupSubmit = async (e) => {
+    e.preventDefault();
+
+    const currentQuestion = getCurrentQuestion();
+    const answer = followupAnswer.trim();
+
+    if (!currentQuestion) {
+      alert("当前没有可提交的追问。");
+      return;
+    }
+
+    if (!answer) {
+      alert("请先填写追问回答。");
+      return;
+    }
+
+    const nextAnswers = [
+      ...consultAnswers,
+      {
+        question: currentQuestion,
+        answer,
+      },
+    ];
+
+    try {
+      setErrMsg("");
+      setLoadingFollowup(true);
+
+      const res = await api.post("/ai/consult/dynamic", {
+        text: chiefComplaint,
+        answers: nextAnswers,
+      });
+
+      const data = res.data;
+      console.log("RAW DYNAMIC AI DATA =", data);
+      setResult(data);
+      applyConsultResult(data, "NORMALIZED DYNAMIC AI DATA");
+      setConsultAnswers(nextAnswers);
+      setFollowupAnswer("");
+    } catch (err) {
+      console.error("Followup error:", err);
+      setErrMsg("追问回答提交失败，请稍后重试或检查后端日志。");
+    } finally {
+      setLoadingFollowup(false);
+    }
+  };
+
   // ===== 新建病例 =====
   const handleCreateCase = async () => {
     if (!patientName || !chiefComplaint) {
@@ -393,6 +462,8 @@ function Home() {
       setLoadingReAnalyzeId(null);
     }
   };
+
+  const currentQuestion = getCurrentQuestion();
 
   return (
     <div style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
@@ -494,6 +565,59 @@ function Home() {
             {analysis && <Block title="分析">{analysis}</Block>}
             {treatment && <Block title="治疗建议">{treatment}</Block>}
             {prognosis && <Block title="预后">{prognosis}</Block>}
+
+            {result && (currentQuestion || result.dynamic) && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 12,
+                  border: "1px solid #fed7aa",
+                  borderRadius: 8,
+                  background: "#fff7ed",
+                }}
+              >
+                {result.dynamic && (
+                  <div style={{ marginBottom: 8, fontSize: 13 }}>
+                    <strong>问诊轮次：</strong>
+                    第 {result.dynamic.round ?? "-"} 轮
+                    <span style={{ marginLeft: 12 }}>
+                      <strong>已回答追问：</strong>
+                      {result.dynamic.answered_count ?? consultAnswers.length} 条
+                    </span>
+                  </div>
+                )}
+
+                {currentQuestion ? (
+                  <form onSubmit={handleFollowupSubmit}>
+                    <div style={{ fontWeight: 600, marginBottom: 6 }}>当前追问：</div>
+                    <div style={{ marginBottom: 8 }}>{currentQuestion}</div>
+                    <textarea
+                      value={followupAnswer}
+                      onChange={(e) => setFollowupAnswer(e.target.value)}
+                      rows={3}
+                      placeholder="请填写对当前追问的回答"
+                      disabled={loadingFollowup}
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: 8,
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 8,
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={loadingFollowup || !followupAnswer.trim()}
+                      style={{ ...btn, marginTop: 8 }}
+                    >
+                      {loadingFollowup ? "提交中…" : "提交追问回答"}
+                    </button>
+                  </form>
+                ) : (
+                  <div style={{ opacity: 0.75 }}>暂无新的追问。</div>
+                )}
+              </div>
+            )}
           </div>
         )}
       </section>
