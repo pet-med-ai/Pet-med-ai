@@ -62,43 +62,143 @@ def _set_questions(result: Dict[str, Any], questions: List[str]) -> None:
     }
 
 
+def _join_answer_context(
+    text: str,
+    answers: Optional[List[Dict[str, str]]] = None,
+) -> str:
+    parts = [(text or "").strip()]
+    for item in answers or []:
+        parts.append(_get_value(item, "question").strip())
+        parts.append(_get_value(item, "answer").strip())
+    return " ".join(p for p in parts if p)
+
+
+def _has_any(text: str, keywords: List[str]) -> bool:
+    return any(keyword in text for keyword in keywords)
+
+
+def _normalize_question_text(question: Any) -> str:
+    """
+    清洗 run_agent 可能生成的机械/病句式追问。
+    这里不改变诊断结果，只规范 next_questions 文案。
+    """
+    q = str(question or "").strip()
+    if not q:
+        return ""
+
+    q = q.replace("？？", "？").replace("??", "?")
+    q = q.replace("持续持续", "持续")
+    q = q.replace("逐渐解锁", "逐渐加重")
+
+    if "是否胃肠不呕吐出不出来" in q or "不呕吐出不出来" in q:
+        return "是否出现反复干呕但吐不出来、腹胀加重、流涎或明显不安？"
+
+    if "目前是否持续呕吐" in q or "停止呕吐大约多久" in q or "距离上次呕吐" in q:
+        return "目前是否仍在持续呕吐或干呕？最近一次呕吐大约是什么时候？"
+
+    # 明显不是临床问诊语句的内容直接丢弃，后面使用兜底追问。
+    bad_fragments = [
+        "是否胃肠",
+        "安置",
+        "解锁",
+        "默认",
+        "undefined",
+        "None",
+        "null",
+    ]
+    if _has_any(q, bad_fragments):
+        return ""
+
+    if not q.endswith(("？", "?")):
+        q = f"{q}？"
+
+    return q
+
+
+def _is_repeated_question(question: str, answered_questions: List[str]) -> bool:
+    q = question.strip()
+    if not q:
+        return True
+
+    for answered in answered_questions:
+        a = answered.strip()
+        if not a:
+            continue
+
+        if q == a or q in a or a in q:
+            return True
+
+        # 语义上避免重复问“精神突然/逐渐”这类已回答问题。
+        if "精神" in q and "精神" in a and _has_any(q + a, ["突然", "逐渐", "加重"]):
+            return True
+
+        # 避免连续重复问同一类“呕吐多久/上次呕吐”问题。
+        q_is_vomit_time = _has_any(q, ["呕吐", "干呕"]) and _has_any(q, ["多久", "几次", "频率", "上次", "最近一次"])
+        a_is_vomit_time = _has_any(a, ["呕吐", "干呕"]) and _has_any(a, ["多久", "几次", "频率", "上次", "最近一次"])
+        if q_is_vomit_time and a_is_vomit_time:
+            return True
+
+    return False
+
+
+def _fallback_questions(
+    text: str,
+    answers: Optional[List[Dict[str, str]]] = None,
+) -> List[str]:
+    context = _join_answer_context(text, answers)
+
+    if _has_any(context, ["呕吐", "干呕", "吐", "腹胀", "肚子胀", "腹部胀"]):
+        return [
+            "是否出现反复干呕但吐不出来、腹胀加重、流涎或明显不安？",
+            "目前是否仍在持续呕吐或干呕？最近一次呕吐大约是什么时候？",
+            "牙龈颜色是否苍白或发紫？四肢是否发凉、站立不稳？",
+            "腹部是否明显膨大、触碰疼痛，或狗是否无法安静卧下？",
+            "目前能否饮水？饮水后是否马上再次呕吐？",
+            "最近一次排尿是什么时候？尿量是否明显减少？",
+        ]
+
+    return [
+        "目前精神、食欲、饮水和排尿情况分别如何？",
+        "症状是突然出现还是逐渐加重？大约持续了多久？",
+        "是否伴随发热、疼痛、呼吸异常或明显虚弱？",
+        "近期是否更换食物、误食异物、接触毒物或使用新药？",
+    ]
+
+
 def _filter_repeated_questions(
     result: Dict[str, Any],
+    text: str = "",
     answers: Optional[List[Dict[str, str]]] = None,
 ) -> None:
     """
-    已经回答过的问题，不再原样重复。
-    如果过滤后没有问题，给一个更具体的下一步追问。
+    V1.1：
+    - 已经回答过的问题不再重复。
+    - 清洗机械病句式追问。
+    - 每轮只保留 1 个清晰追问。
+    - 如果 AI 追问不可用，按当前上下文给出临床兜底追问。
     """
     answers = answers or []
 
-    answered_questions = {
+    answered_questions = [
         _get_value(item, "question").strip()
         for item in answers
         if _get_value(item, "question").strip()
-    }
+    ]
 
-    current_questions = _extract_questions(result)
+    current_questions = [_normalize_question_text(q) for q in _extract_questions(result)]
     filtered = [
         q for q in current_questions
-        if q.strip() and q.strip() not in answered_questions
+        if q and not _is_repeated_question(q, answered_questions)
     ]
 
     if filtered:
-        _set_questions(result, filtered)
+        _set_questions(result, [filtered[0]])
         return
 
-    fallback_questions = [
-        "目前是否仍在持续呕吐？距离上次呕吐大约多久？",
-        "腹部是否仍持续膨大、疼痛，或频繁干呕但吐不出来？",
-        "牙龈颜色是否苍白或发紫？四肢是否发凉、站立不稳？",
-        "目前能否饮水？饮水后是否马上再次呕吐？",
-        "最近一次排尿是什么时候？尿量是否明显减少？",
-    ]
-
-    for q in fallback_questions:
-        if q not in answered_questions:
-            _set_questions(result, [q])
+    for q in _fallback_questions(text, answers):
+        normalized = _normalize_question_text(q)
+        if normalized and not _is_repeated_question(normalized, answered_questions):
+            _set_questions(result, [normalized])
             return
 
     _set_questions(result, [])
@@ -119,7 +219,7 @@ def run_dynamic_consult(
             "tree_path": [],
             "diseases": {},
             "next_questions": {
-                "questions": ["请补充目前精神、食欲、呕吐次数和腹部状态。"]
+                "questions": [_fallback_questions(text, answers)[0]]
             },
             "actions": ["建议结合体征与实验室检查进一步判断。"],
             "dynamic": {
@@ -130,7 +230,7 @@ def run_dynamic_consult(
             },
         }
 
-    _filter_repeated_questions(result, answers)
+    _filter_repeated_questions(result, text, answers)
 
     result["dynamic"] = {
         "mode": "dynamic_consult_v1",
