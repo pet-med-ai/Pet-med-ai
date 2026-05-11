@@ -3,15 +3,17 @@ from fastapi import FastAPI, APIRouter, Depends, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles  # ← 新增：用于挂载静态目录
 from pathlib import Path                    # ← 新增：定位 knowledge-base 目录
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import os
+from datetime import datetime
+from uuid import uuid4
 
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from db import SessionLocal, Base, engine
-from models import Case
+from models import Case, ConsultSession
 from auth_jwt import router as auth_router, get_current_user
 try:
     from backend.orchestrator import run_agent
@@ -117,6 +119,21 @@ class AIConsultAnswer(BaseModel):
 class AIConsultDynamicIn(BaseModel):
     text: str
     answers: Optional[List[AIConsultAnswer]] = None
+
+class AIConsultSessionCreateIn(BaseModel):
+    text: str
+
+class AIConsultSessionAnswerIn(BaseModel):
+    answer: str
+    question: Optional[str] = None
+
+class AIConsultSessionOut(BaseModel):
+    session_id: str
+    text: str
+    answers: List[Dict[str, str]] = Field(default_factory=list)
+    result: Dict[str, Any] = Field(default_factory=dict)
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
 
 # ---------- 统一前缀 /api ----------
 api = APIRouter(prefix="/api", tags=["cases"])
@@ -349,6 +366,157 @@ async def ai_consult_dynamic(data: AIConsultDynamicIn):
     ]
 
     return run_dynamic_consult(data.text, answers)
+
+
+def _extract_session_questions(result: Optional[Dict[str, Any]]) -> List[str]:
+    if not isinstance(result, dict):
+        return []
+
+    raw = result.get("next_questions") or {}
+
+    if isinstance(raw, list):
+        return [str(q).strip() for q in raw if str(q).strip()]
+
+    if isinstance(raw, dict):
+        questions = raw.get("questions") or []
+        if isinstance(questions, list):
+            return [str(q).strip() for q in questions if str(q).strip()]
+
+    return []
+
+
+def _first_session_question(result: Optional[Dict[str, Any]]) -> str:
+    questions = _extract_session_questions(result)
+    return questions[0] if questions else ""
+
+
+def _stamp_session_dynamic(
+    result: Dict[str, Any],
+    session_id: str,
+    answered_count: int,
+) -> Dict[str, Any]:
+    dynamic = result.get("dynamic") if isinstance(result.get("dynamic"), dict) else {}
+    dynamic.update({
+        "mode": "dynamic_consult_session_v1",
+        "session_id": session_id,
+        "round": answered_count + 1,
+        "answered_count": answered_count,
+        "persisted": True,
+    })
+    result["dynamic"] = dynamic
+    return result
+
+
+def _consult_session_payload(session: ConsultSession) -> Dict[str, Any]:
+    return {
+        "session_id": session.session_uid,
+        "text": session.text,
+        "answers": session.answers or [],
+        "result": session.result or {},
+        "created_at": session.created_at.isoformat() if session.created_at else None,
+        "updated_at": session.updated_at.isoformat() if session.updated_at else None,
+    }
+
+
+@app.post("/ai/consult/session", response_model=AIConsultSessionOut, tags=["ai"])
+@app.post("/api/ai/consult/session", response_model=AIConsultSessionOut, tags=["ai"])
+async def ai_consult_session_create(
+    data: AIConsultSessionCreateIn,
+    db: Session = Depends(get_db),
+):
+    text = (data.text or "").strip()
+    if not text:
+        raise HTTPException(status_code=400, detail="text is required")
+
+    result = run_agent(text)
+    if not isinstance(result, dict):
+        result = {
+            "risk_level": "中",
+            "tree_path": [],
+            "diseases": {},
+            "next_questions": {
+                "questions": ["请补充目前精神、食欲、呕吐次数和腹部状态。"]
+            },
+            "actions": ["建议结合体征与实验室检查进一步判断。"],
+        }
+
+    try:
+        from backend.dynamic_consult import clean_consult_result
+    except ModuleNotFoundError:
+        from dynamic_consult import clean_consult_result
+
+    result = clean_consult_result(result, text, [])
+    session_id = uuid4().hex
+    result = _stamp_session_dynamic(result, session_id, 0)
+
+    session = ConsultSession(
+        session_uid=session_id,
+        text=text,
+        answers=[],
+        result=result,
+    )
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+
+    return _consult_session_payload(session)
+
+
+@app.get("/ai/consult/session/{session_id}", response_model=AIConsultSessionOut, tags=["ai"])
+@app.get("/api/ai/consult/session/{session_id}", response_model=AIConsultSessionOut, tags=["ai"])
+def ai_consult_session_get(
+    session_id: str,
+    db: Session = Depends(get_db),
+):
+    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Consult session not found")
+
+    return _consult_session_payload(session)
+
+
+@app.post("/ai/consult/session/{session_id}/answer", response_model=AIConsultSessionOut, tags=["ai"])
+@app.post("/api/ai/consult/session/{session_id}/answer", response_model=AIConsultSessionOut, tags=["ai"])
+def ai_consult_session_answer(
+    session_id: str,
+    data: AIConsultSessionAnswerIn,
+    db: Session = Depends(get_db),
+):
+    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Consult session not found")
+
+    answer = (data.answer or "").strip()
+    if not answer:
+        raise HTTPException(status_code=400, detail="answer is required")
+
+    question = (data.question or "").strip() or _first_session_question(session.result)
+    if not question:
+        raise HTTPException(status_code=400, detail="question is required")
+
+    answers = list(session.answers or [])
+    answers.append({
+        "question": question,
+        "answer": answer,
+    })
+
+    try:
+        from backend.dynamic_consult import run_dynamic_consult
+    except ModuleNotFoundError:
+        from dynamic_consult import run_dynamic_consult
+
+    result = run_dynamic_consult(session.text, answers)
+    result = _stamp_session_dynamic(result, session.session_uid, len(answers))
+
+    session.answers = answers
+    session.result = result
+    session.updated_at = datetime.utcnow()
+
+    db.add(session)
+    db.commit()
+    db.refresh(session)
+
+    return _consult_session_payload(session)
 
 # 将 /api 路由挂载到应用
 app.include_router(api)

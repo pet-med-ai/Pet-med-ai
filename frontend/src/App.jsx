@@ -49,6 +49,7 @@ function Home() {
   const [prognosis, setPrognosis] = useState("");
   
   const [result, setResult] = useState(null);
+  const [consultSessionId, setConsultSessionId] = useState(null);
   const [consultAnswers, setConsultAnswers] = useState([]);
   const [followupAnswer, setFollowupAnswer] = useState("");
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
@@ -335,6 +336,7 @@ function Home() {
   setTreatment("");
   setPrognosis("");
   setResult(null);
+  setConsultSessionId(null);
   setConsultAnswers([]);
   setFollowupAnswer("");
   setLoadingFollowup(false);
@@ -351,14 +353,16 @@ function Home() {
       .filter(Boolean)
       .join("\n");
 
-    const res = await api.post("/ai/consult", {
+    const res = await api.post("/ai/consult/session", {
       text,
     });
 
-    const data = res.data;
-    console.log("RAW AI DATA =", data);
+    const payload = res.data;
+    const data = payload.result || payload;
+    console.log("RAW AI DATA =", payload);
+    setConsultSessionId(payload.session_id || null);
     setResult(data);
-    setConsultAnswers([]);
+    setConsultAnswers(payload.answers || []);
     setFollowupAnswer("");
     applyConsultResult(data);
   } catch (err) {
@@ -397,16 +401,28 @@ function Home() {
       setErrMsg("");
       setLoadingFollowup(true);
 
-      const res = await api.post("/ai/consult/dynamic", {
-        text: chiefComplaint,
-        answers: nextAnswers,
-      });
+      let payload;
 
-      const data = res.data;
-      console.log("RAW DYNAMIC AI DATA =", data);
+      if (consultSessionId) {
+        const res = await api.post(`/ai/consult/session/${consultSessionId}/answer`, {
+          question: currentQuestion,
+          answer,
+        });
+        payload = res.data;
+      } else {
+        const res = await api.post("/ai/consult/dynamic", {
+          text: chiefComplaint,
+          answers: nextAnswers,
+        });
+        payload = res.data;
+      }
+
+      const data = payload.result || payload;
+      console.log("RAW DYNAMIC AI DATA =", payload);
+      setConsultSessionId(payload.session_id || consultSessionId || null);
       setResult(data);
       applyConsultResult(data, "NORMALIZED DYNAMIC AI DATA");
-      setConsultAnswers(nextAnswers);
+      setConsultAnswers(payload.answers || nextAnswers);
       setFollowupAnswer("");
     } catch (err) {
       console.error("Followup error:", err);
@@ -584,6 +600,12 @@ function Home() {
                       <strong>已回答追问：</strong>
                       {result.dynamic.answered_count ?? consultAnswers.length} 条
                     </span>
+                    {consultSessionId && (
+                      <span style={{ marginLeft: 12 }}>
+                        <strong>会话：</strong>
+                        {consultSessionId.slice(0, 8)}
+                      </span>
+                    )}
                   </div>
                 )}
 

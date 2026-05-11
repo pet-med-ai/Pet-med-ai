@@ -75,3 +75,29 @@ class Case(Base):
     __table_args__ = (
         Index("ix_cases_patient_species", "patient_name", "species"),
     )
+
+class ConsultSession(Base):
+    """
+    动态问诊会话 V1：
+    - 不绑定病例，不改 /api/cases。
+    - 保存初始主诉、追问回答数组、最近一次 AI 返回结果。
+    - session_uid 给前端持有，避免暴露自增 ID。
+    """
+    __tablename__ = "consult_sessions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    session_uid: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+
+    text: Mapped[str] = mapped_column(Text, nullable=False)
+    answers: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    result: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_consult_sessions_created_at", "created_at"),
+    )
+
