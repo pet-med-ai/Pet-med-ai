@@ -327,7 +327,11 @@ def reanalyze_case(
 async def ai_consult(data: AIConsultIn):
     result = run_agent(data.text)
     if isinstance(result, dict):
-        return result
+        try:
+            from backend.dynamic_consult import clean_consult_result
+        except ModuleNotFoundError:
+            from dynamic_consult import clean_consult_result
+        return clean_consult_result(result, data.text, [])
     return result
 
 

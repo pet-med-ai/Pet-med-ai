@@ -90,15 +90,27 @@ def _normalize_question_text(question: Any) -> str:
     q = q.replace("持续持续", "持续")
     q = q.replace("逐渐解锁", "逐渐加重")
 
-    if "是否胃肠不呕吐出不出来" in q or "不呕吐出不出来" in q:
+    if (
+        "是否胃肠不呕吐出不出来" in q
+        or "不呕吐出不出来" in q
+        or "是否胃干呕" in q
+        or "胃干呕" in q
+    ):
         return "是否出现反复干呕但吐不出来、腹胀加重、流涎或明显不安？"
 
-    if "目前是否持续呕吐" in q or "停止呕吐大约多久" in q or "距离上次呕吐" in q:
+    if (
+        "目前是否持续呕吐" in q
+        or "停止呕吐大约多久" in q
+        or "距离上次呕吐" in q
+        or "持续呕吐大约多久" in q
+    ):
         return "目前是否仍在持续呕吐或干呕？最近一次呕吐大约是什么时候？"
 
     # 明显不是临床问诊语句的内容直接丢弃，后面使用兜底追问。
     bad_fragments = [
         "是否胃肠",
+        "是否胃干呕",
+        "胃干呕",
         "安置",
         "解锁",
         "默认",
@@ -203,6 +215,20 @@ def _filter_repeated_questions(
 
     _set_questions(result, [])
 
+
+
+def clean_consult_result(
+    result: Dict[str, Any],
+    text: str = "",
+    answers: Optional[List[Dict[str, str]]] = None,
+) -> Dict[str, Any]:
+    """
+    清洗普通 /ai/consult 和动态 /ai/consult/dynamic 的追问文案。
+    不改诊断、风险、检查和治疗，只规范 next_questions。
+    """
+    if isinstance(result, dict):
+        _filter_repeated_questions(result, text, answers or [])
+    return result
 
 def run_dynamic_consult(
     text: str,

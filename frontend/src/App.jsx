@@ -466,7 +466,7 @@ function Home() {
   const currentQuestion = getCurrentQuestion();
 
   return (
-    <div style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
+    <div lang="zh-CN" translate="no" className="notranslate" style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
       <h1 style={{ marginTop: 0 }}>Pet Med AI — 前端联调面板</h1>
 
       {/* 登录区 */}
