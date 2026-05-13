@@ -135,6 +135,18 @@ class AIConsultSessionOut(BaseModel):
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
+class AIConsultSessionListItem(BaseModel):
+    session_id: str
+    text: str
+    round: int = 1
+    answered_count: int = 0
+    risk_level: Optional[str] = None
+    created_at: Optional[str] = None
+    updated_at: Optional[str] = None
+
+class AIConsultSessionListOut(BaseModel):
+    items: List[AIConsultSessionListItem] = Field(default_factory=list)
+
 # ---------- 统一前缀 /api ----------
 api = APIRouter(prefix="/api", tags=["cases"])
 # --- triage (hospital) ---
@@ -416,6 +428,42 @@ def _consult_session_payload(session: ConsultSession) -> Dict[str, Any]:
         "created_at": session.created_at.isoformat() if session.created_at else None,
         "updated_at": session.updated_at.isoformat() if session.updated_at else None,
     }
+
+
+def _consult_session_list_item(session: ConsultSession) -> Dict[str, Any]:
+    result = session.result if isinstance(session.result, dict) else {}
+    dynamic = result.get("dynamic") if isinstance(result.get("dynamic"), dict) else {}
+    answers = session.answers if isinstance(session.answers, list) else []
+
+    answered_count = dynamic.get("answered_count")
+    if answered_count is None:
+        answered_count = len(answers)
+
+    round_no = dynamic.get("round")
+    if round_no is None:
+        round_no = int(answered_count or 0) + 1
+
+    return {
+        "session_id": session.session_uid,
+        "text": session.text,
+        "round": round_no,
+        "answered_count": answered_count,
+        "risk_level": result.get("risk_level"),
+        "created_at": session.created_at.isoformat() if session.created_at else None,
+        "updated_at": session.updated_at.isoformat() if session.updated_at else None,
+    }
+
+
+@app.get("/ai/consult/sessions", response_model=AIConsultSessionListOut, tags=["ai"])
+@app.get("/api/ai/consult/sessions", response_model=AIConsultSessionListOut, tags=["ai"])
+def ai_consult_sessions_list(
+    limit: int = 20,
+    db: Session = Depends(get_db),
+):
+    safe_limit = max(1, min(limit, 100))
+    updated_expr = func.coalesce(ConsultSession.updated_at, ConsultSession.created_at)
+    sessions = db.query(ConsultSession).order_by(updated_expr.desc()).limit(safe_limit).all()
+    return {"items": [_consult_session_list_item(session) for session in sessions]}
 
 
 @app.post("/ai/consult/session", response_model=AIConsultSessionOut, tags=["ai"])

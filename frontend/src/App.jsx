@@ -50,6 +50,11 @@ function Home() {
   
   const [result, setResult] = useState(null);
   const [consultSessionId, setConsultSessionId] = useState(null);
+  const [sessionInput, setSessionInput] = useState("");
+  const [savedSessionId, setSavedSessionId] = useState(() => localStorage.getItem("consult_session_id") || "");
+  const [loadingSession, setLoadingSession] = useState(false);
+  const [sessionHistory, setSessionHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
   const [consultAnswers, setConsultAnswers] = useState([]);
   const [followupAnswer, setFollowupAnswer] = useState("");
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
@@ -327,6 +332,87 @@ function Home() {
     );
   };
 
+  const truncateText = (value, max = 70) => {
+    const text = (value || "").toString().replace(/\s+/g, " ").trim();
+    if (!text) return "-";
+    return text.length > max ? `${text.slice(0, max)}…` : text;
+  };
+
+  const formatSessionDate = (value) => {
+    if (!value) return "-";
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return value;
+    return date.toLocaleString("zh-CN", { hour12: false });
+  };
+
+  const rememberConsultSession = (sessionId) => {
+    const sid = (sessionId || "").trim();
+    if (!sid) return;
+    setConsultSessionId(sid);
+    setSessionInput(sid);
+    setSavedSessionId(sid);
+    localStorage.setItem("consult_session_id", sid);
+  };
+
+  const fetchSessionHistory = async () => {
+    try {
+      setLoadingHistory(true);
+      const res = await api.get("/ai/consult/sessions", { params: { limit: 20 } });
+      setSessionHistory(res.data?.items || []);
+    } catch (err) {
+      console.error("Session history error:", err);
+      setErrMsg("历史问诊列表加载失败，请检查后端日志。");
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  const loadSession = async (sessionId) => {
+    const sid = (sessionId || sessionInput || "").trim();
+    if (!sid) {
+      alert("请先输入 session_id，或先创建一次问诊会话。");
+      return;
+    }
+
+    try {
+      setErrMsg("");
+      setLoadingSession(true);
+
+      const res = await api.get(`/ai/consult/session/${encodeURIComponent(sid)}`);
+      const payload = res.data;
+      const data = payload.result || {};
+
+      rememberConsultSession(payload.session_id || sid);
+      setChiefComplaint(payload.text || "");
+      setConsultAnswers(payload.answers || []);
+      setResult(data);
+      setFollowupAnswer("");
+
+      if (data && Object.keys(data).length) {
+        applyConsultResult(data, "RESTORED AI DATA");
+      } else {
+        setAnalysis("");
+        setTreatment("");
+        setPrognosis("");
+      }
+    } catch (err) {
+      console.error("Load session error:", err);
+      setErrMsg("恢复会话失败：请确认 session_id 是否正确，或检查后端日志。");
+    } finally {
+      setLoadingSession(false);
+    }
+  };
+
+  useEffect(() => {
+    const sid = localStorage.getItem("consult_session_id") || "";
+    if (sid) {
+      setSavedSessionId(sid);
+      setSessionInput(sid);
+    }
+    fetchSessionHistory();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // ===== 即时分析（不入库） =====
  const handleAnalyzeSubmit = async (e) => {
   e.preventDefault();
@@ -360,11 +446,14 @@ function Home() {
     const payload = res.data;
     const data = payload.result || payload;
     console.log("RAW AI DATA =", payload);
-    setConsultSessionId(payload.session_id || null);
+    if (payload.session_id) {
+      rememberConsultSession(payload.session_id);
+    }
     setResult(data);
     setConsultAnswers(payload.answers || []);
     setFollowupAnswer("");
     applyConsultResult(data);
+    await fetchSessionHistory();
   } catch (err) {
     console.error("Analyze error:", err);
     setErrMsg("分析请求失败，请稍后重试或检查后端日志。");
@@ -419,11 +508,15 @@ function Home() {
 
       const data = payload.result || payload;
       console.log("RAW DYNAMIC AI DATA =", payload);
-      setConsultSessionId(payload.session_id || consultSessionId || null);
+      const nextSessionId = payload.session_id || consultSessionId || "";
+      if (nextSessionId) {
+        rememberConsultSession(nextSessionId);
+      }
       setResult(data);
       applyConsultResult(data, "NORMALIZED DYNAMIC AI DATA");
       setConsultAnswers(payload.answers || nextAnswers);
       setFollowupAnswer("");
+      await fetchSessionHistory();
     } catch (err) {
       console.error("Followup error:", err);
       setErrMsg("追问回答提交失败，请稍后重试或检查后端日志。");
@@ -549,6 +642,107 @@ function Home() {
           </div>
         </form>
         {errMsg && <p style={{ color: "crimson", marginTop: 8 }}>{errMsg}</p>}
+
+        <div
+          style={{
+            marginTop: 12,
+            padding: 12,
+            border: "1px solid #e5e7eb",
+            borderRadius: 8,
+            background: "#f9fafb",
+          }}
+        >
+          <div style={{ marginBottom: 8, fontSize: 13 }}>
+            <strong>当前会话：</strong>{" "}
+            {consultSessionId ? (
+              <code>{consultSessionId}</code>
+            ) : (
+              <span style={{ opacity: 0.65 }}>暂无</span>
+            )}
+            {savedSessionId && !consultSessionId && (
+              <span style={{ marginLeft: 12, opacity: 0.75 }}>
+                本地最近：{savedSessionId.slice(0, 8)}
+              </span>
+            )}
+          </div>
+
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <input
+              value={sessionInput}
+              onChange={(e) => setSessionInput(e.target.value)}
+              placeholder="输入完整 session_id"
+              style={{
+                flex: "1 1 260px",
+                padding: "8px 10px",
+                border: "1px solid #e5e7eb",
+                borderRadius: 8,
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => loadSession(sessionInput)}
+              disabled={loadingSession || !sessionInput.trim()}
+              style={btnSecondary}
+            >
+              {loadingSession ? "恢复中…" : "恢复会话"}
+            </button>
+            <button
+              type="button"
+              onClick={() => loadSession(savedSessionId)}
+              disabled={loadingSession || !savedSessionId}
+              style={btnSecondary}
+            >
+              恢复最近会话
+            </button>
+            <button
+              type="button"
+              onClick={fetchSessionHistory}
+              disabled={loadingHistory}
+              style={btnSecondary}
+            >
+              {loadingHistory ? "刷新中…" : "刷新历史会话"}
+            </button>
+          </div>
+
+          <div style={{ marginTop: 10 }}>
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>最近历史会话</div>
+            {sessionHistory.length ? (
+              <div style={{ display: "grid", gap: 6 }}>
+                {sessionHistory.map((item) => (
+                  <button
+                    key={item.session_id}
+                    type="button"
+                    onClick={() => loadSession(item.session_id)}
+                    style={{
+                      textAlign: "left",
+                      padding: 8,
+                      border: "1px solid #e5e7eb",
+                      borderRadius: 8,
+                      background: "#fff",
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div style={{ fontSize: 13 }}>
+                      <strong>{item.session_id?.slice(0, 8) || "-"}</strong>
+                      <span style={{ marginLeft: 8, opacity: 0.7 }}>
+                        {formatSessionDate(item.updated_at || item.created_at)}
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 13, opacity: 0.8 }}>
+                      风险：{item.risk_level || "未知"} · 第 {item.round ?? "-"} 轮 · 已回答 {item.answered_count ?? 0} 条
+                    </div>
+                    <div style={{ fontSize: 13, opacity: 0.75 }}>
+                      {truncateText(item.text)}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div style={{ opacity: 0.65 }}>暂无历史会话，点击“刷新历史会话”后可查看。</div>
+            )}
+          </div>
+        </div>
+
         {(analysis || treatment || prognosis) && (
           <div style={{ marginTop: 16 }}>
            <h3>即时分析结果</h3>
