@@ -75,6 +75,8 @@ function Home() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const [loadingCases, setLoadingCases] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
+  const [savingConsultCase, setSavingConsultCase] = useState(false);
+  const [savedConsultCaseId, setSavedConsultCaseId] = useState(null);
   const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null);
 
   // ===== 批量选择 / 导出 / 批量删除 =====
@@ -387,6 +389,7 @@ function Home() {
       setConsultAnswers(payload.answers || []);
       setResult(data);
       setFollowupAnswer("");
+      setSavedConsultCaseId(null);
 
       if (data && Object.keys(data).length) {
         applyConsultResult(data, "RESTORED AI DATA");
@@ -424,6 +427,7 @@ function Home() {
   setResult(null);
   setConsultSessionId(null);
   setConsultAnswers([]);
+  setSavedConsultCaseId(null);
   setFollowupAnswer("");
   setLoadingFollowup(false);
   setLoadingAnalyze(true);
@@ -515,6 +519,7 @@ function Home() {
       setResult(data);
       applyConsultResult(data, "NORMALIZED DYNAMIC AI DATA");
       setConsultAnswers(payload.answers || nextAnswers);
+      setSavedConsultCaseId(null);
       setFollowupAnswer("");
       await fetchSessionHistory();
     } catch (err) {
@@ -522,6 +527,46 @@ function Home() {
       setErrMsg("追问回答提交失败，请稍后重试或检查后端日志。");
     } finally {
       setLoadingFollowup(false);
+    }
+  };
+
+  const handleSaveConsultAsCase = async () => {
+    if (!localStorage.getItem("token")) {
+      alert("请先登录后保存为病例");
+      return;
+    }
+
+    if (!consultSessionId) {
+      alert("请先提交分析生成问诊会话，再保存为病例");
+      return;
+    }
+
+    try {
+      setErrMsg("");
+      setSavingConsultCase(true);
+
+      const res = await api.post(`/api/ai/consult/session/${encodeURIComponent(consultSessionId)}/save-case`, {
+        patient_name: patientName?.trim() || "未命名病例",
+        species: species || "dog",
+        sex: sex || null,
+        age_info: ageInfo || null,
+        exam_findings: examFindings || null,
+      });
+
+      const caseId = res.data?.case_id;
+      setSavedConsultCaseId(caseId || null);
+      setPage(1);
+      await fetchCases({ page: 1 });
+      alert(`已保存为病例：${caseId}`);
+    } catch (err) {
+      console.error("Save consult as case error:", err);
+      if (err.response?.status === 401) {
+        alert("请先登录后保存为病例");
+      } else {
+        alert("保存问诊为病例失败，请检查后端日志");
+      }
+    } finally {
+      setSavingConsultCase(false);
     }
   };
 
@@ -742,6 +787,51 @@ function Home() {
             )}
           </div>
         </div>
+
+        {(result || consultSessionId) && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: 12,
+              border: "1px solid #bfdbfe",
+              borderRadius: 8,
+              background: "#eff6ff",
+            }}
+          >
+            <div style={{ fontWeight: 600, marginBottom: 6 }}>保存当前问诊为病例</div>
+            <div style={{ fontSize: 13, opacity: 0.78, marginBottom: 8 }}>
+              需要先登录；保存后会进入病例列表，并写入主诉、追问记录、AI 分析、建议处理和风险提示。
+            </div>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+              <button
+                type="button"
+                onClick={handleSaveConsultAsCase}
+                disabled={savingConsultCase || !consultSessionId || !isAuthed}
+                style={btn}
+              >
+                {savingConsultCase ? "保存中…" : "保存问诊为病例"}
+              </button>
+              {!isAuthed && (
+                <span style={{ fontSize: 13, color: "#b45309" }}>
+                  请先登录后保存为病例
+                </span>
+              )}
+              {!consultSessionId && isAuthed && (
+                <span style={{ fontSize: 13, opacity: 0.75 }}>
+                  请先提交分析生成问诊会话
+                </span>
+              )}
+              {savedConsultCaseId && (
+                <Link
+                  to={`/cases/${savedConsultCaseId}`}
+                  style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}
+                >
+                  查看病例 #{savedConsultCaseId}
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
 
         {(analysis || treatment || prognosis) && (
           <div style={{ marginTop: 16 }}>
