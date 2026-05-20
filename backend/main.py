@@ -1,5 +1,5 @@
 # backend/main.py
-from fastapi import FastAPI, APIRouter, Depends, HTTPException, Response
+from fastapi import FastAPI, APIRouter, Depends, HTTPException, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles  # ← 新增：用于挂载静态目录
 from pathlib import Path                    # ← 新增：定位 knowledge-base 目录
@@ -10,18 +10,51 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text as sql_text
 from pydantic import BaseModel, Field
+from jose import jwt, JWTError
 
 from db import SessionLocal, Base, engine
-from models import Case, ConsultSession
+from models import Case, ConsultSession, User
 from auth_jwt import router as auth_router, get_current_user
+import auth_jwt as auth_jwt_mod
 try:
     from backend.orchestrator import run_agent
 except ModuleNotFoundError:
     from orchestrator import run_agent
 # ---------- 初始化 ----------
 Base.metadata.create_all(bind=engine)
+
+
+def ensure_consult_session_columns():
+    """
+    create_all 不会给既有表补列；这里为线上 PostgreSQL / 本地 SQLite
+    兜底补 owner_id 和 case_id，避免引入大迁移工程。
+    """
+    insp = inspect(engine)
+    if not insp.has_table("consult_sessions"):
+        return
+
+    existing = {col["name"] for col in insp.get_columns("consult_sessions")}
+    statements = []
+
+    if "owner_id" not in existing:
+        statements.append("ALTER TABLE consult_sessions ADD COLUMN owner_id INTEGER")
+    if "case_id" not in existing:
+        statements.append("ALTER TABLE consult_sessions ADD COLUMN case_id INTEGER")
+
+    statements.extend([
+        "CREATE INDEX IF NOT EXISTS ix_consult_sessions_owner_id ON consult_sessions (owner_id)",
+        "CREATE INDEX IF NOT EXISTS ix_consult_sessions_case_id ON consult_sessions (case_id)",
+    ])
+
+    if statements:
+        with engine.begin() as conn:
+            for stmt in statements:
+                conn.execute(sql_text(stmt))
+
+
+ensure_consult_session_columns()
 
 app = FastAPI(title="Pet Med AI Backend", version="1.0.0")
 
@@ -64,6 +97,42 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+def get_optional_current_user(
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    auth_header = request.headers.get("Authorization") or ""
+    if not auth_header.startswith("Bearer "):
+        return None
+
+    token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        return None
+
+    try:
+        payload = jwt.decode(
+            token,
+            auth_jwt_mod.SECRET_KEY,
+            algorithms=[auth_jwt_mod.ALGORITHM],
+        )
+        email = payload.get("sub")
+        if not email:
+            return None
+    except JWTError:
+        return None
+
+    return db.query(User).filter(User.email == email).first()
+
+
+def assert_consult_session_access(session: ConsultSession, user, allow_unowned: bool = True):
+    owner_id = getattr(session, "owner_id", None)
+    if owner_id is None and allow_unowned:
+        return
+
+    if not user or getattr(user, "id", None) != owner_id:
+        raise HTTPException(status_code=404, detail="Consult session not found")
 
 
 
@@ -133,6 +202,7 @@ class AIConsultSessionOut(BaseModel):
     text: str
     answers: List[Dict[str, str]] = Field(default_factory=list)
     result: Dict[str, Any] = Field(default_factory=dict)
+    case_id: Optional[int] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -142,6 +212,7 @@ class AIConsultSessionListItem(BaseModel):
     round: int = 1
     answered_count: int = 0
     risk_level: Optional[str] = None
+    case_id: Optional[int] = None
     created_at: Optional[str] = None
     updated_at: Optional[str] = None
 
@@ -265,7 +336,7 @@ def create_case(
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
-    obj = Case(**data.model_dump())
+    obj = Case(owner_id=user.id, **data.model_dump())
     db.add(obj); db.commit(); db.refresh(obj)
     return obj
 
@@ -438,6 +509,7 @@ def _consult_session_payload(session: ConsultSession) -> Dict[str, Any]:
         "text": session.text,
         "answers": session.answers or [],
         "result": session.result or {},
+        "case_id": getattr(session, "case_id", None),
         "created_at": session.created_at.isoformat() if session.created_at else None,
         "updated_at": session.updated_at.isoformat() if session.updated_at else None,
     }
@@ -462,6 +534,7 @@ def _consult_session_list_item(session: ConsultSession) -> Dict[str, Any]:
         "round": round_no,
         "answered_count": answered_count,
         "risk_level": result.get("risk_level"),
+        "case_id": getattr(session, "case_id", None),
         "created_at": session.created_at.isoformat() if session.created_at else None,
         "updated_at": session.updated_at.isoformat() if session.updated_at else None,
     }
@@ -472,10 +545,17 @@ def _consult_session_list_item(session: ConsultSession) -> Dict[str, Any]:
 def ai_consult_sessions_list(
     limit: int = 20,
     db: Session = Depends(get_db),
+    user = Depends(get_current_user),
 ):
     safe_limit = max(1, min(limit, 100))
     updated_expr = func.coalesce(ConsultSession.updated_at, ConsultSession.created_at)
-    sessions = db.query(ConsultSession).order_by(updated_expr.desc()).limit(safe_limit).all()
+    sessions = (
+        db.query(ConsultSession)
+        .filter(ConsultSession.owner_id == user.id)
+        .order_by(updated_expr.desc())
+        .limit(safe_limit)
+        .all()
+    )
     return {"items": [_consult_session_list_item(session) for session in sessions]}
 
 
@@ -593,6 +673,17 @@ def ai_consult_session_save_case(
     session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Consult session not found")
+    assert_consult_session_access(session, user, allow_unowned=True)
+
+    if getattr(session, "case_id", None):
+        return {
+            "case_id": session.case_id,
+            "session_id": session.session_uid,
+            "message": "already_saved",
+        }
+
+    if getattr(session, "owner_id", None) is None:
+        session.owner_id = user.id
 
     case_fields = _consult_session_to_case_fields(session)
 
@@ -617,6 +708,12 @@ def ai_consult_session_save_case(
     )
 
     db.add(obj)
+    db.flush()
+
+    session.case_id = obj.id
+    session.updated_at = datetime.utcnow()
+    db.add(session)
+
     db.commit()
     db.refresh(obj)
 
@@ -632,6 +729,7 @@ def ai_consult_session_save_case(
 async def ai_consult_session_create(
     data: AIConsultSessionCreateIn,
     db: Session = Depends(get_db),
+    user = Depends(get_optional_current_user),
 ):
     text = (data.text or "").strip()
     if not text:
@@ -660,6 +758,7 @@ async def ai_consult_session_create(
 
     session = ConsultSession(
         session_uid=session_id,
+        owner_id=getattr(user, "id", None) if user else None,
         text=text,
         answers=[],
         result=result,
@@ -676,10 +775,12 @@ async def ai_consult_session_create(
 def ai_consult_session_get(
     session_id: str,
     db: Session = Depends(get_db),
+    user = Depends(get_optional_current_user),
 ):
     session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Consult session not found")
+    assert_consult_session_access(session, user, allow_unowned=True)
 
     return _consult_session_payload(session)
 
@@ -690,10 +791,12 @@ def ai_consult_session_answer(
     session_id: str,
     data: AIConsultSessionAnswerIn,
     db: Session = Depends(get_db),
+    user = Depends(get_optional_current_user),
 ):
     session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
     if not session:
         raise HTTPException(status_code=404, detail="Consult session not found")
+    assert_consult_session_access(session, user, allow_unowned=True)
 
     answer = (data.answer or "").strip()
     if not answer:

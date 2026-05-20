@@ -357,13 +357,20 @@ function Home() {
   };
 
   const fetchSessionHistory = async () => {
+    if (!localStorage.getItem("token")) {
+      setSessionHistory([]);
+      return;
+    }
+
     try {
       setLoadingHistory(true);
-      const res = await api.get("/ai/consult/sessions", { params: { limit: 20 } });
+      const res = await api.get("/api/ai/consult/sessions", { params: { limit: 20 } });
       setSessionHistory(res.data?.items || []);
     } catch (err) {
       console.error("Session history error:", err);
-      setErrMsg("历史问诊列表加载失败，请检查后端日志。");
+      if (err.response?.status !== 401) {
+        setErrMsg("历史问诊列表加载失败，请检查后端日志。");
+      }
     } finally {
       setLoadingHistory(false);
     }
@@ -376,11 +383,16 @@ function Home() {
       return;
     }
 
+    if (!localStorage.getItem("token")) {
+      alert("请先登录后恢复历史问诊");
+      return;
+    }
+
     try {
       setErrMsg("");
       setLoadingSession(true);
 
-      const res = await api.get(`/ai/consult/session/${encodeURIComponent(sid)}`);
+      const res = await api.get(`/api/ai/consult/session/${encodeURIComponent(sid)}`);
       const payload = res.data;
       const data = payload.result || {};
 
@@ -389,7 +401,7 @@ function Home() {
       setConsultAnswers(payload.answers || []);
       setResult(data);
       setFollowupAnswer("");
-      setSavedConsultCaseId(null);
+      setSavedConsultCaseId(payload.case_id || null);
 
       if (data && Object.keys(data).length) {
         applyConsultResult(data, "RESTORED AI DATA");
@@ -443,7 +455,11 @@ function Home() {
       .filter(Boolean)
       .join("\n");
 
-    const res = await api.post("/ai/consult/session", {
+    const sessionCreatePath = localStorage.getItem("token")
+      ? "/api/ai/consult/session"
+      : "/ai/consult/session";
+
+    const res = await api.post(sessionCreatePath, {
       text,
     });
 
@@ -497,7 +513,11 @@ function Home() {
       let payload;
 
       if (consultSessionId) {
-        const res = await api.post(`/ai/consult/session/${consultSessionId}/answer`, {
+        const answerPath = localStorage.getItem("token")
+          ? `/api/ai/consult/session/${consultSessionId}/answer`
+          : `/ai/consult/session/${consultSessionId}/answer`;
+
+        const res = await api.post(answerPath, {
           question: currentQuestion,
           answer,
         });
@@ -557,6 +577,7 @@ function Home() {
       setSavedConsultCaseId(caseId || null);
       setPage(1);
       await fetchCases({ page: 1 });
+      await fetchSessionHistory();
       alert(`已保存为病例：${caseId}`);
     } catch (err) {
       console.error("Save consult as case error:", err);
@@ -775,6 +796,7 @@ function Home() {
                     </div>
                     <div style={{ fontSize: 13, opacity: 0.8 }}>
                       风险：{item.risk_level || "未知"} · 第 {item.round ?? "-"} 轮 · 已回答 {item.answered_count ?? 0} 条
+                      {item.case_id ? ` · 已保存病例 #${item.case_id}` : ""}
                     </div>
                     <div style={{ fontSize: 13, opacity: 0.75 }}>
                       {truncateText(item.text)}

@@ -79,14 +79,24 @@ class Case(Base):
 class ConsultSession(Base):
     """
     动态问诊会话 V1：
-    - 不绑定病例，不改 /api/cases。
     - 保存初始主诉、追问回答数组、最近一次 AI 返回结果。
+    - 可绑定 owner_id 做用户隔离，可绑定 case_id 追溯已保存病例。
     - session_uid 给前端持有，避免暴露自增 ID。
     """
     __tablename__ = "consult_sessions"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     session_uid: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    owner_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    case_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
 
     text: Mapped[str] = mapped_column(Text, nullable=False)
     answers: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
