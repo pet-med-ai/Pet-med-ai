@@ -1,12 +1,14 @@
 // src/App.jsx
 import React, { useEffect, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, useSearchParams } from "react-router-dom";
 import api from "./api";
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
 
 /** ===== 首页 Home 组件 ===== */
 function Home() {
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // ===== 登录区 =====
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -427,6 +429,25 @@ function Home() {
     fetchSessionHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const sid = (searchParams.get("restore_session_id") || "").trim();
+    if (!sid) return;
+
+    if (!localStorage.getItem("token")) {
+      setSessionInput(sid);
+      setErrMsg("请先登录后恢复来源问诊。登录后可继续使用该会话 ID 恢复。");
+      return;
+    }
+
+    loadSession(sid);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("restore_session_id");
+    setSearchParams(nextParams, { replace: true });
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, setSearchParams]);
 
   // ===== 即时分析（不入库） =====
  const handleAnalyzeSubmit = async (e) => {

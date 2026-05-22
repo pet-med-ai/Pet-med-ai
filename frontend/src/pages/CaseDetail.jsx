@@ -123,7 +123,15 @@ export default function CaseDetail() {
         <div className="notice print-block">
           <strong>来源：</strong>动态问诊保存为病例
           {derived.sourceSessionId && (
-            <span className="notice-session">会话 ID：{derived.sourceSessionId}</span>
+            <>
+              <span className="notice-session">会话 ID：{derived.sourceSessionId}</span>
+              <Link
+                className="source-consult-link screen-only"
+                to={`/?restore_session_id=${encodeURIComponent(derived.sourceSessionId)}`}
+              >
+                恢复来源问诊
+              </Link>
+            </>
           )}
         </div>
       )}
@@ -363,7 +371,7 @@ const css = `
   * { box-sizing: border-box; }
 
   @media print {
-    .screen-toolbar { display: none !important; }
+    .screen-toolbar, .screen-only { display: none !important; }
     a { color: #000 !important; text-decoration: none !important; }
     .no-underline { text-decoration: none !important; color: #000 !important; }
     .print-header, .print-footer { position: fixed; left: 0; right: 0; }
@@ -431,6 +439,21 @@ const css = `
     margin-left: 12px;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 12px;
+  }
+  .source-consult-link {
+    display: inline-block;
+    margin-left: 12px;
+    padding: 4px 9px;
+    border-radius: 999px;
+    border: 1px solid #2563eb;
+    background: #fff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .source-consult-link:hover {
+    background: #dbeafe;
   }
 
   .section-card {
