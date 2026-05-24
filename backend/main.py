@@ -295,6 +295,22 @@ def supports_soft_delete() -> bool:
     insp = inspect(Case)
     return "deleted_at" in insp.columns
 
+def get_owned_case_or_404(
+    db: Session,
+    case_id: int,
+    user,
+    include_deleted: bool = False,
+) -> Case:
+    # 病例权限收口：当前用户只能访问自己的病例；无权限统一返回 404。
+    query = db.query(Case).filter(Case.id == case_id, Case.owner_id == user.id)
+    if supports_soft_delete() and not include_deleted:
+        query = query.filter(Case.deleted_at.is_(None))
+
+    obj = query.first()
+    if not obj:
+        raise HTTPException(status_code=404, detail="Case not found")
+    return obj
+
 # 列表（支持 q / page / page_size；保持与前端解析一致：返回 {items,total}）
 from sqlalchemy import or_, func
 
@@ -307,7 +323,7 @@ def list_cases(
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
-    query = db.query(Case)
+    query = db.query(Case).filter(Case.owner_id == user.id)
     if supports_soft_delete() and not include_deleted:
         query = query.filter(Case.deleted_at.is_(None))
 
@@ -346,10 +362,7 @@ def get_case(
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
-    obj = db.get(Case, case_id)
-    if not obj:
-        raise HTTPException(status_code=404, detail="Case not found")
-    return obj
+    return get_owned_case_or_404(db, case_id, user)
 
 @api.put("/cases/{case_id}", response_model=CaseOut)
 def update_case(
@@ -358,9 +371,7 @@ def update_case(
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
-    obj = db.get(Case, case_id)
-    if not obj:
-        raise HTTPException(status_code=404, detail="Case not found")
+    obj = get_owned_case_or_404(db, case_id, user)
     updates = {k: v for k, v in data.model_dump(exclude_unset=True).items()}
     for k, v in updates.items():
         setattr(obj, k, v)
@@ -374,9 +385,7 @@ def delete_case(
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
-    obj = db.get(Case, case_id)
-    if not obj:
-        raise HTTPException(status_code=404, detail="Case not found")
+    obj = get_owned_case_or_404(db, case_id, user)
 
     if supports_soft_delete():
         from datetime import datetime
@@ -397,9 +406,7 @@ def restore_case(
     if not supports_soft_delete():
         raise HTTPException(status_code=404, detail="Restore not supported (no deleted_at column)")
 
-    obj = db.get(Case, case_id)
-    if not obj:
-        raise HTTPException(status_code=404, detail="Case not found")
+    obj = get_owned_case_or_404(db, case_id, user, include_deleted=True)
     obj.deleted_at = None
     db.add(obj); db.commit(); db.refresh(obj)
     return obj
@@ -412,9 +419,7 @@ def reanalyze_case(
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
-    obj = db.get(Case, case_id)
-    if not obj:
-        raise HTTPException(status_code=404, detail="Case not found")
+    obj = get_owned_case_or_404(db, case_id, user)
 
     if payload.chief_complaint is not None:
         obj.chief_complaint = payload.chief_complaint
