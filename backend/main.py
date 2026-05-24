@@ -724,6 +724,55 @@ def ai_consult_session_save_case(
     }
 
 
+@app.post("/api/ai/consult/session/{session_id}/update-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
+def ai_consult_session_update_case(
+    session_id: str,
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user),
+):
+    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Consult session not found")
+    assert_consult_session_access(session, user, allow_unowned=False)
+
+    if not getattr(session, "case_id", None):
+        raise HTTPException(status_code=400, detail="Consult session is not bound to a case")
+
+    obj = db.get(Case, session.case_id)
+    if not obj or getattr(obj, "owner_id", None) != getattr(user, "id", None):
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    case_fields = _consult_session_to_case_fields(session)
+
+    obj.chief_complaint = session.text
+    obj.history = case_fields["history"]
+    obj.analysis = case_fields["analysis"]
+    obj.treatment = case_fields["treatment"]
+    obj.prognosis = case_fields["prognosis"]
+
+    source_line = f"由动态问诊更新；原始会话：{session.session_uid}"
+    current_exam = (obj.exam_findings or "").strip()
+    if current_exam:
+        if "原始会话" not in current_exam:
+            obj.exam_findings = f"{current_exam}\n{source_line}"
+    else:
+        obj.exam_findings = source_line
+
+    obj.updated_at = datetime.utcnow()
+    session.updated_at = datetime.utcnow()
+
+    db.add(obj)
+    db.add(session)
+    db.commit()
+    db.refresh(obj)
+
+    return {
+        "case_id": obj.id,
+        "session_id": session.session_uid,
+        "message": "updated",
+    }
+
+
 @app.post("/ai/consult/session", response_model=AIConsultSessionOut, tags=["ai"])
 @app.post("/api/ai/consult/session", response_model=AIConsultSessionOut, tags=["ai"])
 async def ai_consult_session_create(

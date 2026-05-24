@@ -78,6 +78,7 @@ function Home() {
   const [loadingCases, setLoadingCases] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [savingConsultCase, setSavingConsultCase] = useState(false);
+  const [updatingBoundCase, setUpdatingBoundCase] = useState(false);
   const [savedConsultCaseId, setSavedConsultCaseId] = useState(null);
   const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null);
 
@@ -560,7 +561,7 @@ function Home() {
       setResult(data);
       applyConsultResult(data, "NORMALIZED DYNAMIC AI DATA");
       setConsultAnswers(payload.answers || nextAnswers);
-      setSavedConsultCaseId(null);
+      setSavedConsultCaseId(payload.case_id || savedConsultCaseId || null);
       setFollowupAnswer("");
       await fetchSessionHistory();
     } catch (err) {
@@ -609,6 +610,42 @@ function Home() {
       }
     } finally {
       setSavingConsultCase(false);
+    }
+  };
+
+  const handleUpdateBoundCase = async () => {
+    if (!localStorage.getItem("token")) {
+      alert("请先登录后更新病例");
+      return;
+    }
+
+    if (!consultSessionId || !savedConsultCaseId) {
+      alert("当前问诊尚未绑定病例，无法更新");
+      return;
+    }
+
+    try {
+      setErrMsg("");
+      setUpdatingBoundCase(true);
+
+      const res = await api.post(`/api/ai/consult/session/${encodeURIComponent(consultSessionId)}/update-case`);
+      const caseId = res.data?.case_id || savedConsultCaseId;
+
+      setSavedConsultCaseId(caseId || null);
+      await fetchCases({ page: 1 });
+      await fetchSessionHistory();
+      alert(`已更新病例：${caseId}`);
+    } catch (err) {
+      console.error("Update bound case error:", err);
+      if (err.response?.status === 401) {
+        alert("请先登录后更新病例");
+      } else if (err.response?.status === 400) {
+        alert("当前问诊尚未绑定病例，请先保存问诊为病例");
+      } else {
+        alert("更新已绑定病例失败，请检查后端日志");
+      }
+    } finally {
+      setUpdatingBoundCase(false);
     }
   };
 
@@ -865,12 +902,25 @@ function Home() {
                 </span>
               )}
               {savedConsultCaseId && (
-                <Link
-                  to={`/cases/${savedConsultCaseId}`}
-                  style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}
-                >
-                  查看病例 #{savedConsultCaseId}
-                </Link>
+                <>
+                  <span style={{ fontSize: 13, color: "#1d4ed8", fontWeight: 600 }}>
+                    已绑定病例 #{savedConsultCaseId}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleUpdateBoundCase}
+                    disabled={updatingBoundCase || !isAuthed}
+                    style={btnSecondary}
+                  >
+                    {updatingBoundCase ? "更新中…" : `更新已绑定病例 #${savedConsultCaseId}`}
+                  </button>
+                  <Link
+                    to={`/cases/${savedConsultCaseId}`}
+                    style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}
+                  >
+                    查看病例 #{savedConsultCaseId}
+                  </Link>
+                </>
               )}
             </div>
           </div>
