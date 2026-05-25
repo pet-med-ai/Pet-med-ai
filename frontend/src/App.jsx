@@ -5,6 +5,40 @@ import api from "./api";
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
 
+function getErrorDetail(err) {
+  const detail = err?.response?.data?.detail;
+  if (Array.isArray(detail)) {
+    return detail.map((item) => item?.msg || JSON.stringify(item)).join("；");
+  }
+  if (typeof detail === "string") return detail;
+  if (detail) return JSON.stringify(detail);
+  return "";
+}
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || "").trim());
+}
+
+function getSignupErrorMessage(err) {
+  const status = err?.response?.status;
+  const detail = getErrorDetail(err);
+
+  if (status === 400) return "注册失败：该邮箱可能已存在，请换一个邮箱或直接登录。";
+  if (status === 422) return `注册失败：请输入有效邮箱和密码。${detail ? `\n${detail}` : ""}`;
+  if (status === 500) return "注册失败：后端服务异常，请查看 Render / 后端日志。";
+  return `注册失败：请检查网络或后端服务。${detail ? `\n${detail}` : ""}`;
+}
+
+function getLoginErrorMessage(err) {
+  const status = err?.response?.status;
+  const detail = getErrorDetail(err);
+
+  if (status === 401) return "登录失败：邮箱或密码错误。";
+  if (status === 422) return `登录失败：请输入有效邮箱和密码。${detail ? `\n${detail}` : ""}`;
+  if (status === 500) return "登录失败：后端服务异常，请查看 Render / 后端日志。";
+  return `登录失败：请检查网络或后端服务。${detail ? `\n${detail}` : ""}`;
+}
+
 /** ===== 首页 Home 组件 ===== */
 function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -16,31 +50,60 @@ function Home() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+
+    const cleanEmail = email.trim();
+    if (!isValidEmail(cleanEmail)) {
+      alert("请输入有效邮箱，例如 name@example.com");
+      return;
+    }
+
+    if (!password) {
+      alert("请输入密码");
+      return;
+    }
+
     try {
+      localStorage.removeItem("token");
+
       const form = new FormData();
-      form.append("username", email);
+      form.append("username", cleanEmail);
       form.append("password", password);
       const res = await api.post("/auth/login", form);
+
       localStorage.setItem("token", res.data.access_token);
       alert("登录成功");
       window.location.reload();
     } catch (err) {
       console.error(err);
-      alert("登录失败，请检查账号或密码");
+      alert(getLoginErrorMessage(err));
     }
   };
 
   const handleSignup = async () => {
+    const cleanEmail = email.trim();
+    if (!isValidEmail(cleanEmail)) {
+      alert("请输入有效邮箱，例如 name@example.com");
+      return;
+    }
+
+    if (!password || password.length < 6) {
+      alert("密码至少 6 位");
+      return;
+    }
+
     try {
-      await api.post("/auth/signup", { email, password, full_name: "" });
+      await api.post("/auth/signup", { email: cleanEmail, password, full_name: "" });
       alert("注册成功，请登录");
     } catch (err) {
       console.error(err);
-      alert("注册失败，邮箱可能已存在");
+      alert(getSignupErrorMessage(err));
     }
   };
 
-  const handleLogout = () => { localStorage.removeItem("token"); window.location.reload(); };
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    window.location.reload();
+  };
 
   // ===== 分析区状态 =====
   const [chiefComplaint, setChiefComplaint] = useState("");
