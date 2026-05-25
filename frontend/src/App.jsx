@@ -133,6 +133,8 @@ function Home() {
 
   // ===== 列表 搜索 + 分页 =====
   const [q, setQ] = useState("");
+  const [riskFilter, setRiskFilter] = useState("all");
+  const [sourceFilter, setSourceFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [cases, setCases] = useState([]);
@@ -153,6 +155,68 @@ function Home() {
   const [deletingId, setDeletingId] = useState(null);     // 正在删除的行
   const [lastDeleted, setLastDeleted] = useState(null);   // { id, data } 最近删除的完整对象（用于撤销）
 
+  const getCaseRiskMeta = (caseItem) => {
+    const raw = [
+      caseItem?.analysis,
+      caseItem?.prognosis,
+      caseItem?.treatment,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    if (/高风险|风险(?:等级|提示)?[:：]\s*高|high/i.test(raw)) {
+      return { key: "high", label: "高风险" };
+    }
+    if (/中风险|风险(?:等级|提示)?[:：]\s*中|medium/i.test(raw)) {
+      return { key: "medium", label: "中风险" };
+    }
+    if (/低风险|风险(?:等级|提示)?[:：]\s*低|low/i.test(raw)) {
+      return { key: "low", label: "低风险" };
+    }
+
+    return { key: "unknown", label: "未记录" };
+  };
+
+  const getRiskBadgeStyle = (riskKey) => {
+    const base = {
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: 999,
+      fontSize: 12,
+      fontWeight: 700,
+      border: "1px solid #e5e7eb",
+      whiteSpace: "nowrap",
+    };
+
+    if (riskKey === "high") return { ...base, color: "#991b1b", background: "#fef2f2", borderColor: "#fecaca" };
+    if (riskKey === "medium") return { ...base, color: "#9a3412", background: "#fff7ed", borderColor: "#fed7aa" };
+    if (riskKey === "low") return { ...base, color: "#166534", background: "#f0fdf4", borderColor: "#bbf7d0" };
+    return { ...base, color: "#475569", background: "#f8fafc" };
+  };
+
+  const isDynamicCase = (caseItem) => {
+    const raw = [
+      caseItem?.history,
+      caseItem?.exam_findings,
+      caseItem?.analysis,
+      caseItem?.prognosis,
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    return /动态问诊|原始会话|后续追问|风险等级/.test(raw);
+  };
+
+  const matchesCaseFilters = (caseItem) => {
+    const riskKey = getCaseRiskMeta(caseItem).key;
+    const sourceKey = isDynamicCase(caseItem) ? "dynamic" : "manual";
+
+    return (
+      (riskFilter === "all" || riskFilter === riskKey) &&
+      (sourceFilter === "all" || sourceFilter === sourceKey)
+    );
+  };
+
   const toggleOne = (id) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
@@ -160,7 +224,7 @@ function Home() {
       return next;
     });
   };
-  const selectAllCurrentPage = () => setSelectedIds(new Set(cases.map((c) => c.id)));
+  const selectAllCurrentPage = () => setSelectedIds(new Set(cases.filter(matchesCaseFilters).map((c) => c.id)));
   const clearSelection = () => setSelectedIds(new Set());
 
   const wrap = (v) => {
@@ -171,12 +235,15 @@ function Home() {
 
   // 导出当前页 CSV
   const exportCSV = () => {
-    if (!cases.length) { alert("当前没有可导出的数据"); return; }
-    const headers = ["id","patient_name","species","chief_complaint","has_analysis"];
-    const rows = cases.map(c => [
+    const exportRows = cases.filter(matchesCaseFilters);
+    if (!exportRows.length) { alert("当前没有可导出的数据"); return; }
+    const headers = ["id","patient_name","species","risk_level","source","chief_complaint","has_analysis"];
+    const rows = exportRows.map(c => [
       c.id,
       wrap(c.patient_name),
       wrap(c.species),
+      wrap(getCaseRiskMeta(c).label),
+      isDynamicCase(c) ? "dynamic_consult" : "manual",
       wrap(c.chief_complaint),
       c.analysis ? "1" : "0",
     ]);
@@ -759,6 +826,10 @@ function Home() {
     }
   };
 
+  const visibleCases = cases.filter(matchesCaseFilters);
+  const highRiskCount = cases.filter((item) => getCaseRiskMeta(item).key === "high").length;
+  const dynamicCaseCount = cases.filter(isDynamicCase).length;
+
   const currentQuestion = getCurrentQuestion();
 
   return (
@@ -1096,6 +1167,28 @@ function Home() {
             placeholder="搜索：病例名 / 物种 / 主诉"
             style={{ flex: 1, padding: "8px 10px", border: "1px solid #e5e7eb", borderRadius: 8 }}
           />
+          <select
+            value={riskFilter}
+            onChange={(e) => setRiskFilter(e.target.value)}
+            style={{ padding: "8px 10px", border: "1px solid #e5e7eb", borderRadius: 8 }}
+            title="按风险等级筛选"
+          >
+            <option value="all">全部风险</option>
+            <option value="high">高风险</option>
+            <option value="medium">中风险</option>
+            <option value="low">低风险</option>
+            <option value="unknown">未记录风险</option>
+          </select>
+          <select
+            value={sourceFilter}
+            onChange={(e) => setSourceFilter(e.target.value)}
+            style={{ padding: "8px 10px", border: "1px solid #e5e7eb", borderRadius: 8 }}
+            title="按病例来源筛选"
+          >
+            <option value="all">全部来源</option>
+            <option value="dynamic">动态问诊</option>
+            <option value="manual">手动录入</option>
+          </select>
           <button onClick={() => { setPage(1); fetchCases({ page: 1 }); }} disabled={loadingCases} style={btn}>
             {loadingCases ? "刷新中…" : "刷新列表"}
           </button>
@@ -1113,9 +1206,15 @@ function Home() {
           </Link>
         </div>
 
+        <div style={{ marginBottom: 8, fontSize: 13, opacity: 0.75 }}>
+          当前显示 {visibleCases.length} / {cases.length} 条
+          <span style={{ marginLeft: 12 }}>高风险：{highRiskCount} 条</span>
+          <span style={{ marginLeft: 12 }}>动态问诊病例：{dynamicCaseCount} 条</span>
+        </div>
+
         {/* 表格 */}
-        {cases.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>暂无病例。</p>
+        {visibleCases.length === 0 ? (
+          <p style={{ opacity: 0.7 }}>{cases.length === 0 ? "暂无病例。" : "当前筛选条件下暂无病例。"}</p>
         ) : (
           <>
             <table style={table}>
@@ -1125,13 +1224,15 @@ function Home() {
                   <th>ID</th>
                   <th>病例名</th>
                   <th>物种</th>
+                  <th>风险</th>
+                  <th>来源</th>
                   <th>主诉</th>
                   <th>已存分析</th>
                   <th>操作</th>
                 </tr>
               </thead>
               <tbody>
-                {cases.map((c) => (
+                {visibleCases.map((c) => (
                   <tr key={c.id}>
                     <td style={{ textAlign: "center" }}>
                       <input
@@ -1143,6 +1244,12 @@ function Home() {
                     <td>{c.id}</td>
                     <td>{c.patient_name}</td>
                     <td>{c.species}</td>
+                    <td>
+                      <span style={getRiskBadgeStyle(getCaseRiskMeta(c).key)}>
+                        {getCaseRiskMeta(c).label}
+                      </span>
+                    </td>
+                    <td>{isDynamicCase(c) ? "动态问诊" : "手动录入"}</td>
                     <td
                       title={c.chief_complaint}
                       style={{ maxWidth: 220, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
