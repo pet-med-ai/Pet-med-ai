@@ -264,7 +264,7 @@ answered_count="$(json_get "$RESPONSE_BODY" "result.dynamic.answered_count")"
 [[ "$answered_count" == "1" ]] || fail "answer consult：answered_count 应为 1，实际 $answered_count"
 
 # 5. save consult as case
-http_json POST "/api/ai/consult/session/${session_id}/save-case" '{"patient_name":"Smoke乐乐","species":"dog","sex":"M","age_info":"4y"}' "$token_a"
+http_json POST "/api/ai/consult/session/${session_id}/save-case" '{"patient_name":"Smoke乐乐","species":"dog","sex":"M","age_info":"4y","breed":"贵宾","weight":"5.2kg","coat_color":"白色","owner_name":"张三","owner_phone":"13800000000"}' "$token_a"
 expect_status 200 "save consult as case"
 case_id="$(json_get "$RESPONSE_BODY" "case_id")"
 message="$(json_get "$RESPONSE_BODY" "message")"
@@ -278,7 +278,7 @@ json_assert_session_case "$RESPONSE_BODY" "$session_id" "$case_id" >/dev/null ||
 pass "history contains case_id"
 
 # 7. repeat save returns already_saved
-http_json POST "/api/ai/consult/session/${session_id}/save-case" '{"patient_name":"Smoke乐乐","species":"dog","sex":"M","age_info":"4y"}' "$token_a"
+http_json POST "/api/ai/consult/session/${session_id}/save-case" '{"patient_name":"Smoke乐乐","species":"dog","sex":"M","age_info":"4y","breed":"贵宾","weight":"5.2kg","coat_color":"白色","owner_name":"张三","owner_phone":"13800000000"}' "$token_a"
 expect_status 200 "repeat save consult"
 repeat_msg="$(json_get "$RESPONSE_BODY" "message")"
 repeat_case_id="$(json_get "$RESPONSE_BODY" "case_id")"
@@ -302,7 +302,12 @@ http_json GET "/api/cases/${case_id}" "" "$token_a"
 expect_status 200 "read user A case"
 json_assert_text_contains "$RESPONSE_BODY" "history" "$answer_2" >/dev/null || fail "case detail：history 未包含继续追问内容"
 json_assert_text_contains "$RESPONSE_BODY" "analysis" "风险" >/dev/null || fail "case detail：analysis 未包含风险信息"
-pass "case detail contains updated consult"
+json_assert_text_contains "$RESPONSE_BODY" "breed" "贵宾" >/dev/null || fail "case detail：breed 未保存"
+json_assert_text_contains "$RESPONSE_BODY" "weight" "5.2kg" >/dev/null || fail "case detail：weight 未保存"
+json_assert_text_contains "$RESPONSE_BODY" "coat_color" "白色" >/dev/null || fail "case detail：coat_color 未保存"
+json_assert_text_contains "$RESPONSE_BODY" "owner_name" "张三" >/dev/null || fail "case detail：owner_name 未保存"
+json_assert_text_contains "$RESPONSE_BODY" "owner_phone" "13800000000" >/dev/null || fail "case detail：owner_phone 未保存"
+pass "case detail contains updated consult and basic info"
 
 # 10. signup/login user B
 http_json POST "/auth/signup" "{\"email\":\"${email_b}\",\"password\":\"${PASSWORD}\",\"full_name\":\"Smoke B\"}"

@@ -130,6 +130,11 @@ function Home() {
   const [species, setSpecies] = useState("dog");
   const [sex, setSex] = useState("");
   const [ageInfo, setAgeInfo] = useState("");
+  const [breed, setBreed] = useState("");
+  const [weight, setWeight] = useState("");
+  const [coatColor, setCoatColor] = useState("");
+  const [ownerName, setOwnerName] = useState("");
+  const [ownerPhone, setOwnerPhone] = useState("");
 
   // ===== 列表 搜索 + 分页 =====
   const [q, setQ] = useState("");
@@ -237,11 +242,16 @@ function Home() {
   const exportCSV = () => {
     const exportRows = cases.filter(matchesCaseFilters);
     if (!exportRows.length) { alert("当前没有可导出的数据"); return; }
-    const headers = ["id","patient_name","species","risk_level","source","chief_complaint","has_analysis"];
+    const headers = ["id","patient_name","species","breed","weight","coat_color","owner_name","owner_phone","risk_level","source","chief_complaint","has_analysis"];
     const rows = exportRows.map(c => [
       c.id,
       wrap(c.patient_name),
       wrap(c.species),
+      wrap(c.breed),
+      wrap(c.weight),
+      wrap(c.coat_color),
+      wrap(c.owner_name),
+      wrap(c.owner_phone),
       wrap(getCaseRiskMeta(c).label),
       isDynamicCase(c) ? "dynamic_consult" : "manual",
       wrap(c.chief_complaint),
@@ -267,7 +277,7 @@ function Home() {
     try {
       setExportingAll(true);
 
-      const headers = ["id","patient_name","species","chief_complaint","has_analysis"];
+      const headers = ["id","patient_name","species","breed","weight","coat_color","owner_name","owner_phone","chief_complaint","has_analysis"];
       const allRows = [];
       const pageSizeAll = 200; // 建议 100~500
       let cur = 1;
@@ -278,7 +288,18 @@ function Home() {
         const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
         if (totalCount == null) totalCount = Array.isArray(res.data) ? items.length : (res.data.total ?? items.length);
         for (const c of items) {
-          allRows.push([ c.id, wrap(c.patient_name), wrap(c.species), wrap(c.chief_complaint), c.analysis ? "1" : "0" ]);
+          allRows.push([
+            c.id,
+            wrap(c.patient_name),
+            wrap(c.species),
+            wrap(c.breed),
+            wrap(c.weight),
+            wrap(c.coat_color),
+            wrap(c.owner_name),
+            wrap(c.owner_phone),
+            wrap(c.chief_complaint),
+            c.analysis ? "1" : "0",
+          ]);
         }
         if (items.length < pageSizeAll || (totalCount != null && allRows.length >= totalCount)) break;
         cur += 1;
@@ -722,6 +743,11 @@ function Home() {
         species: species || "dog",
         sex: sex || null,
         age_info: ageInfo || null,
+        breed: breed || null,
+        weight: weight || null,
+        coat_color: coatColor || null,
+        owner_name: ownerName || null,
+        owner_phone: ownerPhone || null,
         exam_findings: examFindings || null,
       });
 
@@ -791,6 +817,11 @@ function Home() {
         species,
         sex: sex || null,
         age_info: ageInfo || null,
+        breed: breed || null,
+        weight: weight || null,
+        coat_color: coatColor || null,
+        owner_name: ownerName || null,
+        owner_phone: ownerPhone || null,
         chief_complaint: chiefComplaint,
         history: history || null,
         exam_findings: examFindings || null,
@@ -870,6 +901,21 @@ function Home() {
           </Field>
           <Field label="年龄信息">
             <input value={ageInfo} onChange={(e) => setAgeInfo(e.target.value)} placeholder="如 4y / 6m" />
+          </Field>
+          <Field label="品种 / 宠物信息">
+            <input value={breed} onChange={(e) => setBreed(e.target.value)} placeholder="如 贵宾 / 英短 / 混种" />
+          </Field>
+          <Field label="体重">
+            <input value={weight} onChange={(e) => setWeight(e.target.value)} placeholder="如 5.2kg" />
+          </Field>
+          <Field label="毛色">
+            <input value={coatColor} onChange={(e) => setCoatColor(e.target.value)} placeholder="如 白色 / 虎斑" />
+          </Field>
+          <Field label="主人姓名">
+            <input value={ownerName} onChange={(e) => setOwnerName(e.target.value)} placeholder="如 张三" />
+          </Field>
+          <Field label="主人电话">
+            <input value={ownerPhone} onChange={(e) => setOwnerPhone(e.target.value)} placeholder="如 13800000000" />
           </Field>
         </div>
       </section>

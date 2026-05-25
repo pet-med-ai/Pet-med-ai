@@ -46,6 +46,11 @@ class Case(Base):
     species: Mapped[str] = mapped_column(String(50), default="dog")   # dog/cat/other
     sex: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
     age_info: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # e.g., "4y", "6m"
+    breed: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    weight: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    coat_color: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    owner_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    owner_phone: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
 
     # 主诉/病史/检查
     chief_complaint: Mapped[str] = mapped_column(Text)

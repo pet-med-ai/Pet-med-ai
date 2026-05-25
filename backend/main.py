@@ -54,7 +54,35 @@ def ensure_consult_session_columns():
                 conn.execute(sql_text(stmt))
 
 
+def ensure_case_extra_columns():
+    # create_all 不会给既有 cases 表补列；这里为新增基础档案字段兜底补列。
+    insp = inspect(engine)
+    if not insp.has_table("cases"):
+        return
+
+    existing = {col["name"] for col in insp.get_columns("cases")}
+    columns = {
+        "breed": "VARCHAR(100)",
+        "weight": "VARCHAR(50)",
+        "coat_color": "VARCHAR(100)",
+        "owner_name": "VARCHAR(100)",
+        "owner_phone": "VARCHAR(50)",
+    }
+
+    statements = [
+        f"ALTER TABLE cases ADD COLUMN {name} {ddl}"
+        for name, ddl in columns.items()
+        if name not in existing
+    ]
+
+    if statements:
+        with engine.begin() as conn:
+            for stmt in statements:
+                conn.execute(sql_text(stmt))
+
+
 ensure_consult_session_columns()
+ensure_case_extra_columns()
 
 app = FastAPI(title="Pet Med AI Backend", version="1.0.0")
 
@@ -143,6 +171,11 @@ class CaseCreate(BaseModel):
     species: Optional[str] = "dog"
     sex: Optional[str] = None
     age_info: Optional[str] = None
+    breed: Optional[str] = None
+    weight: Optional[str] = None
+    coat_color: Optional[str] = None
+    owner_name: Optional[str] = None
+    owner_phone: Optional[str] = None
     chief_complaint: str
     history: Optional[str] = None
     exam_findings: Optional[str] = None
@@ -152,6 +185,11 @@ class CaseUpdate(BaseModel):
     species: Optional[str] = None
     sex: Optional[str] = None
     age_info: Optional[str] = None
+    breed: Optional[str] = None
+    weight: Optional[str] = None
+    coat_color: Optional[str] = None
+    owner_name: Optional[str] = None
+    owner_phone: Optional[str] = None
     chief_complaint: Optional[str] = None
     history: Optional[str] = None
     exam_findings: Optional[str] = None
@@ -224,6 +262,11 @@ class AIConsultSessionSaveCaseIn(BaseModel):
     species: Optional[str] = "dog"
     sex: Optional[str] = None
     age_info: Optional[str] = None
+    breed: Optional[str] = None
+    weight: Optional[str] = None
+    coat_color: Optional[str] = None
+    owner_name: Optional[str] = None
+    owner_phone: Optional[str] = None
     exam_findings: Optional[str] = None
 
 class AIConsultSessionSaveCaseOut(BaseModel):
@@ -333,6 +376,9 @@ def list_cases(
             or_(
                 Case.patient_name.ilike(key),
                 Case.species.ilike(key),
+                Case.breed.ilike(key),
+                Case.owner_name.ilike(key),
+                Case.owner_phone.ilike(key),
                 Case.chief_complaint.ilike(key),
             )
         )
@@ -696,6 +742,11 @@ def ai_consult_session_save_case(
     species_value = (data.species or "dog").strip() or "dog"
     sex_value = (data.sex or "").strip() or None
     age_value = (data.age_info or "").strip() or None
+    breed_value = (data.breed or "").strip() or None
+    weight_value = (data.weight or "").strip() or None
+    coat_value = (data.coat_color or "").strip() or None
+    owner_name_value = (data.owner_name or "").strip() or None
+    owner_phone_value = (data.owner_phone or "").strip() or None
     exam_value = (data.exam_findings or "").strip() or f"由动态问诊生成；原始会话：{session.session_uid}"
 
     obj = Case(
@@ -704,6 +755,11 @@ def ai_consult_session_save_case(
         species=species_value[:50],
         sex=sex_value[:10] if sex_value else None,
         age_info=age_value[:50] if age_value else None,
+        breed=breed_value[:100] if breed_value else None,
+        weight=weight_value[:50] if weight_value else None,
+        coat_color=coat_value[:100] if coat_value else None,
+        owner_name=owner_name_value[:100] if owner_name_value else None,
+        owner_phone=owner_phone_value[:50] if owner_phone_value else None,
         chief_complaint=session.text,
         history=case_fields["history"],
         exam_findings=exam_value,

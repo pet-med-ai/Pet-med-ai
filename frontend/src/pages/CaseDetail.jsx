@@ -66,6 +66,11 @@ export default function CaseDetail() {
       species: data.species || data?.patient?.species || "—",
       sex: data.sex || "—",
       ageInfo: data.age_info || "—",
+      breed: data.breed || "—",
+      weight: data.weight || "—",
+      coatColor: data.coat_color || "—",
+      ownerName: data.owner_name || "—",
+      ownerPhone: data.owner_phone || "—",
       riskLevel: extractRiskLevel(data),
       sourceSessionId: extractSourceSessionId(data.exam_findings),
       isDynamicConsultCase: isDynamicConsultCase(data),
@@ -143,6 +148,11 @@ export default function CaseDetail() {
             ["物种", derived.species],
             ["性别", derived.sex],
             ["年龄信息", derived.ageInfo],
+            ["品种 / 宠物信息", derived.breed],
+            ["体重", derived.weight],
+            ["毛色", derived.coatColor],
+            ["主人姓名", derived.ownerName],
+            ["主人电话", derived.ownerPhone],
           ]}
         />
       </Section>
@@ -474,7 +484,7 @@ const css = `
 
   .info-grid {
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     border: 1px solid #e5e7eb;
     border-radius: 12px;
     overflow: hidden;
