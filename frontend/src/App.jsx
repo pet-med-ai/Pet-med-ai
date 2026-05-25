@@ -120,6 +120,8 @@ function Home() {
   const [loadingSession, setLoadingSession] = useState(false);
   const [sessionHistory, setSessionHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [sessionRiskFilter, setSessionRiskFilter] = useState("all");
+  const [sessionSavedFilter, setSessionSavedFilter] = useState("all");
   const [consultAnswers, setConsultAnswers] = useState([]);
   const [followupAnswer, setFollowupAnswer] = useState("");
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
@@ -501,6 +503,41 @@ function Home() {
     return date.toLocaleString("zh-CN", { hour12: false });
   };
 
+  const getSessionRiskMeta = (item) => {
+    const raw = String(item?.risk_level || "").trim();
+    if (/高|high/i.test(raw)) return { key: "high", label: "高风险" };
+    if (/中|medium/i.test(raw)) return { key: "medium", label: "中风险" };
+    if (/低|low/i.test(raw)) return { key: "low", label: "低风险" };
+    return { key: "unknown", label: raw || "未记录" };
+  };
+
+  const getSessionRiskBadgeStyle = (riskKey) => {
+    const base = {
+      display: "inline-block",
+      padding: "2px 8px",
+      borderRadius: 999,
+      fontSize: 12,
+      fontWeight: 700,
+      border: "1px solid #e5e7eb",
+      whiteSpace: "nowrap",
+    };
+
+    if (riskKey === "high") return { ...base, color: "#991b1b", background: "#fef2f2", borderColor: "#fecaca" };
+    if (riskKey === "medium") return { ...base, color: "#9a3412", background: "#fff7ed", borderColor: "#fed7aa" };
+    if (riskKey === "low") return { ...base, color: "#166534", background: "#f0fdf4", borderColor: "#bbf7d0" };
+    return { ...base, color: "#475569", background: "#f8fafc" };
+  };
+
+  const matchesSessionFilters = (item) => {
+    const riskKey = getSessionRiskMeta(item).key;
+    const savedKey = item?.case_id ? "saved" : "unsaved";
+
+    return (
+      (sessionRiskFilter === "all" || sessionRiskFilter === riskKey) &&
+      (sessionSavedFilter === "all" || sessionSavedFilter === savedKey)
+    );
+  };
+
   const rememberConsultSession = (sessionId) => {
     const sid = (sessionId || "").trim();
     if (!sid) return;
@@ -861,6 +898,11 @@ function Home() {
   const highRiskCount = cases.filter((item) => getCaseRiskMeta(item).key === "high").length;
   const dynamicCaseCount = cases.filter(isDynamicCase).length;
 
+  const filteredSessionHistory = sessionHistory.filter(matchesSessionFilters);
+  const savedSessionCount = sessionHistory.filter((item) => item.case_id).length;
+  const unsavedSessionCount = sessionHistory.length - savedSessionCount;
+  const highRiskSessionCount = sessionHistory.filter((item) => getSessionRiskMeta(item).key === "high").length;
+
   const currentQuestion = getCurrentQuestion();
 
   return (
@@ -1009,39 +1051,102 @@ function Home() {
           </div>
 
           <div style={{ marginTop: 10 }}>
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>最近历史会话</div>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+              <div style={{ fontWeight: 600 }}>最近历史会话</div>
+              <select
+                value={sessionRiskFilter}
+                onChange={(e) => setSessionRiskFilter(e.target.value)}
+                style={{ padding: "5px 8px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 13 }}
+                title="按风险等级筛选问诊"
+              >
+                <option value="all">全部风险</option>
+                <option value="high">高风险</option>
+                <option value="medium">中风险</option>
+                <option value="low">低风险</option>
+                <option value="unknown">未记录风险</option>
+              </select>
+              <select
+                value={sessionSavedFilter}
+                onChange={(e) => setSessionSavedFilter(e.target.value)}
+                style={{ padding: "5px 8px", border: "1px solid #e5e7eb", borderRadius: 8, fontSize: 13 }}
+                title="按是否已保存病例筛选问诊"
+              >
+                <option value="all">全部状态</option>
+                <option value="saved">已保存病例</option>
+                <option value="unsaved">未保存病例</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: 8, fontSize: 13, opacity: 0.72 }}>
+              当前显示 {filteredSessionHistory.length} / {sessionHistory.length} 条
+              <span style={{ marginLeft: 10 }}>高风险：{highRiskSessionCount} 条</span>
+              <span style={{ marginLeft: 10 }}>已保存：{savedSessionCount} 条</span>
+              <span style={{ marginLeft: 10 }}>未保存：{unsavedSessionCount} 条</span>
+            </div>
+
             {sessionHistory.length ? (
-              <div style={{ display: "grid", gap: 6 }}>
-                {sessionHistory.map((item) => (
-                  <button
-                    key={item.session_id}
-                    type="button"
-                    onClick={() => loadSession(item.session_id)}
-                    style={{
-                      textAlign: "left",
-                      padding: 8,
-                      border: "1px solid #e5e7eb",
-                      borderRadius: 8,
-                      background: "#fff",
-                      cursor: "pointer",
-                    }}
-                  >
-                    <div style={{ fontSize: 13 }}>
-                      <strong>{item.session_id?.slice(0, 8) || "-"}</strong>
-                      <span style={{ marginLeft: 8, opacity: 0.7 }}>
-                        {formatSessionDate(item.updated_at || item.created_at)}
-                      </span>
-                    </div>
-                    <div style={{ fontSize: 13, opacity: 0.8 }}>
-                      风险：{item.risk_level || "未知"} · 第 {item.round ?? "-"} 轮 · 已回答 {item.answered_count ?? 0} 条
-                      {item.case_id ? ` · 已保存病例 #${item.case_id}` : ""}
-                    </div>
-                    <div style={{ fontSize: 13, opacity: 0.75 }}>
-                      {truncateText(item.text)}
-                    </div>
-                  </button>
-                ))}
-              </div>
+              filteredSessionHistory.length ? (
+                <div style={{ display: "grid", gap: 6 }}>
+                  {filteredSessionHistory.map((item) => {
+                    const risk = getSessionRiskMeta(item);
+                    return (
+                      <div
+                        key={item.session_id}
+                        style={{
+                          textAlign: "left",
+                          padding: 8,
+                          border: "1px solid #e5e7eb",
+                          borderRadius: 8,
+                          background: "#fff",
+                        }}
+                      >
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", fontSize: 13 }}>
+                          <button
+                            type="button"
+                            onClick={() => loadSession(item.session_id)}
+                            style={{ ...btnTiny, fontWeight: 700 }}
+                            title="恢复该问诊"
+                          >
+                            {item.session_id?.slice(0, 8) || "-"}
+                          </button>
+                          <span style={getSessionRiskBadgeStyle(risk.key)}>{risk.label}</span>
+                          <span style={{ opacity: 0.7 }}>{formatSessionDate(item.updated_at || item.created_at)}</span>
+                          <span style={{ opacity: 0.8 }}>第 {item.round ?? "-"} 轮 · 已回答 {item.answered_count ?? 0} 条</span>
+                          {item.case_id ? (
+                            <Link
+                              to={`/cases/${item.case_id}`}
+                              style={{ ...btnTiny, textDecoration: "none", display: "inline-block" }}
+                            >
+                              查看病例 #{item.case_id}
+                            </Link>
+                          ) : (
+                            <span style={{ fontSize: 12, color: "#b45309" }}>未保存病例</span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => loadSession(item.session_id)}
+                          style={{
+                            marginTop: 6,
+                            padding: 0,
+                            border: 0,
+                            background: "transparent",
+                            cursor: "pointer",
+                            textAlign: "left",
+                            fontSize: 13,
+                            opacity: 0.75,
+                          }}
+                          title="点击恢复该问诊"
+                        >
+                          {truncateText(item.text)}
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div style={{ opacity: 0.65 }}>当前筛选条件下暂无历史会话。</div>
+              )
             ) : (
               <div style={{ opacity: 0.65 }}>暂无历史会话，点击“刷新历史会话”后可查看。</div>
             )}
