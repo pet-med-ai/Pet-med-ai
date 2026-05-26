@@ -1,38 +1,61 @@
+# Render Blueprint for Pet-Med-AI
+#
+# This file documents the intended production services.
+# Sensitive values such as DATABASE_URL and SECRET_KEY must stay in Render Dashboard.
+#
+# Actual current services:
+# - Backend:  pet-med-ai-backend
+# - Frontend: pet-med-ai-frontend-static
+# - Database: pet-med-ai-db
+
 services:
   # === Backend: FastAPI ===
   - type: web
     name: pet-med-ai-backend
-    env: python
+    runtime: python
     plan: starter
+    region: oregon
     rootDir: backend
     buildCommand: |
       pip install -U pip wheel
       pip install -r requirements.txt
     startCommand: |
-      uvicorn app.main:app --host 0.0.0.0 --port $PORT
+      uvicorn main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /healthz
-    autoDeploy: true
+    autoDeployTrigger: commit
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
-      - key: KB_ROOT
-        value: /app/knowledge-base
-      # - key: DATABASE_URL
-      #   sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        sync: false
 
-  # === Frontend: Vite/React ===
+  # === Frontend: React / Vite Static Site ===
   - type: web
-    name: pet-med-ai-frontend-v6
-    env: node
-    plan: starter
+    name: pet-med-ai-frontend-static
+    runtime: static
     rootDir: frontend
     buildCommand: |
       npm ci
       npm run build
-    startCommand: npx serve -s dist -l $PORT
-    autoDeploy: true
+    staticPublishPath: dist
+    autoDeployTrigger: commit
     envVars:
       - key: NODE_VERSION
         value: "20"
       - key: VITE_API_BASE
         value: https://pet-med-ai-backend.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
+# Database note:
+# The production PostgreSQL database is currently managed in Render Dashboard:
+# - pet-med-ai-db
+#
+# This blueprint intentionally does not create or modify the database resource yet.
+# The backend receives DATABASE_URL via a Dashboard-managed secret env var.
+# If you later decide to manage the database through Blueprint, add a databases:
+# section only after confirming the exact plan, region, and migration strategy.

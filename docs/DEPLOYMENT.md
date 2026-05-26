@@ -196,7 +196,7 @@ __pycache__/
 
 ## 8. render.yaml 说明
 
-仓库中可能存在 `render.yaml`，但当前实际部署以 Render Dashboard 中的服务配置为准：
+`render.yaml` 已对齐当前真实 Render 服务名和主要构建配置：
 
 ```text
 Backend: pet-med-ai-backend
@@ -204,4 +204,24 @@ Frontend: pet-med-ai-frontend-static
 Database: pet-med-ai-db
 ```
 
-后续如果要完全基础设施即代码化，再单独做 `render.yaml` 对齐阶段。
+当前 `render.yaml` 包含：
+
+```text
+pet-med-ai-backend
+pet-med-ai-frontend-static
+VITE_API_BASE=https://pet-med-ai-backend.onrender.com
+DATABASE_URL sync:false
+SECRET_KEY sync:false
+```
+
+数据库 `pet-med-ai-db` 目前仍由 Render Dashboard 管理，不在 Blueprint 中创建或修改。这样可以避免误改数据库 plan、region 或连接配置。
+
+如果未来决定完全使用 Blueprint 管理数据库，需要单独确认：
+
+```text
+1. 数据库 plan
+2. region
+3. 备份策略
+4. 迁移策略
+5. 是否会影响现有生产数据
+```
