@@ -290,6 +290,9 @@ class AIConsultSessionListItem(BaseModel):
 
 class AIConsultSessionListOut(BaseModel):
     items: List[AIConsultSessionListItem] = Field(default_factory=list)
+    total: int = 0
+    page: int = 1
+    page_size: int = 20
 
 class AIConsultSessionSaveCaseIn(BaseModel):
     patient_name: Optional[str] = None
@@ -704,23 +707,86 @@ def _consult_session_list_item(session: ConsultSession) -> Dict[str, Any]:
     }
 
 
+def _consult_session_risk_key(session: ConsultSession) -> str:
+    result = session.result if isinstance(session.result, dict) else {}
+    raw = str(result.get("risk_level") or "").strip()
+
+    if "高" in raw or raw.lower() == "high":
+        return "high"
+    if "中" in raw or raw.lower() == "medium":
+        return "medium"
+    if "低" in raw or raw.lower() == "low":
+        return "low"
+    return "unknown"
+
+
+def _consult_session_matches_filters(
+    session: ConsultSession,
+    risk: Optional[str],
+    saved: Optional[str],
+) -> bool:
+    risk_value = (risk or "all").strip().lower()
+    saved_value = (saved or "all").strip().lower()
+
+    if risk_value not in ("all", "high", "medium", "low", "unknown"):
+        risk_value = "all"
+    if saved_value not in ("all", "saved", "unsaved"):
+        saved_value = "all"
+
+    if risk_value != "all" and _consult_session_risk_key(session) != risk_value:
+        return False
+
+    is_saved = bool(getattr(session, "case_id", None))
+    if saved_value == "saved" and not is_saved:
+        return False
+    if saved_value == "unsaved" and is_saved:
+        return False
+
+    return True
+
+
 @app.get("/ai/consult/sessions", response_model=AIConsultSessionListOut, tags=["ai"])
 @app.get("/api/ai/consult/sessions", response_model=AIConsultSessionListOut, tags=["ai"])
 def ai_consult_sessions_list(
-    limit: int = 20,
+    limit: Optional[int] = None,
+    page: int = 1,
+    page_size: int = 20,
+    risk: Optional[str] = None,
+    saved: Optional[str] = None,
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
-    safe_limit = max(1, min(limit, 100))
+    safe_page = max(1, page or 1)
+    if limit is not None:
+        safe_page_size = max(1, min(limit or 20, 100))
+    else:
+        safe_page_size = max(1, min(page_size or 20, 100))
+
     updated_expr = func.coalesce(ConsultSession.updated_at, ConsultSession.created_at)
     sessions = (
         db.query(ConsultSession)
         .filter(ConsultSession.owner_id == user.id)
-        .order_by(updated_expr.desc())
-        .limit(safe_limit)
+        .order_by(updated_expr.desc(), ConsultSession.id.desc())
         .all()
     )
-    return {"items": [_consult_session_list_item(session) for session in sessions]}
+
+    filtered_sessions = [
+        session
+        for session in sessions
+        if _consult_session_matches_filters(session, risk, saved)
+    ]
+
+    total = len(filtered_sessions)
+    start = (safe_page - 1) * safe_page_size
+    end = start + safe_page_size
+    page_sessions = filtered_sessions[start:end]
+
+    return {
+        "items": [_consult_session_list_item(session) for session in page_sessions],
+        "total": total,
+        "page": safe_page,
+        "page_size": safe_page_size,
+    }
 
 
 def _consult_item_label(item: Any) -> str:

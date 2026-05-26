@@ -122,6 +122,9 @@ function Home() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [sessionRiskFilter, setSessionRiskFilter] = useState("all");
   const [sessionSavedFilter, setSessionSavedFilter] = useState("all");
+  const [sessionPage, setSessionPage] = useState(1);
+  const [sessionPageSize] = useState(20);
+  const [sessionTotal, setSessionTotal] = useState(0);
   const [deletingSessionId, setDeletingSessionId] = useState(null);
   const [consultAnswers, setConsultAnswers] = useState([]);
   const [followupAnswer, setFollowupAnswer] = useState("");
@@ -565,16 +568,31 @@ function Home() {
     localStorage.setItem("consult_session_id", sid);
   };
 
-  const fetchSessionHistory = async () => {
+  const fetchSessionHistory = async (paramsOverride = {}) => {
     if (!localStorage.getItem("token")) {
       setSessionHistory([]);
+      setSessionTotal(0);
       return;
     }
 
+    const nextPage = paramsOverride.page ?? sessionPage;
+    const nextPageSize = paramsOverride.page_size ?? sessionPageSize;
+
     try {
       setLoadingHistory(true);
-      const res = await api.get("/api/ai/consult/sessions", { params: { limit: 20 } });
+      const res = await api.get("/api/ai/consult/sessions", {
+        params: {
+          page: nextPage,
+          page_size: nextPageSize,
+          risk: sessionRiskFilter !== "all" ? sessionRiskFilter : undefined,
+          saved: sessionSavedFilter !== "all" ? sessionSavedFilter : undefined,
+          ...paramsOverride,
+        },
+      });
+
       setSessionHistory(res.data?.items || []);
+      setSessionTotal(res.data?.total ?? (res.data?.items || []).length);
+      setSessionPage(res.data?.page ?? nextPage);
     } catch (err) {
       console.error("Session history error:", err);
       if (err.response?.status !== 401) {
@@ -636,6 +654,13 @@ function Home() {
     fetchSessionHistory();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    if (!localStorage.getItem("token")) return;
+    setSessionPage(1);
+    fetchSessionHistory({ page: 1 });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sessionRiskFilter, sessionSavedFilter]);
 
   useEffect(() => {
     const sid = (searchParams.get("restore_session_id") || "").trim();
@@ -961,10 +986,11 @@ function Home() {
   const highRiskCount = cases.filter((item) => getCaseRiskMeta(item).key === "high").length;
   const dynamicCaseCount = cases.filter(isDynamicCase).length;
 
-  const filteredSessionHistory = sessionHistory.filter(matchesSessionFilters);
+  const filteredSessionHistory = sessionHistory;
   const savedSessionCount = sessionHistory.filter((item) => item.case_id).length;
   const unsavedSessionCount = sessionHistory.length - savedSessionCount;
   const highRiskSessionCount = sessionHistory.filter((item) => getSessionRiskMeta(item).key === "high").length;
+  const sessionTotalPages = Math.max(1, Math.ceil((sessionTotal || 0) / sessionPageSize));
 
   const currentQuestion = getCurrentQuestion();
 
@@ -1105,7 +1131,7 @@ function Home() {
             </button>
             <button
               type="button"
-              onClick={fetchSessionHistory}
+              onClick={() => fetchSessionHistory({ page: sessionPage })}
               disabled={loadingHistory}
               style={btnSecondary}
             >
@@ -1141,13 +1167,13 @@ function Home() {
             </div>
 
             <div style={{ marginBottom: 8, fontSize: 13, opacity: 0.72 }}>
-              当前显示 {filteredSessionHistory.length} / {sessionHistory.length} 条
-              <span style={{ marginLeft: 10 }}>高风险：{highRiskSessionCount} 条</span>
-              <span style={{ marginLeft: 10 }}>已保存：{savedSessionCount} 条</span>
-              <span style={{ marginLeft: 10 }}>未保存：{unsavedSessionCount} 条</span>
+              当前显示 {filteredSessionHistory.length} / {sessionTotal} 条
+              <span style={{ marginLeft: 10 }}>本页高风险：{highRiskSessionCount} 条</span>
+              <span style={{ marginLeft: 10 }}>本页已保存：{savedSessionCount} 条</span>
+              <span style={{ marginLeft: 10 }}>本页未保存：{unsavedSessionCount} 条</span>
             </div>
 
-            {sessionHistory.length ? (
+            {sessionTotal > 0 ? (
               filteredSessionHistory.length ? (
                 <div style={{ display: "grid", gap: 6 }}>
                   {filteredSessionHistory.map((item) => {
@@ -1224,6 +1250,28 @@ function Home() {
             ) : (
               <div style={{ opacity: 0.65 }}>暂无历史会话，点击“刷新历史会话”后可查看。</div>
             )}
+
+            <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+              <button
+                type="button"
+                onClick={() => fetchSessionHistory({ page: Math.max(1, sessionPage - 1) })}
+                disabled={loadingHistory || sessionPage <= 1}
+                style={btnTiny}
+              >
+                上一页
+              </button>
+              <span style={{ fontSize: 13, opacity: 0.75 }}>
+                第 {sessionPage} / {sessionTotalPages} 页
+              </span>
+              <button
+                type="button"
+                onClick={() => fetchSessionHistory({ page: Math.min(sessionTotalPages, sessionPage + 1) })}
+                disabled={loadingHistory || sessionPage >= sessionTotalPages}
+                style={btnTiny}
+              >
+                下一页
+              </button>
+            </div>
           </div>
         </div>
 

@@ -193,6 +193,28 @@ print("ok")
 PY
 }
 
+json_assert_session_present() {
+  local file="$1"
+  local session_id="$2"
+  python3 - "$file" "$session_id" <<'PY'
+import json
+import sys
+
+file_path, session_id = sys.argv[1], sys.argv[2]
+with open(file_path, "r", encoding="utf-8") as f:
+    data = json.load(f)
+
+items = data.get("items") or []
+for item in items:
+    if item.get("session_id") == session_id:
+        print("ok")
+        sys.exit(0)
+
+print("session not found")
+sys.exit(3)
+PY
+}
+
 json_assert_text_contains() {
   local file="$1"
   local path="$2"
@@ -272,10 +294,17 @@ message="$(json_get "$RESPONSE_BODY" "message")"
 [[ "$message" == "saved" || "$message" == "already_saved" ]] || fail "save consult as case：message 异常：$message"
 
 # 6. history contains case_id
-http_json GET "/api/ai/consult/sessions?limit=20" "" "$token_a"
+http_json GET "/api/ai/consult/sessions?page=1&page_size=20" "" "$token_a"
 expect_status 200 "history list user A"
+history_total="$(json_get "$RESPONSE_BODY" "total")"
+[[ "${history_total:-0}" -ge 1 ]] || fail "history list user A：total 应大于等于 1，实际 ${history_total:-}"
 json_assert_session_case "$RESPONSE_BODY" "$session_id" "$case_id" >/dev/null || fail "history list user A：没有找到带 case_id 的 session"
 pass "history contains case_id"
+
+http_json GET "/api/ai/consult/sessions?page=1&page_size=20&saved=saved" "" "$token_a"
+expect_status 200 "history saved filter user A"
+json_assert_session_case "$RESPONSE_BODY" "$session_id" "$case_id" >/dev/null || fail "history saved filter：没有找到已保存 session"
+pass "history saved filter contains case_id"
 
 # 7. repeat save returns already_saved
 http_json POST "/api/ai/consult/session/${session_id}/save-case" '{"patient_name":"Smoke乐乐","species":"dog","sex":"M","age_info":"4y","breed":"贵宾","weight":"5.2kg","coat_color":"白色","owner_name":"张三","owner_phone":"13800000000"}' "$token_a"
@@ -291,6 +320,11 @@ http_json POST "/api/ai/consult/session" '{"text":"Smoke未保存问诊，准备
 expect_status 200 "create unsaved consult for delete"
 unsaved_session_id="$(json_get "$RESPONSE_BODY" "session_id")"
 [[ -n "$unsaved_session_id" ]] || fail "create unsaved consult：没有 session_id"
+
+http_json GET "/api/ai/consult/sessions?page=1&page_size=20&saved=unsaved" "" "$token_a"
+expect_status 200 "history unsaved filter user A"
+json_assert_session_present "$RESPONSE_BODY" "$unsaved_session_id" >/dev/null || fail "history unsaved filter：没有找到未保存 session"
+pass "history unsaved filter contains unsaved session"
 
 http_json DELETE "/api/ai/consult/session/${unsaved_session_id}" "" "$token_a"
 expect_status 200 "delete unsaved consult"
@@ -334,7 +368,7 @@ token_b="$(json_get "$RESPONSE_BODY" "access_token")"
 [[ -n "$token_b" ]] || fail "login user B：没有 access_token"
 
 # 12. user B cannot see/read user A session
-http_json GET "/api/ai/consult/sessions?limit=20" "" "$token_b"
+http_json GET "/api/ai/consult/sessions?page=1&page_size=20&saved=all" "" "$token_b"
 expect_status 200 "history list user B"
 json_assert_not_contains_session "$RESPONSE_BODY" "$session_id" >/dev/null || fail "user B history：看到了 user A session"
 pass "user B cannot see user A session"
