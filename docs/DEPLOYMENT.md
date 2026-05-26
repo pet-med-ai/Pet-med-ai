@@ -52,6 +52,8 @@ http://127.0.0.1:5173
 
 ```text
 PYTHON_VERSION=3.11.9
+ENVIRONMENT=production
+CORS_ORIGINS=https://pet-med-ai-frontend-static.onrender.com
 DATABASE_URL=<Render PostgreSQL Internal Database URL>
 SECRET_KEY=<production secret>
 ```
@@ -60,7 +62,9 @@ SECRET_KEY=<production secret>
 
 - `DATABASE_URL` 必须指向 Render PostgreSQL。
 - 如果没有 `DATABASE_URL`，后端会回退到 SQLite，本地可以，但线上不适合作为商业部署。
-- `SECRET_KEY` 必须在线上固定配置，避免部署后 token 校验不稳定。
+- `ENVIRONMENT=production` 用于明确当前是生产环境。
+- `CORS_ORIGINS` 只能填写允许访问后端的前端域名，多个域名用英文逗号分隔。
+- `SECRET_KEY` 必须在线上固定配置；生产环境缺失时后端会拒绝启动，避免继续使用默认密钥。
 - 不要把 `DATABASE_URL` 或 `SECRET_KEY` 写进 GitHub。
 
 ### Frontend: `pet-med-ai-frontend-static`
@@ -174,7 +178,24 @@ Smoke test 会验证：
 → 病例与问诊均按用户隔离
 ```
 
-## 7. 重要注意事项
+## 7. 生产安全检查清单
+
+上线和每次部署后，建议检查：
+
+```text
+1. Render 后端 Environment 已配置 SECRET_KEY
+2. Render 后端 Environment 已配置 DATABASE_URL
+3. Render 后端 Environment 已配置 ENVIRONMENT=production
+4. Render 后端 Environment 已配置 CORS_ORIGINS=https://pet-med-ai-frontend-static.onrender.com
+5. Render 前端 Environment 已配置 VITE_API_BASE=https://pet-med-ai-backend.onrender.com
+6. 后端 /healthz 返回 {"ok": true}
+7. 线上 smoke_petmed.sh 返回 ALL PASS
+8. 浏览器 Network 中不再出现来自非白名单域名的成功 CORS 请求
+```
+
+注意：`CORS_ORIGINS` 不要使用 `*`。如果后续增加自定义域名，需要把新域名追加到 `CORS_ORIGINS`，并重新部署后端。
+
+## 8. 重要注意事项
 
 不要提交以下内容：
 
@@ -194,7 +215,7 @@ __pycache__/
 
 如果需要示例环境变量，提交 `.env.example`，不要提交真实 `.env`。
 
-## 8. render.yaml 说明
+## 9. render.yaml 说明
 
 `render.yaml` 已对齐当前真实 Render 服务名和主要构建配置：
 
@@ -209,6 +230,8 @@ Database: pet-med-ai-db
 ```text
 pet-med-ai-backend
 pet-med-ai-frontend-static
+ENVIRONMENT=production
+CORS_ORIGINS=https://pet-med-ai-frontend-static.onrender.com
 VITE_API_BASE=https://pet-med-ai-backend.onrender.com
 DATABASE_URL sync:false
 SECRET_KEY sync:false

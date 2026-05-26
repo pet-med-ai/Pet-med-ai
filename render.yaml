@@ -26,6 +26,10 @@ services:
     envVars:
       - key: PYTHON_VERSION
         value: "3.11.9"
+      - key: ENVIRONMENT
+        value: production
+      - key: CORS_ORIGINS
+        value: https://pet-med-ai-frontend-static.onrender.com
       - key: DATABASE_URL
         sync: false
       - key: SECRET_KEY

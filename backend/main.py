@@ -22,6 +22,38 @@ try:
     from backend.orchestrator import run_agent
 except ModuleNotFoundError:
     from orchestrator import run_agent
+
+
+def _csv_env(name: str, default: List[str]) -> List[str]:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+
+    values = []
+    for item in raw.split(","):
+        origin = item.strip().rstrip("/")
+        if origin:
+            values.append(origin)
+    return values or default
+
+
+def _is_production() -> bool:
+    return (
+        os.getenv("ENVIRONMENT", "").strip().lower() == "production"
+        or os.getenv("RENDER", "").strip().lower() == "true"
+    )
+
+
+CORS_ORIGINS = _csv_env(
+    "CORS_ORIGINS",
+    [
+        "http://127.0.0.1:5173",
+        "http://localhost:5173",
+        "https://pet-med-ai-frontend-static.onrender.com",
+    ],
+)
+
+
 # ---------- 初始化 ----------
 Base.metadata.create_all(bind=engine)
 
@@ -88,7 +120,7 @@ app = FastAPI(title="Pet Med AI Backend", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # 生产建议收紧到你的前端域名
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -111,9 +143,11 @@ def healthz():
     return {"ok": True}
 
 # 覆盖 auth_jwt 的 SECRET_KEY（从环境变量）
-if os.getenv("SECRET_KEY"):
-    import auth_jwt as auth_jwt_mod
-    auth_jwt_mod.SECRET_KEY = os.getenv("SECRET_KEY")
+SECRET_KEY_FROM_ENV = os.getenv("SECRET_KEY", "").strip()
+if SECRET_KEY_FROM_ENV:
+    auth_jwt_mod.SECRET_KEY = SECRET_KEY_FROM_ENV
+elif _is_production():
+    raise RuntimeError("SECRET_KEY is required in production. Set it in Render backend Environment.")
 
 # 统一挂载 Auth 路由（保持你原来逻辑，路径保持不变，如 /auth/login 等）
 app.include_router(auth_router)
