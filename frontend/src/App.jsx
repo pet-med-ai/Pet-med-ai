@@ -122,6 +122,7 @@ function Home() {
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [sessionRiskFilter, setSessionRiskFilter] = useState("all");
   const [sessionSavedFilter, setSessionSavedFilter] = useState("all");
+  const [deletingSessionId, setDeletingSessionId] = useState(null);
   const [consultAnswers, setConsultAnswers] = useState([]);
   const [followupAnswer, setFollowupAnswer] = useState("");
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
@@ -638,6 +639,51 @@ function Home() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, setSearchParams]);
 
+  const handleDeleteConsultSession = async (sessionId) => {
+    const sid = (sessionId || "").trim();
+    if (!sid) return;
+
+    if (!confirm("确定删除这条未保存为病例的问诊？此操作不可恢复。")) return;
+
+    try {
+      setErrMsg("");
+      setDeletingSessionId(sid);
+
+      await api.delete(`/api/ai/consult/session/${encodeURIComponent(sid)}`);
+
+      if (consultSessionId === sid) {
+        setConsultSessionId(null);
+        setResult(null);
+        setConsultAnswers([]);
+        setFollowupAnswer("");
+        setAnalysis("");
+        setTreatment("");
+        setPrognosis("");
+        setSavedConsultCaseId(null);
+      }
+
+      if (savedSessionId === sid) {
+        setSavedSessionId("");
+        setSessionInput("");
+        localStorage.removeItem("consult_session_id");
+      }
+
+      await fetchSessionHistory();
+      alert("已删除未保存问诊");
+    } catch (err) {
+      console.error("Delete consult session error:", err);
+      if (err.response?.status === 400) {
+        alert("已保存为病例的问诊不能删除，请从病例详情继续追溯。");
+      } else if (err.response?.status === 401) {
+        alert("请先登录后删除问诊");
+      } else {
+        alert("删除问诊失败，请检查后端日志");
+      }
+    } finally {
+      setDeletingSessionId(null);
+    }
+  };
+
   // ===== 即时分析（不入库） =====
  const handleAnalyzeSubmit = async (e) => {
   e.preventDefault();
@@ -1120,7 +1166,18 @@ function Home() {
                               查看病例 #{item.case_id}
                             </Link>
                           ) : (
-                            <span style={{ fontSize: 12, color: "#b45309" }}>未保存病例</span>
+                            <>
+                              <span style={{ fontSize: 12, color: "#b45309" }}>未保存病例</span>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteConsultSession(item.session_id)}
+                                disabled={deletingSessionId === item.session_id}
+                                style={{ ...btnTiny, borderColor: "#ef4444", color: "#b91c1c", background: "#fff" }}
+                                title="删除未保存问诊"
+                              >
+                                {deletingSessionId === item.session_id ? "删除中…" : "删除问诊"}
+                              </button>
+                            </>
                           )}
                         </div>
                         <button

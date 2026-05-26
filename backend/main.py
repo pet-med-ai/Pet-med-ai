@@ -274,6 +274,10 @@ class AIConsultSessionSaveCaseOut(BaseModel):
     session_id: str
     message: str = "saved"
 
+class AIConsultSessionDeleteOut(BaseModel):
+    session_id: str
+    message: str = "deleted"
+
 # ---------- 统一前缀 /api ----------
 api = APIRouter(prefix="/api", tags=["cases"])
 # --- triage (hospital) ---
@@ -711,6 +715,29 @@ def _consult_session_to_case_fields(session: ConsultSession) -> Dict[str, str]:
         "analysis": "\n\n".join(part for part in analysis_parts if part),
         "treatment": treatment,
         "prognosis": "\n\n".join(part for part in prognosis_parts if part),
+    }
+
+
+@app.delete("/api/ai/consult/session/{session_id}", response_model=AIConsultSessionDeleteOut, tags=["ai"])
+def ai_consult_session_delete(
+    session_id: str,
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user),
+):
+    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Consult session not found")
+    assert_consult_session_access(session, user, allow_unowned=False)
+
+    if getattr(session, "case_id", None):
+        raise HTTPException(status_code=400, detail="Saved consult session cannot be deleted")
+
+    db.delete(session)
+    db.commit()
+
+    return {
+        "session_id": session_id,
+        "message": "deleted",
     }
 
 

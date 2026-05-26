@@ -286,7 +286,22 @@ repeat_case_id="$(json_get "$RESPONSE_BODY" "case_id")"
 [[ "$repeat_case_id" == "$case_id" ]] || fail "repeat save：case_id 不一致"
 pass "repeat save returns already_saved"
 
-# 8. continue consult and update bound case
+# 8. unsaved consult can be deleted, saved consult cannot be deleted
+http_json POST "/api/ai/consult/session" '{"text":"Smoke未保存问诊，准备删除"}' "$token_a"
+expect_status 200 "create unsaved consult for delete"
+unsaved_session_id="$(json_get "$RESPONSE_BODY" "session_id")"
+[[ -n "$unsaved_session_id" ]] || fail "create unsaved consult：没有 session_id"
+
+http_json DELETE "/api/ai/consult/session/${unsaved_session_id}" "" "$token_a"
+expect_status 200 "delete unsaved consult"
+
+http_json GET "/api/ai/consult/session/${unsaved_session_id}" "" "$token_a"
+expect_status 404 "deleted unsaved consult cannot be read"
+
+http_json DELETE "/api/ai/consult/session/${session_id}" "" "$token_a"
+expect_status 400 "saved consult cannot be deleted"
+
+# 9. continue consult and update bound case
 answer_2="今天仍有干呕，腹部紧张，精神比昨天更差"
 question_2="今天症状是否缓解？腹部触诊和精神状态如何？"
 http_json POST "/api/ai/consult/session/${session_id}/answer" "{\"question\":\"${question_2}\",\"answer\":\"${answer_2}\"}" "$token_a"
@@ -297,7 +312,7 @@ expect_status 200 "update bound case"
 update_msg="$(json_get "$RESPONSE_BODY" "message")"
 [[ "$update_msg" == "updated" ]] || fail "update bound case：message 应为 updated，实际 $update_msg"
 
-# 9. read case detail and confirm updated history
+# 10. read case detail and confirm updated history
 http_json GET "/api/cases/${case_id}" "" "$token_a"
 expect_status 200 "read user A case"
 json_assert_text_contains "$RESPONSE_BODY" "history" "$answer_2" >/dev/null || fail "case detail：history 未包含继续追问内容"
@@ -309,7 +324,7 @@ json_assert_text_contains "$RESPONSE_BODY" "owner_name" "张三" >/dev/null || f
 json_assert_text_contains "$RESPONSE_BODY" "owner_phone" "13800000000" >/dev/null || fail "case detail：owner_phone 未保存"
 pass "case detail contains updated consult and basic info"
 
-# 10. signup/login user B
+# 11. signup/login user B
 http_json POST "/auth/signup" "{\"email\":\"${email_b}\",\"password\":\"${PASSWORD}\",\"full_name\":\"Smoke B\"}"
 expect_status 200 "signup user B"
 
@@ -318,7 +333,7 @@ expect_status 200 "login user B"
 token_b="$(json_get "$RESPONSE_BODY" "access_token")"
 [[ -n "$token_b" ]] || fail "login user B：没有 access_token"
 
-# 11. user B cannot see/read user A session
+# 12. user B cannot see/read user A session
 http_json GET "/api/ai/consult/sessions?limit=20" "" "$token_b"
 expect_status 200 "history list user B"
 json_assert_not_contains_session "$RESPONSE_BODY" "$session_id" >/dev/null || fail "user B history：看到了 user A session"
@@ -327,7 +342,7 @@ pass "user B cannot see user A session"
 http_json GET "/api/ai/consult/session/${session_id}" "" "$token_b"
 expect_status 404 "user B cannot read user A session"
 
-# 12. user B cannot read/update/delete/reanalyze user A case
+# 13. user B cannot read/update/delete/reanalyze user A case
 http_json GET "/api/cases/${case_id}" "" "$token_b"
 expect_status 404 "user B cannot read user A case"
 
