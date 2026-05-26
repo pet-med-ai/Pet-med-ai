@@ -73,3 +73,29 @@ coverage.xml
 # ----------------------------------------
 .DS_Store
 Thumbs.db
+
+# ----------------------------------------
+# Project local artifacts / temporary files
+# ----------------------------------------
+app.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Local env files. Keep .env.example files trackable.
+.env.development
+.env.staging
+.env.production
+frontend/.env.development
+backend/.env
+
+# Local backups / scratch files
+*.bak
+*.save
+*.orig
+*.tmp
+*.log
+
+# Python local build metadata
+.ruff_cache/
+.tox/
