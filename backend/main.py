@@ -395,15 +395,82 @@ def get_owned_case_or_404(
 # 列表（支持 q / page / page_size；保持与前端解析一致：返回 {items,total}）
 from sqlalchemy import or_, func
 
+
+def _case_text_match(pattern: str):
+    return or_(
+        func.coalesce(Case.analysis, "").ilike(pattern),
+        func.coalesce(Case.treatment, "").ilike(pattern),
+        func.coalesce(Case.prognosis, "").ilike(pattern),
+        func.coalesce(Case.history, "").ilike(pattern),
+        func.coalesce(Case.exam_findings, "").ilike(pattern),
+    )
+
+
+def _case_risk_expr(risk: str):
+    value = (risk or "all").strip().lower()
+    high_expr = or_(
+        _case_text_match("%高风险%"),
+        _case_text_match("%风险等级：高%"),
+        _case_text_match("%风险等级:高%"),
+        _case_text_match("%风险提示：高%"),
+        _case_text_match("%risk_level%high%"),
+        _case_text_match("%high%"),
+    )
+    medium_expr = or_(
+        _case_text_match("%中风险%"),
+        _case_text_match("%风险等级：中%"),
+        _case_text_match("%风险等级:中%"),
+        _case_text_match("%风险提示：中%"),
+        _case_text_match("%medium%"),
+    )
+    low_expr = or_(
+        _case_text_match("%低风险%"),
+        _case_text_match("%风险等级：低%"),
+        _case_text_match("%风险等级:低%"),
+        _case_text_match("%风险提示：低%"),
+        _case_text_match("%low%"),
+    )
+
+    if value == "high":
+        return high_expr
+    if value == "medium":
+        return medium_expr
+    if value == "low":
+        return low_expr
+    if value == "unknown":
+        return ~(or_(high_expr, medium_expr, low_expr))
+    return None
+
+
+def _case_source_expr(source: str):
+    value = (source or "all").strip().lower()
+    dynamic_expr = or_(
+        func.coalesce(Case.history, "").ilike("%动态问诊%"),
+        func.coalesce(Case.exam_findings, "").ilike("%原始会话%"),
+        func.coalesce(Case.exam_findings, "").ilike("%动态问诊%"),
+        func.coalesce(Case.prognosis, "").ilike("%后续追问%"),
+    )
+
+    if value == "dynamic":
+        return dynamic_expr
+    if value == "manual":
+        return ~dynamic_expr
+    return None
+
 @api.get("/cases", response_model=dict)
 def list_cases(
     q: Optional[str] = None,
     page: int = 1,
     page_size: int = 10,
     include_deleted: bool = False,
+    risk: Optional[str] = None,
+    source: Optional[str] = None,
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
+    safe_page = max(1, page or 1)
+    safe_page_size = max(1, min(page_size or 10, 200))
+
     query = db.query(Case).filter(Case.owner_id == user.id)
     if supports_soft_delete() and not include_deleted:
         query = query.filter(Case.deleted_at.is_(None))
@@ -421,11 +488,19 @@ def list_cases(
             )
         )
 
+    risk_expr = _case_risk_expr(risk or "all")
+    if risk_expr is not None:
+        query = query.filter(risk_expr)
+
+    source_expr = _case_source_expr(source or "all")
+    if source_expr is not None:
+        query = query.filter(source_expr)
+
     total = query.with_entities(func.count(Case.id)).scalar() or 0
     items = (
-        query.order_by(Case.id.desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
+        query.order_by(func.coalesce(Case.updated_at, Case.created_at).desc(), Case.id.desc())
+        .offset((safe_page - 1) * safe_page_size)
+        .limit(safe_page_size)
         .all()
     )
     return {"items": [CaseOut.model_validate(i).model_dump() for i in items], "total": total}

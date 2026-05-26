@@ -243,7 +243,7 @@ function Home() {
 
   // 导出当前页 CSV
   const exportCSV = () => {
-    const exportRows = cases.filter(matchesCaseFilters);
+    const exportRows = visibleCases;
     if (!exportRows.length) { alert("当前没有可导出的数据"); return; }
     const headers = ["id","patient_name","species","breed","weight","coat_color","owner_name","owner_phone","risk_level","source","chief_complaint","has_analysis"];
     const rows = exportRows.map(c => [
@@ -287,7 +287,15 @@ function Home() {
       let totalCount = null;
 
       while (cur <= MAX_PAGES) {
-        const res = await api.get("/api/cases", { params: { q, page: cur, page_size: pageSizeAll } });
+        const res = await api.get("/api/cases", {
+          params: {
+            q,
+            page: cur,
+            page_size: pageSizeAll,
+            risk: riskFilter !== "all" ? riskFilter : undefined,
+            source: sourceFilter !== "all" ? sourceFilter : undefined,
+          },
+        });
         const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
         if (totalCount == null) totalCount = Array.isArray(res.data) ? items.length : (res.data.total ?? items.length);
         for (const c of items) {
@@ -385,12 +393,21 @@ function Home() {
     return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
   };
 
+  const buildCaseListParams = (paramsOverride = {}) => ({
+    q,
+    page,
+    page_size: pageSize,
+    risk: riskFilter !== "all" ? riskFilter : undefined,
+    source: sourceFilter !== "all" ? sourceFilter : undefined,
+    ...paramsOverride,
+  });
+
   // ===== 拉取病例列表（服务端分页/搜索） =====
   const fetchCases = async (paramsOverride = {}) => {
     try {
       setLoadingCases(true);
       const res = await api.get("/api/cases", {
-        params: { q, page, page_size: pageSize, ...paramsOverride },
+        params: buildCaseListParams(paramsOverride),
       });
       const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
       const totalCount = Array.isArray(res.data) ? items.length : (res.data.total ?? items.length);
@@ -409,7 +426,7 @@ function Home() {
     const run = debounce(() => { setPage(1); fetchCases({ page: 1 }); }, 300);
     run();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }, [q, riskFilter, sourceFilter]);
   useEffect(() => { fetchCases(); }, [page]);
 
   const formatList = (items) => {
@@ -940,7 +957,7 @@ function Home() {
     }
   };
 
-  const visibleCases = cases.filter(matchesCaseFilters);
+  const visibleCases = cases;
   const highRiskCount = cases.filter((item) => getCaseRiskMeta(item).key === "high").length;
   const dynamicCaseCount = cases.filter(isDynamicCase).length;
 
@@ -1415,7 +1432,7 @@ function Home() {
         </div>
 
         <div style={{ marginBottom: 8, fontSize: 13, opacity: 0.75 }}>
-          当前显示 {visibleCases.length} / {cases.length} 条
+          当前显示 {visibleCases.length} / {total} 条
           <span style={{ marginLeft: 12 }}>高风险：{highRiskCount} 条</span>
           <span style={{ marginLeft: 12 }}>动态问诊病例：{dynamicCaseCount} 条</span>
         </div>
