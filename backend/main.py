@@ -23,6 +23,11 @@ try:
 except ModuleNotFoundError:
     from orchestrator import run_agent
 
+try:
+    from backend.species_context import normalize_species, species_context_line
+except ModuleNotFoundError:
+    from species_context import normalize_species, species_context_line
+
 
 def _csv_env(name: str, default: List[str]) -> List[str]:
     raw = os.getenv(name, "").strip()
@@ -197,6 +202,59 @@ def assert_consult_session_access(session: ConsultSession, user, allow_unowned: 
         raise HTTPException(status_code=404, detail="Consult session not found")
 
 
+def _consult_text_with_species(text: str, species: Optional[str] = None) -> str:
+    base = (text or "").strip()
+    normalized = normalize_species(species, default="")
+    if normalized and "物种" not in base and "species" not in base.lower():
+        return f"物种：{normalized}\n{base}".strip()
+    return base
+
+
+def _format_agent_result_for_case(result: Dict[str, Any]):
+    if not isinstance(result, dict):
+        return AnalyzeOut(
+            analysis="需进一步完善检查以明确病因。",
+            treatment="建议结合体征、影像与实验室检查进一步判断。",
+            prognosis="需随访；高风险或持续恶化时立即就诊。",
+        )
+
+    species_context = result.get("species_context") if isinstance(result.get("species_context"), dict) else {}
+    disease_data = result.get("diseases") if isinstance(result.get("diseases"), dict) else {}
+    diseases = disease_data.get("diseases") or []
+    checks = disease_data.get("checks") or []
+    actions = result.get("actions") or disease_data.get("actions") or []
+    tree_path = result.get("tree_path") or []
+    risk_level = result.get("risk_level") or "未知"
+
+    analysis_parts = [f"风险等级：{risk_level}"]
+    if species_context:
+        analysis_parts.append(species_context_line(species_context))
+    if tree_path:
+        analysis_parts.append("诊断路径：" + " > ".join(str(x) for x in tree_path if str(x).strip()))
+    if diseases:
+        analysis_parts.append("可能的鉴别诊断：\n" + _format_consult_list(diseases))
+    if checks:
+        analysis_parts.append("建议检查：\n" + _format_consult_list(checks))
+
+    treatment = (
+        "建议处理/治疗：\n" + _format_consult_list(actions)
+        if actions
+        else "建议结合体征、影像与实验室检查进一步判断。"
+    )
+
+    prognosis_parts = [f"风险提示：{risk_level}"]
+    if species_context.get("is_exotic"):
+        prognosis_parts.append("异宠病例需把具体物种、饲养环境、进食排泄和体重变化纳入判断；AI 结果仅作辅助分诊。")
+    else:
+        prognosis_parts.append("需结合临床检查复核；高风险或持续恶化时立即就诊。")
+
+    return AnalyzeOut(
+        analysis="\n\n".join(part for part in analysis_parts if part),
+        treatment=treatment,
+        prognosis="\n\n".join(prognosis_parts),
+    )
+
+
 
 
 # ---------- Pydantic IO ----------
@@ -253,6 +311,7 @@ class AnalyzeOut(BaseModel):
 
 class AIConsultIn(BaseModel):
     text: str
+    species: Optional[str] = None
 
 class AIConsultAnswer(BaseModel):
     question: str
@@ -260,10 +319,12 @@ class AIConsultAnswer(BaseModel):
 
 class AIConsultDynamicIn(BaseModel):
     text: str
+    species: Optional[str] = None
     answers: Optional[List[AIConsultAnswer]] = None
 
 class AIConsultSessionCreateIn(BaseModel):
     text: str
+    species: Optional[str] = None
 
 class AIConsultSessionAnswerIn(BaseModel):
     answer: str

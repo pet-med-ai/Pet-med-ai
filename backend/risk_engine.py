@@ -2,6 +2,7 @@ from typing import Dict, Any
 
 
 def evaluate(features: Dict[str, Any]) -> str:
+    species_group = features.get("species_group")
     vomiting = features.get("vomiting")
     frequent_vomiting = features.get("frequent_vomiting")
     persistent_vomiting = features.get("persistent_vomiting")
@@ -15,6 +16,35 @@ def evaluate(features: Dict[str, Any]) -> str:
     retching = features.get("retching")
     abd_distension = features.get("abd_distension")
     mild_single_vomit = features.get("mild_single_vomit")
+
+    # 通用急症红旗：不依赖物种，先按高风险收口。
+    if (
+        features.get("collapse")
+        or features.get("neurologic_signs")
+        or features.get("trauma")
+        or features.get("toxin")
+        or features.get("respiratory_distress")
+    ):
+        return "高"
+
+    # 异宠物种特异红旗。
+    if species_group == "lagomorph" and features.get("rabbit_gi_stasis_risk"):
+        return "高"
+
+    if species_group == "avian" and (features.get("avian_respiratory_risk") or features.get("egg_binding")):
+        return "高"
+
+    if species_group in ("reptile", "amphibian", "fish"):
+        if low_energy and (anorexia or features.get("skin_shell_issue")):
+            return "中"
+        if features.get("reptile_husbandry_risk") and (appetite_down or low_energy):
+            return "中"
+
+    if species_group in ("rodent", "mustelid", "insectivore", "marsupial"):
+        if anorexia and low_energy:
+            return "高"
+        if features.get("small_mammal_dental_gi_risk"):
+            return "中"
 
     # 高风险：消化道出血 / 呕血 / 咖啡色呕吐物
     if blood or blood_vomit or coffee_ground_vomit:

@@ -3,8 +3,10 @@ from typing import Any, Dict, List, Optional
 
 try:
     from backend.orchestrator import run_agent
+    from backend.species_context import build_species_context
 except ModuleNotFoundError:
     from orchestrator import run_agent
+    from species_context import build_species_context
 
 
 def _get_value(item: Any, key: str, default: str = "") -> str:
@@ -158,6 +160,36 @@ def _fallback_questions(
     answers: Optional[List[Dict[str, str]]] = None,
 ) -> List[str]:
     context = _join_answer_context(text, answers)
+    species_context = build_species_context(text=context)
+    species_group = species_context.get("group")
+
+    if species_group == "lagomorph":
+        return [
+            "兔子停食持续多久？粪便是减少、变小，还是完全没有？",
+            "是否腹胀、磨牙、弓背、拒绝活动或触腹疼痛？",
+            "最近饮水和排尿是否减少？是否有流口水、挑食草或牙齿问题？",
+        ]
+
+    if species_group == "avian":
+        return [
+            "是否张口呼吸、尾部上下摆动、伸颈呼吸或发出呼吸音？",
+            "是否蓬毛闭眼、站杆不稳、体重下降或粪便/尿酸改变？",
+            "是否有鼻孔分泌物、呕吐甩食、产蛋异常或近期环境温度变化？",
+        ]
+
+    if species_group in ("reptile", "amphibian", "fish"):
+        return [
+            "请补充具体物种、环境温度/热点/冷区、湿度或水质，以及 UVB/晒背条件。",
+            "最近进食、排便、蜕皮/换甲、浮水/沉底和活动量是否异常？",
+            "是否张口呼吸、伸颈、鼻泡、喘鸣、外伤或皮肤/甲壳异常？",
+        ]
+
+    if species_group in ("rodent", "mustelid", "insectivore", "marsupial"):
+        return [
+            "采食、饮水和粪便量是否明显下降？体重最近是否下降？",
+            "是否流口水、磨牙、腹胀、呼吸异常或活动量明显下降？",
+            "笼舍温度、垫材、近期换粮或同笼动物状态是否有变化？",
+        ]
 
     if _has_any(context, ["呕吐", "干呕", "吐", "腹胀", "肚子胀", "腹部胀"]):
         return [
@@ -216,7 +248,6 @@ def _filter_repeated_questions(
     _set_questions(result, [])
 
 
-
 def clean_consult_result(
     result: Dict[str, Any],
     text: str = "",
@@ -229,6 +260,7 @@ def clean_consult_result(
     if isinstance(result, dict):
         _filter_repeated_questions(result, text, answers or [])
     return result
+
 
 def run_dynamic_consult(
     text: str,
