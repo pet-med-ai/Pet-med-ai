@@ -1,5 +1,10 @@
 from typing import Dict, Any
 
+try:
+    from backend.exotic_knowledge import knowledge_risk_level
+except ModuleNotFoundError:
+    from exotic_knowledge import knowledge_risk_level
+
 
 def evaluate(features: Dict[str, Any]) -> str:
     species_group = features.get("species_group")
@@ -27,7 +32,12 @@ def evaluate(features: Dict[str, Any]) -> str:
     ):
         return "高"
 
-    # 异宠物种特异红旗。
+    # 异宠知识库优先判定。
+    kb_risk = knowledge_risk_level(features)
+    if kb_risk:
+        return kb_risk
+
+    # 异宠物种特异红旗兜底。
     if species_group == "lagomorph" and features.get("rabbit_gi_stasis_risk"):
         return "高"
 
@@ -35,7 +45,7 @@ def evaluate(features: Dict[str, Any]) -> str:
         return "高"
 
     if species_group in ("reptile", "amphibian", "fish"):
-        if low_energy and (anorexia or features.get("skin_shell_issue")):
+        if low_energy and (anorexia or features.get("skin_shell_issue") or features.get("mbd_signs")):
             return "中"
         if features.get("reptile_husbandry_risk") and (appetite_down or low_energy):
             return "中"

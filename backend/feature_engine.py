@@ -2,8 +2,10 @@ from typing import Dict, Any, Iterable
 
 try:
     from backend.species_context import build_species_context
+    from backend.exotic_knowledge import augment_exotic_features
 except ModuleNotFoundError:
     from species_context import build_species_context
+    from exotic_knowledge import augment_exotic_features
 
 
 def _has_any(text: str, keywords: Iterable[str]) -> bool:
@@ -93,32 +95,33 @@ def extract_features(text: str) -> Dict[str, Any]:
         and not persistent_vomiting
     )
 
-    diarrhea = _has_any(text, ["腹泻", "拉稀", "软便", "水样便"])
+    diarrhea = _has_any(text, ["腹泻", "拉稀", "软便", "水样便", "湿尾", "肛周湿", "便稀"])
     respiratory_distress = _has_any(text, [
         "呼吸困难", "呼吸急促", "张口呼吸", "伸颈呼吸", "喘不上气",
         "喘", "发绀", "紫绀", "尾巴上下摆", "尾部上下摆", "tail bobbing",
         "open mouth breathing", "dyspnea", "气喘", "呼吸有声", "甩头呼吸",
+        "鼻泡", "鼻孔冒泡", "浮水", "侧浮",
     ])
     neurologic_signs = _has_any(text, [
-        "抽搐", "癫痫", "侧躺", "转圈", "歪头", "瘫痪", "后肢无力",
-        "震颤", "昏迷", "意识不清", "seizure", "collapse",
+        "抽搐", "癫痫", "侧躺", "转圈", "歪头", "头斜", "瘫痪", "后肢无力",
+        "震颤", "昏迷", "意识不清", "seizure", "collapse", "翻不过来", "翻正困难", "星望",
     ])
-    collapse = _has_any(text, ["休克", "倒地", "虚脱", "昏迷", "站不起来", "collapse"])
+    collapse = _has_any(text, ["休克", "倒地", "虚脱", "昏迷", "站不起来", "collapse", "不能站立"])
     trauma = _has_any(text, ["摔", "撞", "咬伤", "外伤", "出血不止", "车祸", "夹伤"])
-    toxin = _has_any(text, ["中毒", "误食", "毒", "杀虫剂", "老鼠药", "清洁剂", "重金属"])
+    toxin = _has_any(text, ["中毒", "误食", "毒", "杀虫剂", "老鼠药", "清洁剂", "重金属", "特氟龙", "ptfe", "烟雾", "油烟", "喷雾"])
 
-    no_feces = _has_any(text, ["无粪", "没拉屎", "不排便", "没有粪便", "24小时没拉", "一天没拉", "不拉便"])
-    feces_down = no_feces or _has_any(text, ["粪便减少", "便便变少", "粪球变小", "粪少", "排便减少"])
-    dental_signs = _has_any(text, ["流口水", "磨牙", "牙", "门齿", "臼齿", "咬合", "下巴湿", "挑食草"])
+    no_feces = _has_any(text, ["无粪", "没拉屎", "不排便", "没有粪便", "24小时没拉", "一天没拉", "不拉便", "无便"])
+    feces_down = no_feces or _has_any(text, ["粪便减少", "便便变少", "粪球变小", "粪少", "排便减少", "便少"])
+    dental_signs = _has_any(text, ["流口水", "流涎", "磨牙", "牙", "门齿", "臼齿", "咬合", "下巴湿", "挑食草", "面部肿"])
     egg_binding = _has_any(text, ["蛋滞留", "卡蛋", "难产", "下不出蛋", "产蛋困难"])
-    skin_shell_issue = _has_any(text, ["蜕皮", "烂甲", "腐皮", "溃疡", "水肿", "掉鳞", "壳软", "甲壳"])
+    skin_shell_issue = _has_any(text, ["蜕皮", "烂甲", "腐皮", "溃疡", "水肿", "掉鳞", "壳软", "甲壳", "皮肤红", "掉毛", "结痂"])
     husbandry_problem = _has_any(text, [
         "温度", "低温", "高温", "热点", "冷区", "温区", "晒背", "uvb", "uva",
-        "湿度", "垫材", "水质", "氨", "过滤", "加热", "灯", "环境", "饲养", "开食",
+        "湿度", "垫材", "水质", "氨", "氨氮", "亚硝酸盐", "过滤", "加热", "灯", "环境", "饲养", "开食",
     ])
     regurgitation = _has_any(text, ["反刍", "返流", "吐食", "甩食", "regurgitation"])
 
-    return {
+    features = {
         "species_context": species_context,
         "species": species_context.get("species"),
         "species_group": species_group,
@@ -156,3 +159,4 @@ def extract_features(text: str) -> Dict[str, Any]:
         "avian_respiratory_risk": species_group == "avian" and respiratory_distress,
         "reptile_husbandry_risk": species_group in ("reptile", "amphibian", "fish") and husbandry_problem,
     }
+    return augment_exotic_features(features, raw_text)

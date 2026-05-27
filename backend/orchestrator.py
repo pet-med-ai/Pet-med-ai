@@ -3,14 +3,19 @@ try:
     from backend.risk_engine import evaluate
     from backend.question_engine import generate
     from backend.diagnosis_engine import rank
+    from backend.exotic_knowledge import knowledge_tree_leaf
 except ModuleNotFoundError:
     from feature_engine import extract_features
     from risk_engine import evaluate
     from question_engine import generate
     from diagnosis_engine import rank
+    from exotic_knowledge import knowledge_tree_leaf
 
 
 def _system_path(features):
+    kb_leaf = knowledge_tree_leaf(features)
+    if kb_leaf:
+        return kb_leaf
     if features.get("respiratory_distress"):
         return "呼吸系统急症"
     if features.get("rabbit_gi_stasis_risk") or features.get("vomiting") or features.get("diarrhea") or features.get("anorexia"):

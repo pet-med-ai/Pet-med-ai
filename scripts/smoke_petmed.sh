@@ -389,6 +389,26 @@ expect_status 404 "user B cannot reanalyze user A case"
 http_json DELETE "/api/cases/${case_id}" "" "$token_b"
 expect_status 404 "user B cannot delete user A case"
 
+
+# 14. exotic knowledge base V1 smoke checks
+exotic_cases=(
+  'rabbit|兔子24小时不吃东西，粪便明显减少，精神差，腹胀|高|兔|消化'
+  'bird|鹦鹉张口呼吸，尾巴上下摆，蓬毛闭眼|高|鸟|呼吸'
+  'lizard|鬃狮蜥拒食一周，UVB灯坏了，腿软，活动少|中|蜥蜴|饲养环境'
+  'ferret|雪貂突然虚弱，流口水，后肢无力，发呆|高|雪貂|低血糖'
+  'guinea_pig|豚鼠不吃东西，流口水，粪便减少，精神差|高|豚鼠|牙科'
+)
+
+for row in "${exotic_cases[@]}"; do
+  IFS='|' read -r species_value text_value expected_risk expected_label expected_path <<< "$row"
+  http_json POST "/api/ai/consult/session" "{\"species\":\"${species_value}\",\"text\":\"${text_value}\"}" "$token_a"
+  expect_status 200 "exotic consult ${species_value}"
+  json_assert_text_contains "$RESPONSE_BODY" "result.risk_level" "$expected_risk" >/dev/null || fail "exotic consult ${species_value}：risk_level 未命中 $expected_risk"
+  json_assert_text_contains "$RESPONSE_BODY" "result.tree_path" "$expected_label" >/dev/null || fail "exotic consult ${species_value}：tree_path 未包含 $expected_label"
+  json_assert_text_contains "$RESPONSE_BODY" "result.tree_path" "$expected_path" >/dev/null || fail "exotic consult ${species_value}：tree_path 未包含 $expected_path"
+done
+pass "exotic knowledge base consult checks"
+
 echo
 echo "ALL PASS"
 echo "Created smoke artifacts:"
