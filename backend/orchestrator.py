@@ -4,12 +4,14 @@ try:
     from backend.question_engine import generate
     from backend.diagnosis_engine import rank
     from backend.exotic_knowledge import knowledge_tree_leaf
+    from backend.exotic_intake_templates import build_structured_intake
 except ModuleNotFoundError:
     from feature_engine import extract_features
     from risk_engine import evaluate
     from question_engine import generate
     from diagnosis_engine import rank
     from exotic_knowledge import knowledge_tree_leaf
+    from exotic_intake_templates import build_structured_intake
 
 
 def _system_path(features):
@@ -43,6 +45,7 @@ def run_agent(text: str):
 
     diseases = rank(features, tree_path)
     actions = diseases.get("actions") or ["建议进一步检查血常规、生化、影像学"]
+    structured_intake = build_structured_intake(features)
 
     return {
         "risk_level": risk,
@@ -51,4 +54,5 @@ def run_agent(text: str):
         "diseases": diseases,
         "next_questions": questions,
         "actions": actions,
+        **({"structured_intake": structured_intake} if structured_intake else {}),
     }

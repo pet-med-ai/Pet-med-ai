@@ -1362,6 +1362,7 @@ function Home() {
   </div>
 )}
             
+            {result?.structured_intake && <StructuredIntakeBlock intake={result.structured_intake} />}
             {analysis && <Block title="分析">{analysis}</Block>}
             {treatment && <Block title="治疗建议">{treatment}</Block>}
             {prognosis && <Block title="预后">{prognosis}</Block>}
@@ -1635,6 +1636,67 @@ function Block({ title, children }) {
     <div style={{ background: "#f6f8fa", padding: 12, borderRadius: 8, whiteSpace: "pre-wrap", marginTop: 8 }}>
       <div style={{ fontWeight: 600, marginBottom: 6 }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+function StructuredIntakeBlock({ intake }) {
+  if (!intake || !Array.isArray(intake.sections) || intake.sections.length === 0) return null;
+
+  const activeFeatures = Array.isArray(intake.active_features) ? intake.active_features : [];
+  const redFlags = Array.isArray(intake.red_flag_prompts) ? intake.red_flag_prompts : [];
+
+  return (
+    <div style={{ marginTop: 12, padding: 12, border: "1px solid #cbd5e1", borderRadius: 8, background: "#f8fafc" }}>
+      <div style={{ fontWeight: 700, marginBottom: 4 }}>异宠结构化问诊模板</div>
+      <div style={{ fontSize: 13, opacity: 0.78, marginBottom: 8 }}>
+        {intake.label || intake.template_key || "异宠模板"}
+        {intake.summary ? `｜${intake.summary}` : ""}
+      </div>
+
+      {activeFeatures.length > 0 && (
+        <div style={{ fontSize: 12, marginBottom: 8, opacity: 0.75 }}>
+          命中特征：{activeFeatures.join("、")}
+        </div>
+      )}
+
+      {redFlags.length > 0 && (
+        <div style={{ marginBottom: 10, padding: 8, border: "1px dashed #f59e0b", borderRadius: 8, background: "#fffbeb" }}>
+          <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>红旗提醒</div>
+          <ul style={{ margin: 0, paddingLeft: 18 }}>
+            {redFlags.map((item, idx) => (
+              <li key={idx} style={{ fontSize: 13, lineHeight: 1.6 }}>{item}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div style={{ display: "grid", gap: 8 }}>
+        {intake.sections.map((section) => (
+          <div key={section.key} style={{ border: "1px solid #e5e7eb", borderRadius: 8, background: "#fff", padding: 10 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", marginBottom: 6 }}>
+              <strong>{section.title}</strong>
+              <span style={{ fontSize: 12, opacity: 0.65 }}>
+                必填 {section.required_count || 0} 项 · 命中 {section.triggered_count || 0} 项
+              </span>
+            </div>
+            <ol style={{ margin: 0, paddingLeft: 20 }}>
+              {(section.questions || []).map((question) => (
+                <li key={question.key} style={{ marginBottom: 6, lineHeight: 1.55 }}>
+                  <span style={{ fontWeight: question.triggered ? 700 : 500 }}>{question.label}</span>
+                  {question.required && <span style={{ marginLeft: 6, fontSize: 12, color: "#b91c1c" }}>必填</span>}
+                  {question.triggered && <span style={{ marginLeft: 6, fontSize: 12, color: "#0369a1" }}>已命中</span>}
+                  {question.clinical_reason && (
+                    <div style={{ fontSize: 12, opacity: 0.68 }}>临床意义：{question.clinical_reason}</div>
+                  )}
+                </li>
+              ))}
+            </ol>
+          </div>
+        ))}
+      </div>
+
+      {intake.disclaimer && <div style={{ marginTop: 8, fontSize: 12, opacity: 0.65 }}>{intake.disclaimer}</div>}
     </div>
   );
 }

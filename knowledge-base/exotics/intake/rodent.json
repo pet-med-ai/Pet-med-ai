@@ -1,0 +1,130 @@
+{
+  "key": "rodent",
+  "label": "啮齿类小型哺乳动物结构化问诊模板",
+  "species_scope": [
+    "guinea_pig",
+    "hamster",
+    "chinchilla",
+    "rat",
+    "hedgehog",
+    "sugar_glider"
+  ],
+  "summary": "围绕豚鼠/仓鼠/龙猫/宠物鼠等牙科、拒食、少粪、呼吸和饲养饮食采集病史。",
+  "feature_flags": [
+    "anorexia",
+    "feces_down",
+    "no_feces",
+    "dental_signs",
+    "drooling",
+    "diarrhea",
+    "respiratory_distress",
+    "nasal_ocular_discharge"
+  ],
+  "red_flag_prompts": [
+    "小型异宠拒食合并精神差、少粪/腹泻、呼吸困难或明显体重下降时，应优先分诊。",
+    "豚鼠需额外关注维生素 C 摄入、牙科和呼吸道问题。"
+  ],
+  "sections": [
+    {
+      "key": "signalment",
+      "title": "基础信息",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "exact_species",
+          "label": "具体物种，如豚鼠、仓鼠、龙猫、宠物鼠、刺猬、蜜袋鼯等",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "不同小型异宠的营养、牙科和呼吸风险不同。"
+        },
+        {
+          "key": "weight",
+          "label": "当前体重和近期体重变化",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "小型异宠体重下降和脱水进展快。"
+        },
+        {
+          "key": "group_housing",
+          "label": "单独饲养还是群养？同笼动物是否异常？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "传染病、打斗和环境问题需看群体。"
+        }
+      ]
+    },
+    {
+      "key": "appetite_feces",
+      "title": "采食 / 粪便 / 急症红旗",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "appetite",
+          "label": "最后一次主动进食是什么时候？是否完全不吃、只挑食或吃得很慢？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "anorexia",
+            "appetite_down"
+          ],
+          "clinical_reason": "拒食对小型异宠风险高。"
+        },
+        {
+          "key": "feces",
+          "label": "粪便是减少、变小、变软、腹泻，还是完全没有？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "feces_down",
+            "no_feces",
+            "diarrhea"
+          ],
+          "clinical_reason": "粪便变化反映胃肠动力、脱水和感染风险。"
+        },
+        {
+          "key": "activity",
+          "label": "精神、活动、保温、饮水和排尿是否改变？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "精神差合并拒食/腹泻是红旗。"
+        }
+      ]
+    },
+    {
+      "key": "dental_resp_husbandry",
+      "title": "牙科 / 呼吸 / 饲养饮食",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "dental",
+          "label": "是否流口水、下巴湿、磨牙、门齿过长、面部肿胀或挑食？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "dental_signs",
+            "drooling"
+          ],
+          "clinical_reason": "牙科疾病是豚鼠、龙猫和兔形/啮齿类拒食常见原因。"
+        },
+        {
+          "key": "respiration",
+          "label": "是否打喷嚏、鼻眼分泌物、呼吸声、张口呼吸或呼吸急促？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "respiratory_distress",
+            "nasal_ocular_discharge"
+          ],
+          "clinical_reason": "小型异宠呼吸问题可能快速恶化。"
+        },
+        {
+          "key": "diet_bedding",
+          "label": "主食、干草、维生素 C（豚鼠）、零食、垫材、温度和通风情况？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "饮食和垫材环境影响牙科、呼吸和胃肠。"
+        }
+      ]
+    }
+  ]
+}

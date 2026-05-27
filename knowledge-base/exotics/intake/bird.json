@@ -1,0 +1,148 @@
+{
+  "key": "bird",
+  "label": "鸟类结构化问诊模板",
+  "species_scope": [
+    "bird"
+  ],
+  "summary": "围绕鸟类呼吸、精神、粪便三联、体重、环境暴露和繁殖风险采集病史。",
+  "feature_flags": [
+    "respiratory_distress",
+    "ruffled_feathers",
+    "egg_binding",
+    "regurgitation",
+    "nasal_ocular_discharge",
+    "weight_loss"
+  ],
+  "red_flag_prompts": [
+    "张口呼吸、尾部上下摆、伸颈呼吸、发绀、不能站杆或疑似卡蛋时，先按鸟类急症处理。",
+    "呼吸困难鸟类应低应激稳定，避免反复抓取造成恶化。"
+  ],
+  "sections": [
+    {
+      "key": "signalment",
+      "title": "基础信息",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "exact_species",
+          "label": "具体鸟种，如虎皮、玄凤、牡丹、鹦鹉、鸽等",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "不同鸟种体型、饮食和常见病差异明显。"
+        },
+        {
+          "key": "body_weight",
+          "label": "当前体重、近期体重变化和是否定期称重",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "鸟类体重下降常早于明显症状。"
+        },
+        {
+          "key": "flock",
+          "label": "单只饲养还是同笼？同笼鸟是否有类似症状？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "传染病和环境暴露需看群体信息。"
+        }
+      ]
+    },
+    {
+      "key": "respiration",
+      "title": "呼吸红旗",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "breathing_pattern",
+          "label": "是否张口呼吸、尾部上下摆、伸颈呼吸、呼吸有声音或发绀？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "respiratory_distress"
+          ],
+          "clinical_reason": "鸟类呼吸异常是高风险红旗。"
+        },
+        {
+          "key": "discharge_voice",
+          "label": "鼻孔/眼睛是否有分泌物？叫声是否改变？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "nasal_ocular_discharge",
+            "voice_change"
+          ],
+          "clinical_reason": "分泌物和声音变化提示呼吸道或气囊疾病。"
+        },
+        {
+          "key": "exposure",
+          "label": "近期是否接触油烟、香薰、消毒剂、烟雾、喷雾、PTFE/不粘锅高温气体？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "鸟类对吸入性刺激和毒性暴露敏感。"
+        }
+      ]
+    },
+    {
+      "key": "droppings_appetite",
+      "title": "采食 / 饮水 / 粪便三联",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "appetite",
+          "label": "采食量是否下降？是否只剥壳不吃或食物剩余变多？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "鸟类会掩饰疾病，采食变化常被低估。"
+        },
+        {
+          "key": "droppings",
+          "label": "粪便、尿酸、尿液三部分颜色和量是否改变？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "粪便三联可提示消化、肝胆、肾脏和脱水问题。"
+        },
+        {
+          "key": "vomit_regurgitation",
+          "label": "是否甩食、返流、呕吐、嗉囊胀或口腔异味？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "regurgitation"
+          ],
+          "clinical_reason": "返流和嗉囊问题需区分行为性返食与疾病。"
+        }
+      ]
+    },
+    {
+      "key": "reproduction_environment",
+      "title": "繁殖 / 环境 / 饮食",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "egg_laying",
+          "label": "母鸟近期是否产蛋、频繁蹲伏、腹部膨大或疑似卡蛋？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "egg_binding",
+            "reproductive_issue"
+          ],
+          "clinical_reason": "卡蛋是鸟类急症。"
+        },
+        {
+          "key": "diet",
+          "label": "主食是种子、颗粒粮、滋养丸、蔬果还是人工喂养？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "长期种子饮食可引发营养和肝脏问题。"
+        },
+        {
+          "key": "cage",
+          "label": "笼舍温度、通风、光照、活动量和近期环境变化？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "环境应激和通风影响呼吸与免疫。"
+        }
+      ]
+    }
+  ]
+}

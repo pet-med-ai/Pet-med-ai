@@ -1,0 +1,166 @@
+{
+  "key": "reptile",
+  "label": "爬宠/两栖/水族结构化问诊模板",
+  "species_scope": [
+    "reptile",
+    "turtle",
+    "snake",
+    "lizard",
+    "amphibian",
+    "fish"
+  ],
+  "summary": "围绕物种、温湿度、UVB、水质、饮食、蜕皮/甲壳、泄殖腔和呼吸采集病史。",
+  "feature_flags": [
+    "husbandry_problem",
+    "uvb_issue",
+    "temperature_issue",
+    "humidity_issue",
+    "mbd_signs",
+    "dysecdysis",
+    "skin_shell_issue",
+    "respiratory_distress",
+    "vent_prolapse"
+  ],
+  "red_flag_prompts": [
+    "张口呼吸/伸颈呼吸、泄殖腔脱出、翻正困难、抽搐、严重脱水或外伤时按急症处理。",
+    "爬宠诊断必须先补齐温度、湿度、UVB/晒背、水质和饮食，否则 AI 判断可靠性很低。"
+  ],
+  "sections": [
+    {
+      "key": "species_setup",
+      "title": "物种 / 饲养设置",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "exact_species",
+          "label": "具体物种和年龄阶段，如鬃狮蜥、豹纹守宫、草龟、玉米蛇、蛙、观赏鱼等",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "爬宠不同物种的温湿度、UVB 和饮食差异很大。"
+        },
+        {
+          "key": "enclosure",
+          "label": "饲养箱/水体大小、垫材、躲避、晒台、过滤和饲养时间",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "饲养设置直接影响代谢、感染和应激。"
+        },
+        {
+          "key": "temperature",
+          "label": "热点、冷区、夜间温度分别是多少？用什么温控和测温？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "temperature_issue",
+            "husbandry_problem"
+          ],
+          "clinical_reason": "温度错误会导致拒食、免疫下降和用药反应异常。"
+        },
+        {
+          "key": "humidity_or_water",
+          "label": "湿度是多少？水龟/两栖/鱼类请补充水温、水质、换水和过滤情况",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "humidity_issue"
+          ],
+          "clinical_reason": "湿度和水质影响蜕皮、皮肤、呼吸和感染。"
+        },
+        {
+          "key": "uvb",
+          "label": "是否有 UVB/晒背灯？品牌、距离、更换时间、每天照射多久？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "uvb_issue",
+            "mbd_signs"
+          ],
+          "clinical_reason": "UVB 和钙磷代谢与 MBD 风险密切相关。"
+        }
+      ]
+    },
+    {
+      "key": "feeding_elimination",
+      "title": "采食 / 排便 / 尿酸",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "feeding",
+          "label": "吃什么、频率、最近一次进食时间、拒食持续多久？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "采食必须结合物种、温度和季节判断。"
+        },
+        {
+          "key": "supplements",
+          "label": "是否补钙、D3、多维？昆虫是否 gut-load？肉食/草食比例？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "mbd_signs",
+            "uvb_issue"
+          ],
+          "clinical_reason": "营养结构与代谢性骨病、肝肾负担有关。"
+        },
+        {
+          "key": "feces_urate",
+          "label": "排便、尿酸或排泄物颜色/量是否改变？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "排泄物变化可提示脱水、寄生虫、肝肾或消化问题。"
+        }
+      ]
+    },
+    {
+      "key": "red_flags_skin_shell",
+      "title": "红旗 / 皮肤甲壳 / 蜕皮",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "breathing",
+          "label": "是否张口呼吸、伸颈、鼻泡、喘鸣或浮水异常？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "respiratory_distress"
+          ],
+          "clinical_reason": "爬宠呼吸异常通常需要尽快评估。"
+        },
+        {
+          "key": "neuro",
+          "label": "是否翻正困难、抽搐、星望、严重无力或站立异常？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "neurologic_signs",
+            "mbd_signs"
+          ],
+          "clinical_reason": "神经和严重代谢异常为高风险。"
+        },
+        {
+          "key": "skin_shell_shed",
+          "label": "是否腐皮、烂甲、壳软、蜕皮不全、伤口或外寄生虫？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "skin_shell_issue",
+            "dysecdysis"
+          ],
+          "clinical_reason": "皮肤/甲壳问题常与环境和感染有关。"
+        },
+        {
+          "key": "vent_repro",
+          "label": "是否泄殖腔脱出、排便困难、疑似蛋滞留或腹部膨大？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "vent_prolapse",
+            "egg_binding",
+            "reproductive_issue"
+          ],
+          "clinical_reason": "泄殖腔和繁殖问题可快速恶化。"
+        }
+      ]
+    }
+  ]
+}

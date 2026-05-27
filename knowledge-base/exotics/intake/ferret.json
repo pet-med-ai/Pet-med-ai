@@ -1,0 +1,107 @@
+{
+  "key": "ferret",
+  "label": "雪貂结构化问诊模板",
+  "species_scope": [
+    "ferret"
+  ],
+  "summary": "围绕低血糖样虚弱、胃肠异物、消化道症状、饮食和疫苗/暴露采集病史。",
+  "feature_flags": [
+    "hypoglycemia_signs",
+    "weakness",
+    "drooling",
+    "foreign_body_risk",
+    "vomiting",
+    "diarrhea",
+    "collapse"
+  ],
+  "red_flag_prompts": [
+    "雪貂突然虚弱、流口水、后肢无力、发呆、抽搐或虚脱时，优先按低血糖样高风险处理。",
+    "呕吐/腹痛合并啃咬橡胶、泡棉、玩具或布料时，需警惕胃肠异物。"
+  ],
+  "sections": [
+    {
+      "key": "signalment",
+      "title": "基础信息",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "age_sex_neuter",
+          "label": "年龄、性别、是否绝育/去味、疫苗和驱虫情况",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "年龄和绝育状态影响内分泌和常见疾病判断。"
+        },
+        {
+          "key": "weight",
+          "label": "当前体重和近期体重变化",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "体重变化对慢性病、脱水和营养状态判断重要。"
+        }
+      ]
+    },
+    {
+      "key": "weakness_hypoglycemia",
+      "title": "虚弱 / 低血糖样红旗",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "weakness_onset",
+          "label": "是否突然虚弱、发呆、流口水、后肢无力、抽搐或不能站立？从何时开始？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "hypoglycemia_signs",
+            "weakness",
+            "drooling",
+            "collapse"
+          ],
+          "clinical_reason": "雪貂低血糖样表现需快速识别。"
+        },
+        {
+          "key": "last_meal",
+          "label": "最后一次进食时间、吃了多少、是否呕吐或腹泻？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "采食和胃肠症状影响低血糖和脱水风险。"
+        }
+      ]
+    },
+    {
+      "key": "foreign_body_gi",
+      "title": "胃肠 / 异物风险",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "foreign_body",
+          "label": "近期是否啃咬或吞食橡胶、泡棉、玩具、布料、耳塞、鞋垫等？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "foreign_body_risk"
+          ],
+          "clinical_reason": "雪貂胃肠异物常见且可危及生命。"
+        },
+        {
+          "key": "abdomen",
+          "label": "是否呕吐、干呕、腹痛、黑便、便少或排便困难？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "vomiting",
+            "abd_distension",
+            "diarrhea"
+          ],
+          "clinical_reason": "胃肠症状决定异物和脱水分诊。"
+        },
+        {
+          "key": "diet",
+          "label": "日常饮食、零食、生肉/猫粮/雪貂粮，以及近期是否换粮？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "饮食改变可导致胃肠问题。"
+        }
+      ]
+    }
+  ]
+}

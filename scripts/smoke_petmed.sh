@@ -43,6 +43,8 @@ require_cmd python3
 
 python3 scripts/validate_exotic_kb.py >/dev/null || fail "exotic knowledge JSON validation failed"
 pass "exotic knowledge JSON validation"
+python3 scripts/validate_exotic_intake_templates.py >/dev/null || fail "exotic structured intake validation failed"
+pass "exotic structured intake validation"
 
 http_json() {
   local method="$1"
@@ -411,6 +413,19 @@ for row in "${exotic_cases[@]}"; do
   json_assert_text_contains "$RESPONSE_BODY" "result.tree_path" "$expected_path" >/dev/null || fail "exotic consult ${species_value}：tree_path 未包含 $expected_path"
 done
 pass "exotic knowledge base consult checks"
+
+# 15. exotic structured intake template checks
+http_json POST "/api/ai/consult/session" '{"species":"rabbit","text":"兔子24小时不吃东西，粪便明显减少，精神差，腹胀"}' "$token_a"
+expect_status 200 "structured intake rabbit"
+json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.template_key" "rabbit" >/dev/null || fail "structured intake rabbit：template_key 未命中 rabbit"
+json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.sections.0.title" "基础" >/dev/null || fail "structured intake rabbit：缺少基础信息 section"
+json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.sections.1.title" "采食" >/dev/null || fail "structured intake rabbit：缺少采食/粪便 section"
+
+http_json POST "/api/ai/consult/session" '{"species":"bird","text":"鹦鹉张口呼吸，尾巴上下摆，蓬毛闭眼"}' "$token_a"
+expect_status 200 "structured intake bird"
+json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.template_key" "bird" >/dev/null || fail "structured intake bird：template_key 未命中 bird"
+json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.sections.1.title" "呼吸" >/dev/null || fail "structured intake bird：缺少呼吸 section"
+pass "exotic structured intake consult checks"
 
 echo
 echo "ALL PASS"

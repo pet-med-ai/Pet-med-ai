@@ -1,0 +1,16 @@
+{
+  "version": "exotic-structured-intake-v1",
+  "schema_version": 1,
+  "description": "Pet-Med-AI 异宠结构化问诊模板。用于把关键病史、饲养环境和红旗信息结构化采集，不做处方和药物剂量。",
+  "templates": [
+    "rabbit",
+    "bird",
+    "reptile",
+    "ferret",
+    "rodent"
+  ],
+  "notes": [
+    "V1 只返回问诊模板，不新增数据库字段。",
+    "前端可展示模板，后续 V2 再做可编辑表单和持久化。"
+  ]
+}

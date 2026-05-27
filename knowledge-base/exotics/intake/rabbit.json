@@ -1,0 +1,142 @@
+{
+  "key": "rabbit",
+  "label": "兔结构化问诊模板",
+  "species_scope": [
+    "rabbit"
+  ],
+  "summary": "围绕兔停食、少粪、腹胀、牙科疼痛和饲养饮食采集病史。",
+  "feature_flags": [
+    "anorexia",
+    "feces_down",
+    "no_feces",
+    "abd_distension",
+    "dental_signs",
+    "respiratory_distress"
+  ],
+  "red_flag_prompts": [
+    "停食超过 8-12 小时、无粪/粪便显著减少、腹胀、精神差或体温异常时，按异宠急诊优先处理。",
+    "未排除梗阻前，不要把模板结果当作强饲或用药指令。"
+  ],
+  "sections": [
+    {
+      "key": "signalment",
+      "title": "基础信息",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "exact_species",
+          "label": "具体品种/体型，如侏儒兔、垂耳兔、肉兔等",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "不同体型和年龄影响体重、采食量和急症判断。"
+        },
+        {
+          "key": "body_weight",
+          "label": "当前体重和近期体重变化",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "兔少食时体重变化对脱水和营养风险判断重要。"
+        },
+        {
+          "key": "age_sex_neuter",
+          "label": "年龄、性别、是否绝育",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "成年母兔需关注生殖系统问题，老年兔牙科和慢性病风险更高。"
+        }
+      ]
+    },
+    {
+      "key": "food_feces_urine",
+      "title": "采食 / 粪便 / 排尿",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "last_eating_time",
+          "label": "最后一次主动吃草/粮/蔬菜是什么时候？",
+          "answer_type": "datetime_text",
+          "required": true,
+          "trigger_features": [
+            "anorexia",
+            "appetite_down"
+          ],
+          "clinical_reason": "兔停食时间是胃肠淤滞和梗阻分诊核心。"
+        },
+        {
+          "key": "feces_change",
+          "label": "粪便是变少、变小、变软，还是完全没有？最后一次排便时间？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "feces_down",
+            "no_feces"
+          ],
+          "clinical_reason": "少粪/无粪提示胃肠动力或梗阻风险。"
+        },
+        {
+          "key": "urine_water",
+          "label": "饮水和排尿是否减少？尿色是否异常？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "脱水和泌尿问题会加重风险。"
+        }
+      ]
+    },
+    {
+      "key": "pain_abdomen",
+      "title": "腹痛 / 胃肠淤滞红旗",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "abdomen_pain",
+          "label": "是否腹胀、弓背、磨牙、拒绝活动或触碰腹部疼痛？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "abd_distension",
+            "low_energy"
+          ],
+          "clinical_reason": "腹痛和腹胀可提示积气、疼痛或梗阻。"
+        },
+        {
+          "key": "temperature",
+          "label": "是否测过体温？四肢/耳朵是否冰凉？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "低体温是兔急症恶化信号。"
+        }
+      ]
+    },
+    {
+      "key": "dental_diet_husbandry",
+      "title": "牙科 / 饮食 / 饲养",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "dental_signs",
+          "label": "是否流口水、下巴湿、挑食草、磨牙、脸部肿胀？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "dental_signs"
+          ],
+          "clinical_reason": "牙科疼痛常导致兔采食下降。"
+        },
+        {
+          "key": "diet",
+          "label": "日常干草、兔粮、蔬菜、零食比例和近期是否换粮？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "低纤维或突然换粮可诱发胃肠问题。"
+        },
+        {
+          "key": "stress",
+          "label": "近期是否搬家、洗澡、惊吓、同伴变化、手术或疼痛事件？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "应激和疼痛会诱发停食。"
+        }
+      ]
+    }
+  ]
+}
