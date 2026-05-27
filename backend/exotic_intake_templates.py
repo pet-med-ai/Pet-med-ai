@@ -185,3 +185,82 @@ def build_structured_intake(features: Dict[str, Any]) -> Optional[Dict[str, Any]
         "sections": sections,
         "disclaimer": "结构化问诊模板用于采集关键病史、饲养环境和红旗信息，不替代兽医临床检查。",
     }
+
+# ---- Structured intake answer submission V2 ----
+def _submission_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value).strip()
+
+
+def _iter_structured_submission_answers(submission: Dict[str, Any]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    if not isinstance(submission, dict):
+        return rows
+
+    for section in submission.get("sections") or []:
+        if not isinstance(section, dict):
+            continue
+        section_title = _submission_text(section.get("title") or section.get("key") or "未命名分组")
+        for item in section.get("answers") or []:
+            if not isinstance(item, dict):
+                continue
+            answer = _submission_text(item.get("answer"))
+            if not answer:
+                continue
+            rows.append({
+                "section_title": section_title,
+                "question_key": _submission_text(item.get("key")),
+                "question_label": _submission_text(item.get("label") or item.get("key")),
+                "answer": answer,
+                "required": bool(item.get("required")),
+                "triggered": bool(item.get("triggered")),
+            })
+    return rows
+
+
+def format_structured_intake_submission(submission: Dict[str, Any]) -> str:
+    """
+    将前端填写的异宠结构化问诊答案格式化为临床上下文文本。
+    V2 只用于本轮 AI 推理上下文，不作为独立数据库字段存储。
+    """
+    if not isinstance(submission, dict):
+        return ""
+
+    rows = _iter_structured_submission_answers(submission)
+    if not rows:
+        return ""
+
+    template = _submission_text(submission.get("label") or submission.get("template_key") or "异宠结构化问诊")
+    lines = [f"结构化问诊模板：{template}"]
+
+    current_section = ""
+    for row in rows:
+        section_title = row["section_title"]
+        if section_title != current_section:
+            current_section = section_title
+            lines.append(f"【{section_title}】")
+        flags = []
+        if row.get("required"):
+            flags.append("必填")
+        if row.get("triggered"):
+            flags.append("命中特征")
+        flag_text = f"（{'、'.join(flags)}）" if flags else ""
+        lines.append(f"- {row['question_label']}{flag_text}：{row['answer']}")
+
+    return "\n".join(lines).strip()
+
+
+def structured_intake_submission_to_answer(submission: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    formatted = format_structured_intake_submission(submission)
+    if not formatted:
+        return None
+
+    label = _submission_text(submission.get("label") or submission.get("template_key") or "异宠结构化问诊")
+    return {
+        "question": f"【异宠结构化问诊表】{label}",
+        "answer": formatted,
+    }
+

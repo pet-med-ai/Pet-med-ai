@@ -128,6 +128,7 @@ function Home() {
   const [deletingSessionId, setDeletingSessionId] = useState(null);
   const [consultAnswers, setConsultAnswers] = useState([]);
   const [followupAnswer, setFollowupAnswer] = useState("");
+  const [structuredIntakeAnswers, setStructuredIntakeAnswers] = useState({});
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
   const [loadingFollowup, setLoadingFollowup] = useState(false);
   const [errMsg, setErrMsg] = useState("");
@@ -628,6 +629,7 @@ function Home() {
       setConsultAnswers(payload.answers || []);
       setResult(data);
       setFollowupAnswer("");
+      setStructuredIntakeAnswers({});
       setSavedConsultCaseId(payload.case_id || null);
 
       if (data && Object.keys(data).length) {
@@ -739,6 +741,7 @@ function Home() {
   setConsultAnswers([]);
   setSavedConsultCaseId(null);
   setFollowupAnswer("");
+  setStructuredIntakeAnswers({});
   setLoadingFollowup(false);
   setLoadingAnalyze(true);
 
@@ -803,6 +806,7 @@ function Home() {
         answer,
       },
     ];
+    const structuredIntakePayload = buildStructuredIntakeSubmission(result?.structured_intake, structuredIntakeAnswers);
 
     try {
       setErrMsg("");
@@ -818,12 +822,14 @@ function Home() {
         const res = await api.post(answerPath, {
           question: currentQuestion,
           answer,
+          structured_intake_answers: structuredIntakePayload,
         });
         payload = res.data;
       } else {
         const res = await api.post("/ai/consult/dynamic", {
           text: chiefComplaint,
           answers: nextAnswers,
+          structured_intake_answers: structuredIntakePayload,
         });
         payload = res.data;
       }
@@ -839,6 +845,7 @@ function Home() {
       setConsultAnswers(payload.answers || nextAnswers);
       setSavedConsultCaseId(payload.case_id || savedConsultCaseId || null);
       setFollowupAnswer("");
+      setStructuredIntakeAnswers({});
       await fetchSessionHistory();
     } catch (err) {
       console.error("Followup error:", err);
@@ -1362,7 +1369,7 @@ function Home() {
   </div>
 )}
             
-            {result?.structured_intake && <StructuredIntakeBlock intake={result.structured_intake} />}
+            {result?.structured_intake && <StructuredIntakeBlock intake={result.structured_intake} answers={structuredIntakeAnswers} onChange={setStructuredIntakeAnswers} />}
             {analysis && <Block title="分析">{analysis}</Block>}
             {treatment && <Block title="治疗建议">{treatment}</Block>}
             {prognosis && <Block title="预后">{prognosis}</Block>}
@@ -1640,18 +1647,103 @@ function Block({ title, children }) {
   );
 }
 
-function StructuredIntakeBlock({ intake }) {
+
+function structuredAnswerKey(sectionKey, questionKey) {
+  return `${sectionKey || "section"}.${questionKey || "question"}`;
+}
+
+function setStructuredAnswerValue(answers, key, value) {
+  return { ...answers, [key]: value };
+}
+
+function countStructuredAnswers(answers = {}) {
+  return Object.values(answers).filter((value) => String(value || "").trim()).length;
+}
+
+function buildStructuredIntakeSubmission(intake, answers = {}) {
+  if (!intake || !Array.isArray(intake.sections)) return null;
+
+  const sections = intake.sections
+    .map((section) => {
+      const sectionAnswers = (section.questions || [])
+        .map((question) => {
+          const key = structuredAnswerKey(section.key, question.key);
+          const answer = String(answers[key] || "").trim();
+          if (!answer) return null;
+          return {
+            key: question.key,
+            label: question.label,
+            answer,
+            answer_type: question.answer_type || "text",
+            required: Boolean(question.required),
+            triggered: Boolean(question.triggered),
+          };
+        })
+        .filter(Boolean);
+
+      if (!sectionAnswers.length) return null;
+      return {
+        key: section.key,
+        title: section.title,
+        answers: sectionAnswers,
+      };
+    })
+    .filter(Boolean);
+
+  if (!sections.length) return null;
+
+  return {
+    version: intake.version || "exotic-structured-intake-v1",
+    template_key: intake.template_key,
+    label: intake.label,
+    sections,
+  };
+}
+
+function StructuredIntakeBlock({ intake, answers = {}, onChange }) {
   if (!intake || !Array.isArray(intake.sections) || intake.sections.length === 0) return null;
 
   const activeFeatures = Array.isArray(intake.active_features) ? intake.active_features : [];
   const redFlags = Array.isArray(intake.red_flag_prompts) ? intake.red_flag_prompts : [];
+  const answeredCount = countStructuredAnswers(answers);
+  const totalQuestions = intake.sections.reduce((sum, section) => sum + (section.questions || []).length, 0);
+  const requiredQuestions = intake.sections.reduce(
+    (sum, section) => sum + (section.questions || []).filter((question) => question.required).length,
+    0
+  );
+  const requiredAnswered = intake.sections.reduce(
+    (sum, section) => sum + (section.questions || []).filter((question) => {
+      if (!question.required) return false;
+      const key = structuredAnswerKey(section.key, question.key);
+      return String(answers[key] || "").trim();
+    }).length,
+    0
+  );
+
+  const handleChange = (sectionKey, questionKey, value) => {
+    if (!onChange) return;
+    const key = structuredAnswerKey(sectionKey, questionKey);
+    onChange((prev) => setStructuredAnswerValue(prev || {}, key, value));
+  };
+
+  const handleClear = () => {
+    if (onChange) onChange({});
+  };
 
   return (
     <div style={{ marginTop: 12, padding: 12, border: "1px solid #cbd5e1", borderRadius: 8, background: "#f8fafc" }}>
-      <div style={{ fontWeight: 700, marginBottom: 4 }}>异宠结构化问诊模板</div>
-      <div style={{ fontSize: 13, opacity: 0.78, marginBottom: 8 }}>
-        {intake.label || intake.template_key || "异宠模板"}
-        {intake.summary ? `｜${intake.summary}` : ""}
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>异宠结构化问诊模板</div>
+          <div style={{ fontSize: 13, opacity: 0.78, marginBottom: 8 }}>
+            {intake.label || intake.template_key || "异宠模板"}
+            {intake.summary ? `｜${intake.summary}` : ""}
+          </div>
+        </div>
+        <div style={{ fontSize: 12, opacity: 0.72, textAlign: "right" }}>
+          已填写 {answeredCount} / {totalQuestions} 项<br />
+          必填 {requiredAnswered} / {requiredQuestions} 项
+        </div>
       </div>
 
       {activeFeatures.length > 0 && (
@@ -1680,26 +1772,63 @@ function StructuredIntakeBlock({ intake }) {
                 必填 {section.required_count || 0} 项 · 命中 {section.triggered_count || 0} 项
               </span>
             </div>
-            <ol style={{ margin: 0, paddingLeft: 20 }}>
-              {(section.questions || []).map((question) => (
-                <li key={question.key} style={{ marginBottom: 6, lineHeight: 1.55 }}>
-                  <span style={{ fontWeight: question.triggered ? 700 : 500 }}>{question.label}</span>
-                  {question.required && <span style={{ marginLeft: 6, fontSize: 12, color: "#b91c1c" }}>必填</span>}
-                  {question.triggered && <span style={{ marginLeft: 6, fontSize: 12, color: "#0369a1" }}>已命中</span>}
-                  {question.clinical_reason && (
-                    <div style={{ fontSize: 12, opacity: 0.68 }}>临床意义：{question.clinical_reason}</div>
-                  )}
-                </li>
-              ))}
-            </ol>
+
+            <div style={{ display: "grid", gap: 8 }}>
+              {(section.questions || []).map((question) => {
+                const key = structuredAnswerKey(section.key, question.key);
+                const value = answers[key] || "";
+                return (
+                  <label key={question.key} style={{ display: "block" }}>
+                    <div style={{ lineHeight: 1.55, marginBottom: 4 }}>
+                      <span style={{ fontWeight: question.triggered ? 700 : 600 }}>{question.label}</span>
+                      {question.required && <span style={{ marginLeft: 6, fontSize: 12, color: "#b91c1c" }}>必填</span>}
+                      {question.triggered && <span style={{ marginLeft: 6, fontSize: 12, color: "#0369a1" }}>已命中</span>}
+                    </div>
+                    {question.options && Array.isArray(question.options) ? (
+                      <select
+                        value={value}
+                        onChange={(e) => handleChange(section.key, question.key, e.target.value)}
+                        style={{ width: "100%", padding: 8, border: "1px solid #e5e7eb", borderRadius: 8 }}
+                      >
+                        <option value="">请选择 / 待补充</option>
+                        {question.options.map((option) => (
+                          <option key={option.value || option} value={option.value || option}>{option.label || option}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <textarea
+                        rows={2}
+                        value={value}
+                        onChange={(e) => handleChange(section.key, question.key, e.target.value)}
+                        placeholder="填写本项结构化病史；提交追问时会随本轮上下文发给 AI"
+                        style={{ width: "100%", boxSizing: "border-box", padding: 8, border: "1px solid #e5e7eb", borderRadius: 8 }}
+                      />
+                    )}
+                    {question.clinical_reason && (
+                      <div style={{ fontSize: 12, opacity: 0.68, marginTop: 3 }}>临床意义：{question.clinical_reason}</div>
+                    )}
+                  </label>
+                );
+              })}
+            </div>
           </div>
         ))}
+      </div>
+
+      <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ fontSize: 12, opacity: 0.65 }}>
+          这些答案不会作为独立病例字段保存；提交追问时会作为本轮 AI 上下文一起发送。
+        </div>
+        <button type="button" onClick={handleClear} disabled={!answeredCount} style={btnTiny}>
+          清空结构化答案
+        </button>
       </div>
 
       {intake.disclaimer && <div style={{ marginTop: 8, fontSize: 12, opacity: 0.65 }}>{intake.disclaimer}</div>}
     </div>
   );
 }
+
 const h2 = { margin: "0 0 12px" };
 const card = { background: "#fff", border: "1px solid #e5e7eb", borderRadius: 12, padding: 16, marginTop: 16 };
 const grid2 = { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 };

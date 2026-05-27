@@ -329,6 +329,7 @@ class AIConsultSessionCreateIn(BaseModel):
 class AIConsultSessionAnswerIn(BaseModel):
     answer: str
     question: Optional[str] = None
+    structured_intake_answers: Optional[Dict[str, Any]] = None
 
 class AIConsultSessionOut(BaseModel):
     session_id: str
@@ -688,8 +689,17 @@ async def ai_consult_dynamic(data: AIConsultDynamicIn):
         item.model_dump()
         for item in (data.answers or [])
     ]
+    answers_for_ai = _answers_with_structured_intake_context(answers, data.structured_intake_answers)
 
-    return run_dynamic_consult(data.text, answers)
+    result = run_dynamic_consult(data.text, answers_for_ai)
+    if isinstance(result, dict):
+        if data.structured_intake_answers:
+            result = _mark_structured_intake_context(result, True)
+            dynamic = result.get("dynamic") if isinstance(result.get("dynamic"), dict) else {}
+            dynamic["round"] = len(answers) + 1
+            dynamic["answered_count"] = len(answers)
+            result["dynamic"] = dynamic
+    return result
 
 
 def _extract_session_questions(result: Optional[Dict[str, Any]]) -> List[str]:
@@ -713,6 +723,54 @@ def _first_session_question(result: Optional[Dict[str, Any]]) -> str:
     questions = _extract_session_questions(result)
     return questions[0] if questions else ""
 
+
+
+
+
+def _structured_intake_answer_item(raw: Optional[Dict[str, Any]]) -> Optional[Dict[str, str]]:
+    if not raw:
+        return None
+
+    try:
+        from backend.exotic_intake_templates import structured_intake_submission_to_answer
+    except ModuleNotFoundError:
+        from exotic_intake_templates import structured_intake_submission_to_answer
+
+    item = structured_intake_submission_to_answer(raw)
+    if not isinstance(item, dict):
+        return None
+
+    question = str(item.get("question") or "").strip()
+    answer = str(item.get("answer") or "").strip()
+    if not question or not answer:
+        return None
+
+    return {
+        "question": question,
+        "answer": answer,
+    }
+
+
+def _answers_with_structured_intake_context(
+    answers: List[Dict[str, str]],
+    structured_intake_answers: Optional[Dict[str, Any]],
+) -> List[Dict[str, str]]:
+    # V2：结构化问诊答案只作为本轮 AI 上下文，不直接写入 session.answers。
+    items = list(answers or [])
+    structured_item = _structured_intake_answer_item(structured_intake_answers)
+    if structured_item:
+        items.append(structured_item)
+    return items
+
+
+def _mark_structured_intake_context(result: Dict[str, Any], used: bool) -> Dict[str, Any]:
+    if not used or not isinstance(result, dict):
+        return result
+
+    dynamic = result.get("dynamic") if isinstance(result.get("dynamic"), dict) else {}
+    dynamic["structured_intake_context"] = True
+    result["dynamic"] = dynamic
+    return result
 
 def _stamp_session_dynamic(
     result: Dict[str, Any],
@@ -1190,8 +1248,10 @@ def ai_consult_session_answer(
     except ModuleNotFoundError:
         from dynamic_consult import run_dynamic_consult
 
-    result = run_dynamic_consult(session.text, answers)
+    answers_for_ai = _answers_with_structured_intake_context(answers, data.structured_intake_answers)
+    result = run_dynamic_consult(session.text, answers_for_ai)
     result = _stamp_session_dynamic(result, session.session_uid, len(answers))
+    result = _mark_structured_intake_context(result, bool(data.structured_intake_answers))
 
     session.answers = answers
     session.result = result

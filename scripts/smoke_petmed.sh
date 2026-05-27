@@ -421,6 +421,48 @@ json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.template_ke
 json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.sections.0.title" "基础" >/dev/null || fail "structured intake rabbit：缺少基础信息 section"
 json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.sections.1.title" "采食" >/dev/null || fail "structured intake rabbit：缺少采食/粪便 section"
 
+structured_rabbit_session_id="$(json_get "$RESPONSE_BODY" "session_id")"
+structured_rabbit_question="$(json_get "$RESPONSE_BODY" "result.next_questions.questions.0")"
+[[ -n "$structured_rabbit_session_id" ]] || fail "structured intake rabbit：没有 session_id"
+[[ -n "$structured_rabbit_question" ]] || structured_rabbit_question="请继续补充兔子的采食、粪便和腹部状态。"
+structured_rabbit_body="$(python3 - "$structured_rabbit_question" <<'PY'
+import json
+import sys
+question = sys.argv[1]
+body = {
+    "question": question,
+    "answer": "补充：精神差，腹部胀，愿意少量饮水。",
+    "structured_intake_answers": {
+        "version": "exotic-structured-intake-v1",
+        "template_key": "rabbit",
+        "label": "兔结构化问诊模板",
+        "sections": [
+            {
+                "key": "food_feces_urine",
+                "title": "采食 / 粪便 / 排尿",
+                "answers": [
+                    {"key": "last_eating_time", "label": "最后一次主动吃草/粮/蔬菜是什么时候？", "answer": "约24小时前", "required": True, "triggered": True},
+                    {"key": "feces_change", "label": "粪便是变少、变小、变软，还是完全没有？最后一次排便时间？", "answer": "粪便明显减少且变小，最后一次少量排便约12小时前", "required": True, "triggered": True},
+                ],
+            },
+            {
+                "key": "pain_abdomen",
+                "title": "腹痛 / 胃肠淤滞红旗",
+                "answers": [
+                    {"key": "abdomen_pain", "label": "是否腹胀、弓背、磨牙、拒绝活动或触碰腹部疼痛？", "answer": "腹胀，趴着不愿动，触碰腹部躲避", "required": True, "triggered": True},
+                ],
+            },
+        ],
+    },
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/ai/consult/session/${structured_rabbit_session_id}/answer" "$structured_rabbit_body" "$token_a"
+expect_status 200 "structured intake answer submission"
+json_assert_text_contains "$RESPONSE_BODY" "result.dynamic.structured_intake_context" "True" >/dev/null || fail "structured intake answer submission：未标记 structured_intake_context"
+json_assert_text_contains "$RESPONSE_BODY" "result.risk_level" "高" >/dev/null || fail "structured intake answer submission：兔急症风险未保持高风险"
+
 http_json POST "/api/ai/consult/session" '{"species":"bird","text":"鹦鹉张口呼吸，尾巴上下摆，蓬毛闭眼"}' "$token_a"
 expect_status 200 "structured intake bird"
 json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.template_key" "bird" >/dev/null || fail "structured intake bird：template_key 未命中 bird"
