@@ -1,0 +1,40 @@
+{
+  "version": "exotic-kb-v2-json-rules",
+  "schema_version": 1,
+  "description": "Pet-Med-AI 异宠 AI 辅助诊断分科规则库。只做分诊、鉴别方向、检查方向和红旗提示，不做药物剂量。",
+  "rules": [
+    "rabbit",
+    "bird",
+    "reptile",
+    "ferret",
+    "rodent"
+  ],
+  "species_to_rule": {
+    "rabbit": "rabbit",
+    "bird": "bird",
+    "ferret": "ferret",
+    "guinea_pig": "rodent",
+    "hamster": "rodent",
+    "chinchilla": "rodent",
+    "rat": "rodent",
+    "hedgehog": "rodent",
+    "sugar_glider": "rodent",
+    "reptile": "reptile",
+    "turtle": "reptile",
+    "snake": "reptile",
+    "lizard": "reptile",
+    "amphibian": "reptile",
+    "fish": "reptile"
+  },
+  "group_to_rule": {
+    "lagomorph": "rabbit",
+    "avian": "bird",
+    "reptile": "reptile",
+    "amphibian": "reptile",
+    "fish": "reptile",
+    "mustelid": "ferret",
+    "rodent": "rodent",
+    "insectivore": "rodent",
+    "marsupial": "rodent"
+  }
+}

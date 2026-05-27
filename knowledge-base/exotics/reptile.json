@@ -1,0 +1,115 @@
+{
+  "key": "reptile",
+  "label": "爬行动物/两栖/水族",
+  "summary": "爬宠、两栖和水族的温湿度、UVB、水质、代谢、蜕皮、甲壳、呼吸和泄殖腔分诊规则。",
+  "system_hints": [
+    {
+      "label": "饲养环境/代谢相关",
+      "features": [
+        "husbandry_problem",
+        "uvb_issue",
+        "temperature_issue",
+        "humidity_issue"
+      ]
+    },
+    {
+      "label": "骨骼肌肉/营养代谢异常",
+      "features": [
+        "mbd_signs",
+        "weakness",
+        "appetite_down"
+      ]
+    },
+    {
+      "label": "呼吸系统异常",
+      "features": [
+        "respiratory_distress",
+        "nasal_ocular_discharge"
+      ]
+    },
+    {
+      "label": "皮肤/甲壳/蜕皮异常",
+      "features": [
+        "skin_shell_issue",
+        "dysecdysis"
+      ]
+    },
+    {
+      "label": "泄殖腔/繁殖异常",
+      "features": [
+        "vent_prolapse",
+        "egg_binding",
+        "reproductive_issue"
+      ]
+    },
+    {
+      "label": "神经系统异常",
+      "features": [
+        "neurologic_signs"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "爬宠张口呼吸、伸颈、鼻泡或明显呼吸困难需优先处理。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "vent_prolapse"
+      ],
+      "reason": "泄殖腔/组织脱出需要尽快处理并查找原发原因。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "neurologic_signs"
+      ],
+      "reason": "翻正困难、抽搐、星望或严重无力属于高风险。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "husbandry_problem",
+        "appetite_down"
+      ],
+      "reason": "温湿度、UVB、水质或晒背条件异常合并拒食，需按环境/代谢问题分诊。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "skin_shell_issue"
+      ],
+      "reason": "腐皮、烂甲、蜕皮异常或壳软提示环境、营养或感染问题。"
+    }
+  ],
+  "diseases": [
+    "饲养环境相关疾病",
+    "营养性继发性甲旁亢/代谢性骨病",
+    "呼吸道感染",
+    "寄生虫或消化道疾病",
+    "皮肤/甲壳感染或蜕皮异常",
+    "繁殖相关疾病"
+  ],
+  "checks": [
+    "具体物种、年龄、体重和饲养年限",
+    "热点/冷区温度、夜温、湿度、UVB 和晒背距离",
+    "水质或垫材记录",
+    "体况、脱水、口腔、皮肤/甲壳检查",
+    "粪检、影像、血钙磷/尿酸按需"
+  ],
+  "actions": [
+    "爬宠诊断先校正物种对应的温度、湿度、UVB、水质和饮食信息；环境参数错误会直接影响代谢、免疫和用药反应。",
+    "出现呼吸困难、泄殖腔脱出、神经症状或严重脱水时按急症处理。"
+  ],
+  "questions": [
+    "请补充具体品种、环境温度/热点/冷区、夜间温度、湿度或水质，以及 UVB/晒背条件。",
+    "最近进食、排便、排尿酸、蜕皮/换甲、浮水/沉底和活动量是否异常？",
+    "是否张口呼吸、伸颈、鼻泡、喘鸣、外伤或皮肤/甲壳异常？",
+    "是否有翻正困难、抽搐、星望、泄殖腔脱出或疑似产蛋困难？"
+  ]
+}

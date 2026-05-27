@@ -41,6 +41,9 @@ require_cmd() {
 require_cmd curl
 require_cmd python3
 
+python3 scripts/validate_exotic_kb.py >/dev/null || fail "exotic knowledge JSON validation failed"
+pass "exotic knowledge JSON validation"
+
 http_json() {
   local method="$1"
   local path="$2"

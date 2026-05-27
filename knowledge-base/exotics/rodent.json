@@ -1,0 +1,94 @@
+{
+  "key": "rodent",
+  "label": "啮齿类小型哺乳动物",
+  "summary": "豚鼠、仓鼠、龙猫、宠物鼠、刺猬、蜜袋鼯等小型异宠的牙科、采食、胃肠、呼吸和环境分诊规则。",
+  "system_hints": [
+    {
+      "label": "牙科/采食排泄异常",
+      "features": [
+        "dental_signs",
+        "anorexia",
+        "feces_down",
+        "weight_loss"
+      ]
+    },
+    {
+      "label": "胃肠系统异常",
+      "features": [
+        "diarrhea",
+        "abd_distension",
+        "no_feces"
+      ]
+    },
+    {
+      "label": "呼吸系统异常",
+      "features": [
+        "respiratory_distress",
+        "nasal_ocular_discharge"
+      ]
+    },
+    {
+      "label": "皮肤/寄生虫/外伤",
+      "features": [
+        "skin_shell_issue",
+        "trauma"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "anorexia",
+        "low_energy"
+      ],
+      "reason": "小型啮齿类拒食合并精神差进展快，需优先评估脱水、疼痛和低血糖/胃肠问题。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "diarrhea",
+        "low_energy"
+      ],
+      "reason": "腹泻合并精神差或虚弱为高风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "呼吸困难、张口呼吸或明显喘促为高风险。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "dental_signs"
+      ],
+      "reason": "流涎、磨牙、面部肿胀或挑食提示牙科疾病。"
+    }
+  ],
+  "diseases": [
+    "牙科疾病",
+    "胃肠功能异常/肠道菌群紊乱",
+    "呼吸道感染",
+    "脱水或疼痛相关精神沉郁",
+    "饲养环境相关问题"
+  ],
+  "checks": [
+    "体重趋势",
+    "口腔/门齿和臼齿检查",
+    "粪便性状和数量",
+    "胸腹部听诊/影像按需",
+    "垫材、温度和同笼动物状态"
+  ],
+  "actions": [
+    "小型啮齿类体型小、代谢快，采食下降或精神差不要长期观察。",
+    "记录过去 12–24 小时进食、饮水、粪便和体重变化。"
+  ],
+  "questions": [
+    "采食、饮水和粪便量是否明显下降？体重最近是否下降？",
+    "是否流口水、磨牙、挑食、面部肿胀、腹胀或活动量明显下降？",
+    "是否腹泻、肛周潮湿、呼吸异常，或同笼动物也有症状？",
+    "笼舍温度、垫材、近期换粮或应激事件是否有变化？"
+  ]
+}

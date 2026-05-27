@@ -1,0 +1,92 @@
+{
+  "key": "rabbit",
+  "label": "兔科/兔形目",
+  "summary": "兔停食、少粪、腹胀、牙科疼痛和呼吸困难的异宠分诊规则。",
+  "system_hints": [
+    {
+      "label": "消化系统/采食排泄异常",
+      "features": [
+        "anorexia",
+        "feces_down",
+        "no_feces",
+        "abd_distension",
+        "dental_signs"
+      ]
+    },
+    {
+      "label": "呼吸系统异常",
+      "features": [
+        "respiratory_distress"
+      ]
+    },
+    {
+      "label": "神经系统/头斜异常",
+      "features": [
+        "neurologic_signs",
+        "head_tilt"
+      ]
+    },
+    {
+      "label": "泌尿生殖异常",
+      "features": [
+        "urinary_issue",
+        "reproductive_issue"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "anorexia",
+        "no_feces"
+      ],
+      "reason": "停食合并无粪/粪便显著减少，警惕胃肠淤滞或梗阻。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "abd_distension",
+        "low_energy"
+      ],
+      "reason": "腹胀合并精神差，需优先排查疼痛、积气、脱水和梗阻。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "张口/明显用力呼吸属于兔急症红旗。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "dental_signs"
+      ],
+      "reason": "流涎、磨牙、挑食草提示牙科或疼痛相关采食下降。"
+    }
+  ],
+  "diseases": [
+    "兔胃肠淤滞",
+    "胃肠梗阻/积气",
+    "牙科疾病相关采食下降",
+    "疼痛/脱水相关精神沉郁"
+  ],
+  "checks": [
+    "体重和脱水评估",
+    "腹部触诊",
+    "腹部影像评估胃肠积气/梗阻",
+    "口腔及臼齿检查",
+    "血糖、电解质和肾功能按需评估"
+  ],
+  "actions": [
+    "兔子停食、无粪、腹胀或精神差时按异宠急诊优先处理，先评估疼痛、脱水和梗阻风险。",
+    "记录最近一次进食、排便、排尿、饮水和体重变化。"
+  ],
+  "questions": [
+    "兔子停食持续多久？粪便是减少、变小，还是完全没有？",
+    "是否腹胀、磨牙、弓背、拒绝活动或触腹疼痛？",
+    "最近饮水和排尿是否减少？是否有流口水、挑食草或牙齿问题？",
+    "最近是否换粮、减少干草、摄入过多零食，或有应激/疼痛/外伤？"
+  ]
+}

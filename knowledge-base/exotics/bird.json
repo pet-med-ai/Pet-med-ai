@@ -1,0 +1,93 @@
+{
+  "key": "bird",
+  "label": "鸟类",
+  "summary": "鸟类呼吸困难、蓬毛闭眼、蛋滞留、返流甩食和全身性疾病分诊规则。",
+  "system_hints": [
+    {
+      "label": "呼吸系统急症",
+      "features": [
+        "respiratory_distress",
+        "nasal_ocular_discharge",
+        "voice_change"
+      ]
+    },
+    {
+      "label": "繁殖系统/蛋滞留风险",
+      "features": [
+        "egg_binding",
+        "reproductive_issue"
+      ]
+    },
+    {
+      "label": "消化系统/返流甩食",
+      "features": [
+        "regurgitation",
+        "appetite_down",
+        "diarrhea"
+      ]
+    },
+    {
+      "label": "全身性疾病/应激",
+      "features": [
+        "low_energy",
+        "weight_loss"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "鸟类张口呼吸、尾部上下摆或明显呼吸用力需要立即分诊。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "egg_binding",
+        "low_energy"
+      ],
+      "reason": "疑似卡蛋/产蛋困难合并精神差属于繁殖相关急症。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "collapse"
+      ],
+      "reason": "站立不稳、虚脱或不能站杆为高风险。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "ruffled_feathers",
+        "appetite_down"
+      ],
+      "reason": "蓬毛闭眼合并采食下降提示全身性疾病。"
+    }
+  ],
+  "diseases": [
+    "鸟类呼吸道/气囊疾病",
+    "衣原体/支原体/真菌等感染性疾病",
+    "营养缺乏相关上皮问题",
+    "蛋滞留/繁殖相关疾病",
+    "消化道返流或全身性疾病"
+  ],
+  "checks": [
+    "安静低应激观察呼吸",
+    "体重和体况评分",
+    "粪便/尿酸颜色和量",
+    "口腔、鼻孔和眼部分泌物检查",
+    "必要时影像、血检和病原检测"
+  ],
+  "actions": [
+    "鸟类呼吸困难先低应激稳定，避免不必要抓取；必要时氧疗后再检查。",
+    "记录笼舍温度、饮食结构、同笼鸟状态和近期气溶胶/烟雾/PTFE 暴露。"
+  ],
+  "questions": [
+    "是否张口呼吸、尾部上下摆动、伸颈呼吸或发出呼吸音？",
+    "是否蓬毛闭眼、站杆不稳、体重下降或粪便/尿酸改变？",
+    "是否有鼻孔/眼部分泌物、声音改变、甩食返流或近期环境刺激物暴露？",
+    "母鸟是否近期产蛋、腹部膨大、频繁蹲伏或疑似卡蛋？"
+  ]
+}

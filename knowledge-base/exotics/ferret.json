@@ -1,0 +1,92 @@
+{
+  "key": "ferret",
+  "label": "雪貂",
+  "summary": "雪貂低血糖样虚弱、胃肠异物、消化道症状、呼吸异常和全身性疾病分诊规则。",
+  "system_hints": [
+    {
+      "label": "内分泌/低血糖样虚弱",
+      "features": [
+        "hypoglycemia_signs",
+        "weakness",
+        "drooling"
+      ]
+    },
+    {
+      "label": "消化系统/异物风险",
+      "features": [
+        "vomiting",
+        "regurgitation",
+        "abd_distension",
+        "foreign_body_risk"
+      ]
+    },
+    {
+      "label": "呼吸系统异常",
+      "features": [
+        "respiratory_distress"
+      ]
+    },
+    {
+      "label": "泌尿生殖/全身性疾病",
+      "features": [
+        "urinary_issue",
+        "low_energy"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "hypoglycemia_signs"
+      ],
+      "reason": "雪貂突然虚弱、流涎、后肢无力或发呆，需优先排查低血糖样问题。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "foreign_body_risk",
+        "vomiting"
+      ],
+      "reason": "雪貂呕吐/腹痛合并疑似啃咬橡胶、泡棉或异物，需排查胃肠异物。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "collapse"
+      ],
+      "reason": "虚脱或不能站立为高风险。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "appetite_down",
+        "diarrhea"
+      ],
+      "reason": "食欲下降合并腹泻需评估脱水、感染和胃肠疾病。"
+    }
+  ],
+  "diseases": [
+    "低血糖/胰岛素瘤相关虚弱",
+    "胃肠异物",
+    "胃肠炎",
+    "脱水或疼痛相关精神沉郁",
+    "肾上腺/内分泌相关问题"
+  ],
+  "checks": [
+    "即刻血糖",
+    "腹部触诊和影像",
+    "脱水与疼痛评分",
+    "粪便评估",
+    "体重和采食记录"
+  ],
+  "actions": [
+    "雪貂突然虚弱、流涎或后肢无力时，先按高风险稳定并查血糖。",
+    "询问是否啃咬橡胶、泡棉、玩具、布料或其他异物。"
+  ],
+  "questions": [
+    "是否突然虚弱、发呆、流口水、后肢无力、抽搐或不能站立？",
+    "最近是否呕吐、腹泻、腹痛，或啃咬橡胶/泡棉/玩具等异物？",
+    "最近食欲、排便、体重和活动量有什么变化？"
+  ]
+}
