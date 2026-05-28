@@ -746,12 +746,22 @@ def _structured_intake_answer_item(raw: Optional[Dict[str, Any]]) -> Optional[Di
     if not raw:
         return None
 
-    try:
-        from backend.exotic_intake_templates import structured_intake_submission_to_answer
-    except ModuleNotFoundError:
-        from exotic_intake_templates import structured_intake_submission_to_answer
+    template_key = str(raw.get("template_key") or "").strip().lower()
+    category = str(raw.get("category") or "").strip().lower()
 
-    item = structured_intake_submission_to_answer(raw)
+    if category == "companion" or template_key in ("dog", "cat"):
+        try:
+            from backend.companion_intake_templates import companion_intake_submission_to_answer
+        except ModuleNotFoundError:
+            from companion_intake_templates import companion_intake_submission_to_answer
+        item = companion_intake_submission_to_answer(raw)
+    else:
+        try:
+            from backend.exotic_intake_templates import structured_intake_submission_to_answer
+        except ModuleNotFoundError:
+            from exotic_intake_templates import structured_intake_submission_to_answer
+        item = structured_intake_submission_to_answer(raw)
+
     if not isinstance(item, dict):
         return None
 

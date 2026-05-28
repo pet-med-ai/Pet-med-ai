@@ -1,5 +1,5 @@
 {
-  "version": "companion-structured-intake-v1",
+  "version": "companion-structured-intake-v2",
   "templates": [
     "dog",
     "cat"

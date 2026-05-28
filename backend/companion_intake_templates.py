@@ -185,7 +185,7 @@ def build_companion_structured_intake(features: Dict[str, Any]) -> Optional[Dict
     sections = [_section_payload(section, features) for section in template.get("sections", [])]
 
     return {
-        "version": load_intake_index().get("version") or "companion-structured-intake-v1",
+        "version": load_intake_index().get("version") or "companion-structured-intake-v2",
         "template_key": template_key,
         "label": template.get("label"),
         "summary": template.get("summary"),
@@ -195,6 +195,84 @@ def build_companion_structured_intake(features: Dict[str, Any]) -> Optional[Dict
         "red_flag_prompts": template.get("red_flag_prompts") or [],
         "sections": sections,
         "category": "companion",
-        "fillable": False,
-        "disclaimer": "犬猫结构化问诊模板 V1 仅用于展示关键病史采集清单；后续 V2 再开放填写并随追问提交给 AI。",
+        "fillable": True,
+        "disclaimer": "犬猫结构化问诊模板 V2 支持前端填写；提交追问时会作为本轮 AI 上下文一起发送，但不会作为独立病例字段保存。",
     }
+
+
+# ---- Companion structured intake answer submission V2 ----
+def _submission_text(value: Any) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value).strip()
+
+
+def _iter_companion_submission_answers(submission: Dict[str, Any]) -> List[Dict[str, Any]]:
+    rows: List[Dict[str, Any]] = []
+    if not isinstance(submission, dict):
+        return rows
+
+    for section in submission.get("sections") or []:
+        if not isinstance(section, dict):
+            continue
+        section_title = _submission_text(section.get("title") or section.get("key") or "未命名分组")
+        for item in section.get("answers") or []:
+            if not isinstance(item, dict):
+                continue
+            answer = _submission_text(item.get("answer"))
+            if not answer:
+                continue
+            rows.append({
+                "section_title": section_title,
+                "question_key": _submission_text(item.get("key")),
+                "question_label": _submission_text(item.get("label") or item.get("key")),
+                "answer": answer,
+                "required": bool(item.get("required")),
+                "triggered": bool(item.get("triggered")),
+            })
+    return rows
+
+
+def format_companion_intake_submission(submission: Dict[str, Any]) -> str:
+    # Format dog/cat structured intake answers as clinical context text.
+    # V2 uses this only for the current AI reasoning context.
+    if not isinstance(submission, dict):
+        return ""
+
+    rows = _iter_companion_submission_answers(submission)
+    if not rows:
+        return ""
+
+    template = _submission_text(submission.get("label") or submission.get("template_key") or "犬猫结构化问诊")
+    lines = [f"结构化问诊模板：{template}"]
+
+    current_section = ""
+    for row in rows:
+        section_title = row["section_title"]
+        if section_title != current_section:
+            current_section = section_title
+            lines.append(f"【{section_title}】")
+        flags = []
+        if row.get("required"):
+            flags.append("必填")
+        if row.get("triggered"):
+            flags.append("命中特征")
+        flag_text = f"（{'、'.join(flags)}）" if flags else ""
+        lines.append(f"- {row['question_label']}{flag_text}：{row['answer']}")
+
+    return "\n".join(lines).strip()
+
+
+def companion_intake_submission_to_answer(submission: Dict[str, Any]) -> Optional[Dict[str, str]]:
+    formatted = format_companion_intake_submission(submission)
+    if not formatted:
+        return None
+
+    label = _submission_text(submission.get("label") or submission.get("template_key") or "犬猫结构化问诊")
+    return {
+        "question": f"【犬猫结构化问诊表】{label}",
+        "answer": formatted,
+    }
+
