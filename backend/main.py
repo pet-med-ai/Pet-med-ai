@@ -380,6 +380,7 @@ class AIConsultSessionSaveCaseIn(BaseModel):
     owner_name: Optional[str] = None
     owner_phone: Optional[str] = None
     exam_findings: Optional[str] = None
+    structured_intake_answers: Optional[Dict[str, Any]] = None
 
 class AIConsultSessionSaveCaseOut(BaseModel):
     case_id: int
@@ -776,6 +777,35 @@ def _structured_intake_answer_item(raw: Optional[Dict[str, Any]]) -> Optional[Di
     }
 
 
+
+def _format_structured_intake_history(raw: Optional[Dict[str, Any]]) -> str:
+    if not raw or not isinstance(raw, dict):
+        return ""
+
+    template_key = str(raw.get("template_key") or "").strip().lower()
+    category = str(raw.get("category") or "").strip().lower()
+
+    if category == "companion" or template_key in ("dog", "cat"):
+        try:
+            from backend.companion_intake_templates import format_companion_intake_submission
+        except ModuleNotFoundError:
+            from companion_intake_templates import format_companion_intake_submission
+        formatted = format_companion_intake_submission(raw)
+        title = "犬猫结构化问诊记录"
+    else:
+        try:
+            from backend.exotic_intake_templates import format_structured_intake_submission
+        except ModuleNotFoundError:
+            from exotic_intake_templates import format_structured_intake_submission
+        formatted = format_structured_intake_submission(raw)
+        title = "异宠结构化问诊记录"
+
+    formatted = str(formatted or "").strip()
+    if not formatted:
+        return ""
+
+    return f"【{title}】\n{formatted}"
+
 def _answers_with_structured_intake_context(
     answers: List[Dict[str, str]],
     structured_intake_answers: Optional[Dict[str, Any]],
@@ -1083,6 +1113,12 @@ def ai_consult_session_save_case(
         session.owner_id = user.id
 
     case_fields = _consult_session_to_case_fields(session)
+
+    structured_intake_answers = getattr(data, "structured_intake_answers", None)
+    structured_history = _format_structured_intake_history(structured_intake_answers)
+    if structured_history:
+        current_history = str(case_fields.get("history") or "").strip()
+        case_fields["history"] = "\n\n".join(part for part in [current_history, structured_history] if part)
 
     patient_name = (data.patient_name or "").strip() or "未命名病例"
     species_value = (data.species or "dog").strip() or "dog"

@@ -129,6 +129,7 @@ function Home() {
   const [consultAnswers, setConsultAnswers] = useState([]);
   const [followupAnswer, setFollowupAnswer] = useState("");
   const [structuredIntakeAnswers, setStructuredIntakeAnswers] = useState({});
+  const [lastStructuredIntakeSubmission, setLastStructuredIntakeSubmission] = useState(null);
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
   const [loadingFollowup, setLoadingFollowup] = useState(false);
   const [errMsg, setErrMsg] = useState("");
@@ -630,6 +631,7 @@ function Home() {
       setResult(data);
       setFollowupAnswer("");
       setStructuredIntakeAnswers({});
+      setLastStructuredIntakeSubmission(null);
       setSavedConsultCaseId(payload.case_id || null);
 
       if (data && Object.keys(data).length) {
@@ -742,6 +744,7 @@ function Home() {
   setSavedConsultCaseId(null);
   setFollowupAnswer("");
   setStructuredIntakeAnswers({});
+  setLastStructuredIntakeSubmission(null);
   setLoadingFollowup(false);
   setLoadingAnalyze(true);
 
@@ -834,6 +837,7 @@ function Home() {
         payload = res.data;
       }
 
+      if (structuredIntakePayload) setLastStructuredIntakeSubmission(structuredIntakePayload);
       const data = payload.result || payload;
       console.log("RAW DYNAMIC AI DATA =", payload);
       const nextSessionId = payload.session_id || consultSessionId || "";
@@ -865,6 +869,8 @@ function Home() {
       alert("请先提交分析生成问诊会话，再保存为病例");
       return;
     }
+
+    const structuredIntakePayload = buildStructuredIntakeSubmission(result?.structured_intake, structuredIntakeAnswers) || lastStructuredIntakeSubmission;
 
     try {
       setErrMsg("");
@@ -1369,7 +1375,19 @@ function Home() {
   </div>
 )}
             
-            {result?.structured_intake && <StructuredIntakeBlock intake={result.structured_intake} answers={structuredIntakeAnswers} onChange={setStructuredIntakeAnswers} />}
+            {result?.structured_intake && (
+              <StructuredIntakeBlock
+                intake={result.structured_intake}
+                answers={structuredIntakeAnswers}
+                onChange={setStructuredIntakeAnswers}
+                onSnapshot={setLastStructuredIntakeSubmission}
+                onAppendHistory={(text) => {
+                  const clean = String(text || "").trim();
+                  if (!clean) return;
+                  setHistory((prev) => [prev, clean].filter(Boolean).join("\n\n"));
+                }}
+              />
+            )}
             {analysis && <Block title="分析">{analysis}</Block>}
             {treatment && <Block title="治疗建议">{treatment}</Block>}
             {prognosis && <Block title="预后">{prognosis}</Block>}
@@ -1701,7 +1719,71 @@ function buildStructuredIntakeSubmission(intake, answers = {}) {
   };
 }
 
-function StructuredIntakeBlock({ intake, answers = {}, onChange }) {
+function formatStructuredIntakeSubmissionForHistory(submission) {
+  if (!submission || !Array.isArray(submission.sections)) return "";
+  const rows = [];
+
+  for (const section of submission.sections) {
+    const sectionTitle = section.title || section.key || "未命名分组";
+    for (const item of section.answers || []) {
+      const answer = String(item.answer || "").trim();
+      if (!answer) continue;
+      rows.push({
+        sectionTitle,
+        label: item.label || item.key || "未命名问题",
+        answer,
+        required: Boolean(item.required),
+        triggered: Boolean(item.triggered),
+      });
+    }
+  }
+
+  if (!rows.length) return "";
+
+  const template = submission.label || submission.template_key || "结构化问诊模板";
+  const title = submission.category === "companion" || ["dog", "cat"].includes(submission.template_key)
+    ? "犬猫结构化问诊记录"
+    : "异宠结构化问诊记录";
+
+  const lines = [`【${title}】`, `结构化问诊模板：${template}`];
+  let currentSection = "";
+
+  for (const row of rows) {
+    if (row.sectionTitle !== currentSection) {
+      currentSection = row.sectionTitle;
+      lines.push(`【${currentSection}】`);
+    }
+    const flags = [];
+    if (row.required) flags.push("必填");
+    if (row.triggered) flags.push("命中特征");
+    const flagText = flags.length ? `（${flags.join("、")}）` : "";
+    lines.push(`- ${row.label}${flagText}：${row.answer}`);
+  }
+
+  return lines.join("\n").trim();
+}
+
+async function copyStructuredTextToClipboard(text) {
+  const clean = String(text || "").trim();
+  if (!clean) return false;
+  if (navigator.clipboard?.writeText) {
+    await navigator.clipboard.writeText(clean);
+    return true;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = clean;
+  textarea.style.position = "fixed";
+  textarea.style.opacity = "0";
+  document.body.appendChild(textarea);
+  textarea.focus();
+  textarea.select();
+  const ok = document.execCommand("copy");
+  textarea.remove();
+  return ok;
+}
+
+function StructuredIntakeBlock({ intake, answers = {}, onChange, onAppendHistory, onSnapshot }) {
   if (!intake || !Array.isArray(intake.sections) || intake.sections.length === 0) return null;
 
   const activeFeatures = Array.isArray(intake.active_features) ? intake.active_features : [];
@@ -1721,6 +1803,8 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange }) {
     }).length,
     0
   );
+  const submission = fillable ? buildStructuredIntakeSubmission(intake, answers) : null;
+  const historyPreview = formatStructuredIntakeSubmissionForHistory(submission);
 
   const handleChange = (sectionKey, questionKey, value) => {
     if (!onChange) return;
@@ -1730,6 +1814,19 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange }) {
 
   const handleClear = () => {
     if (onChange) onChange({});
+  };
+
+  const handleAppendToHistory = () => {
+    if (!historyPreview) return;
+    if (onSnapshot && submission) onSnapshot(submission);
+    if (onAppendHistory) onAppendHistory(historyPreview);
+  };
+
+  const handleCopyPreview = async () => {
+    if (!historyPreview) return;
+    if (onSnapshot && submission) onSnapshot(submission);
+    const ok = await copyStructuredTextToClipboard(historyPreview);
+    alert(ok ? "已复制结构化问诊文本" : "复制失败，请手动选择文本复制");
   };
 
   return (
@@ -1826,6 +1923,26 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange }) {
           </div>
         ))}
       </div>
+
+
+      {fillable && historyPreview && (
+        <div style={{ marginTop: 10, border: "1px solid #bfdbfe", background: "#eff6ff", borderRadius: 8, padding: 10 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
+            <strong style={{ fontSize: 13 }}>结构化答案病史预览</strong>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button type="button" onClick={handleAppendToHistory} style={btnTiny}>
+                写入病史
+              </button>
+              <button type="button" onClick={handleCopyPreview} style={btnTiny}>
+                复制文本
+              </button>
+            </div>
+          </div>
+          <pre style={{ margin: 0, whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 13, lineHeight: 1.6 }}>
+            {historyPreview}
+          </pre>
+        </div>
+      )}
 
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, opacity: 0.65 }}>

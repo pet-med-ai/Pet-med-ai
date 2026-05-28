@@ -504,6 +504,103 @@ json_assert_text_contains "$RESPONSE_BODY" "result.risk_level" "高" >/dev/null 
 json_assert_text_contains "$RESPONSE_BODY" "result.tree_path.2" "呼吸" >/dev/null || fail "companion cat respiratory：tree_path 未命中呼吸"
 pass "companion dog/cat knowledge checks"
 
+
+# Companion structured intake V3: preview/save payload is written into case history.
+http_json POST "/api/ai/consult/session" '{"species":"dog","text":"犬反复干呕吐不出来，腹部胀大，坐立不安，流口水"}' "$token_a"
+expect_status 200 "companion intake v3 dog session"
+companion_dog_session_id="$(json_get "$RESPONSE_BODY" "session_id")"
+companion_dog_question="$(json_get "$RESPONSE_BODY" "result.next_questions.questions.0")"
+[[ -n "$companion_dog_session_id" ]] || fail "companion intake v3 dog session：没有 session_id"
+[[ -n "$companion_dog_question" ]] || companion_dog_question="请继续补充犬的干呕、腹胀和精神状态。"
+
+companion_dog_answer_body="$(python3 - "$companion_dog_question" <<'PY'
+import json
+import sys
+question = sys.argv[1]
+structured = {
+    "version": "companion-structured-intake-v2",
+    "template_key": "dog",
+    "category": "companion",
+    "label": "犬结构化问诊模板",
+    "sections": [
+        {
+            "key": "gi_gdv_toxin",
+            "title": "消化道 / GDV / 中毒与异物",
+            "answers": [
+                {"key": "unproductive_retching", "label": "是否反复干呕但吐不出来？", "answer": "反复干呕但吐不出来", "required": True, "triggered": True},
+                {"key": "abdomen_distension", "label": "腹部是否胀大、紧张或触碰疼痛？", "answer": "腹部胀大，坐立不安，触碰紧张", "required": True, "triggered": True},
+            ],
+        },
+        {
+            "key": "timeline",
+            "title": "基础信息 / 发病时间线",
+            "answers": [
+                {"key": "onset", "label": "症状什么时候开始？", "answer": "约2小时前突然开始", "required": True, "triggered": False},
+            ],
+        },
+    ],
+}
+body = {
+    "question": question,
+    "answer": "补充：反复干呕，腹胀明显，精神焦躁。",
+    "structured_intake_answers": structured,
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/ai/consult/session/${companion_dog_session_id}/answer" "$companion_dog_answer_body" "$token_a"
+expect_status 200 "companion intake v3 answer context"
+json_assert_text_contains "$RESPONSE_BODY" "result.dynamic.structured_intake_context" "True" >/dev/null || fail "companion intake v3 answer：未标记 structured_intake_context"
+
+companion_dog_save_body="$(python3 <<'PY'
+import json
+structured = {
+    "version": "companion-structured-intake-v2",
+    "template_key": "dog",
+    "category": "companion",
+    "label": "犬结构化问诊模板",
+    "sections": [
+        {
+            "key": "gi_gdv_toxin",
+            "title": "消化道 / GDV / 中毒与异物",
+            "answers": [
+                {"key": "unproductive_retching", "label": "是否反复干呕但吐不出来？", "answer": "反复干呕但吐不出来", "required": True, "triggered": True},
+                {"key": "abdomen_distension", "label": "腹部是否胀大、紧张或触碰疼痛？", "answer": "腹部胀大，坐立不安，触碰紧张", "required": True, "triggered": True},
+            ],
+        },
+        {
+            "key": "timeline",
+            "title": "基础信息 / 发病时间线",
+            "answers": [
+                {"key": "onset", "label": "症状什么时候开始？", "answer": "约2小时前突然开始", "required": True, "triggered": False},
+            ],
+        },
+    ],
+}
+body = {
+    "patient_name": "Smoke犬猫结构化",
+    "species": "dog",
+    "sex": "M",
+    "age_info": "5y",
+    "breed": "大型犬",
+    "weight": "32kg",
+    "structured_intake_answers": structured,
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/ai/consult/session/${companion_dog_session_id}/save-case" "$companion_dog_save_body" "$token_a"
+expect_status 200 "companion intake v3 save case"
+companion_dog_case_id="$(json_get "$RESPONSE_BODY" "case_id")"
+[[ -n "$companion_dog_case_id" ]] || fail "companion intake v3 save case：没有 case_id"
+
+http_json GET "/api/cases/${companion_dog_case_id}" "" "$token_a"
+expect_status 200 "companion intake v3 read case"
+json_assert_text_contains "$RESPONSE_BODY" "history" "犬猫结构化问诊记录" >/dev/null || fail "companion intake v3 case：history 未包含犬猫结构化问诊记录"
+json_assert_text_contains "$RESPONSE_BODY" "history" "反复干呕但吐不出来" >/dev/null || fail "companion intake v3 case：history 未包含干呕结构化答案"
+json_assert_text_contains "$RESPONSE_BODY" "history" "腹部胀大" >/dev/null || fail "companion intake v3 case：history 未包含腹胀结构化答案"
+pass "companion structured intake v3 history export"
+
 echo
 echo "ALL PASS"
 echo "Created smoke artifacts:"
