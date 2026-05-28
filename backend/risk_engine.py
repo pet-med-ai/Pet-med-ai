@@ -2,8 +2,10 @@ from typing import Dict, Any
 
 try:
     from backend.exotic_knowledge import knowledge_risk_level
+    from backend.companion_animal_knowledge import companion_knowledge_risk_level
 except ModuleNotFoundError:
     from exotic_knowledge import knowledge_risk_level
+    from companion_animal_knowledge import companion_knowledge_risk_level
 
 
 def evaluate(features: Dict[str, Any]) -> str:
@@ -31,6 +33,11 @@ def evaluate(features: Dict[str, Any]) -> str:
         or features.get("respiratory_distress")
     ):
         return "高"
+
+    # 犬猫知识库优先判定。
+    companion_risk = companion_knowledge_risk_level(features)
+    if companion_risk:
+        return companion_risk
 
     # 异宠知识库优先判定。
     kb_risk = knowledge_risk_level(features)

@@ -2,8 +2,10 @@ from typing import Dict, Any, List
 
 try:
     from backend.exotic_knowledge import knowledge_questions
+    from backend.companion_animal_knowledge import companion_knowledge_questions
 except ModuleNotFoundError:
     from exotic_knowledge import knowledge_questions
+    from companion_animal_knowledge import companion_knowledge_questions
 
 
 def generate(tree_path: List[str], features: Dict[str, Any]) -> Dict[str, List[str]]:
@@ -11,7 +13,8 @@ def generate(tree_path: List[str], features: Dict[str, Any]) -> Dict[str, List[s
     species_context = features.get("species_context") or {}
     species_group = features.get("species_group")
 
-    # 异宠知识库问题优先；后续再叠加通用红旗问题。
+    # 犬猫 / 异宠知识库问题优先；后续再叠加通用红旗问题。
+    questions.extend(companion_knowledge_questions(features))
     questions.extend(knowledge_questions(features))
 
     if not questions:

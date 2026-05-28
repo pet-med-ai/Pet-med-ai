@@ -1,0 +1,16 @@
+{
+  "version": "companion-animal-kb-v1-json-rules",
+  "rules": [
+    "dog",
+    "cat"
+  ],
+  "species_to_rule": {
+    "dog": "dog",
+    "cat": "cat"
+  },
+  "group_to_rule": {
+    "canine": "dog",
+    "feline": "cat"
+  },
+  "scope": "犬猫 AI 辅助诊断 V1：高频 + 高风险分诊规则，不含药物剂量和完整处方。"
+}

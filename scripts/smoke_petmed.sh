@@ -43,6 +43,8 @@ require_cmd python3
 
 python3 scripts/validate_exotic_kb.py >/dev/null || fail "exotic knowledge JSON validation failed"
 pass "exotic knowledge JSON validation"
+python3 scripts/validate_companion_kb.py >/dev/null || fail "companion animal knowledge JSON validation failed"
+pass "companion animal knowledge JSON validation"
 python3 scripts/validate_exotic_intake_templates.py >/dev/null || fail "exotic structured intake validation failed"
 pass "exotic structured intake validation"
 
@@ -468,6 +470,39 @@ expect_status 200 "structured intake bird"
 json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.template_key" "bird" >/dev/null || fail "structured intake bird：template_key 未命中 bird"
 json_assert_text_contains "$RESPONSE_BODY" "result.structured_intake.sections.1.title" "呼吸" >/dev/null || fail "structured intake bird：缺少呼吸 section"
 pass "exotic structured intake consult checks"
+
+
+# 15. dog/cat companion knowledge base V1 checks
+http_json POST "/api/ai/consult/session" '{"species":"dog","text":"犬反复干呕吐不出来，腹部胀大，坐立不安，流口水"}' "$token_a"
+expect_status 200 "companion dog GDV"
+json_assert_text_contains "$RESPONSE_BODY" "result.risk_level" "高" >/dev/null || fail "companion dog GDV：risk_level 未判高"
+json_assert_text_contains "$RESPONSE_BODY" "result.tree_path.2" "GDV" >/dev/null || fail "companion dog GDV：tree_path 未命中 GDV"
+
+http_json POST "/api/ai/consult/session" '{"species":"dog","text":"狗误食巧克力后呕吐、烦躁、心跳快"}' "$token_a"
+expect_status 200 "companion dog toxin"
+json_assert_text_contains "$RESPONSE_BODY" "result.risk_level" "高" >/dev/null || fail "companion dog toxin：risk_level 未判高"
+json_assert_text_contains "$RESPONSE_BODY" "result.tree_path.2" "毒理" >/dev/null || fail "companion dog toxin：tree_path 未命中毒理"
+
+http_json POST "/api/ai/consult/session" '{"species":"dog","text":"狗连续抽搐两次，意识不清，流口水"}' "$token_a"
+expect_status 200 "companion dog seizure"
+json_assert_text_contains "$RESPONSE_BODY" "result.risk_level" "高" >/dev/null || fail "companion dog seizure：risk_level 未判高"
+json_assert_text_contains "$RESPONSE_BODY" "result.tree_path.2" "神经" >/dev/null || fail "companion dog seizure：tree_path 未命中神经"
+
+http_json POST "/api/ai/consult/session" '{"species":"cat","text":"公猫频繁蹲猫砂盆，尿不出来，叫唤，精神差"}' "$token_a"
+expect_status 200 "companion cat urinary obstruction"
+json_assert_text_contains "$RESPONSE_BODY" "result.risk_level" "高" >/dev/null || fail "companion cat urinary obstruction：risk_level 未判高"
+json_assert_text_contains "$RESPONSE_BODY" "result.tree_path.2" "尿闭" >/dev/null || fail "companion cat urinary obstruction：tree_path 未命中尿闭"
+
+http_json POST "/api/ai/consult/session" '{"species":"cat","text":"猫三天不吃东西，精神差，体重下降"}' "$token_a"
+expect_status 200 "companion cat anorexia"
+json_assert_text_contains "$RESPONSE_BODY" "result.risk_level" "高" >/dev/null || fail "companion cat anorexia：risk_level 未判高"
+json_assert_text_contains "$RESPONSE_BODY" "result.tree_path.2" "不吃" >/dev/null || fail "companion cat anorexia：tree_path 未命中不吃"
+
+http_json POST "/api/ai/consult/session" '{"species":"cat","text":"猫张口呼吸，呼吸急促，趴着不动"}' "$token_a"
+expect_status 200 "companion cat respiratory"
+json_assert_text_contains "$RESPONSE_BODY" "result.risk_level" "高" >/dev/null || fail "companion cat respiratory：risk_level 未判高"
+json_assert_text_contains "$RESPONSE_BODY" "result.tree_path.2" "呼吸" >/dev/null || fail "companion cat respiratory：tree_path 未命中呼吸"
+pass "companion dog/cat knowledge checks"
 
 echo
 echo "ALL PASS"

@@ -5,10 +5,12 @@ try:
     from backend.orchestrator import run_agent
     from backend.species_context import build_species_context
     from backend.exotic_knowledge import fallback_questions_from_text
+    from backend.companion_animal_knowledge import companion_fallback_questions_from_text
 except ModuleNotFoundError:
     from orchestrator import run_agent
     from species_context import build_species_context
     from exotic_knowledge import fallback_questions_from_text
+    from companion_animal_knowledge import companion_fallback_questions_from_text
 
 
 def _get_value(item: Any, key: str, default: str = "") -> str:
@@ -164,6 +166,10 @@ def _fallback_questions(
     context = _join_answer_context(text, answers)
     species_context = build_species_context(text=context)
     species_group = species_context.get("group")
+
+    companion_questions = companion_fallback_questions_from_text(context)
+    if companion_questions:
+        return companion_questions
 
     kb_questions = fallback_questions_from_text(context)
     if kb_questions:

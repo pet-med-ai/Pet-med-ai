@@ -157,6 +157,18 @@ elif _is_production():
 # 统一挂载 Auth 路由（保持你原来逻辑，路径保持不变，如 /auth/login 等）
 app.include_router(auth_router)
 
+
+def _text_with_species(text: str, species: Optional[str] = None) -> str:
+    base = (text or "").strip()
+    species_value = (species or "").strip()
+    if not species_value:
+        return base
+    lower = base.lower()
+    if "物种：" in base or "物种:" in base or "species:" in lower or "species：" in lower:
+        return base
+    return f"物种：{species_value}\n{base}" if base else f"物种：{species_value}"
+
+
 # DB 会话依赖
 def get_db():
     db = SessionLocal()
@@ -321,6 +333,7 @@ class AIConsultDynamicIn(BaseModel):
     text: str
     species: Optional[str] = None
     answers: Optional[List[AIConsultAnswer]] = None
+    structured_intake_answers: Optional[Dict[str, Any]] = None
 
 class AIConsultSessionCreateIn(BaseModel):
     text: str
@@ -667,13 +680,14 @@ def reanalyze_case(
 @app.post("/ai/consult", tags=["ai"])
 @app.post("/api/ai/consult", tags=["ai"])
 async def ai_consult(data: AIConsultIn):
-    result = run_agent(data.text)
+    text_for_ai = _text_with_species(data.text, data.species)
+    result = run_agent(text_for_ai)
     if isinstance(result, dict):
         try:
             from backend.dynamic_consult import clean_consult_result
         except ModuleNotFoundError:
             from dynamic_consult import clean_consult_result
-        return clean_consult_result(result, data.text, [])
+        return clean_consult_result(result, text_for_ai, [])
     return result
 
 
@@ -691,7 +705,8 @@ async def ai_consult_dynamic(data: AIConsultDynamicIn):
     ]
     answers_for_ai = _answers_with_structured_intake_context(answers, data.structured_intake_answers)
 
-    result = run_dynamic_consult(data.text, answers_for_ai)
+    text_for_ai = _text_with_species(data.text, data.species)
+    result = run_dynamic_consult(text_for_ai, answers_for_ai)
     if isinstance(result, dict):
         if data.structured_intake_answers:
             result = _mark_structured_intake_context(result, True)
@@ -1166,6 +1181,7 @@ async def ai_consult_session_create(
     if not text:
         raise HTTPException(status_code=400, detail="text is required")
 
+    text = _text_with_species(text, data.species)
     result = run_agent(text)
     if not isinstance(result, dict):
         result = {

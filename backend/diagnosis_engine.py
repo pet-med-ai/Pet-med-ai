@@ -2,8 +2,10 @@ from typing import Dict, Any, List
 
 try:
     from backend.exotic_knowledge import knowledge_diagnosis, knowledge_risk_reasons
+    from backend.companion_animal_knowledge import companion_knowledge_diagnosis, companion_knowledge_risk_reasons
 except ModuleNotFoundError:
     from exotic_knowledge import knowledge_diagnosis, knowledge_risk_reasons
+    from companion_animal_knowledge import companion_knowledge_diagnosis, companion_knowledge_risk_reasons
 
 
 def _dedupe(items: List[str]) -> List[str]:
@@ -16,6 +18,11 @@ def rank(features: Dict[str, Any], tree_path: List[str]) -> Dict[str, List[str]]
     actions: List[str] = []
     species_context = features.get("species_context") or {}
     species_group = features.get("species_group")
+
+    companion_result = companion_knowledge_diagnosis(features)
+    diseases.extend(companion_result.get("diseases") or [])
+    checks.extend(companion_result.get("checks") or [])
+    actions.extend(companion_result.get("actions") or [])
 
     kb_result = knowledge_diagnosis(features)
     diseases.extend(kb_result.get("diseases") or [])
@@ -84,7 +91,7 @@ def rank(features: Dict[str, Any], tree_path: List[str]) -> Dict[str, List[str]]
     if not actions:
         actions.extend(["结合体征、实验室检查和影像进一步判断；高风险时先稳定生命体征。"])
 
-    reasons = knowledge_risk_reasons(features)
+    reasons = companion_knowledge_risk_reasons(features) + knowledge_risk_reasons(features)
     if reasons and not any("红旗提示" in action for action in actions):
         actions.insert(0, "红旗提示：" + "；".join(reasons))
 

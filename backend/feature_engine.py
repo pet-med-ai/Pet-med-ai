@@ -3,9 +3,11 @@ from typing import Dict, Any, Iterable
 try:
     from backend.species_context import build_species_context
     from backend.exotic_knowledge import augment_exotic_features
+    from backend.companion_animal_knowledge import augment_companion_animal_features
 except ModuleNotFoundError:
     from species_context import build_species_context
     from exotic_knowledge import augment_exotic_features
+    from companion_animal_knowledge import augment_companion_animal_features
 
 
 def _has_any(text: str, keywords: Iterable[str]) -> bool:
@@ -159,4 +161,5 @@ def extract_features(text: str) -> Dict[str, Any]:
         "avian_respiratory_risk": species_group == "avian" and respiratory_distress,
         "reptile_husbandry_risk": species_group in ("reptile", "amphibian", "fish") and husbandry_problem,
     }
-    return augment_exotic_features(features, raw_text)
+    features = augment_exotic_features(features, raw_text)
+    return augment_companion_animal_features(features, raw_text)

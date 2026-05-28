@@ -4,6 +4,7 @@ try:
     from backend.question_engine import generate
     from backend.diagnosis_engine import rank
     from backend.exotic_knowledge import knowledge_tree_leaf
+    from backend.companion_animal_knowledge import companion_knowledge_tree_leaf
     from backend.exotic_intake_templates import build_structured_intake
 except ModuleNotFoundError:
     from feature_engine import extract_features
@@ -11,10 +12,15 @@ except ModuleNotFoundError:
     from question_engine import generate
     from diagnosis_engine import rank
     from exotic_knowledge import knowledge_tree_leaf
+    from companion_animal_knowledge import companion_knowledge_tree_leaf
     from exotic_intake_templates import build_structured_intake
 
 
 def _system_path(features):
+    companion_leaf = companion_knowledge_tree_leaf(features)
+    if companion_leaf:
+        return companion_leaf
+
     kb_leaf = knowledge_tree_leaf(features)
     if kb_leaf:
         return kb_leaf
