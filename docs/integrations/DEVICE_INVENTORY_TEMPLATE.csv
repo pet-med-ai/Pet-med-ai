@@ -1,0 +1,4 @@
+device_id,department,device_category,device_name,manufacturer,model,software_version,location,modality_or_panel,supported_interfaces,dicom_ae_title,dicom_host,dicom_port,dicom_c_store,dicom_worklist,dicomweb_base_url,hl7_v2,astm,csv_export,txt_export,pdf_export,rs232,tcp_ip,sdk_available,output_folder,patient_id_supported,accession_id_supported,barcode_supported,existing_pacs_lis_his,vendor_contact,interface_license_required,sample_files_available,priority,notes
+DEV-001,影像科,imaging,DR Room 1,待填写,待填写,待填写,一楼影像室,DX,"DICOM,DICOM Worklist",待填写,待填写,104,yes,unknown,,no,no,no,no,yes,no,yes,unknown,,yes,yes,yes,PACS,待填写,unknown,no,high,示例行：请替换为真实设备
+DEV-002,检验科,lab,血常规分析仪,待填写,待填写,待填写,一楼检验室,CBC,"HL7 v2,CSV,RS232",,,,,,yes,unknown,yes,yes,yes,yes,yes,unknown,待填写,yes,yes,yes,LIS,待填写,unknown,no,high,示例行：请替换为真实设备
+DEV-003,门诊,measurement,体重秤,待填写,待填写,待填写,诊室1,weight,"USB HID,RS232",,,,,,no,no,yes,yes,no,yes,no,no,,no,no,barcode_only,none,待填写,no,no,medium,示例行：低风险设备可作为试点
