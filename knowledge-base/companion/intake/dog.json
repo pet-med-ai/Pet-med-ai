@@ -1,0 +1,209 @@
+{
+  "key": "dog",
+  "label": "犬结构化问诊模板",
+  "summary": "覆盖犬急腹症/GDV、中毒、消化道、泌尿、呼吸、神经、皮肤和外伤核心病史。",
+  "species_scope": [
+    "dog",
+    "canine"
+  ],
+  "feature_flags": [
+    "vomiting",
+    "diarrhea",
+    "retching",
+    "abd_distension",
+    "toxin",
+    "foreign_body_risk",
+    "neurologic_signs",
+    "respiratory_distress",
+    "urinary_issue",
+    "skin_issue",
+    "trauma",
+    "lameness",
+    "blood"
+  ],
+  "red_flag_prompts": [
+    "反复干呕吐不出来、腹胀、坐立不安或虚弱：按 GDV/急腹症高风险处理。",
+    "巧克力、葡萄/葡萄干、木糖醇、人用药、杀鼠剂、清洁剂或农药暴露：记录摄入量、时间和包装。",
+    "连续抽搐、意识不清、呼吸困难、发绀、休克或不能站立：先按急诊稳定生命体征。",
+    "呕血、黑便、血便或持续呕吐腹泻伴精神差：优先评估脱水、出血和休克风险。"
+  ],
+  "sections": [
+    {
+      "key": "basic_signalment",
+      "title": "基础信息 / 发病时间线",
+      "priority": "routine",
+      "questions": [
+        {
+          "key": "onset_duration",
+          "label": "症状什么时候开始？是突然出现还是逐渐加重？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "时间线决定急症优先级和鉴别范围。"
+        },
+        {
+          "key": "breed_size",
+          "label": "品种和体型？是否深胸大型犬或老年犬？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "深胸大型犬 GDV 风险更高，老年犬肿瘤/内分泌/器官病风险更高。"
+        },
+        {
+          "key": "age_sex_neuter",
+          "label": "年龄、性别、是否绝育？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "生殖、内分泌、肿瘤和泌尿风险与年龄性别相关。"
+        },
+        {
+          "key": "weight_current",
+          "label": "当前体重和近期体重变化？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "体重变化影响风险评估和后续用药计算，但 V1 不输出剂量。"
+        }
+      ]
+    },
+    {
+      "key": "gi_gdv_toxin",
+      "title": "消化道 / GDV / 中毒与异物",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "vomiting_frequency",
+          "label": "呕吐/腹泻次数、持续时间、是否带血或咖啡色/黑便？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "vomiting",
+            "diarrhea",
+            "blood"
+          ],
+          "clinical_reason": "判断脱水、出血、异物、胰腺炎和感染风险。"
+        },
+        {
+          "key": "unproductive_retching",
+          "label": "是否反复干呕但吐不出来、流涎、腹部胀大或无法安静卧下？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "retching",
+            "abd_distension"
+          ],
+          "clinical_reason": "犬 GDV/急腹症红旗。"
+        },
+        {
+          "key": "abdomen_pain",
+          "label": "腹部是否疼痛、紧张、膨大？触碰是否躲避或呻吟？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "abd_distension",
+            "low_energy"
+          ],
+          "clinical_reason": "腹痛和腹胀提示急腹症、异物、胰腺炎或 GDV。"
+        },
+        {
+          "key": "toxin_exposure",
+          "label": "是否可能误食巧克力、葡萄/葡萄干、木糖醇、人药、杀鼠剂、清洁剂、农药或异物？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "toxin",
+            "foreign_body_risk"
+          ],
+          "clinical_reason": "中毒和异物需要记录具体物质、剂量、时间和包装。"
+        }
+      ]
+    },
+    {
+      "key": "urinary",
+      "title": "泌尿 / 排尿异常",
+      "priority": "problem_oriented",
+      "questions": [
+        {
+          "key": "urine_output",
+          "label": "排尿频率、尿量、颜色是否改变？是否尿血、尿痛或排尿困难？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "urinary_issue"
+          ],
+          "clinical_reason": "泌尿感染、结石、肾脏疾病和尿闭风险筛查。"
+        },
+        {
+          "key": "water_intake",
+          "label": "饮水量是否明显增加或减少？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "多饮多尿提示肾病、糖尿病、内分泌等鉴别。"
+        }
+      ]
+    },
+    {
+      "key": "respiratory_neuro",
+      "title": "呼吸 / 神经急症",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "breathing",
+          "label": "是否呼吸急促、张口呼吸、发绀、咳嗽或不能平卧？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "respiratory_distress"
+          ],
+          "clinical_reason": "呼吸困难属于优先稳定的急症。"
+        },
+        {
+          "key": "seizure_episode",
+          "label": "是否抽搐？每次持续多久？24小时内几次？恢复后是否正常？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "neurologic_signs"
+          ],
+          "clinical_reason": "连续发作、丛集发作或意识不清需要急诊评估。"
+        },
+        {
+          "key": "mentation",
+          "label": "目前意识、步态、站立、瞳孔和反应是否正常？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "neurologic_signs",
+            "collapse"
+          ],
+          "clinical_reason": "神经定位和休克/代谢异常初筛。"
+        }
+      ]
+    },
+    {
+      "key": "skin_trauma_orthopedic",
+      "title": "皮肤 / 外伤 / 跛行",
+      "priority": "problem_oriented",
+      "questions": [
+        {
+          "key": "itch_lesion",
+          "label": "是否瘙痒、脱毛、红斑、结痂、耳道分泌物或皮肤异味？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "skin_issue"
+          ],
+          "clinical_reason": "皮肤病需区分过敏、感染、寄生虫和内分泌。"
+        },
+        {
+          "key": "trauma_lameness",
+          "label": "是否摔伤、车祸、咬伤、跛行、不能负重或疼痛？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "trauma",
+            "lameness"
+          ],
+          "clinical_reason": "外伤和不能负重需先排除骨折、出血和疼痛休克。"
+        }
+      ]
+    }
+  ]
+}

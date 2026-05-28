@@ -1662,6 +1662,7 @@ function countStructuredAnswers(answers = {}) {
 
 function buildStructuredIntakeSubmission(intake, answers = {}) {
   if (!intake || !Array.isArray(intake.sections)) return null;
+  if (intake.fillable === false) return null;
 
   const sections = intake.sections
     .map((section) => {
@@ -1705,7 +1706,8 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange }) {
 
   const activeFeatures = Array.isArray(intake.active_features) ? intake.active_features : [];
   const redFlags = Array.isArray(intake.red_flag_prompts) ? intake.red_flag_prompts : [];
-  const answeredCount = countStructuredAnswers(answers);
+  const fillable = intake.fillable !== false;
+  const answeredCount = fillable ? countStructuredAnswers(answers) : 0;
   const totalQuestions = intake.sections.reduce((sum, section) => sum + (section.questions || []).length, 0);
   const requiredQuestions = intake.sections.reduce(
     (sum, section) => sum + (section.questions || []).filter((question) => question.required).length,
@@ -1734,15 +1736,21 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange }) {
     <div style={{ marginTop: 12, padding: 12, border: "1px solid #cbd5e1", borderRadius: 8, background: "#f8fafc" }}>
       <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
         <div>
-          <div style={{ fontWeight: 700, marginBottom: 4 }}>异宠结构化问诊模板</div>
+          <div style={{ fontWeight: 700, marginBottom: 4 }}>结构化问诊模板</div>
           <div style={{ fontSize: 13, opacity: 0.78, marginBottom: 8 }}>
             {intake.label || intake.template_key || "异宠模板"}
             {intake.summary ? `｜${intake.summary}` : ""}
           </div>
         </div>
         <div style={{ fontSize: 12, opacity: 0.72, textAlign: "right" }}>
-          已填写 {answeredCount} / {totalQuestions} 项<br />
-          必填 {requiredAnswered} / {requiredQuestions} 项
+          {fillable ? (
+            <>
+              已填写 {answeredCount} / {totalQuestions} 项<br />
+              必填 {requiredAnswered} / {requiredQuestions} 项
+            </>
+          ) : (
+            <>展示 {totalQuestions} 项<br />必填提示 {requiredQuestions} 项</>
+          )}
         </div>
       </div>
 
@@ -1784,7 +1792,11 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange }) {
                       {question.required && <span style={{ marginLeft: 6, fontSize: 12, color: "#b91c1c" }}>必填</span>}
                       {question.triggered && <span style={{ marginLeft: 6, fontSize: 12, color: "#0369a1" }}>已命中</span>}
                     </div>
-                    {question.options && Array.isArray(question.options) ? (
+                    {!fillable ? (
+                      <div style={{ padding: 8, border: "1px dashed #cbd5e1", borderRadius: 8, background: question.triggered ? "#eff6ff" : "#f8fafc", fontSize: 13, lineHeight: 1.6 }}>
+                        待采集：{question.placeholder || question.label}
+                      </div>
+                    ) : question.options && Array.isArray(question.options) ? (
                       <select
                         value={value}
                         onChange={(e) => handleChange(section.key, question.key, e.target.value)}
@@ -1817,7 +1829,7 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange }) {
 
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, opacity: 0.65 }}>
-          这些答案不会作为独立病例字段保存；提交追问时会作为本轮 AI 上下文一起发送。
+          {fillable ? "这些答案不会作为独立病例字段保存；提交追问时会作为本轮 AI 上下文一起发送。" : "本阶段仅展示犬猫结构化问诊清单；后续 V2 再开放填写并随追问提交。"}
         </div>
         <button type="button" onClick={handleClear} disabled={!answeredCount} style={btnTiny}>
           清空结构化答案

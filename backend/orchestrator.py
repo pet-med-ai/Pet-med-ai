@@ -6,6 +6,7 @@ try:
     from backend.exotic_knowledge import knowledge_tree_leaf
     from backend.companion_animal_knowledge import companion_knowledge_tree_leaf
     from backend.exotic_intake_templates import build_structured_intake
+    from backend.companion_intake_templates import build_companion_structured_intake
 except ModuleNotFoundError:
     from feature_engine import extract_features
     from risk_engine import evaluate
@@ -14,6 +15,7 @@ except ModuleNotFoundError:
     from exotic_knowledge import knowledge_tree_leaf
     from companion_animal_knowledge import companion_knowledge_tree_leaf
     from exotic_intake_templates import build_structured_intake
+    from companion_intake_templates import build_companion_structured_intake
 
 
 def _system_path(features):
@@ -51,7 +53,7 @@ def run_agent(text: str):
 
     diseases = rank(features, tree_path)
     actions = diseases.get("actions") or ["建议进一步检查血常规、生化、影像学"]
-    structured_intake = build_structured_intake(features)
+    structured_intake = build_companion_structured_intake(features) or build_structured_intake(features)
 
     return {
         "risk_level": risk,

@@ -1,0 +1,16 @@
+{
+  "version": "companion-structured-intake-v1",
+  "templates": [
+    "dog",
+    "cat"
+  ],
+  "species_to_template": {
+    "dog": "dog",
+    "cat": "cat"
+  },
+  "group_to_template": {
+    "canine": "dog",
+    "feline": "cat"
+  },
+  "notes": "V1 displays dog/cat structured intake prompts only. It does not persist structured answers or submit them to AI."
+}

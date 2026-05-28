@@ -1,0 +1,222 @@
+{
+  "key": "cat",
+  "label": "猫结构化问诊模板",
+  "summary": "覆盖猫尿闭、不吃、呼吸急症、黄疸、口腔牙科、消化道、神经和皮肤核心病史。",
+  "species_scope": [
+    "cat",
+    "feline"
+  ],
+  "feature_flags": [
+    "urinary_issue",
+    "anorexia",
+    "appetite_down",
+    "weight_loss",
+    "respiratory_distress",
+    "jaundice",
+    "vomiting",
+    "diarrhea",
+    "oral_dental_pain",
+    "neurologic_signs",
+    "skin_issue",
+    "toxin",
+    "blood"
+  ],
+  "red_flag_prompts": [
+    "公猫频繁蹲猫砂盆、尿不出、叫唤或精神差：按尿闭高风险处理。",
+    "张口呼吸、呼吸急促、发绀或趴着不动：猫呼吸急症，先降低应激并稳定。",
+    "持续 24–48 小时以上不吃、明显消瘦或黄疸：警惕脂肪肝、肝胆或系统性疾病。",
+    "连续抽搐、意识异常、疑似中毒或严重虚弱：按急症处理。"
+  ],
+  "sections": [
+    {
+      "key": "basic_signalment",
+      "title": "基础信息 / 发病时间线",
+      "priority": "routine",
+      "questions": [
+        {
+          "key": "onset_duration",
+          "label": "症状什么时候开始？是突然还是逐渐加重？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "时间线决定急症优先级。"
+        },
+        {
+          "key": "indoor_outdoor",
+          "label": "室内猫还是可外出？是否多猫家庭？疫苗/驱虫情况？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "外出、多猫环境和预防史影响感染、外伤和应激风险。"
+        },
+        {
+          "key": "age_sex_neuter",
+          "label": "年龄、性别、是否绝育？若是公猫请重点补充排尿情况。",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "公猫尿闭风险高，年龄影响肾病、甲亢、肿瘤等鉴别。"
+        },
+        {
+          "key": "weight_change",
+          "label": "当前体重和近期体重变化？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "weight_loss"
+          ],
+          "clinical_reason": "体重下降常见于慢性病、肾病、甲亢、肿瘤和口腔疼痛。"
+        }
+      ]
+    },
+    {
+      "key": "urinary_obstruction",
+      "title": "排尿 / 猫下泌尿道红旗",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "litter_box_behavior",
+          "label": "是否频繁进出猫砂盆、蹲很久、叫唤、舔尿道口或尿不出来？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "urinary_issue"
+          ],
+          "clinical_reason": "猫尿闭是急症，尤其公猫。"
+        },
+        {
+          "key": "last_urination",
+          "label": "最后一次确认排出正常尿量是什么时候？尿量和颜色如何？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "urinary_issue"
+          ],
+          "clinical_reason": "判断是否无尿/少尿和病程长度。"
+        },
+        {
+          "key": "pain_vomiting",
+          "label": "是否精神差、呕吐、腹痛、食欲下降或虚弱？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "urinary_issue",
+            "vomiting",
+            "low_energy"
+          ],
+          "clinical_reason": "尿闭进展可出现全身症状和高钾风险。"
+        }
+      ]
+    },
+    {
+      "key": "appetite_gi_hepatobiliary",
+      "title": "食欲 / 消化道 / 黄疸",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "appetite_duration",
+          "label": "完全不吃或明显少吃持续多久？是否超过 24–48 小时？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "anorexia",
+            "appetite_down"
+          ],
+          "clinical_reason": "猫持续不吃有脂肪肝和系统性疾病风险。"
+        },
+        {
+          "key": "vomit_diarrhea",
+          "label": "是否呕吐、腹泻、便血、黑便、毛球样呕吐或异物暴露？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "vomiting",
+            "diarrhea",
+            "blood",
+            "toxin"
+          ],
+          "clinical_reason": "区分胃肠炎、异物、胰腺炎、毒物和出血。"
+        },
+        {
+          "key": "jaundice",
+          "label": "牙龈、耳廓、眼白或皮肤是否发黄？尿色是否深黄？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "jaundice"
+          ],
+          "clinical_reason": "黄疸提示肝胆、溶血或严重系统性疾病。"
+        }
+      ]
+    },
+    {
+      "key": "respiratory",
+      "title": "呼吸急症",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "breathing_effort",
+          "label": "是否张口呼吸、呼吸急促、腹式呼吸、发绀或趴着不动？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "respiratory_distress"
+          ],
+          "clinical_reason": "猫呼吸困难属于优先稳定急症。"
+        },
+        {
+          "key": "cough_nasal",
+          "label": "是否咳嗽、喷嚏、流鼻涕、眼分泌物或声音改变？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "辅助区分上呼吸道、下呼吸道、心源性和胸腔问题。"
+        }
+      ]
+    },
+    {
+      "key": "oral_neuro_skin_toxin",
+      "title": "口腔牙科 / 神经 / 皮肤 / 中毒",
+      "priority": "problem_oriented",
+      "questions": [
+        {
+          "key": "oral_pain",
+          "label": "是否流口水、口臭、掉食、偏侧咀嚼、拒绝干粮或口腔疼痛？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "oral_dental_pain"
+          ],
+          "clinical_reason": "口炎/牙科疼痛可导致猫不吃和体重下降。"
+        },
+        {
+          "key": "seizure_mentation",
+          "label": "是否抽搐、意识异常、走路不稳、歪头、瞳孔异常或突然虚弱？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "neurologic_signs"
+          ],
+          "clinical_reason": "神经急症、代谢异常和中毒鉴别。"
+        },
+        {
+          "key": "skin_itch",
+          "label": "是否瘙痒、脱毛、结痂、耳道分泌物、皮肤红肿或伤口？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "skin_issue",
+            "trauma"
+          ],
+          "clinical_reason": "皮肤病需区分过敏、感染、寄生虫和外伤。"
+        },
+        {
+          "key": "toxin_access",
+          "label": "是否接触百合、人药、杀虫剂、清洁剂、精油、老鼠药或其他毒物？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "toxin"
+          ],
+          "clinical_reason": "猫对多种毒物敏感，暴露史必须详细记录。"
+        }
+      ]
+    }
+  ]
+}
