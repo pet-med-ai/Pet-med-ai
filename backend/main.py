@@ -1090,6 +1090,64 @@ def ai_consult_session_delete(
     }
 
 
+@app.post("/api/ai/consult/session/{session_id}/preview-case", response_model=dict, tags=["ai"])
+def ai_consult_session_preview_case(
+    session_id: str,
+    data: AIConsultSessionSaveCaseIn,
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user),
+):
+    """
+    保存前预览：复用 save-case 的同一套 ConsultSession -> Case 字段转换逻辑，
+    不写数据库，只返回即将写入病例的 history / analysis / treatment / prognosis。
+    """
+    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Consult session not found")
+    assert_consult_session_access(session, user, allow_unowned=True)
+
+    case_fields = _consult_session_to_case_fields(session)
+
+    structured_intake_answers = getattr(data, "structured_intake_answers", None)
+    structured_history = _format_structured_intake_history(structured_intake_answers)
+    if structured_history:
+        current_history = str(case_fields.get("history") or "").strip()
+        case_fields["history"] = "\n\n".join(part for part in [current_history, structured_history] if part)
+
+    patient_name = (data.patient_name or "").strip() or "未命名病例"
+    species_value = (data.species or "dog").strip() or "dog"
+    sex_value = (data.sex or "").strip() or None
+    age_value = (data.age_info or "").strip() or None
+    breed_value = (data.breed or "").strip() or None
+    weight_value = (data.weight or "").strip() or None
+    coat_value = (data.coat_color or "").strip() or None
+    owner_name_value = (data.owner_name or "").strip() or None
+    owner_phone_value = (data.owner_phone or "").strip() or None
+    exam_value = (data.exam_findings or "").strip() or f"由动态问诊生成；原始会话：{session.session_uid}"
+
+    return {
+        "session_id": session.session_uid,
+        "case_id": getattr(session, "case_id", None),
+        "patient_name": patient_name[:255],
+        "species": species_value[:50],
+        "sex": sex_value[:10] if sex_value else None,
+        "age_info": age_value[:50] if age_value else None,
+        "breed": breed_value[:100] if breed_value else None,
+        "weight": weight_value[:50] if weight_value else None,
+        "coat_color": coat_value[:100] if coat_value else None,
+        "owner_name": owner_name_value[:100] if owner_name_value else None,
+        "owner_phone": owner_phone_value[:50] if owner_phone_value else None,
+        "chief_complaint": session.text,
+        "history": case_fields["history"],
+        "exam_findings": exam_value,
+        "analysis": case_fields["analysis"],
+        "treatment": case_fields["treatment"],
+        "prognosis": case_fields["prognosis"],
+        "structured_history_appended": bool(structured_history),
+        "message": "preview",
+    }
+
+
 @app.post("/api/ai/consult/session/{session_id}/save-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
 def ai_consult_session_save_case(
     session_id: str,

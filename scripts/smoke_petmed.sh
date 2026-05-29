@@ -589,6 +589,12 @@ body = {
 print(json.dumps(body, ensure_ascii=False))
 PY
 )"
+http_json POST "/api/ai/consult/session/${companion_dog_session_id}/preview-case" "$companion_dog_save_body" "$token_a"
+expect_status 200 "case save preview companion dog"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preview" >/dev/null || fail "case save preview：message 未返回 preview"
+json_assert_text_contains "$RESPONSE_BODY" "history" "犬猫结构化问诊记录" >/dev/null || fail "case save preview：history 未包含犬猫结构化问诊记录"
+json_assert_text_contains "$RESPONSE_BODY" "history" "反复干呕但吐不出来" >/dev/null || fail "case save preview：history 未包含干呕结构化答案"
+
 http_json POST "/api/ai/consult/session/${companion_dog_session_id}/save-case" "$companion_dog_save_body" "$token_a"
 expect_status 200 "companion intake v3 save case"
 companion_dog_case_id="$(json_get "$RESPONSE_BODY" "case_id")"

@@ -130,6 +130,9 @@ function Home() {
   const [followupAnswer, setFollowupAnswer] = useState("");
   const [structuredIntakeAnswers, setStructuredIntakeAnswers] = useState({});
   const [lastStructuredIntakeSubmission, setLastStructuredIntakeSubmission] = useState(null);
+  const [caseSavePreview, setCaseSavePreview] = useState(null);
+  const [pendingSaveCasePayload, setPendingSaveCasePayload] = useState(null);
+  const [previewingConsultCase, setPreviewingConsultCase] = useState(false);
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
   const [loadingFollowup, setLoadingFollowup] = useState(false);
   const [errMsg, setErrMsg] = useState("");
@@ -632,6 +635,8 @@ function Home() {
       setFollowupAnswer("");
       setStructuredIntakeAnswers({});
       setLastStructuredIntakeSubmission(null);
+      setCaseSavePreview(null);
+      setPendingSaveCasePayload(null);
       setSavedConsultCaseId(payload.case_id || null);
 
       if (data && Object.keys(data).length) {
@@ -745,6 +750,8 @@ function Home() {
   setFollowupAnswer("");
   setStructuredIntakeAnswers({});
   setLastStructuredIntakeSubmission(null);
+  setCaseSavePreview(null);
+  setPendingSaveCasePayload(null);
   setLoadingFollowup(false);
   setLoadingAnalyze(true);
 
@@ -850,6 +857,8 @@ function Home() {
       setSavedConsultCaseId(payload.case_id || savedConsultCaseId || null);
       setFollowupAnswer("");
       setStructuredIntakeAnswers({});
+      setCaseSavePreview(null);
+      setPendingSaveCasePayload(null);
       await fetchSessionHistory();
     } catch (err) {
       console.error("Followup error:", err);
@@ -857,6 +866,24 @@ function Home() {
     } finally {
       setLoadingFollowup(false);
     }
+  };
+
+  const buildConsultSaveCasePayload = () => {
+    const structuredIntakePayload = buildStructuredIntakeSubmission(result?.structured_intake, structuredIntakeAnswers) || lastStructuredIntakeSubmission;
+
+    return {
+      patient_name: patientName?.trim() || "未命名病例",
+      species: species || "dog",
+      sex: sex || null,
+      age_info: ageInfo || null,
+      breed: breed || null,
+      weight: weight || null,
+      coat_color: coatColor || null,
+      owner_name: ownerName || null,
+      owner_phone: ownerPhone || null,
+      exam_findings: examFindings || null,
+      structured_intake_answers: structuredIntakePayload || null,
+    };
   };
 
   const handleSaveConsultAsCase = async () => {
@@ -870,27 +897,50 @@ function Home() {
       return;
     }
 
-    const structuredIntakePayload = buildStructuredIntakeSubmission(result?.structured_intake, structuredIntakeAnswers) || lastStructuredIntakeSubmission;
+    const payload = buildConsultSaveCasePayload();
+
+    try {
+      setErrMsg("");
+      setPreviewingConsultCase(true);
+
+      const res = await api.post(`/api/ai/consult/session/${encodeURIComponent(consultSessionId)}/preview-case`, payload);
+      setPendingSaveCasePayload(payload);
+      setCaseSavePreview(res.data || null);
+    } catch (err) {
+      console.error("Preview consult case error:", err);
+      if (err.response?.status === 401) {
+        alert("请先登录后保存为病例");
+      } else {
+        alert("生成保存前预览失败，请检查后端日志");
+      }
+    } finally {
+      setPreviewingConsultCase(false);
+    }
+  };
+
+  const handleConfirmSaveConsultAsCase = async () => {
+    if (!localStorage.getItem("token")) {
+      alert("请先登录后保存为病例");
+      return;
+    }
+
+    if (!consultSessionId) {
+      alert("请先提交分析生成问诊会话，再保存为病例");
+      return;
+    }
+
+    const payload = pendingSaveCasePayload || buildConsultSaveCasePayload();
 
     try {
       setErrMsg("");
       setSavingConsultCase(true);
 
-      const res = await api.post(`/api/ai/consult/session/${encodeURIComponent(consultSessionId)}/save-case`, {
-        patient_name: patientName?.trim() || "未命名病例",
-        species: species || "dog",
-        sex: sex || null,
-        age_info: ageInfo || null,
-        breed: breed || null,
-        weight: weight || null,
-        coat_color: coatColor || null,
-        owner_name: ownerName || null,
-        owner_phone: ownerPhone || null,
-        exam_findings: examFindings || null,
-      });
+      const res = await api.post(`/api/ai/consult/session/${encodeURIComponent(consultSessionId)}/save-case`, payload);
 
       const caseId = res.data?.case_id;
       setSavedConsultCaseId(caseId || null);
+      setCaseSavePreview(null);
+      setPendingSaveCasePayload(null);
       setPage(1);
       await fetchCases({ page: 1 });
       await fetchSessionHistory();
@@ -905,6 +955,11 @@ function Home() {
     } finally {
       setSavingConsultCase(false);
     }
+  };
+
+  const handleCancelCaseSavePreview = () => {
+    setCaseSavePreview(null);
+    setPendingSaveCasePayload(null);
   };
 
   const handleUpdateBoundCase = async () => {
@@ -1306,10 +1361,10 @@ function Home() {
               <button
                 type="button"
                 onClick={handleSaveConsultAsCase}
-                disabled={savingConsultCase || !consultSessionId || !isAuthed}
+                disabled={previewingConsultCase || savingConsultCase || !consultSessionId || !isAuthed}
                 style={btn}
               >
-                {savingConsultCase ? "保存中…" : "保存问诊为病例"}
+                {previewingConsultCase ? "生成预览中…" : "保存前预览"}
               </button>
               {!isAuthed && (
                 <span style={{ fontSize: 13, color: "#b45309" }}>
@@ -1343,6 +1398,15 @@ function Home() {
                 </>
               )}
             </div>
+
+            {caseSavePreview && (
+              <CaseSavePreviewBlock
+                preview={caseSavePreview}
+                saving={savingConsultCase}
+                onConfirm={handleConfirmSaveConsultAsCase}
+                onCancel={handleCancelCaseSavePreview}
+              />
+            )}
           </div>
         )}
 
@@ -1661,6 +1725,61 @@ function Block({ title, children }) {
     <div style={{ background: "#f6f8fa", padding: 12, borderRadius: 8, whiteSpace: "pre-wrap", marginTop: 8 }}>
       <div style={{ fontWeight: 600, marginBottom: 6 }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+function CaseSavePreviewBlock({ preview, saving, onConfirm, onCancel }) {
+  if (!preview) return null;
+
+  const metaItems = [
+    ["病例名", preview.patient_name || "未命名病例"],
+    ["物种", preview.species || "-"],
+    ["性别", preview.sex || "-"],
+    ["年龄", preview.age_info || "-"],
+    ["品种", preview.breed || "-"],
+    ["体重", preview.weight || "-"],
+  ];
+
+  return (
+    <div style={{ marginTop: 12, padding: 12, border: "1px solid #93c5fd", borderRadius: 10, background: "#fff" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
+        <div>
+          <div style={{ fontWeight: 800 }}>保存前病史合并预览</div>
+          <div style={{ fontSize: 13, opacity: 0.72 }}>请确认以下内容，确认后才会正式写入病例 history。</div>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="button" onClick={onConfirm} disabled={saving} style={btn}>
+            {saving ? "保存中…" : "确认保存为病例"}
+          </button>
+          <button type="button" onClick={onCancel} disabled={saving} style={btnSecondary}>
+            取消预览
+          </button>
+        </div>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 10 }}>
+        {metaItems.map(([label, value]) => (
+          <div key={label} style={{ padding: 8, border: "1px solid #e5e7eb", borderRadius: 8, background: "#f8fafc" }}>
+            <div style={{ fontSize: 12, opacity: 0.65 }}>{label}</div>
+            <div style={{ fontWeight: 700 }}>{value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ marginBottom: 8 }}>
+        <div style={{ fontWeight: 700, marginBottom: 4 }}>将写入 history 的内容</div>
+        <pre style={{ margin: 0, padding: 10, border: "1px solid #dbeafe", borderRadius: 8, background: "#eff6ff", whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 13, lineHeight: 1.65, maxHeight: 320, overflow: "auto" }}>
+          {preview.history || "—"}
+        </pre>
+      </div>
+
+      <details style={{ marginTop: 8 }}>
+        <summary style={{ cursor: "pointer", fontWeight: 700 }}>同时写入的 AI 分析 / 处理 / 随访摘要</summary>
+        <Block title="AI 分析">{preview.analysis || "—"}</Block>
+        <Block title="治疗建议">{preview.treatment || "—"}</Block>
+        <Block title="风险提示 / 后续随访">{preview.prognosis || "—"}</Block>
+      </details>
     </div>
   );
 }
