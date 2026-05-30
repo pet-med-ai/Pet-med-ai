@@ -1383,8 +1383,14 @@ def ai_consult_session_answer(
 
     return _consult_session_payload(session)
 
+try:
+    from backend.legacy_import_mock import router as legacy_import_mock_router
+except ModuleNotFoundError:
+    from legacy_import_mock import router as legacy_import_mock_router
+
 # 将 /api 路由挂载到应用
 app.include_router(api)
+app.include_router(legacy_import_mock_router)
 
 # 本地调试
 if __name__ == "__main__":

@@ -318,6 +318,30 @@ expect_status 200 "login user A"
 token_a="$(json_get "$RESPONSE_BODY" "access_token")"
 [[ -n "$token_a" ]] || fail "login user A：没有 access_token"
 
+legacy_mock_body="$(python3 - "$TMP_DIR/legacy_case_payloads.jsonl" <<'PY'
+import json
+import sys
+jsonl_path = sys.argv[1]
+with open(jsonl_path, "r", encoding="utf-8") as f:
+    records = [json.loads(line) for line in f if line.strip()]
+body = {
+    "batch_id": "smoke-legacy-api-mock",
+    "records": records,
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/migrations/legacy-cases/mock" "$legacy_mock_body" "$token_a"
+expect_status 200 "legacy case API mock"
+json_assert_text_contains "$RESPONSE_BODY" "message" "mocked" >/dev/null || fail "legacy case API mock：message 未返回 mocked"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "legacy case API mock：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "calls_case_create_api" "False" >/dev/null || fail "legacy case API mock：不应调用 case_create API"
+json_assert_text_contains "$RESPONSE_BODY" "accepted" "1" >/dev/null || fail "legacy case API mock：accepted 应为 1"
+json_assert_text_contains "$RESPONSE_BODY" "rejected" "0" >/dev/null || fail "legacy case API mock：rejected 应为 0"
+json_assert_text_contains "$RESPONSE_BODY" "items.0.case_create_preview.patient_name" "咪咪" >/dev/null || fail "legacy case API mock：patient_name 预览不正确"
+pass "legacy case API mock"
+
+
 # 3. create owned consult session
 consult_text="小狗频繁呕吐，精神差，腹部胀"
 http_json POST "/api/ai/consult/session" "{\"text\":\"${consult_text}\"}" "$token_a"
