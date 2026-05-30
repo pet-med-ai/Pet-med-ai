@@ -1,0 +1,18 @@
+Pet-Med-AI Alembic migrations
+
+This directory contains the database migration environment for the backend.
+
+Important safety rule:
+- Existing local / Render databases were originally created by SQLAlchemy create_all()
+  and bootstrap helpers in backend/main.py.
+- Do NOT run `alembic upgrade head` against an existing populated database as the
+  first operation for this baseline revision.
+- For an existing database that already has the current tables, use:
+    cd backend
+    alembic -c alembic.ini stamp head
+- For a new empty database, use:
+    cd backend
+    alembic -c alembic.ini upgrade head
+
+Alembic V1 establishes version control for the current schema. It intentionally
+does not remove the existing startup bootstrap code yet.

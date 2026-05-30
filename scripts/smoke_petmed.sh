@@ -41,6 +41,10 @@ require_cmd() {
 require_cmd curl
 require_cmd python3
 
+python3 scripts/validate_alembic_setup.py >/dev/null || fail "alembic migration setup validation failed"
+pass "alembic migration setup validation"
+
+
 python3 scripts/validate_exotic_kb.py >/dev/null || fail "exotic knowledge JSON validation failed"
 pass "exotic knowledge JSON validation"
 python3 scripts/validate_companion_kb.py >/dev/null || fail "companion animal knowledge JSON validation failed"
