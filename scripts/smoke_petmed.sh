@@ -81,6 +81,9 @@ pass "legacy case payload dry-run"
 python3 scripts/validate_alembic_setup.py >/dev/null || fail "alembic migration setup validation failed"
 pass "alembic migration setup validation"
 
+python3 scripts/validate_alembic_runtime.py >/dev/null || fail "alembic runtime validation failed"
+pass "alembic runtime validation"
+
 
 python3 scripts/validate_exotic_kb.py >/dev/null || fail "exotic knowledge JSON validation failed"
 pass "exotic knowledge JSON validation"

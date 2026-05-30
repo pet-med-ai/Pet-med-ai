@@ -10,7 +10,7 @@ from datetime import datetime
 from uuid import uuid4
 
 from sqlalchemy.orm import Session
-from sqlalchemy import inspect, text as sql_text
+from sqlalchemy import inspect
 from pydantic import BaseModel, Field
 from jose import jwt, JWTError
 
@@ -59,67 +59,14 @@ CORS_ORIGINS = _csv_env(
 )
 
 
-# ---------- 初始化 ----------
-Base.metadata.create_all(bind=engine)
+# ---------- 数据库结构管理 ----------
+# Database schema is managed by Alembic migrations.
+# Do not create tables or patch columns at application startup.
+# Existing local / Render databases should be stamped to the baseline:
+#   cd backend
+#   python3 -m alembic -c alembic.ini current
+#   python3 -m alembic -c alembic.ini stamp head
 
-
-def ensure_consult_session_columns():
-    """
-    create_all 不会给既有表补列；这里为线上 PostgreSQL / 本地 SQLite
-    兜底补 owner_id 和 case_id，避免引入大迁移工程。
-    """
-    insp = inspect(engine)
-    if not insp.has_table("consult_sessions"):
-        return
-
-    existing = {col["name"] for col in insp.get_columns("consult_sessions")}
-    statements = []
-
-    if "owner_id" not in existing:
-        statements.append("ALTER TABLE consult_sessions ADD COLUMN owner_id INTEGER")
-    if "case_id" not in existing:
-        statements.append("ALTER TABLE consult_sessions ADD COLUMN case_id INTEGER")
-
-    statements.extend([
-        "CREATE INDEX IF NOT EXISTS ix_consult_sessions_owner_id ON consult_sessions (owner_id)",
-        "CREATE INDEX IF NOT EXISTS ix_consult_sessions_case_id ON consult_sessions (case_id)",
-    ])
-
-    if statements:
-        with engine.begin() as conn:
-            for stmt in statements:
-                conn.execute(sql_text(stmt))
-
-
-def ensure_case_extra_columns():
-    # create_all 不会给既有 cases 表补列；这里为新增基础档案字段兜底补列。
-    insp = inspect(engine)
-    if not insp.has_table("cases"):
-        return
-
-    existing = {col["name"] for col in insp.get_columns("cases")}
-    columns = {
-        "breed": "VARCHAR(100)",
-        "weight": "VARCHAR(50)",
-        "coat_color": "VARCHAR(100)",
-        "owner_name": "VARCHAR(100)",
-        "owner_phone": "VARCHAR(50)",
-    }
-
-    statements = [
-        f"ALTER TABLE cases ADD COLUMN {name} {ddl}"
-        for name, ddl in columns.items()
-        if name not in existing
-    ]
-
-    if statements:
-        with engine.begin() as conn:
-            for stmt in statements:
-                conn.execute(sql_text(stmt))
-
-
-ensure_consult_session_columns()
-ensure_case_extra_columns()
 
 app = FastAPI(title="Pet Med AI Backend", version="1.0.0")
 
