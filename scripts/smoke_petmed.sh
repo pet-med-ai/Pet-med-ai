@@ -84,6 +84,9 @@ pass "alembic migration setup validation"
 python3 scripts/validate_kpi_api.py >/dev/null || fail "kpi aggregation API validation failed"
 pass "kpi aggregation API validation"
 
+python3 scripts/validate_kpi_dashboard_frontend.py >/dev/null || fail "kpi dashboard frontend validation failed"
+pass "kpi dashboard frontend validation"
+
 python3 scripts/validate_kpi_data_models.py >/dev/null || fail "kpi data model validation failed"
 pass "kpi data model validation"
 

@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useSearchParams } from "r
 import api from "./api";
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
+import KpiDashboard from "./pages/KpiDashboard";
 
 function getErrorDetail(err) {
   const detail = err?.response?.data?.detail;
@@ -1064,7 +1065,12 @@ function Home() {
 
   return (
     <div lang="zh-CN" translate="no" className="notranslate" style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
-      <h1 style={{ marginTop: 0 }}>Pet Med AI — 前端联调面板</h1>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
+        <h1 style={{ marginTop: 0 }}>Pet Med AI — 前端联调面板</h1>
+        <Link to="/kpi" style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}>
+          运维 KPI 仪表盘
+        </Link>
+      </div>
 
       {/* 登录区 */}
       {!isAuthed ? (
@@ -1705,6 +1711,7 @@ export default function App() {
         <Route path="/cases/new/edit" element={<CaseEditorPage />} />
         <Route path="/cases/:id/edit" element={<CaseEditorPage />} />
         <Route path="/cases/:id" element={<CaseDetail />} />
+        <Route path="/kpi" element={<KpiDashboard />} />
         <Route path="*" element={<div style={{ padding: 24 }}>页面不存在（404）。</div>} />
       </Routes>
     </Router>
