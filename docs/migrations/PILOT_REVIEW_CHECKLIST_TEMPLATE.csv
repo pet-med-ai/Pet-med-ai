@@ -1,0 +1,2 @@
+review_id,source_row_number,legacy_case_id,idempotency_key,pet_name,species,visit_date,primary_dx,case_create_patient_name,case_create_species,case_create_chief_complaint,has_history,has_exam_findings,api_status,ready_for_review,clinical_reviewer,clinical_result,notes
+pilot-0001,2,HS-2026-000123,,咪咪,cat,2026-05-25,Acute gastroenteritis,咪咪,cat,旧系统导入病例：Acute gastroenteritis（就诊日期：2026-05-25）,yes,yes,accepted,yes,,,

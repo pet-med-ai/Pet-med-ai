@@ -375,6 +375,39 @@ json_assert_text_contains "$RESPONSE_BODY" "import_plan.chunks" "1" >/dev/null |
 json_assert_text_contains "$RESPONSE_BODY" "sample_payloads.0.case_create.patient_name" "咪咪" >/dev/null || fail "legacy API dry-run V2：sample payload patient_name 不正确"
 pass "legacy case API dry-run V2"
 
+python3 scripts/run_legacy_pilot_batch.py docs/migrations/LEGACY_CASES_IMPORT_TEMPLATE.csv \
+  --work-dir "$TMP_DIR/legacy_pilot" \
+  --base-url "$BASE_URL" \
+  --token "$token_a" \
+  --batch-id "smoke-legacy-pilot-v1" \
+  --sample-size 1 \
+  --include-items >/dev/null || fail "legacy pilot batch V1 failed"
+python3 - "$TMP_DIR/legacy_pilot/pilot_report.json" "$TMP_DIR/legacy_pilot/pilot_review_checklist.csv" <<'PY' || fail "legacy pilot batch V1 output invalid"
+import csv
+import json
+import sys
+report_path, checklist_path = sys.argv[1], sys.argv[2]
+with open(report_path, "r", encoding="utf-8") as f:
+    report = json.load(f)
+assert report.get("status") == "PASS"
+assert report.get("mode") == "legacy_pilot_batch_v1"
+assert report.get("writes_database") is False
+assert report.get("calls_case_create_api") is False
+assert report.get("api_dry_run_called") is True
+assert report.get("payload_rows") == 1
+assert report.get("review_rows") == 1
+assert report.get("quality_gate", {}).get("passed") is True
+with open(checklist_path, "r", encoding="utf-8") as f:
+    rows = list(csv.DictReader(f))
+assert len(rows) == 1
+assert rows[0].get("pet_name") == "咪咪"
+assert rows[0].get("species") == "cat"
+assert rows[0].get("api_status") == "accepted"
+print("ok")
+PY
+pass "legacy pilot batch V1"
+
+
 
 
 # 3. create owned consult session
