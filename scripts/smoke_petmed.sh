@@ -81,6 +81,9 @@ pass "legacy case payload dry-run"
 python3 scripts/validate_alembic_setup.py >/dev/null || fail "alembic migration setup validation failed"
 pass "alembic migration setup validation"
 
+python3 scripts/validate_kpi_api.py >/dev/null || fail "kpi aggregation API validation failed"
+pass "kpi aggregation API validation"
+
 python3 scripts/validate_kpi_data_models.py >/dev/null || fail "kpi data model validation failed"
 pass "kpi data model validation"
 
@@ -460,6 +463,35 @@ repeat_case_id="$(json_get "$RESPONSE_BODY" "case_id")"
 [[ "$repeat_msg" == "already_saved" ]] || fail "repeat save：期望 already_saved，实际 $repeat_msg"
 [[ "$repeat_case_id" == "$case_id" ]] || fail "repeat save：case_id 不一致"
 pass "repeat save returns already_saved"
+
+# KPI aggregation API V1 checks. Read-only; does not write KPI records.
+http_json GET "/api/kpi/cases" "" "$token_a"
+expect_status 200 "kpi cases"
+json_assert_text_contains "$RESPONSE_BODY" "message" "kpi_cases" >/dev/null || fail "kpi cases：message 异常"
+json_assert_text_contains "$RESPONSE_BODY" "metrics.case_completeness.total_cases" "1" >/dev/null || fail "kpi cases：total_cases 应包含当前 smoke 病例"
+
+http_json GET "/api/kpi/imaging" "" "$token_a"
+expect_status 200 "kpi imaging"
+json_assert_text_contains "$RESPONSE_BODY" "message" "kpi_imaging" >/dev/null || fail "kpi imaging：message 异常"
+json_assert_text_contains "$RESPONSE_BODY" "metrics.repeat_imaging.rate" "0.0" >/dev/null || fail "kpi imaging：空影像复拍率应为 0"
+
+http_json GET "/api/kpi/followups" "" "$token_a"
+expect_status 200 "kpi followups"
+json_assert_text_contains "$RESPONSE_BODY" "message" "kpi_followups" >/dev/null || fail "kpi followups：message 异常"
+json_assert_text_contains "$RESPONSE_BODY" "metrics.followup_compliance.due_total" "0" >/dev/null || fail "kpi followups：空随访 due_total 应为 0"
+
+http_json GET "/api/kpi/qa" "" "$token_a"
+expect_status 200 "kpi qa"
+json_assert_text_contains "$RESPONSE_BODY" "message" "kpi_qa" >/dev/null || fail "kpi qa：message 异常"
+json_assert_text_contains "$RESPONSE_BODY" "metrics.qa_audit_coverage.total_cases" "1" >/dev/null || fail "kpi qa：total_cases 应包含当前 smoke 病例"
+
+http_json GET "/api/kpi/dashboard" "" "$token_a"
+expect_status 200 "kpi dashboard"
+json_assert_text_contains "$RESPONSE_BODY" "message" "kpi_dashboard" >/dev/null || fail "kpi dashboard：message 异常"
+json_assert_text_contains "$RESPONSE_BODY" "cards.case_completeness.label" "病例字段完整度率" >/dev/null || fail "kpi dashboard：缺少病例完整度卡片"
+json_assert_text_contains "$RESPONSE_BODY" "sections.cases.message" "kpi_cases" >/dev/null || fail "kpi dashboard：缺少 cases section"
+pass "kpi aggregation API checks"
+
 
 # 8. unsaved consult can be deleted, saved consult cannot be deleted
 http_json POST "/api/ai/consult/session" '{"text":"Smoke未保存问诊，准备删除"}' "$token_a"
