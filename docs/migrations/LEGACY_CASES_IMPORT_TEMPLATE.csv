@@ -1,0 +1,2 @@
+case_id,visit_date,pet_name,species,weight_kg,clinician,primary_dx,imaging_count,imaging_repeat_count,follow_up_due,follow_up_done,status,created_at,updated_at
+HS-2026-000123,2026-05-25,咪咪,cat,3.20,Dr.Zhao,Acute gastroenteritis,2,0,2026-06-01,,active,2026-05-25T10:12:30+08:00,2026-05-25T10:12:30+08:00

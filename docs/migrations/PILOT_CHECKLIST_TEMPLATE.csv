@@ -1,0 +1,11 @@
+check_id,area,sample_case_id,check_item,expected_result,actual_result,pass_fail,reviewer,reviewed_at,notes
+PILOT-001,basic_info,HS-2026-000123,pet_name displays correctly,咪咪,,,,,
+PILOT-002,basic_info,HS-2026-000123,species normalized,cat,,,,,
+PILOT-003,basic_info,HS-2026-000123,weight converted to kg,3.20,,,,,
+PILOT-004,clinical,HS-2026-000123,primary diagnosis migrated,Acute gastroenteritis,,,,,
+PILOT-005,clinical,HS-2026-000123,history and exam text not garbled,UTF-8 Chinese text readable,,,,,
+PILOT-006,imaging,HS-2026-000123,imaging link reachable,HTTP 200 or authorized viewer opens,,,,,
+PILOT-007,follow_up,HS-2026-000123,follow-up due date correct,2026-06-01,,,,,
+PILOT-008,search,HS-2026-000123,case searchable by pet name,search returns case,,,,,
+PILOT-009,security,HS-2026-000123,case only visible to authorized user,unauthorized user cannot view,,,,,
+PILOT-010,signoff,HS-2026-000123,clinical reviewer approves record,approved,,,,,

@@ -1,0 +1,11 @@
+source_system,source_table,source_field,source_type,target_entity,target_field,target_type,required,default_value,unit_transform,value_mapping,clean_rule,example_source,example_target,notes
+legacy_his,cases,case_no,string,Case,case_id,string,yes,,,trim uppercase,remove spaces,HS-2026-000123,HS-2026-000123,Unique migration case id
+legacy_his,cases,visit_date,date,Case,visit_date,date,yes,,,YYYY-MM-DD,normalize date,2026/05/25,2026-05-25,
+legacy_his,cases,pet_name,string,Case,patient_name,string,yes,,,trim,normalize whitespace,咪咪,咪咪,
+legacy_his,cases,species,string,Case,species,string,yes,dog,,dog=dog;犬=dog;cat=cat;猫=cat;兔=rabbit,standard species vocabulary,猫,cat,
+legacy_his,cases,weight,float,Case,weight_kg,float,no,,g->kg;斤->kg,,convert unit,3200g,3.20,
+legacy_his,cases,doctor,string,Case,clinician,string,no,,,doctor alias map,trim,赵医生,Dr.Zhao,
+legacy_his,cases,diagnosis,string,Case,primary_dx,string,no,,,local dx map,trim,急性胃肠炎,Acute gastroenteritis,
+legacy_pacs,studies,study_url,string,Attachment,url,string,no,,,preserve url,validate reachable,https://pacs.example/study/1,https://pacs.example/study/1,Do not copy large image files in V1
+legacy_his,cases,created_time,datetime,Case,created_at,datetime,yes,,,ISO 8601 +08:00,timezone normalize,2026-05-25 10:12:30,2026-05-25T10:12:30+08:00,
+legacy_his,cases,updated_time,datetime,Case,updated_at,datetime,yes,,,ISO 8601 +08:00,timezone normalize,2026-05-25 10:12:30,2026-05-25T10:12:30+08:00,
