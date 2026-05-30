@@ -341,6 +341,41 @@ json_assert_text_contains "$RESPONSE_BODY" "rejected" "0" >/dev/null || fail "le
 json_assert_text_contains "$RESPONSE_BODY" "items.0.case_create_preview.patient_name" "咪咪" >/dev/null || fail "legacy case API mock：patient_name 预览不正确"
 pass "legacy case API mock"
 
+# Legacy case API dry-run V2: richer batch report, still no DB writes.
+legacy_dry_run_body="$(python3 - "$TMP_DIR/legacy_case_payloads.jsonl" <<'PY'
+import json
+import sys
+jsonl_path = sys.argv[1]
+with open(jsonl_path, "r", encoding="utf-8") as f:
+    records = [json.loads(line) for line in f if line.strip()]
+body = {
+    "batch_id": "smoke-legacy-api-dry-run-v2",
+    "records": records,
+    "options": {
+        "chunk_size": 1000,
+        "sample_limit": 2,
+        "include_items": True,
+    },
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/migrations/legacy-cases/dry-run" "$legacy_dry_run_body" "$token_a"
+expect_status 200 "legacy case API dry-run V2"
+json_assert_text_contains "$RESPONSE_BODY" "message" "dry_run_report" >/dev/null || fail "legacy API dry-run V2：message 未返回 dry_run_report"
+json_assert_text_contains "$RESPONSE_BODY" "mode" "api_dry_run" >/dev/null || fail "legacy API dry-run V2：mode 未返回 api_dry_run"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "legacy API dry-run V2：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "calls_case_create_api" "False" >/dev/null || fail "legacy API dry-run V2：不应调用 case_create API"
+json_assert_text_contains "$RESPONSE_BODY" "accepted" "1" >/dev/null || fail "legacy API dry-run V2：accepted 应为 1"
+json_assert_text_contains "$RESPONSE_BODY" "rejected" "0" >/dev/null || fail "legacy API dry-run V2：rejected 应为 0"
+json_assert_text_contains "$RESPONSE_BODY" "ready_for_import" "True" >/dev/null || fail "legacy API dry-run V2：ready_for_import 应为 true"
+json_assert_text_contains "$RESPONSE_BODY" "summary.species_counts.cat" "1" >/dev/null || fail "legacy API dry-run V2：species_counts.cat 应为 1"
+json_assert_text_contains "$RESPONSE_BODY" "quality.field_coverage.patient_name.ratio" "1.0" >/dev/null || fail "legacy API dry-run V2：patient_name 覆盖率异常"
+json_assert_text_contains "$RESPONSE_BODY" "import_plan.chunks" "1" >/dev/null || fail "legacy API dry-run V2：chunks 应为 1"
+json_assert_text_contains "$RESPONSE_BODY" "sample_payloads.0.case_create.patient_name" "咪咪" >/dev/null || fail "legacy API dry-run V2：sample payload patient_name 不正确"
+pass "legacy case API dry-run V2"
+
+
 
 # 3. create owned consult session
 consult_text="小狗频繁呕吐，精神差，腹部胀"
