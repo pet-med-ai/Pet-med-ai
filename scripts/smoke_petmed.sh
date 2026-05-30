@@ -44,6 +44,40 @@ require_cmd python3
 python3 scripts/validate_legacy_cases_csv.py docs/migrations/LEGACY_CASES_IMPORT_TEMPLATE.csv --errors-out "$TMP_DIR/legacy_migration_errors.csv" >/dev/null || fail "legacy cases CSV validation failed"
 pass "legacy cases CSV validation"
 
+python3 scripts/legacy_cases_to_case_payloads.py docs/migrations/LEGACY_CASES_IMPORT_TEMPLATE.csv \
+  --jsonl-out "$TMP_DIR/legacy_case_payloads.jsonl" \
+  --errors-out "$TMP_DIR/legacy_case_payload_errors.csv" \
+  --report-out "$TMP_DIR/legacy_case_payload_report.json" >/dev/null || fail "legacy case payload dry-run failed"
+python3 - "$TMP_DIR/legacy_case_payloads.jsonl" "$TMP_DIR/legacy_case_payload_report.json" <<'PY' || fail "legacy case payload dry-run output invalid"
+import json
+import sys
+jsonl_path, report_path = sys.argv[1], sys.argv[2]
+with open(jsonl_path, "r", encoding="utf-8") as f:
+    records = [json.loads(line) for line in f if line.strip()]
+if len(records) != 1:
+    print(f"expected 1 JSONL record, got {len(records)}")
+    sys.exit(2)
+record = records[0]
+payload = record.get("case_create") or {}
+assert record.get("operation") == "case_create"
+assert record.get("dry_run") is True
+assert record.get("idempotency_key")
+assert payload.get("patient_name") == "咪咪"
+assert payload.get("species") == "cat"
+assert payload.get("weight") == "3.20kg"
+assert "Acute gastroenteritis" in (payload.get("chief_complaint") or "")
+assert "旧系统迁移记录" in (payload.get("history") or "")
+assert "影像数量：2" in (payload.get("exam_findings") or "")
+with open(report_path, "r", encoding="utf-8") as f:
+    report = json.load(f)
+assert report.get("status") == "PASS"
+assert report.get("writes_database") is False
+assert report.get("calls_api") is False
+assert report.get("payload_rows") == 1
+print("ok")
+PY
+pass "legacy case payload dry-run"
+
 python3 scripts/validate_alembic_setup.py >/dev/null || fail "alembic migration setup validation failed"
 pass "alembic migration setup validation"
 
