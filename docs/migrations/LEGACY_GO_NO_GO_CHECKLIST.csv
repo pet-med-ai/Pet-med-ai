@@ -1,0 +1,12 @@
+check_id,category,check_item,owner,required_threshold,evidence_path,result,blocking,signoff_by,notes
+GNG-001,validation,CSV validator errors,data_owner,0,outputs/migration_report.json,,yes,,
+GNG-002,validation,API dry-run rejected count,data_owner,0,outputs/api_dry_run_report.json,,yes,,
+GNG-003,validation,API dry-run ready_for_import,data_owner,true,outputs/api_dry_run_report.json,,yes,,
+GNG-004,quality,patient_name coverage,data_owner,100%,outputs/api_dry_run_report.json,,yes,,
+GNG-005,quality,species coverage,data_owner,100%,outputs/api_dry_run_report.json,,yes,,
+GNG-006,clinical,clinical review critical issues,clinical_lead,0,docs/migrations/LEGACY_CLINICAL_SIGNOFF_TEMPLATE.csv,,yes,,
+GNG-007,clinical,clinical signoff completed,clinical_lead,signed,docs/migrations/LEGACY_CLINICAL_SIGNOFF_TEMPLATE.csv,,yes,,
+GNG-008,system,local smoke,system_owner,ALL PASS,smoke_log_local.txt,,yes,,
+GNG-009,system,production smoke,system_owner,ALL PASS,smoke_log_prod.txt,,yes,,
+GNG-010,safety,target database backup confirmed,system_owner,confirmed,backup_reference.txt,,yes,,
+GNG-011,rollback,rollback decision owner assigned,project_owner,assigned,docs/migrations/LEGACY_ROLLBACK_DECISION_TEMPLATE.csv,,yes,,

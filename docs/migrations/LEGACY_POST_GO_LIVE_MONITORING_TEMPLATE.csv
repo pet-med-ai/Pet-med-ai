@@ -1,0 +1,5 @@
+check_time,batch_id,metric,expected,actual,status,owner,action_required,notes
+2026-05-30T23:00:00+08:00,prod-001,online_smoke,ALL PASS,,pending,system_owner,yes,
+2026-05-31T09:00:00+08:00,prod-001,case_search_sample,100% openable,,pending,clinical_lead,yes,
+2026-05-31T09:30:00+08:00,prod-001,critical_mismatch_count,0,,pending,clinical_lead,yes,
+2026-05-31T10:00:00+08:00,prod-001,duplicate_case_count,0,,pending,data_owner,yes,

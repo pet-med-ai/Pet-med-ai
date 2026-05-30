@@ -1,0 +1,2 @@
+batch_id,review_date,reviewer_name,reviewer_role,total_records,review_sample_size,sample_selection_method,clinical_history_match,diagnosis_match,imaging_link_check,followup_check,critical_issues_count,minor_issues_count,decision,conditions,signature,notes
+pilot-001,2026-05-30,Dr.Zhao,clinical_lead,200,50,random_plus_high_risk,pass,pass,pass,pass,0,2,go,minor typos can be corrected after import,Dr.Zhao,"Sample accepted for next gate"

@@ -1,0 +1,2 @@
+event_time,batch_id,trigger,threshold,observed_value,severity,decision,authorized_by,rollback_action,target_snapshot,communication_sent,followup_owner,status,notes
+2026-05-30T22:00:00+08:00,pilot-001,clinical_critical_issue,0,1,high,rollback,Dr.Zhao,restore_snapshot,snapshot-before-import,true,system_owner,open,"Example row only"
