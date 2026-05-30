@@ -41,6 +41,9 @@ require_cmd() {
 require_cmd curl
 require_cmd python3
 
+python3 scripts/validate_legacy_cases_csv.py docs/migrations/LEGACY_CASES_IMPORT_TEMPLATE.csv --errors-out "$TMP_DIR/legacy_migration_errors.csv" >/dev/null || fail "legacy cases CSV validation failed"
+pass "legacy cases CSV validation"
+
 python3 scripts/validate_alembic_setup.py >/dev/null || fail "alembic migration setup validation failed"
 pass "alembic migration setup validation"
 
