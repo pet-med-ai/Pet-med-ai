@@ -13,6 +13,8 @@ from sqlalchemy import (
     ForeignKey,
     JSON,
     Index,
+    Boolean,
+    Float,
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 
@@ -114,5 +116,129 @@ class ConsultSession(Base):
 
     __table_args__ = (
         Index("ix_consult_sessions_created_at", "created_at"),
+    )
+
+
+class ImagingStudy(Base):
+    """
+    KPI / diagnostics V1:
+    Imaging metadata only. It stores study/report/viewer references and quality tags,
+    not raw DICOM image files.
+    """
+    __tablename__ = "imaging_studies"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    modality: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    body_part: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    taken_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    is_planned_review: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    tag: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+
+    report_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    viewer_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    thumbnail_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index("ix_imaging_studies_case_modality_part_time", "case_id", "modality", "body_part", "taken_at"),
+    )
+
+
+class ImagingBilling(Base):
+    """
+    KPI V1 billing-side imaging summary.
+    Used for duplicate imaging share; does not replace the clinic billing system.
+    """
+    __tablename__ = "imaging_billing"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    imaging_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("imaging_studies.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    fee: Mapped[float] = mapped_column(Float, default=0.0, nullable=False)
+    tag: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    bill_date: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (
+        Index("ix_imaging_billing_case_bill_date", "case_id", "bill_date"),
+    )
+
+
+class FollowUp(Base):
+    """
+    KPI V1 follow-up plan/result table.
+    Used for follow-up compliance dashboards.
+    """
+    __tablename__ = "followups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    due_date: Mapped[datetime] = mapped_column(DateTime, nullable=False, index=True)
+    done_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    channel: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    owner: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    status: Mapped[str] = mapped_column(String(50), default="due", nullable=False, index=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_followups_case_due_date", "case_id", "due_date"),
+        Index("ix_followups_status_due_date", "status", "due_date"),
+    )
+
+
+class QaAudit(Base):
+    """
+    KPI V1 QA audit sampling table.
+    Used for QA audit coverage and follow-up action tracking.
+    """
+    __tablename__ = "qa_audit"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    auditor: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    audit_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    findings: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    severity: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(50), default="open", nullable=False, index=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    __table_args__ = (
+        Index("ix_qa_audit_case_created_at", "case_id", "created_at"),
     )
 
