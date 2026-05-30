@@ -1,0 +1,109 @@
+{
+  "version": "operations-kpi-dashboard-v1",
+  "generated_for": "Pet-Med-AI",
+  "period": {
+    "label": "本周",
+    "start": "2026-05-25",
+    "end": "2026-05-31"
+  },
+  "cards": [
+    {
+      "key": "case_completeness",
+      "label": "病例字段完整度率",
+      "value": 0.964,
+      "display": "96.4%",
+      "threshold": ">=95%",
+      "status": "ok",
+      "trend_7d": [0.941, 0.948, 0.952, 0.958, 0.961, 0.963, 0.964]
+    },
+    {
+      "key": "repeat_imaging_rate",
+      "label": "影像复拍率",
+      "value": 0.067,
+      "display": "6.7%",
+      "threshold": "<8%",
+      "status": "ok",
+      "trend_7d": [0.092, 0.088, 0.081, 0.077, 0.073, 0.069, 0.067]
+    },
+    {
+      "key": "followup_compliance",
+      "label": "回访合规率",
+      "value": 0.832,
+      "display": "83.2%",
+      "threshold": ">=85%",
+      "status": "warning",
+      "trend_7d": [0.801, 0.812, 0.824, 0.828, 0.829, 0.831, 0.832]
+    },
+    {
+      "key": "avg_time_to_close",
+      "label": "平均结案时长",
+      "value": 5.8,
+      "display": "5.8h",
+      "threshold": "门诊<=6h",
+      "status": "ok",
+      "trend_7d": [6.4, 6.3, 6.1, 6.0, 5.9, 5.9, 5.8]
+    },
+    {
+      "key": "duplicate_imaging_share",
+      "label": "重复影像占比",
+      "value": 0.042,
+      "display": "4.2%",
+      "threshold": "<5%",
+      "status": "ok",
+      "trend_7d": [0.061, 0.058, 0.052, 0.049, 0.047, 0.044, 0.042]
+    },
+    {
+      "key": "qa_audit_coverage",
+      "label": "QA 审计覆盖率",
+      "value": 0.18,
+      "display": "18.0%",
+      "threshold": ">=15%",
+      "status": "ok",
+      "trend_7d": [0.13, 0.14, 0.15, 0.16, 0.17, 0.18, 0.18]
+    }
+  ],
+  "heatmap": [
+    {"dept": "门诊", "doctor": "Dr.Zhao", "case_completeness": 0.98, "repeat_imaging_rate": 0.04, "status": "ok"},
+    {"dept": "门诊", "doctor": "Dr.Li", "case_completeness": 0.93, "repeat_imaging_rate": 0.11, "status": "warning"},
+    {"dept": "住院", "doctor": "Dr.Wang", "case_completeness": 0.96, "repeat_imaging_rate": 0.07, "status": "ok"},
+    {"dept": "影像", "doctor": "Dr.Chen", "case_completeness": 0.95, "repeat_imaging_rate": 0.09, "status": "warning"}
+  ],
+  "trend_series": [
+    {"date": "2026-05-25", "case_completeness": 0.941, "repeat_imaging_rate": 0.092, "followup_compliance": 0.801, "qa_audit_coverage": 0.13},
+    {"date": "2026-05-26", "case_completeness": 0.948, "repeat_imaging_rate": 0.088, "followup_compliance": 0.812, "qa_audit_coverage": 0.14},
+    {"date": "2026-05-27", "case_completeness": 0.952, "repeat_imaging_rate": 0.081, "followup_compliance": 0.824, "qa_audit_coverage": 0.15},
+    {"date": "2026-05-28", "case_completeness": 0.958, "repeat_imaging_rate": 0.077, "followup_compliance": 0.828, "qa_audit_coverage": 0.16},
+    {"date": "2026-05-29", "case_completeness": 0.961, "repeat_imaging_rate": 0.073, "followup_compliance": 0.829, "qa_audit_coverage": 0.17},
+    {"date": "2026-05-30", "case_completeness": 0.963, "repeat_imaging_rate": 0.069, "followup_compliance": 0.831, "qa_audit_coverage": 0.18},
+    {"date": "2026-05-31", "case_completeness": 0.964, "repeat_imaging_rate": 0.067, "followup_compliance": 0.832, "qa_audit_coverage": 0.18}
+  ],
+  "exception_rows": [
+    {
+      "type": "missing_case_fields",
+      "severity": "medium",
+      "case_id": "CASE-2026-00041",
+      "label": "病例字段不完整",
+      "owner": "Dr.Li",
+      "detail": "缺少过敏史 / 主要检查摘要",
+      "target_url": "/cases/41"
+    },
+    {
+      "type": "repeat_imaging",
+      "severity": "high",
+      "case_id": "CASE-2026-00052",
+      "label": "非计划复拍",
+      "owner": "影像组",
+      "detail": "24h 内同部位 DR 重复 2 次，未标注计划复查",
+      "target_url": "/cases/52"
+    },
+    {
+      "type": "overdue_followup",
+      "severity": "medium",
+      "case_id": "CASE-2026-00063",
+      "label": "回访逾期",
+      "owner": "前台/客服",
+      "detail": "回访到期 +2 天仍未记录完成",
+      "target_url": "/cases/63"
+    }
+  ]
+}
