@@ -1331,6 +1331,11 @@ def ai_consult_session_answer(
     return _consult_session_payload(session)
 
 try:
+    from backend.audit_log_api import router as audit_log_api_router
+except ModuleNotFoundError:
+    from audit_log_api import router as audit_log_api_router
+
+try:
     from backend.kpi_api import router as kpi_api_router
 except ModuleNotFoundError:
     from kpi_api import router as kpi_api_router
@@ -1342,6 +1347,7 @@ except ModuleNotFoundError:
 
 # 将 /api 路由挂载到应用
 app.include_router(api)
+app.include_router(audit_log_api_router)
 app.include_router(kpi_api_router)
 app.include_router(legacy_import_mock_router)
 

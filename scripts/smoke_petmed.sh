@@ -93,6 +93,10 @@ pass "kpi data model validation"
 python3 scripts/validate_audit_log_model.py >/dev/null || fail "audit log model validation failed"
 pass "audit log model validation"
 
+
+python3 scripts/validate_audit_log_api.py >/dev/null || fail "audit log append-only API validation failed"
+pass "audit log append-only API validation"
+
 python3 scripts/validate_alembic_runtime.py >/dev/null || fail "alembic runtime validation failed"
 pass "alembic runtime validation"
 
@@ -332,6 +336,61 @@ http_form "/auth/login" "username=${email_a}&password=${PASSWORD}"
 expect_status 200 "login user A"
 token_a="$(json_get "$RESPONSE_BODY" "access_token")"
 [[ -n "$token_a" ]] || fail "login user A：没有 access_token"
+
+
+audit_log_body="$(python3 - "$run_id" <<'PY'
+import json
+import sys
+run_id = sys.argv[1]
+body = {
+    "request_id": f"smoke-audit-{run_id}",
+    "patient_token": f"tok-smoke-{run_id}",
+    "clinician_id": "SMOKE-CLINICIAN",
+    "model_version": "pet-med-ai@smoke",
+    "confidence": 0.82,
+    "suggested_action": "建议：根据问诊风险提示完善检查计划。",
+    "action_taken": "accepted",
+    "override_reason": "与临床体征一致",
+    "note": "Smoke test append-only audit log entry.",
+    "event_type": "ai_review",
+    "source": "smoke",
+    "metadata": {"test": "audit-log-api-v1"},
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/audit-log" "$audit_log_body" "$token_a"
+expect_status 201 "audit log append create"
+audit_log_id="$(json_get "$RESPONSE_BODY" "log_id")"
+[[ -n "$audit_log_id" ]] || fail "audit log append create：没有 log_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "created" >/dev/null || fail "audit log append create：message 未返回 created"
+json_assert_text_contains "$RESPONSE_BODY" "append_only" "True" >/dev/null || fail "audit log append create：append_only 未返回 true"
+json_assert_text_contains "$RESPONSE_BODY" "can_update" "False" >/dev/null || fail "audit log append create：can_update 应为 false"
+json_assert_text_contains "$RESPONSE_BODY" "can_delete" "False" >/dev/null || fail "audit log append create：can_delete 应为 false"
+
+audit_log_bad_confidence="$(python3 <<'PY'
+import json
+print(json.dumps({
+    "request_id": "smoke-audit-bad-confidence",
+    "clinician_id": "SMOKE-CLINICIAN",
+    "confidence": 1.5,
+    "suggested_action": "bad",
+    "action_taken": "accepted",
+}, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/audit-log" "$audit_log_bad_confidence" "$token_a"
+expect_status 422 "audit log rejects invalid confidence"
+
+http_json POST "/api/audit-log" "$audit_log_body"
+expect_status 401 "audit log requires auth"
+
+http_json PUT "/api/audit-log" "$audit_log_body" "$token_a"
+expect_status 405 "audit log has no update route"
+
+http_json DELETE "/api/audit-log" "" "$token_a"
+expect_status 405 "audit log has no delete route"
+pass "audit log append-only API checks"
 
 legacy_mock_body="$(python3 - "$TMP_DIR/legacy_case_payloads.jsonl" <<'PY'
 import json
