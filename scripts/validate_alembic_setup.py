@@ -6,7 +6,6 @@ import py_compile
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 VERSIONS = BACKEND / "migrations" / "versions"
@@ -18,6 +17,7 @@ REQUIRED_FILES = [
     BACKEND / "migrations" / "README",
     VERSIONS / "0001_baseline_current_schema.py",
     VERSIONS / "0002_kpi_data_models.py",
+    VERSIONS / "0003_audit_log.py",
 ]
 
 EXPECTED_METADATA_TABLES = {
@@ -28,6 +28,7 @@ EXPECTED_METADATA_TABLES = {
     "imaging_billing",
     "followups",
     "qa_audit",
+    "audit_log",
 }
 
 
@@ -60,10 +61,11 @@ def main() -> int:
     rc = require_text(
         VERSIONS / "0001_baseline_current_schema.py",
         (
-            'revision = "0001_baseline"',
-            'op.create_table(\n        "users"',
-            'op.create_table(\n        "cases"',
-            'op.create_table(\n        "consult_sessions"',
+            "revision = \"0001_baseline\"",
+            "op.create_table(",
+            "users",
+            "cases",
+            "consult_sessions",
         ),
         "baseline migration",
     )
@@ -73,14 +75,31 @@ def main() -> int:
     rc = require_text(
         VERSIONS / "0002_kpi_data_models.py",
         (
-            'revision = "0002_kpi_data_models"',
-            'down_revision = "0001_baseline"',
-            'op.create_table(\n        "imaging_studies"',
-            'op.create_table(\n        "imaging_billing"',
-            'op.create_table(\n        "followups"',
-            'op.create_table(\n        "qa_audit"',
+            "revision = \"0002_kpi_data_models\"",
+            "down_revision = \"0001_baseline\"",
+            "op.create_table(",
+            "imaging_studies",
+            "imaging_billing",
+            "followups",
+            "qa_audit",
         ),
         "KPI data model migration",
+    )
+    if rc:
+        return rc
+
+    rc = require_text(
+        VERSIONS / "0003_audit_log.py",
+        (
+            "revision = \"0003_audit_log\"",
+            "down_revision = \"0002_kpi_data_models\"",
+            "op.create_table(",
+            "audit_log",
+            "log_id",
+            "request_id",
+            "clinician_id",
+        ),
+        "audit log migration",
     )
     if rc:
         return rc
@@ -96,7 +115,7 @@ def main() -> int:
             f"actual={sorted(tables)}, expected={sorted(EXPECTED_METADATA_TABLES)}"
         )
 
-    print("OK Alembic setup: baseline, KPI migration and SQLAlchemy metadata are present")
+    print("OK Alembic setup: baseline, KPI, audit log migrations and SQLAlchemy metadata are present")
     return 0
 
 

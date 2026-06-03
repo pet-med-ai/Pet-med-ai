@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from uuid import uuid4
 from typing import List, Optional
 
 from sqlalchemy import (
@@ -240,5 +241,44 @@ class QaAudit(Base):
 
     __table_args__ = (
         Index("ix_qa_audit_case_created_at", "case_id", "created_at"),
+    )
+
+class AuditLog(Base):
+    """
+    Compliance / audit V1 append-only log.
+
+    Intended for AI recommendation review, EMR webhook receipts, KB patch review,
+    and later clinical override workflows. The application should only append rows;
+    no update/delete API should be provided.
+    """
+    __tablename__ = "audit_log"
+
+    log_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: uuid4().hex)
+    request_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    patient_token: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    clinician_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    model_version: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    suggested_action: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    action_taken: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    override_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    case_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    session_uid: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(100), default="ai_review", nullable=False, index=True)
+    source: Mapped[str] = mapped_column(String(100), default="pet-med-ai", nullable=False)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    __table_args__ = (
+        Index("ix_audit_log_request_created_at", "request_id", "created_at"),
+        Index("ix_audit_log_clinician_created_at", "clinician_id", "created_at"),
     )
 

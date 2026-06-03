@@ -90,6 +90,9 @@ pass "kpi dashboard frontend validation"
 python3 scripts/validate_kpi_data_models.py >/dev/null || fail "kpi data model validation failed"
 pass "kpi data model validation"
 
+python3 scripts/validate_audit_log_model.py >/dev/null || fail "audit log model validation failed"
+pass "audit log model validation"
+
 python3 scripts/validate_alembic_runtime.py >/dev/null || fail "alembic runtime validation failed"
 pass "alembic runtime validation"
 
