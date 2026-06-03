@@ -106,6 +106,9 @@ pass "emr webhook dry-run validation"
 python3 scripts/validate_emr_webhook_receipt_persistence.py >/dev/null || fail "emr webhook receipt persistence validation failed"
 pass "emr webhook receipt persistence validation"
 
+python3 scripts/validate_emr_case_mapping_dry_run.py >/dev/null || fail "emr to case mapping dry-run validation failed"
+pass "emr to case mapping dry-run validation"
+
 python3 scripts/validate_ai_review_audit_ui.py >/dev/null || fail "AI review audit UI validation failed"
 pass "AI review audit UI validation"
 
@@ -469,6 +472,54 @@ RESPONSE_STATUS="$(curl -sS --connect-timeout 15 --max-time 120 \
 RESPONSE_BODY="$emr_resp"
 expect_status 401 "emr webhook dry-run rejects bad signature"
 pass "emr webhook dry-run checks"
+
+# EMR -> Case mapping dry-run V1: richer CaseCreate preview, still no Case writes.
+emr_map_idem="smoke-emr-map-${run_id}"
+map_resp="$TMP_DIR/emr_case_mapping_resp.json"
+RESPONSE_STATUS="$(curl -sS --connect-timeout 15 --max-time 120 \
+  -X POST "${BASE_URL}/api/webhooks/emr/case-mapping/dry-run" \
+  -H "Content-Type: application/json" \
+  -H "X-PMAI-Timestamp: ${emr_ts}" \
+  -H "X-PMAI-Signature: ${emr_sig}" \
+  -H "Idempotency-Key: ${emr_map_idem}" \
+  --data-binary "@${emr_body_file}" \
+  -o "$map_resp" \
+  -w "%{http_code}")" || {
+    RESPONSE_BODY="$map_resp"
+    fail "请求失败：POST /api/webhooks/emr/case-mapping/dry-run"
+  }
+RESPONSE_BODY="$map_resp"
+expect_status 202 "emr to case mapping dry-run accepted"
+emr_map_receipt_id="$(json_get "$RESPONSE_BODY" "receipt_id")"
+[[ -n "$emr_map_receipt_id" ]] || fail "emr to case mapping dry-run：没有 receipt_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "emr_case_mapping_dry_run" >/dev/null || fail "emr to case mapping dry-run：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "mode" "case_mapping_dry_run" >/dev/null || fail "emr to case mapping dry-run：mode 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "writes_webhook_inbox" "True" >/dev/null || fail "emr to case mapping dry-run：应写入 webhook_inbox receipt"
+json_assert_text_contains "$RESPONSE_BODY" "writes_case_database" "False" >/dev/null || fail "emr to case mapping dry-run：不应写病例库"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "emr to case mapping dry-run：不应创建病例"
+json_assert_text_contains "$RESPONSE_BODY" "mapping.case_create.patient_name" "咪咪" >/dev/null || fail "emr to case mapping dry-run：patient_name 映射错误"
+json_assert_text_contains "$RESPONSE_BODY" "mapping.case_create.species" "cat" >/dev/null || fail "emr to case mapping dry-run：species 映射错误"
+json_assert_text_contains "$RESPONSE_BODY" "mapping.case_create.chief_complaint" "呕吐" >/dev/null || fail "emr to case mapping dry-run：主诉映射错误"
+json_assert_text_contains "$RESPONSE_BODY" "import_plan.can_promote_to_real_import" "False" >/dev/null || fail "emr to case mapping dry-run：不应允许直接提升为真实入库"
+
+RESPONSE_STATUS="$(curl -sS --connect-timeout 15 --max-time 120 \
+  -X POST "${BASE_URL}/api/webhooks/emr/case-mapping/dry-run" \
+  -H "Content-Type: application/json" \
+  -H "X-PMAI-Timestamp: ${emr_ts}" \
+  -H "X-PMAI-Signature: ${emr_sig}" \
+  -H "Idempotency-Key: ${emr_map_idem}" \
+  --data-binary "@${emr_body_file}" \
+  -o "$map_resp" \
+  -w "%{http_code}")" || {
+    RESPONSE_BODY="$map_resp"
+    fail "请求失败：POST /api/webhooks/emr/case-mapping/dry-run duplicate"
+  }
+RESPONSE_BODY="$map_resp"
+expect_status 202 "emr to case mapping dry-run duplicate"
+json_assert_text_contains "$RESPONSE_BODY" "status" "duplicate" >/dev/null || fail "emr to case mapping dry-run：重复幂等键未返回 duplicate"
+json_assert_text_contains "$RESPONSE_BODY" "receipt_persisted" "True" >/dev/null || fail "emr to case mapping dry-run：duplicate 应保留 receipt_persisted"
+pass "emr to case mapping dry-run checks"
+
 
 
 

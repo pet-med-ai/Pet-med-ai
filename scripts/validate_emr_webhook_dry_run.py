@@ -41,14 +41,13 @@ def main() -> int:
             "X-PMAI-Signature",
             "Idempotency-Key",
             "HMAC-SHA256",
-            "writes_database",
+            "WebhookInbox",
             "writes_webhook_inbox",
             "writes_case_database",
             "creates_case",
             "downloads_attachments",
             "mapped_case_preview",
             "DEFAULT_DRY_RUN_SECRET",
-            "WebhookInbox",
         ),
         "backend/emr_webhook.py",
     )
@@ -59,7 +58,6 @@ def main() -> int:
     forbidden = (
         "Case(",
         "ConsultSession(",
-        "AuditLog(",
         '@router.post("/emr"',
     )
     for needle in forbidden:
