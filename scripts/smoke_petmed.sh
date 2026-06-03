@@ -93,6 +93,9 @@ pass "kpi data model validation"
 python3 scripts/validate_audit_log_model.py >/dev/null || fail "audit log model validation failed"
 pass "audit log model validation"
 
+python3 scripts/validate_webhook_inbox_model.py >/dev/null || fail "webhook inbox model validation failed"
+pass "webhook inbox model validation"
+
 
 python3 scripts/validate_audit_log_api.py >/dev/null || fail "audit log append-only API validation failed"
 pass "audit log append-only API validation"

@@ -282,3 +282,53 @@ class AuditLog(Base):
         Index("ix_audit_log_clinician_created_at", "clinician_id", "created_at"),
     )
 
+class WebhookInbox(Base):
+    """
+    EMR / external webhook inbox V1.
+
+    This table persists inbound webhook receipt metadata for idempotency,
+    traceability, dry-run validation reports, and later async processing.
+    It does not create Case records by itself.
+    """
+    __tablename__ = "webhook_inbox"
+
+    receipt_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"rcpt_{uuid4().hex}")
+
+    source: Mapped[str] = mapped_column(String(100), default="emr", nullable=False, index=True)
+    event_type: Mapped[str] = mapped_column(String(100), default="case.upsert", nullable=False, index=True)
+    idempotency_key: Mapped[str] = mapped_column(String(255), nullable=False)
+    payload_hash: Mapped[str] = mapped_column(String(128), nullable=False, index=True)
+    signature_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+
+    external_case_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    external_encounter_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    case_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    status: Mapped[str] = mapped_column(String(50), default="received", nullable=False, index=True)
+    dry_run: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+
+    validation_errors: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    validation_warnings: Mapped[Optional[list]] = mapped_column(JSON, nullable=True)
+    mapped_case_preview: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    error_code: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    processed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ux_webhook_inbox_idempotency_key", "idempotency_key", unique=True),
+        Index("ix_webhook_inbox_source_received", "source", "received_at"),
+        Index("ix_webhook_inbox_status_received", "status", "received_at"),
+        Index("ix_webhook_inbox_external_case", "external_case_id", "external_encounter_id"),
+    )

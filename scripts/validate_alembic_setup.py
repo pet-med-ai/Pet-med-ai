@@ -6,6 +6,7 @@ import py_compile
 import sys
 from pathlib import Path
 
+
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 VERSIONS = BACKEND / "migrations" / "versions"
@@ -18,6 +19,7 @@ REQUIRED_FILES = [
     VERSIONS / "0001_baseline_current_schema.py",
     VERSIONS / "0002_kpi_data_models.py",
     VERSIONS / "0003_audit_log.py",
+    VERSIONS / "0004_webhook_inbox_receipts.py",
 ]
 
 EXPECTED_METADATA_TABLES = {
@@ -29,6 +31,7 @@ EXPECTED_METADATA_TABLES = {
     "followups",
     "qa_audit",
     "audit_log",
+    "webhook_inbox",
 }
 
 
@@ -58,51 +61,53 @@ def main() -> int:
     if "script_location = migrations" not in ini_text:
         return fail("backend/alembic.ini must set script_location = migrations")
 
-    rc = require_text(
-        VERSIONS / "0001_baseline_current_schema.py",
+    checks = [
         (
-            "revision = \"0001_baseline\"",
-            "op.create_table(",
-            "users",
-            "cases",
-            "consult_sessions",
+            VERSIONS / "0001_baseline_current_schema.py",
+            (
+                'revision = "0001_baseline"',
+                'op.create_table(\n        "users"',
+                'op.create_table(\n        "cases"',
+                'op.create_table(\n        "consult_sessions"',
+            ),
+            "baseline migration",
         ),
-        "baseline migration",
-    )
-    if rc:
-        return rc
+        (
+            VERSIONS / "0002_kpi_data_models.py",
+            (
+                'revision = "0002_kpi_data_models"',
+                'down_revision = "0001_baseline"',
+                'op.create_table(\n        "imaging_studies"',
+                'op.create_table(\n        "imaging_billing"',
+                'op.create_table(\n        "followups"',
+                'op.create_table(\n        "qa_audit"',
+            ),
+            "KPI data model migration",
+        ),
+        (
+            VERSIONS / "0003_audit_log.py",
+            (
+                'revision = "0003_audit_log"',
+                'down_revision = "0002_kpi_data_models"',
+                'op.create_table(\n        "audit_log"',
+            ),
+            "audit log migration",
+        ),
+        (
+            VERSIONS / "0004_webhook_inbox_receipts.py",
+            (
+                'revision = "0004_webhook_inbox_receipts"',
+                'down_revision = "0003_audit_log"',
+                'op.create_table(\n        "webhook_inbox"',
+            ),
+            "webhook inbox migration",
+        ),
+    ]
 
-    rc = require_text(
-        VERSIONS / "0002_kpi_data_models.py",
-        (
-            "revision = \"0002_kpi_data_models\"",
-            "down_revision = \"0001_baseline\"",
-            "op.create_table(",
-            "imaging_studies",
-            "imaging_billing",
-            "followups",
-            "qa_audit",
-        ),
-        "KPI data model migration",
-    )
-    if rc:
-        return rc
-
-    rc = require_text(
-        VERSIONS / "0003_audit_log.py",
-        (
-            "revision = \"0003_audit_log\"",
-            "down_revision = \"0002_kpi_data_models\"",
-            "op.create_table(",
-            "audit_log",
-            "log_id",
-            "request_id",
-            "clinician_id",
-        ),
-        "audit log migration",
-    )
-    if rc:
-        return rc
+    for path, needles, label in checks:
+        rc = require_text(path, needles, label)
+        if rc:
+            return rc
 
     sys.path.insert(0, str(BACKEND))
     from db import Base  # noqa: WPS433
@@ -115,7 +120,7 @@ def main() -> int:
             f"actual={sorted(tables)}, expected={sorted(EXPECTED_METADATA_TABLES)}"
         )
 
-    print("OK Alembic setup: baseline, KPI, audit log migrations and SQLAlchemy metadata are present")
+    print("OK Alembic setup: baseline, KPI, audit log, webhook inbox migrations and SQLAlchemy metadata are present")
     return 0
 
 
