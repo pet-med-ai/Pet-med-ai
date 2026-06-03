@@ -6,7 +6,6 @@ import py_compile
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 
@@ -43,10 +42,13 @@ def main() -> int:
             "Idempotency-Key",
             "HMAC-SHA256",
             "writes_database",
+            "writes_webhook_inbox",
+            "writes_case_database",
             "creates_case",
             "downloads_attachments",
             "mapped_case_preview",
             "DEFAULT_DRY_RUN_SECRET",
+            "WebhookInbox",
         ),
         "backend/emr_webhook.py",
     )
@@ -55,10 +57,9 @@ def main() -> int:
 
     emr_text = emr.read_text(encoding="utf-8")
     forbidden = (
-        "db.add(",
-        "db.commit(",
         "Case(",
         "ConsultSession(",
+        "AuditLog(",
         '@router.post("/emr"',
     )
     for needle in forbidden:

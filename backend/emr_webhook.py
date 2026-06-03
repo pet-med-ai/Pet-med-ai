@@ -9,8 +9,17 @@ import os
 import time
 from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import Session
+
+try:
+    from backend.db import get_db
+    from backend.models import WebhookInbox
+except ModuleNotFoundError:
+    from db import get_db
+    from models import WebhookInbox
 
 
 router = APIRouter(prefix="/api/webhooks", tags=["webhooks"])
@@ -20,8 +29,8 @@ WINDOW_SECONDS = 300
 MAX_BODY_BYTES = 512 * 1024
 IDEMPOTENCY_CACHE_SECONDS = 15 * 60
 
-# V1 uses a process-local cache only. It is enough for dry-run smoke / handshake.
-# A later inbox model should move this to PostgreSQL/Redis before real ingestion.
+# Kept only as a best-effort short-lived cache for compatibility, but receipt
+# persistence V1 uses the webhook_inbox table as the source of truth.
 _IDEMPOTENCY_CACHE: Dict[str, Dict[str, Any]] = {}
 
 
@@ -99,6 +108,107 @@ def _cleanup_idempotency_cache() -> None:
 def _receipt_for(idempotency_key: str, payload_digest: str) -> str:
     digest = hashlib.sha256(f"{idempotency_key}|{payload_digest}".encode("utf-8")).hexdigest()
     return "rcpt_" + digest[:24]
+
+
+def _signature_hash(signature: str) -> str:
+    return hashlib.sha256(_text(signature).encode("utf-8")).hexdigest()
+
+
+def _external_ids(payload: Dict[str, Any]) -> Tuple[Optional[str], Optional[str]]:
+    encounter = payload.get("encounter") if isinstance(payload.get("encounter"), dict) else {}
+    return _text(payload.get("case_id")) or None, _text(encounter.get("encounter_id")) or None
+
+
+def _first_error_code(errors: List[Dict[str, str]]) -> Optional[str]:
+    if not errors:
+        return None
+    return _text(errors[0].get("error_code")) or "validation_error"
+
+
+def _first_error_message(errors: List[Dict[str, str]]) -> Optional[str]:
+    if not errors:
+        return None
+    return _text(errors[0].get("error_reason")) or "Webhook validation failed."
+
+
+def _duplicate_response(existing: WebhookInbox, idem: str, digest: str) -> JSONResponse:
+    warnings: List[Dict[str, str]] = []
+    if existing.payload_hash != digest:
+        warnings.append({
+            "field": "Idempotency-Key",
+            "warning_code": "duplicate_key_different_payload",
+            "warning_reason": "Same Idempotency-Key was reused with a different payload hash.",
+            "suggestion": "Keep a stable key per event and do not reuse it across different events.",
+        })
+
+    stored_warnings = existing.validation_warnings if isinstance(existing.validation_warnings, list) else []
+    return JSONResponse(
+        status_code=202,
+        content={
+            "message": "emr_webhook_dry_run",
+            "status": "duplicate",
+            "stored_status": existing.status,
+            "receipt_id": existing.receipt_id,
+            "idempotency_key": idem,
+            "payload_hash": digest,
+            "stored_payload_hash": existing.payload_hash,
+            "dry_run": True,
+            "writes_database": True,
+            "writes_webhook_inbox": True,
+            "writes_case_database": False,
+            "creates_case": False,
+            "downloads_attachments": False,
+            "receipt_persisted": True,
+            "mapped_case_preview": existing.mapped_case_preview or None,
+            "validation": {
+                "accepted": existing.status == "accepted",
+                "errors": existing.validation_errors or [],
+                "warnings": stored_warnings + warnings,
+            },
+            "warnings": warnings,
+            "next_gate": "EMR -> Case mapping dry-run before any real case ingestion.",
+        },
+    )
+
+
+def _save_webhook_inbox_record(
+    *,
+    db: Session,
+    receipt_id: str,
+    idem: str,
+    digest: str,
+    signature: str,
+    payload: Dict[str, Any],
+    errors: List[Dict[str, str]],
+    warnings: List[Dict[str, str]],
+    case_preview: Dict[str, Any],
+    status: str,
+) -> WebhookInbox:
+    external_case_id, external_encounter_id = _external_ids(payload)
+    obj = WebhookInbox(
+        receipt_id=receipt_id,
+        source="emr",
+        event_type="case.upsert",
+        idempotency_key=idem,
+        payload_hash=digest,
+        signature_hash=_signature_hash(signature),
+        external_case_id=external_case_id,
+        external_encounter_id=external_encounter_id,
+        status=status,
+        dry_run=True,
+        validation_errors=errors or None,
+        validation_warnings=warnings or None,
+        mapped_case_preview=case_preview or None,
+        payload=payload,
+        error_code=_first_error_code(errors),
+        error_message=_first_error_message(errors),
+        received_at=datetime.utcnow(),
+        processed_at=datetime.utcnow(),
+    )
+    db.add(obj)
+    db.commit()
+    db.refresh(obj)
+    return obj
 
 
 def _validate_payload(payload: Dict[str, Any]) -> Tuple[List[Dict[str, str]], List[Dict[str, str]]]:
@@ -215,11 +325,13 @@ async def emr_webhook_dry_run(
     x_pmai_timestamp: Optional[str] = Header(default=None, alias="X-PMAI-Timestamp"),
     x_pmai_signature: Optional[str] = Header(default=None, alias="X-PMAI-Signature"),
     idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
+    db: Session = Depends(get_db),
 ):
     """
     Receive and validate an EMR webhook in dry-run mode.
 
     Safety boundary:
+    - persists a webhook_inbox receipt for traceability and idempotency
     - does not write Case
     - does not create ConsultSession
     - does not download attachments
@@ -253,44 +365,41 @@ async def emr_webhook_dry_run(
     _cleanup_idempotency_cache()
     digest = _payload_hash(raw_body)
 
-    cached = _IDEMPOTENCY_CACHE.get(idem)
-    if cached:
-        duplicate_status = "duplicate"
-        warnings = []
-        if cached.get("payload_hash") != digest:
-            warnings.append({
-                "field": "Idempotency-Key",
-                "warning_code": "duplicate_key_different_payload",
-                "warning_reason": "Same Idempotency-Key was reused with a different payload hash.",
-                "suggestion": "Keep a stable key per event and do not reuse it across different events.",
-            })
-        return JSONResponse(
-            status_code=202,
-            content={
-                "message": "emr_webhook_dry_run",
-                "status": duplicate_status,
-                "receipt_id": cached.get("receipt_id"),
-                "idempotency_key": idem,
-                "payload_hash": digest,
-                "dry_run": True,
-                "writes_database": False,
-                "creates_case": False,
-                "downloads_attachments": False,
-                "warnings": warnings,
-            },
-        )
+    existing = db.query(WebhookInbox).filter(WebhookInbox.idempotency_key == idem).first()
+    if existing:
+        return _duplicate_response(existing, idem, digest)
 
     errors, warnings = _validate_payload(payload)
     case_preview = _map_case_preview(payload)
     receipt_id = _receipt_for(idem, digest)
+
+    status = "accepted" if not errors else "rejected"
+
+    try:
+        inbox = _save_webhook_inbox_record(
+            db=db,
+            receipt_id=receipt_id,
+            idem=idem,
+            digest=digest,
+            signature=signature,
+            payload=payload,
+            errors=errors,
+            warnings=warnings,
+            case_preview=case_preview,
+            status=status,
+        )
+    except IntegrityError:
+        db.rollback()
+        existing = db.query(WebhookInbox).filter(WebhookInbox.idempotency_key == idem).first()
+        if existing:
+            return _duplicate_response(existing, idem, digest)
+        raise
 
     _IDEMPOTENCY_CACHE[idem] = {
         "receipt_id": receipt_id,
         "payload_hash": digest,
         "created_monotonic": time.time(),
     }
-
-    status = "accepted" if not errors else "rejected"
 
     return {
         "message": "emr_webhook_dry_run",
@@ -300,9 +409,20 @@ async def emr_webhook_dry_run(
         "payload_hash": digest,
         "generated_at": _now_iso(),
         "dry_run": True,
-        "writes_database": False,
+        "writes_database": True,
+        "writes_webhook_inbox": True,
+        "writes_case_database": False,
         "creates_case": False,
         "downloads_attachments": False,
+        "receipt_persisted": True,
+        "webhook_inbox": {
+            "receipt_id": inbox.receipt_id,
+            "status": inbox.status,
+            "external_case_id": inbox.external_case_id,
+            "external_encounter_id": inbox.external_encounter_id,
+            "received_at": inbox.received_at.isoformat() if inbox.received_at else None,
+            "processed_at": inbox.processed_at.isoformat() if inbox.processed_at else None,
+        },
         "signature": {
             "algorithm": "HMAC-SHA256",
             "timestamp_window_seconds": WINDOW_SECONDS,

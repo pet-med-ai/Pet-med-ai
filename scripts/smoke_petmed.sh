@@ -103,6 +103,9 @@ pass "audit log append-only API validation"
 python3 scripts/validate_emr_webhook_dry_run.py >/dev/null || fail "emr webhook dry-run validation failed"
 pass "emr webhook dry-run validation"
 
+python3 scripts/validate_emr_webhook_receipt_persistence.py >/dev/null || fail "emr webhook receipt persistence validation failed"
+pass "emr webhook receipt persistence validation"
+
 python3 scripts/validate_ai_review_audit_ui.py >/dev/null || fail "AI review audit UI validation failed"
 pass "AI review audit UI validation"
 
@@ -425,9 +428,12 @@ emr_receipt_id="$(json_get "$RESPONSE_BODY" "receipt_id")"
 [[ -n "$emr_receipt_id" ]] || fail "emr webhook dry-run：没有 receipt_id"
 json_assert_text_contains "$RESPONSE_BODY" "message" "emr_webhook_dry_run" >/dev/null || fail "emr webhook dry-run：message 不正确"
 json_assert_text_contains "$RESPONSE_BODY" "status" "accepted" >/dev/null || fail "emr webhook dry-run：status 未 accepted"
-json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "emr webhook dry-run：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "True" >/dev/null || fail "emr webhook dry-run：应写入 webhook_inbox receipt"
+json_assert_text_contains "$RESPONSE_BODY" "writes_webhook_inbox" "True" >/dev/null || fail "emr webhook dry-run：应写入 webhook_inbox"
+json_assert_text_contains "$RESPONSE_BODY" "writes_case_database" "False" >/dev/null || fail "emr webhook dry-run：不应写病例库"
 json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "emr webhook dry-run：不应创建病例"
 json_assert_text_contains "$RESPONSE_BODY" "downloads_attachments" "False" >/dev/null || fail "emr webhook dry-run：不应下载附件"
+json_assert_text_contains "$RESPONSE_BODY" "receipt_persisted" "True" >/dev/null || fail "emr webhook dry-run：receipt 未持久化"
 json_assert_text_contains "$RESPONSE_BODY" "mapped_case_preview.patient_name" "咪咪" >/dev/null || fail "emr webhook dry-run：patient_name 映射错误"
 json_assert_text_contains "$RESPONSE_BODY" "mapped_case_preview.species" "cat" >/dev/null || fail "emr webhook dry-run：species 映射错误"
 
@@ -446,6 +452,7 @@ RESPONSE_STATUS="$(curl -sS --connect-timeout 15 --max-time 120 \
 RESPONSE_BODY="$emr_resp"
 expect_status 202 "emr webhook dry-run duplicate"
 json_assert_text_contains "$RESPONSE_BODY" "status" "duplicate" >/dev/null || fail "emr webhook dry-run：重复幂等键未返回 duplicate"
+json_assert_text_contains "$RESPONSE_BODY" "receipt_persisted" "True" >/dev/null || fail "emr webhook dry-run：duplicate receipt 未持久化"
 
 RESPONSE_STATUS="$(curl -sS --connect-timeout 15 --max-time 120 \
   -X POST "${BASE_URL}/api/webhooks/emr/dry-run" \
