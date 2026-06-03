@@ -97,6 +97,9 @@ pass "audit log model validation"
 python3 scripts/validate_audit_log_api.py >/dev/null || fail "audit log append-only API validation failed"
 pass "audit log append-only API validation"
 
+python3 scripts/validate_emr_webhook_dry_run.py >/dev/null || fail "emr webhook dry-run validation failed"
+pass "emr webhook dry-run validation"
+
 python3 scripts/validate_ai_review_audit_ui.py >/dev/null || fail "AI review audit UI validation failed"
 pass "AI review audit UI validation"
 
@@ -330,6 +333,134 @@ echo
 # 1. healthz
 http_json GET "/healthz"
 expect_status 200 "healthz"
+
+# EMR Webhook dry-run V1: signed handshake without DB writes.
+emr_body_file="$TMP_DIR/emr_webhook_body.json"
+emr_headers_file="$TMP_DIR/emr_webhook_headers.json"
+python3 - "$run_id" "$emr_body_file" "$emr_headers_file" <<'PY'
+import hashlib
+import hmac
+import json
+import sys
+from datetime import datetime, timezone
+
+run_id, body_path, headers_path = sys.argv[1], sys.argv[2], sys.argv[3]
+secret = "petmed-emr-webhook-dry-run-secret-v1"
+body = {
+    "case_id": f"CASE-SMOKE-{run_id}",
+    "pet": {
+        "name": "咪咪",
+        "species": "cat",
+        "dob": "2023-09-01",
+        "weight_kg": 3.2,
+    },
+    "owner": {
+        "name": "王小花",
+        "phone": "+86-13900000000",
+        "id": "OWNER-SMOKE",
+    },
+    "encounter": {
+        "encounter_id": f"ENC-SMOKE-{run_id}",
+        "status": "updated",
+        "chief_complaint": "呕吐、腹泻、食欲差",
+        "vitals": {
+            "temp_c": 39.2,
+            "hr": 160,
+            "rr": 32,
+            "weight_kg": 3.1,
+            "bcs": 4,
+        },
+        "diagnosis_codes": ["K52.9", "R11"],
+        "procedures": ["US-ABDOMEN", "CBC", "BIOCHEM"],
+        "meds": [
+            {"name": "奥美拉唑", "dose": "1 mg/kg", "route": "PO", "freq": "q24h"},
+        ],
+    },
+    "attachments": [
+        {"presigned_url": "https://files.example.com/presigned/smoke.jpg"},
+    ],
+    "clinician": {"id": "CLN-SMOKE", "name": "Smoke Clinician"},
+    "timestamps": {
+        "created_at": "2026-05-25T09:12:33Z",
+        "updated_at": "2026-05-25T10:05:11Z",
+    },
+}
+raw = json.dumps(body, ensure_ascii=False, separators=(",", ":"))
+ts = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+sig = "sha256=" + hmac.new(secret.encode("utf-8"), (ts + "." + raw).encode("utf-8"), hashlib.sha256).hexdigest()
+headers = {
+    "timestamp": ts,
+    "signature": sig,
+    "idempotency_key": f"smoke-emr-{run_id}",
+}
+with open(body_path, "w", encoding="utf-8") as f:
+    f.write(raw)
+with open(headers_path, "w", encoding="utf-8") as f:
+    json.dump(headers, f, ensure_ascii=False)
+PY
+
+emr_ts="$(json_get "$emr_headers_file" "timestamp")"
+emr_sig="$(json_get "$emr_headers_file" "signature")"
+emr_idem="$(json_get "$emr_headers_file" "idempotency_key")"
+emr_resp="$TMP_DIR/emr_webhook_resp.json"
+
+RESPONSE_STATUS="$(curl -sS --connect-timeout 15 --max-time 120 \
+  -X POST "${BASE_URL}/api/webhooks/emr/dry-run" \
+  -H "Content-Type: application/json" \
+  -H "X-PMAI-Timestamp: ${emr_ts}" \
+  -H "X-PMAI-Signature: ${emr_sig}" \
+  -H "Idempotency-Key: ${emr_idem}" \
+  --data-binary "@${emr_body_file}" \
+  -o "$emr_resp" \
+  -w "%{http_code}")" || {
+    RESPONSE_BODY="$emr_resp"
+    fail "请求失败：POST /api/webhooks/emr/dry-run"
+  }
+RESPONSE_BODY="$emr_resp"
+expect_status 202 "emr webhook dry-run accepted"
+emr_receipt_id="$(json_get "$RESPONSE_BODY" "receipt_id")"
+[[ -n "$emr_receipt_id" ]] || fail "emr webhook dry-run：没有 receipt_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "emr_webhook_dry_run" >/dev/null || fail "emr webhook dry-run：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "status" "accepted" >/dev/null || fail "emr webhook dry-run：status 未 accepted"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "emr webhook dry-run：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "emr webhook dry-run：不应创建病例"
+json_assert_text_contains "$RESPONSE_BODY" "downloads_attachments" "False" >/dev/null || fail "emr webhook dry-run：不应下载附件"
+json_assert_text_contains "$RESPONSE_BODY" "mapped_case_preview.patient_name" "咪咪" >/dev/null || fail "emr webhook dry-run：patient_name 映射错误"
+json_assert_text_contains "$RESPONSE_BODY" "mapped_case_preview.species" "cat" >/dev/null || fail "emr webhook dry-run：species 映射错误"
+
+RESPONSE_STATUS="$(curl -sS --connect-timeout 15 --max-time 120 \
+  -X POST "${BASE_URL}/api/webhooks/emr/dry-run" \
+  -H "Content-Type: application/json" \
+  -H "X-PMAI-Timestamp: ${emr_ts}" \
+  -H "X-PMAI-Signature: ${emr_sig}" \
+  -H "Idempotency-Key: ${emr_idem}" \
+  --data-binary "@${emr_body_file}" \
+  -o "$emr_resp" \
+  -w "%{http_code}")" || {
+    RESPONSE_BODY="$emr_resp"
+    fail "请求失败：POST /api/webhooks/emr/dry-run duplicate"
+  }
+RESPONSE_BODY="$emr_resp"
+expect_status 202 "emr webhook dry-run duplicate"
+json_assert_text_contains "$RESPONSE_BODY" "status" "duplicate" >/dev/null || fail "emr webhook dry-run：重复幂等键未返回 duplicate"
+
+RESPONSE_STATUS="$(curl -sS --connect-timeout 15 --max-time 120 \
+  -X POST "${BASE_URL}/api/webhooks/emr/dry-run" \
+  -H "Content-Type: application/json" \
+  -H "X-PMAI-Timestamp: ${emr_ts}" \
+  -H "X-PMAI-Signature: sha256=bad" \
+  -H "Idempotency-Key: smoke-emr-bad-${run_id}" \
+  --data-binary "@${emr_body_file}" \
+  -o "$emr_resp" \
+  -w "%{http_code}")" || {
+    RESPONSE_BODY="$emr_resp"
+    fail "请求失败：POST /api/webhooks/emr/dry-run bad signature"
+  }
+RESPONSE_BODY="$emr_resp"
+expect_status 401 "emr webhook dry-run rejects bad signature"
+pass "emr webhook dry-run checks"
+
+
 
 # 2. signup/login user A
 http_json POST "/auth/signup" "{\"email\":\"${email_a}\",\"password\":\"${PASSWORD}\",\"full_name\":\"Smoke A\"}"
