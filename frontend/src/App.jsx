@@ -137,6 +137,12 @@ function Home() {
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
   const [loadingFollowup, setLoadingFollowup] = useState(false);
   const [errMsg, setErrMsg] = useState("");
+  const [auditReviewAction, setAuditReviewAction] = useState("accepted");
+  const [auditReviewReason, setAuditReviewReason] = useState("");
+  const [auditReviewNote, setAuditReviewNote] = useState("");
+  const [auditClinicianId, setAuditClinicianId] = useState("");
+  const [auditSubmitting, setAuditSubmitting] = useState(false);
+  const [auditLogReceipt, setAuditLogReceipt] = useState(null);
 
   const [patientName, setPatientName] = useState("");
   const [species, setSpecies] = useState("dog");
@@ -635,6 +641,7 @@ function Home() {
       setResult(data);
       setFollowupAnswer("");
       setStructuredIntakeAnswers({});
+      resetAuditReviewState();
       setLastStructuredIntakeSubmission(null);
       setCaseSavePreview(null);
       setPendingSaveCasePayload(null);
@@ -750,6 +757,7 @@ function Home() {
   setSavedConsultCaseId(null);
   setFollowupAnswer("");
   setStructuredIntakeAnswers({});
+  resetAuditReviewState();
   setLastStructuredIntakeSubmission(null);
   setCaseSavePreview(null);
   setPendingSaveCasePayload(null);
@@ -793,6 +801,104 @@ function Home() {
     setLoadingAnalyze(false);
   }
 };
+
+
+  const resetAuditReviewState = () => {
+    setAuditReviewAction("accepted");
+    setAuditReviewReason("");
+    setAuditReviewNote("");
+    setAuditLogReceipt(null);
+  };
+
+  const confidenceFromRisk = (riskValue) => {
+    const raw = String(riskValue || "").trim();
+    if (/高|high/i.test(raw)) return 0.85;
+    if (/中|medium/i.test(raw)) return 0.55;
+    if (/低|low/i.test(raw)) return 0.25;
+    return null;
+  };
+
+  const buildAuditSuggestedAction = () => {
+    const parts = [
+      result?.risk_level ? `风险等级：${result.risk_level}` : "",
+      analysis ? `分析：\n${analysis}` : "",
+      treatment ? `治疗建议：\n${treatment}` : "",
+      prognosis ? `预后 / 后续追问：\n${prognosis}` : "",
+    ].filter(Boolean);
+    return parts.join("\n\n").trim();
+  };
+
+  const currentAuditSuggestedAction = buildAuditSuggestedAction();
+  const auditReviewRequired = Boolean(result && isAuthed && !auditLogReceipt?.log_id);
+
+  const handleSubmitAiReviewAudit = async () => {
+    if (!localStorage.getItem("token")) {
+      alert("请先登录后进行 AI 建议人工覆核");
+      return;
+    }
+    if (!result) {
+      alert("当前没有可覆核的 AI 结果");
+      return;
+    }
+
+    const clinician = auditClinicianId.trim();
+    const requiresReason = auditReviewAction === "modified" || auditReviewAction === "rejected";
+    const reason = auditReviewReason.trim();
+    const note = auditReviewNote.trim();
+
+    if (!clinician) {
+      alert("请填写临床人员 ID / 签名");
+      return;
+    }
+    if (requiresReason && (!reason || note.length < 10)) {
+      alert("修改或拒绝 AI 建议时，必须选择理由，并填写至少 10 字说明。");
+      return;
+    }
+
+    const requestId = `ui-review-${consultSessionId || "adhoc"}-${Date.now()}`;
+    const payload = {
+      request_id: requestId,
+      patient_token: consultSessionId ? `consult:${consultSessionId}` : null,
+      clinician_id: clinician,
+      model_version: "pet-med-ai-frontend-review-v1",
+      confidence: confidenceFromRisk(result?.risk_level),
+      suggested_action: currentAuditSuggestedAction || "暂无 AI 建议摘要",
+      action_taken: auditReviewAction,
+      override_reason: requiresReason ? reason : "",
+      note: note || (auditReviewAction === "accepted" ? "医生接受 AI 建议。" : ""),
+      case_id: savedConsultCaseId || null,
+      session_uid: consultSessionId || null,
+      event_type: "ai_review",
+      source: "pet-med-ai-frontend",
+      metadata: {
+        ui_version: "ai-review-audit-ui-v1",
+        risk_level: result?.risk_level || null,
+        review_action: auditReviewAction,
+        has_structured_intake: Boolean(result?.structured_intake),
+      },
+    };
+
+    try {
+      setErrMsg("");
+      setAuditSubmitting(true);
+      const res = await api.post("/api/audit-log", payload);
+      setAuditLogReceipt(res.data || {});
+      setCaseSavePreview(null);
+      setPendingSaveCasePayload(null);
+      alert(`已写入审计日志：${res.data?.log_id || ""}`);
+    } catch (err) {
+      console.error("AI review audit error:", err);
+      if (err.response?.status === 401) {
+        alert("请先登录后写入审计日志");
+      } else if (err.response?.status === 422) {
+        alert("审计日志参数校验失败，请检查临床签名、置信度和必填字段。");
+      } else {
+        alert("写入审计日志失败，请检查后端日志");
+      }
+    } finally {
+      setAuditSubmitting(false);
+    }
+  };
 
   const handleFollowupSubmit = async (e) => {
     e.preventDefault();
@@ -858,6 +964,7 @@ function Home() {
       setSavedConsultCaseId(payload.case_id || savedConsultCaseId || null);
       setFollowupAnswer("");
       setStructuredIntakeAnswers({});
+      resetAuditReviewState();
       setCaseSavePreview(null);
       setPendingSaveCasePayload(null);
       await fetchSessionHistory();
@@ -898,6 +1005,11 @@ function Home() {
       return;
     }
 
+    if (result && !auditLogReceipt?.log_id) {
+      alert("请先完成 AI 建议人工覆核并写入审计日志。");
+      return;
+    }
+
     const payload = buildConsultSaveCasePayload();
 
     try {
@@ -927,6 +1039,11 @@ function Home() {
 
     if (!consultSessionId) {
       alert("请先提交分析生成问诊会话，再保存为病例");
+      return;
+    }
+
+    if (result && !auditLogReceipt?.log_id) {
+      alert("请先完成 AI 建议人工覆核并写入审计日志。");
       return;
     }
 
@@ -971,6 +1088,11 @@ function Home() {
 
     if (!consultSessionId || !savedConsultCaseId) {
       alert("当前问诊尚未绑定病例，无法更新");
+      return;
+    }
+
+    if (result && !auditLogReceipt?.log_id) {
+      alert("请先完成 AI 建议人工覆核并写入审计日志。");
       return;
     }
 
@@ -1367,7 +1489,7 @@ function Home() {
               <button
                 type="button"
                 onClick={handleSaveConsultAsCase}
-                disabled={previewingConsultCase || savingConsultCase || !consultSessionId || !isAuthed}
+                disabled={previewingConsultCase || savingConsultCase || !consultSessionId || !isAuthed || auditReviewRequired}
                 style={btn}
               >
                 {previewingConsultCase ? "生成预览中…" : "保存前预览"}
@@ -1461,6 +1583,23 @@ function Home() {
             {analysis && <Block title="分析">{analysis}</Block>}
             {treatment && <Block title="治疗建议">{treatment}</Block>}
             {prognosis && <Block title="预后">{prognosis}</Block>}
+            {result && (
+              <AiReviewAuditBlock
+                result={result}
+                suggestedAction={currentAuditSuggestedAction}
+                reviewAction={auditReviewAction}
+                setReviewAction={setAuditReviewAction}
+                reason={auditReviewReason}
+                setReason={setAuditReviewReason}
+                note={auditReviewNote}
+                setNote={setAuditReviewNote}
+                clinicianId={auditClinicianId}
+                setClinicianId={setAuditClinicianId}
+                submitting={auditSubmitting}
+                receipt={auditLogReceipt}
+                onSubmit={handleSubmitAiReviewAudit}
+              />
+            )}
 
             {result && (currentQuestion || result.dynamic) && (
               <div
@@ -1732,6 +1871,138 @@ function Block({ title, children }) {
     <div style={{ background: "#f6f8fa", padding: 12, borderRadius: 8, whiteSpace: "pre-wrap", marginTop: 8 }}>
       <div style={{ fontWeight: 600, marginBottom: 6 }}>{title}</div>
       {children}
+    </div>
+  );
+}
+
+
+function AiReviewAuditBlock({
+  result,
+  suggestedAction,
+  reviewAction,
+  setReviewAction,
+  reason,
+  setReason,
+  note,
+  setNote,
+  clinicianId,
+  setClinicianId,
+  submitting,
+  receipt,
+  onSubmit,
+}) {
+  if (!result) return null;
+
+  const requiresReason = reviewAction === "modified" || reviewAction === "rejected";
+  const canSubmit = Boolean(clinicianId.trim()) && (!requiresReason || (reason.trim() && note.trim().length >= 10));
+
+  return (
+    <div style={{ marginTop: 12, padding: 12, border: "1px solid #a7f3d0", borderRadius: 10, background: "#ecfdf5" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div>
+          <div style={{ fontWeight: 800, marginBottom: 4 }}>AI 建议人工覆核</div>
+          <div style={{ fontSize: 13, opacity: 0.78 }}>
+            保存病例前需由医生确认 AI 建议，并写入 append-only 审计日志。
+          </div>
+        </div>
+        {receipt?.log_id && (
+          <div style={{ fontSize: 12, color: "#047857", fontWeight: 700, textAlign: "right" }}>
+            已写入审计<br />
+            <code>{String(receipt.log_id).slice(0, 12)}</code>
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 10 }}>
+        <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4 }}>模型建议摘要</div>
+        <pre style={{ margin: 0, padding: 10, border: "1px solid #bbf7d0", borderRadius: 8, background: "#fff", whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 13, lineHeight: 1.6, maxHeight: 180, overflow: "auto" }}>
+          {suggestedAction || "暂无 AI 建议摘要"}
+        </pre>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, marginTop: 10 }}>
+        <Field label="临床人员 ID / 签名">
+          <input
+            value={clinicianId}
+            onChange={(e) => setClinicianId(e.target.value)}
+            placeholder="如 HS-0001 / Dr.Zhao"
+            disabled={Boolean(receipt?.log_id) || submitting}
+          />
+        </Field>
+
+        <Field label="处理动作">
+          <select
+            value={reviewAction}
+            onChange={(e) => setReviewAction(e.target.value)}
+            disabled={Boolean(receipt?.log_id) || submitting}
+          >
+            <option value="accepted">接受建议</option>
+            <option value="modified">接受并修改</option>
+            <option value="rejected">拒绝并替代</option>
+          </select>
+        </Field>
+      </div>
+
+      {requiresReason && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+          <Field label="修改 / 拒绝理由">
+            <select
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              disabled={Boolean(receipt?.log_id) || submitting}
+            >
+              <option value="">请选择理由</option>
+              <option value="影像学不一致">影像学不一致</option>
+              <option value="实验室指标矛盾">实验室指标矛盾</option>
+              <option value="主诉与体征不符">主诉与体征不符</option>
+              <option value="药物禁忌">药物禁忌</option>
+              <option value="费用与依从性">费用与依从性</option>
+              <option value="其他">其他</option>
+            </select>
+          </Field>
+          <Field label="补充说明 / 替代方案">
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={3}
+              placeholder="至少 10 字；说明医生修改或拒绝 AI 建议的依据"
+              disabled={Boolean(receipt?.log_id) || submitting}
+            />
+          </Field>
+        </div>
+      )}
+
+      {!requiresReason && (
+        <Field label="补充说明（可选）">
+          <textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            rows={2}
+            placeholder="可补充医生确认意见"
+            disabled={Boolean(receipt?.log_id) || submitting}
+          />
+        </Field>
+      )}
+
+      <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", marginTop: 8 }}>
+        <button
+          type="button"
+          onClick={onSubmit}
+          disabled={submitting || Boolean(receipt?.log_id) || !canSubmit}
+          style={btn}
+        >
+          {submitting ? "写入中…" : receipt?.log_id ? "审计已写入" : "确认覆核并写入审计"}
+        </button>
+        <span style={{ fontSize: 12, opacity: 0.7 }}>
+          提交后不可更改；如需补充，请新增一条覆核记录。
+        </span>
+      </div>
+
+      {requiresReason && !canSubmit && (
+        <div style={{ marginTop: 6, fontSize: 12, color: "#b45309" }}>
+          修改或拒绝时，必须选择理由，并填写至少 10 字说明。
+        </div>
+      )}
     </div>
   );
 }

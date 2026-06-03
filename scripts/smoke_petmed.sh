@@ -97,6 +97,9 @@ pass "audit log model validation"
 python3 scripts/validate_audit_log_api.py >/dev/null || fail "audit log append-only API validation failed"
 pass "audit log append-only API validation"
 
+python3 scripts/validate_ai_review_audit_ui.py >/dev/null || fail "AI review audit UI validation failed"
+pass "AI review audit UI validation"
+
 python3 scripts/validate_alembic_runtime.py >/dev/null || fail "alembic runtime validation failed"
 pass "alembic runtime validation"
 
