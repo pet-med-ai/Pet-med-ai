@@ -1350,11 +1350,17 @@ try:
 except ModuleNotFoundError:
     from legacy_import_mock import router as legacy_import_mock_router
 
+try:
+    from backend.webhook_inbox_api import router as webhook_inbox_api_router
+except ModuleNotFoundError:
+    from webhook_inbox_api import router as webhook_inbox_api_router
+
 # 将 /api 路由挂载到应用
 app.include_router(api)
 app.include_router(audit_log_api_router)
 app.include_router(kpi_api_router)
 app.include_router(emr_webhook_router)
+app.include_router(webhook_inbox_api_router)
 app.include_router(legacy_import_mock_router)
 
 # 本地调试

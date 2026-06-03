@@ -106,6 +106,9 @@ pass "emr webhook dry-run validation"
 python3 scripts/validate_emr_webhook_receipt_persistence.py >/dev/null || fail "emr webhook receipt persistence validation failed"
 pass "emr webhook receipt persistence validation"
 
+python3 scripts/validate_webhook_inbox_review_api.py >/dev/null || fail "webhook inbox review API validation failed"
+pass "webhook inbox review API validation"
+
 python3 scripts/validate_emr_case_mapping_dry_run.py >/dev/null || fail "emr to case mapping dry-run validation failed"
 pass "emr to case mapping dry-run validation"
 
@@ -531,6 +534,33 @@ http_form "/auth/login" "username=${email_a}&password=${PASSWORD}"
 expect_status 200 "login user A"
 token_a="$(json_get "$RESPONSE_BODY" "access_token")"
 [[ -n "$token_a" ]] || fail "login user A：没有 access_token"
+
+
+http_json GET "/api/webhooks/emr/inbox?page=1&page_size=5&status=accepted" "" "$token_a"
+expect_status 200 "webhook inbox review list"
+json_assert_text_contains "$RESPONSE_BODY" "message" "webhook_inbox_receipts" >/dev/null || fail "webhook inbox review list：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "review_only" "True" >/dev/null || fail "webhook inbox review list：应为 review_only"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "webhook inbox review list：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "items" "$emr_receipt_id" >/dev/null || fail "webhook inbox review list：没有找到 EMR receipt"
+
+http_json GET "/api/webhooks/emr/inbox/${emr_receipt_id}" "" "$token_a"
+expect_status 200 "webhook inbox review detail"
+json_assert_text_contains "$RESPONSE_BODY" "message" "webhook_inbox_receipt" >/dev/null || fail "webhook inbox review detail：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "receipt.receipt_id" "$emr_receipt_id" >/dev/null || fail "webhook inbox review detail：receipt_id 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "receipt.payload_omitted" "True" >/dev/null || fail "webhook inbox review detail：payload 默认应省略"
+json_assert_text_contains "$RESPONSE_BODY" "receipt.mapped_case_preview.patient_name" "咪咪" >/dev/null || fail "webhook inbox review detail：patient_name 映射错误"
+
+http_json GET "/api/webhooks/emr/inbox/${emr_receipt_id}?include_payload=true" "" "$token_a"
+expect_status 200 "webhook inbox review detail with payload"
+json_assert_text_contains "$RESPONSE_BODY" "receipt.payload_omitted" "False" >/dev/null || fail "webhook inbox review detail：include_payload 未生效"
+json_assert_text_contains "$RESPONSE_BODY" "receipt.payload.case_id" "CASE-SMOKE" >/dev/null || fail "webhook inbox review detail：payload.case_id 未返回"
+
+http_json GET "/api/webhooks/emr/inbox?page=1&page_size=5"
+expect_status 401 "webhook inbox review requires auth"
+
+http_json GET "/api/webhooks/emr/inbox/rcpt_missing_${run_id}" "" "$token_a"
+expect_status 404 "webhook inbox review missing receipt"
+pass "webhook inbox review API checks"
 
 
 audit_log_body="$(python3 - "$run_id" <<'PY'
