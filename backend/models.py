@@ -332,3 +332,81 @@ class WebhookInbox(Base):
         Index("ix_webhook_inbox_status_received", "status", "received_at"),
         Index("ix_webhook_inbox_external_case", "external_case_id", "external_encounter_id"),
     )
+
+class EmrImportBatch(Base):
+    """
+    EMR real import batch V1.
+
+    This table tracks a frozen, reviewed batch of webhook receipts before any
+    future real Case import implementation. It does not create Case records by
+    itself.
+    """
+    __tablename__ = "emr_import_batches"
+
+    batch_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"emr_batch_{uuid4().hex}")
+    source_system: Mapped[str] = mapped_column(String(100), default="emr", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False, index=True)
+
+    receipt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    ready_for_import_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    rejected_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    review_action_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    clinical_signoff_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    rollback_snapshot_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+
+    frozen_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+    created_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    approved_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_emr_import_batches_status_created", "status", "created_at"),
+        Index("ix_emr_import_batches_source_status", "source_system", "status"),
+    )
+
+
+class EmrImportBatchReceipt(Base):
+    """
+    Link table between EMR real import batches and webhook_inbox receipts.
+
+    V1 stores selection and review snapshots only. It does not execute the import.
+    """
+    __tablename__ = "emr_import_batch_receipts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    batch_id: Mapped[str] = mapped_column(
+        ForeignKey("emr_import_batches.batch_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    receipt_id: Mapped[str] = mapped_column(
+        ForeignKey("webhook_inbox.receipt_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    review_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    ready_for_import: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    external_case_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    external_encounter_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    __table_args__ = (
+        Index("ux_emr_import_batch_receipt", "batch_id", "receipt_id", unique=True),
+        Index("ix_emr_import_batch_receipts_ready", "batch_id", "ready_for_import"),
+    )
+
