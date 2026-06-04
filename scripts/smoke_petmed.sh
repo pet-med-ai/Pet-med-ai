@@ -99,6 +99,9 @@ pass "webhook inbox model validation"
 python3 scripts/validate_emr_import_batch_model.py >/dev/null || fail "emr real import batch model validation failed"
 pass "emr real import batch model validation"
 
+python3 scripts/validate_emr_import_batch_planning_api.py >/dev/null || fail "emr real import batch planning API validation failed"
+pass "emr real import batch planning API validation"
+
 
 python3 scripts/validate_audit_log_api.py >/dev/null || fail "audit log append-only API validation failed"
 pass "audit log append-only API validation"
