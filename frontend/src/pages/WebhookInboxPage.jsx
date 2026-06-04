@@ -175,7 +175,7 @@ export default function WebhookInboxPage() {
         <div>
           <h1 style={{ marginBottom: 4 }}>EMR Webhook Inbox</h1>
           <div style={{ opacity: 0.72, fontSize: 13 }}>
-            只读复核页：查看 receipt、validation report、mapped_case_preview 与 import plan。V1 不创建病例、不下载附件、不写真实入库。
+            只读复核页：查看 receipt、validation report、mapped_case_preview 与 import plan。V1 不创建病例、不下载附件、不写真实入库。安全边界：writes_case_database=false；creates_case=false；downloads_attachments=false。
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
