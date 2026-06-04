@@ -109,6 +109,9 @@ pass "emr webhook receipt persistence validation"
 python3 scripts/validate_webhook_inbox_review_api.py >/dev/null || fail "webhook inbox review API validation failed"
 pass "webhook inbox review API validation"
 
+python3 scripts/validate_webhook_inbox_ui.py >/dev/null || fail "webhook inbox detail UI validation failed"
+pass "webhook inbox detail UI validation"
+
 python3 scripts/validate_emr_case_mapping_dry_run.py >/dev/null || fail "emr to case mapping dry-run validation failed"
 pass "emr to case mapping dry-run validation"
 
