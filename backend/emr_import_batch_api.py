@@ -12,11 +12,11 @@ from sqlalchemy.orm import Session
 try:
     from backend.auth_jwt import get_current_user
     from backend.db import get_db
-    from backend.models import AuditLog, EmrImportBatch, EmrImportBatchReceipt, WebhookInbox
+    from backend.models import AuditLog, Case, EmrImportBatch, EmrImportBatchReceipt, WebhookInbox
 except ModuleNotFoundError:
     from auth_jwt import get_current_user
     from db import get_db
-    from models import AuditLog, EmrImportBatch, EmrImportBatchReceipt, WebhookInbox
+    from models import AuditLog, Case, EmrImportBatch, EmrImportBatchReceipt, WebhookInbox
 
 
 router = APIRouter(prefix="/api/emr/import-batches", tags=["emr-import-batches"])
@@ -46,6 +46,21 @@ class EmrImportBatchPlanIn(BaseModel):
     rollback_snapshot_id: Optional[str] = Field(default=None, max_length=100)
     note: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None
+
+
+class EmrImportExecutionDryRunIn(BaseModel):
+    """Generate import diff / rollback plan for a frozen EMR import batch.
+
+    This endpoint is strictly dry-run. It does not create/update Case records,
+    does not mutate batch state, and does not download attachments.
+    """
+
+    operator_id: str = Field(..., min_length=1, max_length=100)
+    clinical_signoff_id: Optional[str] = Field(default=None, max_length=100)
+    rollback_snapshot_id: Optional[str] = Field(default=None, max_length=100)
+    include_payload_preview: bool = False
+    max_items: int = Field(default=100, ge=1, le=500)
+    note: Optional[str] = None
 
 
 def _text(value: Any) -> str:
@@ -292,6 +307,260 @@ def plan_emr_real_import_batch(
         "can_execute_import": False,
         "next_gate": "Clinical signoff, rollback snapshot and a separate real import execution API are required.",
     }
+
+
+def _case_snapshot(case: Optional[Case]) -> Optional[Dict[str, Any]]:
+    if case is None:
+        return None
+    return {
+        "case_id": case.id,
+        "patient_name": case.patient_name,
+        "species": case.species,
+        "chief_complaint": case.chief_complaint,
+        "weight": case.weight,
+        "owner_name": case.owner_name,
+        "owner_phone": case.owner_phone,
+        "created_at": _dt(case.created_at),
+        "updated_at": _dt(case.updated_at),
+    }
+
+
+def _field_diff(existing: Optional[Case], case_create: Dict[str, Any]) -> Dict[str, Any]:
+    if existing is None:
+        return {
+            "operation": "case_create_preview",
+            "changed_fields": list(case_create.keys()),
+            "changes": [
+                {
+                    "field": field,
+                    "before": None,
+                    "after": case_create.get(field),
+                }
+                for field in sorted(case_create.keys())
+                if case_create.get(field) not in (None, "")
+            ],
+        }
+
+    fields = [
+        "patient_name",
+        "species",
+        "weight",
+        "owner_name",
+        "owner_phone",
+        "chief_complaint",
+        "history",
+        "exam_findings",
+    ]
+    changes = []
+    for field in fields:
+        before = getattr(existing, field, None)
+        after = case_create.get(field)
+        if (before or "") != (after or ""):
+            changes.append({
+                "field": field,
+                "before": before,
+                "after": after,
+            })
+    return {
+        "operation": "case_update_preview",
+        "changed_fields": [item["field"] for item in changes],
+        "changes": changes,
+    }
+
+
+def _execution_item(
+    *,
+    link: EmrImportBatchReceipt,
+    receipt: Optional[WebhookInbox],
+    existing_case: Optional[Case],
+    include_payload_preview: bool,
+) -> Dict[str, Any]:
+    blocked_reasons = []
+    if receipt is None:
+        blocked_reasons.append("webhook receipt missing")
+        case_create: Dict[str, Any] = {}
+    else:
+        if receipt.status != READY_STATUS:
+            blocked_reasons.append(f"receipt status is {receipt.status}; expected {READY_STATUS}")
+        if not bool(receipt.dry_run):
+            blocked_reasons.append("receipt is not dry_run")
+        if not isinstance(receipt.mapped_case_preview, dict) or not receipt.mapped_case_preview:
+            blocked_reasons.append("mapped_case_preview missing")
+        case_create = receipt.mapped_case_preview if isinstance(receipt.mapped_case_preview, dict) else {}
+
+    if not bool(link.ready_for_import):
+        blocked_reasons.append("batch link is not marked ready_for_import")
+    if link.review_status != READY_STATUS:
+        blocked_reasons.append(f"batch link review_status is {link.review_status}; expected {READY_STATUS}")
+
+    for field in ("patient_name", "species", "chief_complaint"):
+        if not _text(case_create.get(field)):
+            blocked_reasons.append(f"case_create.{field} missing")
+
+    operation = "case_update_preview" if existing_case else "case_create_preview"
+    diff = _field_diff(existing_case, case_create)
+
+    item = {
+        "receipt_id": link.receipt_id,
+        "external_case_id": link.external_case_id,
+        "external_encounter_id": link.external_encounter_id,
+        "operation": operation,
+        "case_id": getattr(existing_case, "id", None),
+        "ready_for_import": bool(link.ready_for_import) and not blocked_reasons,
+        "blocked_reasons": blocked_reasons,
+        "case_create_preview": case_create,
+        "existing_case_snapshot": _case_snapshot(existing_case),
+        "field_diff": diff,
+    }
+    if include_payload_preview and receipt is not None:
+        item["payload_preview"] = receipt.payload or {}
+    return item
+
+
+def build_execution_dry_run_report(
+    *,
+    db: Session,
+    batch: EmrImportBatch,
+    data: EmrImportExecutionDryRunIn,
+) -> Dict[str, Any]:
+    links = (
+        db.query(EmrImportBatchReceipt)
+        .filter(EmrImportBatchReceipt.batch_id == batch.batch_id)
+        .order_by(EmrImportBatchReceipt.created_at.asc(), EmrImportBatchReceipt.id.asc())
+        .limit(data.max_items)
+        .all()
+    )
+    if not links:
+        raise HTTPException(status_code=422, detail="batch has no receipts to dry-run")
+
+    receipt_ids = [link.receipt_id for link in links]
+    receipts = (
+        db.query(WebhookInbox)
+        .filter(WebhookInbox.receipt_id.in_(receipt_ids))
+        .all()
+    )
+    receipt_by_id = {item.receipt_id: item for item in receipts}
+
+    case_ids = [
+        item.case_id
+        for item in receipts
+        if item.case_id is not None
+    ]
+    cases = db.query(Case).filter(Case.id.in_(case_ids)).all() if case_ids else []
+    case_by_id = {item.id: item for item in cases}
+
+    items = []
+    for link in links:
+        receipt = receipt_by_id.get(link.receipt_id)
+        existing_case = case_by_id.get(receipt.case_id) if receipt and receipt.case_id is not None else None
+        items.append(_execution_item(
+            link=link,
+            receipt=receipt,
+            existing_case=existing_case,
+            include_payload_preview=bool(data.include_payload_preview),
+        ))
+
+    would_create_count = sum(1 for item in items if item.get("operation") == "case_create_preview" and not item.get("blocked_reasons"))
+    would_update_count = sum(1 for item in items if item.get("operation") == "case_update_preview" and not item.get("blocked_reasons"))
+    blocked_items = [
+        {
+            "receipt_id": item.get("receipt_id"),
+            "blocked_reasons": item.get("blocked_reasons") or [],
+        }
+        for item in items
+        if item.get("blocked_reasons")
+    ]
+    blocked_count = len(blocked_items)
+    has_snapshot = bool(_text(data.rollback_snapshot_id or batch.rollback_snapshot_id))
+    has_signoff = bool(_text(data.clinical_signoff_id or batch.clinical_signoff_id))
+    ready_for_execution_review = blocked_count == 0 and has_snapshot and has_signoff and batch.status in {"frozen", "clinical_signed", "approved"}
+
+    return {
+        "message": "emr_import_execution_dry_run",
+        "mode": "execution_dry_run",
+        "batch": _batch_summary(batch),
+        "operator_id": _text(data.operator_id),
+        "review_only": True,
+        "dry_run": True,
+        "writes_database": False,
+        "writes_case_database": False,
+        "creates_case": False,
+        "updates_case": False,
+        "downloads_attachments": False,
+        "executes_real_import": False,
+        "can_execute_import": False,
+        "ready_for_execution_review": ready_for_execution_review,
+        "safety": {
+            "writes_database": False,
+            "writes_case_database": False,
+            "creates_case": False,
+            "updates_case": False,
+            "downloads_attachments": False,
+            "executes_real_import": False,
+            "can_execute_import": False,
+        },
+        "quality_gate": {
+            "passed": ready_for_execution_review,
+            "batch_status_allowed": batch.status in {"frozen", "clinical_signed", "approved"},
+            "has_clinical_signoff": has_signoff,
+            "has_rollback_snapshot": has_snapshot,
+            "blocked_count": blocked_count,
+            "blocked_items": blocked_items,
+        },
+        "import_diff": {
+            "summary": {
+                "receipt_count": len(items),
+                "would_create_count": would_create_count,
+                "would_update_count": would_update_count,
+                "blocked_count": blocked_count,
+            },
+            "items": items,
+        },
+        "rollback_plan": {
+            "snapshot_required": True,
+            "rollback_snapshot_id": _text(data.rollback_snapshot_id or batch.rollback_snapshot_id) or None,
+            "batch_id": batch.batch_id,
+            "receipt_ids": receipt_ids,
+            "case_ids_to_restore": sorted({item.get("case_id") for item in items if item.get("case_id")}),
+            "steps": [
+                "Take database snapshot before any real import execution.",
+                "Record batch_id, receipt_ids and execution operator.",
+                "If real import fails, stop execution, restore snapshot or reverse inserted cases by import marker.",
+                "Run smoke test and clinical spot check after rollback.",
+            ],
+        },
+        "next_gate": "A separate audited real import execution API is required before writing Case records.",
+    }
+
+
+@router.post("/{batch_id}/execution-dry-run", response_model=dict)
+def dry_run_emr_real_import_execution(
+    batch_id: str,
+    data: EmrImportExecutionDryRunIn,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Generate import diff and rollback plan for a planned EMR import batch.
+
+    V1 is a dry-run only:
+    - reads emr_import_batches and linked webhook_inbox receipts
+    - returns would-create / would-update diff
+    - returns rollback plan
+    - does not mutate database
+    - does not create/update Case
+    """
+
+    batch = db.get(EmrImportBatch, batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail="EMR import batch not found")
+
+    if batch.status not in {"frozen", "clinical_signed", "approved"}:
+        raise HTTPException(
+            status_code=422,
+            detail="batch must be frozen, clinical_signed or approved before execution dry-run",
+        )
+
+    return build_execution_dry_run_report(db=db, batch=batch, data=data)
 
 
 @router.get("", response_model=dict)

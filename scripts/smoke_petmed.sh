@@ -102,6 +102,9 @@ pass "emr real import batch model validation"
 python3 scripts/validate_emr_import_batch_planning_api.py >/dev/null || fail "emr real import batch planning API validation failed"
 pass "emr real import batch planning API validation"
 
+python3 scripts/validate_emr_import_execution_dry_run.py >/dev/null || fail "emr real import execution dry-run validation failed"
+pass "emr real import execution dry-run validation"
+
 
 python3 scripts/validate_audit_log_api.py >/dev/null || fail "audit log append-only API validation failed"
 pass "audit log append-only API validation"
@@ -661,6 +664,63 @@ http_json GET "/api/webhooks/emr/inbox/${emr_receipt_id}" "" "$token_a"
 expect_status 200 "webhook inbox detail after review action"
 json_assert_text_contains "$RESPONSE_BODY" "receipt.status" "ready_for_import" >/dev/null || fail "webhook inbox detail：status 未更新为 ready_for_import"
 pass "webhook inbox review action checks"
+
+
+emr_batch_plan_body="$(python3 - "$run_id" "$emr_receipt_id" <<'PY'
+import json
+import sys
+run_id, receipt_id = sys.argv[1], sys.argv[2]
+body = {
+    "batch_id": f"emr_batch_smoke_{run_id}",
+    "source_system": "emr",
+    "receipt_ids": [receipt_id],
+    "freeze": True,
+    "created_by": "SMOKE-CLINICIAN",
+    "clinical_signoff_id": f"signoff-smoke-{run_id}",
+    "rollback_snapshot_id": f"snapshot-smoke-{run_id}",
+    "note": "Smoke planned batch only; no real import execution.",
+    "metadata": {"test": "emr-import-batch-planning-api-v1"},
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/emr/import-batches/plan" "$emr_batch_plan_body" "$token_a"
+expect_status 201 "emr import batch planning"
+emr_batch_id="$(json_get "$RESPONSE_BODY" "batch.batch_id")"
+[[ -n "$emr_batch_id" ]] || fail "emr import batch planning：没有 batch_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "emr_import_batch_planned" >/dev/null || fail "emr import batch planning：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "writes_case_database" "False" >/dev/null || fail "emr import batch planning：不应写病例库"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "emr import batch planning：不应创建病例"
+json_assert_text_contains "$RESPONSE_BODY" "can_execute_import" "False" >/dev/null || fail "emr import batch planning：不应允许执行真实导入"
+
+emr_execution_dry_run_body="$(python3 - "$run_id" <<'PY'
+import json
+import sys
+run_id = sys.argv[1]
+body = {
+    "operator_id": "SMOKE-CLINICIAN",
+    "clinical_signoff_id": f"signoff-smoke-{run_id}",
+    "rollback_snapshot_id": f"snapshot-smoke-{run_id}",
+    "include_payload_preview": False,
+    "max_items": 20,
+    "note": "Smoke execution dry-run only; no Case writes.",
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/emr/import-batches/${emr_batch_id}/execution-dry-run" "$emr_execution_dry_run_body" "$token_a"
+expect_status 200 "emr real import execution dry-run"
+json_assert_text_contains "$RESPONSE_BODY" "message" "emr_import_execution_dry_run" >/dev/null || fail "emr execution dry-run：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "mode" "execution_dry_run" >/dev/null || fail "emr execution dry-run：mode 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "safety.writes_database" "False" >/dev/null || fail "emr execution dry-run：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "safety.writes_case_database" "False" >/dev/null || fail "emr execution dry-run：不应写病例库"
+json_assert_text_contains "$RESPONSE_BODY" "safety.creates_case" "False" >/dev/null || fail "emr execution dry-run：不应创建病例"
+json_assert_text_contains "$RESPONSE_BODY" "safety.executes_real_import" "False" >/dev/null || fail "emr execution dry-run：不应执行真实导入"
+json_assert_text_contains "$RESPONSE_BODY" "import_diff.summary.receipt_count" "1" >/dev/null || fail "emr execution dry-run：receipt_count 应为 1"
+json_assert_text_contains "$RESPONSE_BODY" "import_diff.summary.would_create_count" "1" >/dev/null || fail "emr execution dry-run：would_create_count 应为 1"
+json_assert_text_contains "$RESPONSE_BODY" "rollback_plan.snapshot_required" "True" >/dev/null || fail "emr execution dry-run：必须要求回滚快照"
+json_assert_text_contains "$RESPONSE_BODY" "can_execute_import" "False" >/dev/null || fail "emr execution dry-run：不应允许直接执行真实导入"
+pass "emr real import execution dry-run checks"
 
 legacy_mock_body="$(python3 - "$TMP_DIR/legacy_case_payloads.jsonl" <<'PY'
 import json
