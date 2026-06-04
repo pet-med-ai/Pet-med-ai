@@ -235,6 +235,7 @@ export default function WebhookInboxPage() {
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Link to="/" style={secondaryBtnStyle}>首页</Link>
           <Link to="/kpi" style={secondaryBtnStyle}>KPI Dashboard</Link>
+          <Link to="/emr/import-batches" style={secondaryBtnStyle}>EMR Batch Planning</Link>
           <button type="button" onClick={() => fetchList(page)} disabled={loading} style={btnStyle}>
             {loading ? "刷新中…" : "刷新 inbox"}
           </button>

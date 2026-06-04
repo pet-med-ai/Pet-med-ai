@@ -6,6 +6,7 @@ import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
 import KpiDashboard from "./pages/KpiDashboard";
 import WebhookInboxPage from "./pages/WebhookInboxPage";
+import EmrImportBatchPlanningPage from "./pages/EmrImportBatchPlanningPage";
 
 function getErrorDetail(err) {
   const detail = err?.response?.data?.detail;
@@ -1853,6 +1854,7 @@ export default function App() {
         <Route path="/cases/:id" element={<CaseDetail />} />
         <Route path="/kpi" element={<KpiDashboard />} />
         <Route path="/webhooks/emr/inbox" element={<WebhookInboxPage />} />
+        <Route path="/emr/import-batches" element={<EmrImportBatchPlanningPage />} />
         <Route path="*" element={<div style={{ padding: 24 }}>页面不存在（404）。</div>} />
       </Routes>
     </Router>
