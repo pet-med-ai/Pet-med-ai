@@ -5,16 +5,17 @@ from datetime import datetime
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 try:
     from backend.auth_jwt import get_current_user
     from backend.db import get_db
-    from backend.models import WebhookInbox
+    from backend.models import WebhookInbox, AuditLog
 except ModuleNotFoundError:
     from auth_jwt import get_current_user
     from db import get_db
-    from models import WebhookInbox
+    from models import WebhookInbox, AuditLog
 
 
 router = APIRouter(prefix="/api/webhooks/emr", tags=["webhooks"])
@@ -38,6 +39,54 @@ def _boolish(value: Optional[bool]) -> Optional[bool]:
     if value is None:
         return None
     return bool(value)
+
+
+REVIEW_ACTION_TO_STATUS = {
+    "ready_for_import": "ready_for_import",
+    "needs_fix": "needs_fix",
+    "rejected": "rejected_by_reviewer",
+}
+
+
+class WebhookInboxReviewActionIn(BaseModel):
+    """Human review action for an EMR webhook inbox receipt.
+
+    V1 is still not a real import. It updates only webhook_inbox review status
+    and appends one audit_log row for traceability.
+    """
+
+    action: str = Field(..., min_length=1, max_length=50)
+    clinician_id: str = Field(..., min_length=1, max_length=100)
+    reason: Optional[str] = Field(default=None, max_length=500)
+    note: Optional[str] = None
+    request_id: Optional[str] = Field(default=None, max_length=100)
+    metadata: Optional[Dict[str, Any]] = None
+
+
+def _clean(value: Any) -> str:
+    return str(value if value is not None else "").strip()
+
+
+def _review_status(action: str) -> str:
+    key = _clean(action).lower()
+    if key not in REVIEW_ACTION_TO_STATUS:
+        raise HTTPException(
+            status_code=422,
+            detail="action must be one of: ready_for_import, needs_fix, rejected",
+        )
+    return REVIEW_ACTION_TO_STATUS[key]
+
+
+def _append_review_warning(item: WebhookInbox, action: str, reason: str, note: str) -> None:
+    warnings = item.validation_warnings if isinstance(item.validation_warnings, list) else []
+    warnings = list(warnings)
+    warnings.append({
+        "field": "review_action",
+        "warning_code": f"human_review_{action}",
+        "warning_reason": reason or action,
+        "suggestion": note or "Human reviewer marked this webhook receipt.",
+    })
+    item.validation_warnings = warnings
 
 
 def _summary(item: WebhookInbox) -> Dict[str, Any]:
@@ -156,6 +205,95 @@ def list_webhook_inbox_receipts(
             "external_case_id": external_case_id,
             "receipt_id": receipt_id,
         },
+    }
+
+
+@router.post("/inbox/{receipt_id}/review-action", response_model=dict)
+def review_webhook_inbox_receipt(
+    receipt_id: str,
+    data: WebhookInboxReviewActionIn,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Apply a human review action to a webhook inbox receipt.
+
+    Safety boundary:
+    - updates webhook_inbox review status only
+    - appends one audit_log row
+    - does not create or update Case
+    - does not download attachments
+    """
+
+    item = db.get(WebhookInbox, receipt_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Webhook receipt not found")
+
+    action = _clean(data.action).lower()
+    status_after = _review_status(action)
+    clinician_id = _clean(data.clinician_id)
+    reason = _clean(data.reason)
+    note = _clean(data.note)
+
+    if action in {"needs_fix", "rejected"} and len((reason + " " + note).strip()) < 10:
+        raise HTTPException(
+            status_code=422,
+            detail="reason or note must be at least 10 characters for needs_fix/rejected actions",
+        )
+
+    status_before = item.status
+    item.status = status_after
+    item.processed_at = datetime.utcnow()
+    item.updated_at = datetime.utcnow()
+    _append_review_warning(item, action, reason, note)
+
+    request_id = _clean(data.request_id) or f"webhook-inbox-review-{receipt_id}"
+    audit = AuditLog(
+        request_id=request_id,
+        patient_token=item.external_case_id,
+        clinician_id=clinician_id,
+        model_version=None,
+        confidence=None,
+        suggested_action=f"Review EMR webhook receipt {receipt_id}",
+        action_taken=action,
+        override_reason=reason or None,
+        note=note or None,
+        case_id=item.case_id,
+        session_uid=None,
+        event_type="webhook_inbox_review",
+        source="pet-med-ai",
+        extra_data={
+            "receipt_id": receipt_id,
+            "idempotency_key": item.idempotency_key,
+            "external_case_id": item.external_case_id,
+            "external_encounter_id": item.external_encounter_id,
+            "status_before": status_before,
+            "status_after": status_after,
+            "action": action,
+            "metadata": data.metadata or {},
+        },
+    )
+
+    db.add(item)
+    db.add(audit)
+    db.commit()
+    db.refresh(item)
+    db.refresh(audit)
+
+    return {
+        "message": "webhook_inbox_review_action",
+        "mode": "review_action",
+        "receipt_id": item.receipt_id,
+        "status_before": status_before,
+        "status_after": item.status,
+        "action": action,
+        "audit_log_id": audit.log_id,
+        "reviewed_by": clinician_id,
+        "writes_webhook_inbox": True,
+        "writes_audit_log": True,
+        "writes_case_database": False,
+        "creates_case": False,
+        "updates_case": False,
+        "downloads_attachments": False,
     }
 
 

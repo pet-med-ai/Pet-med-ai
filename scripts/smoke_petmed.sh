@@ -115,6 +115,9 @@ pass "webhook inbox detail UI validation"
 python3 scripts/validate_emr_case_mapping_dry_run.py >/dev/null || fail "emr to case mapping dry-run validation failed"
 pass "emr to case mapping dry-run validation"
 
+python3 scripts/validate_webhook_inbox_review_action.py >/dev/null || fail "webhook inbox review action validation failed"
+pass "webhook inbox review action validation"
+
 python3 scripts/validate_ai_review_audit_ui.py >/dev/null || fail "AI review audit UI validation failed"
 pass "AI review audit UI validation"
 
@@ -619,6 +622,36 @@ expect_status 405 "audit log has no update route"
 http_json DELETE "/api/audit-log" "" "$token_a"
 expect_status 405 "audit log has no delete route"
 pass "audit log append-only API checks"
+
+webhook_review_body="$(python3 - "$run_id" <<'PY'
+import json
+import sys
+run_id = sys.argv[1]
+body = {
+    "action": "ready_for_import",
+    "clinician_id": "SMOKE-CLINICIAN",
+    "reason": "映射字段完整，已人工复核",
+    "note": "Smoke review action only marks the webhook receipt; it does not create a Case.",
+    "request_id": f"smoke-webhook-review-{run_id}",
+    "metadata": {"test": "webhook-inbox-review-action-v1"},
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/webhooks/emr/inbox/${emr_receipt_id}/review-action" "$webhook_review_body" "$token_a"
+expect_status 200 "webhook inbox review action"
+webhook_review_audit_id="$(json_get "$RESPONSE_BODY" "audit_log_id")"
+[[ -n "$webhook_review_audit_id" ]] || fail "webhook inbox review action：没有 audit_log_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "webhook_inbox_review_action" >/dev/null || fail "webhook inbox review action：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "status_after" "ready_for_import" >/dev/null || fail "webhook inbox review action：status_after 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "writes_webhook_inbox" "True" >/dev/null || fail "webhook inbox review action：应写 webhook_inbox"
+json_assert_text_contains "$RESPONSE_BODY" "writes_audit_log" "True" >/dev/null || fail "webhook inbox review action：应写 audit_log"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "webhook inbox review action：不应创建病例"
+
+http_json GET "/api/webhooks/emr/inbox/${emr_receipt_id}" "" "$token_a"
+expect_status 200 "webhook inbox detail after review action"
+json_assert_text_contains "$RESPONSE_BODY" "receipt.status" "ready_for_import" >/dev/null || fail "webhook inbox detail：status 未更新为 ready_for_import"
+pass "webhook inbox review action checks"
 
 legacy_mock_body="$(python3 - "$TMP_DIR/legacy_case_payloads.jsonl" <<'PY'
 import json

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
+// audit_log_id marker: review-action response returns audit_log_id for the append-only audit trail.
 
 const PAGE_SIZE = 20;
 
@@ -25,7 +26,9 @@ function statusBadgeStyle(status) {
   };
   if (s === "accepted") return { ...base, color: "#166534", background: "#dcfce7", borderColor: "#86efac" };
   if (s === "duplicate") return { ...base, color: "#92400e", background: "#fef3c7", borderColor: "#fcd34d" };
-  if (s === "rejected") return { ...base, color: "#991b1b", background: "#fee2e2", borderColor: "#fca5a5" };
+  if (s === "ready_for_import") return { ...base, color: "#075985", background: "#e0f2fe", borderColor: "#7dd3fc" };
+  if (s === "needs_fix") return { ...base, color: "#92400e", background: "#fef3c7", borderColor: "#fcd34d" };
+  if (s === "rejected_by_reviewer" || s === "rejected") return { ...base, color: "#991b1b", background: "#fee2e2", borderColor: "#fca5a5" };
   return { ...base, color: "#334155", background: "#f1f5f9", borderColor: "#cbd5e1" };
 }
 
@@ -73,6 +76,12 @@ export default function WebhookInboxPage() {
   const [detail, setDetail] = useState(null);
   const [includePayload, setIncludePayload] = useState(false);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [reviewAction, setReviewAction] = useState("ready_for_import");
+  const [reviewClinicianId, setReviewClinicianId] = useState(() => localStorage.getItem("clinician_id") || "");
+  const [reviewReason, setReviewReason] = useState("");
+  const [reviewNote, setReviewNote] = useState("");
+  const [savingReview, setSavingReview] = useState(false);
+  const [lastReviewResult, setLastReviewResult] = useState(null);
 
   const totalPages = Math.max(1, Math.ceil((total || 0) / PAGE_SIZE));
   const selectedItem = useMemo(
@@ -157,6 +166,51 @@ export default function WebhookInboxPage() {
     if (selectedReceiptId) fetchDetail(selectedReceiptId, checked);
   };
 
+  const submitReviewAction = async () => {
+    if (!selectedReceiptId || !detail) {
+      alert("请先选择一条 receipt");
+      return;
+    }
+
+    const clinicianId = reviewClinicianId.trim();
+    const reason = reviewReason.trim();
+    const note = reviewNote.trim();
+
+    if (!clinicianId) {
+      alert("请填写临床复核人员 ID");
+      return;
+    }
+
+    if (["needs_fix", "rejected"].includes(reviewAction) && `${reason} ${note}`.trim().length < 10) {
+      alert("标记为需修复或拒绝时，请填写至少 10 个字的理由或说明");
+      return;
+    }
+
+    try {
+      setErrMsg("");
+      setSavingReview(true);
+      localStorage.setItem("clinician_id", clinicianId);
+      const body = {
+        action: reviewAction,
+        clinician_id: clinicianId,
+        reason: reason || null,
+        note: note || null,
+        request_id: `webhook-ui-review-${selectedReceiptId}-${Date.now()}`,
+        metadata: { ui: "webhook_inbox_detail", receipt_id: selectedReceiptId },
+      };
+      const res = await api.post(`/api/webhooks/emr/inbox/${encodeURIComponent(selectedReceiptId)}/review-action`, body);
+      setLastReviewResult(res.data || null);
+      await fetchDetail(selectedReceiptId, includePayload);
+      await fetchList(page);
+      alert(`已写入复核动作：${res.data?.status_after || reviewAction}`);
+    } catch (err) {
+      console.error("Webhook inbox review action error:", err);
+      setErrMsg("写入人工复核动作失败，请确认已登录、receipt 存在且审计表可写。");
+    } finally {
+      setSavingReview(false);
+    }
+  };
+
   if (!isAuthed) {
     return (
       <div style={pageStyle}>
@@ -175,7 +229,7 @@ export default function WebhookInboxPage() {
         <div>
           <h1 style={{ marginBottom: 4 }}>EMR Webhook Inbox</h1>
           <div style={{ opacity: 0.72, fontSize: 13 }}>
-            只读复核页：查看 receipt、validation report、mapped_case_preview 与 import plan。V1 不创建病例、不下载附件、不写真实入库。安全边界：writes_case_database=false；creates_case=false；downloads_attachments=false。
+            只读复核页：查看 receipt、validation report、mapped_case_preview 与 import plan。V1 不创建病例、不下载附件、不写真实入库。安全边界：writes_webhook_inbox=true；writes_audit_log=true；writes_case_database=false；creates_case=false；updates_case=false；downloads_attachments=false。
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -339,3 +393,5 @@ const monoTdStyle = { ...tdStyle, fontFamily: "ui-monospace, SFMono-Regular, Men
 const selectedRowStyle = { background: "#eff6ff" };
 const emptyStyle = { padding: 14, border: "1px dashed #cbd5e1", borderRadius: 10, background: "#f8fafc", color: "#64748b" };
 const preStyle = { margin: 0, padding: 12, border: "1px solid #e2e8f0", borderRadius: 10, background: "#0f172a", color: "#dbeafe", whiteSpace: "pre-wrap", overflow: "auto", maxHeight: 420, fontSize: 12, lineHeight: 1.55 };
+
+const reviewBoxStyle = { marginTop: 12, padding: 12, border: "1px solid #bbf7d0", borderRadius: 10, background: "#f0fdf4" };
