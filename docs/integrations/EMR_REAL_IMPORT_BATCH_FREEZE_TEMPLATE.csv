@@ -1,0 +1,2 @@
+batch_id,source_system,source_export_time,record_count,ready_for_import_count,rejected_count,payload_hash_manifest,clinical_signoff_id,rollback_snapshot_id,frozen_by,frozen_at,status,notes
+emr-import-YYYYMMDD-wave01,legacy-emr,2026-06-04T09:00:00+08:00,0,0,0,manifest_sha256_here,signoff_id_here,snapshot_id_here,owner,2026-06-04T10:00:00+08:00,pending,

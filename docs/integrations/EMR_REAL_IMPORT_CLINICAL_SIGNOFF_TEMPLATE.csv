@@ -1,0 +1,2 @@
+signoff_id,batch_id,reviewer_id,reviewer_name,role,sample_count,total_records,review_rate,high_risk_reviewed,passed,review_ts,comments
+signoff-YYYYMMDD-001,emr-import-YYYYMMDD-wave01,HS-0001,赵海生,clinical_lead,200,0,0.05,true,pending,2026-06-04T10:30:00+08:00,

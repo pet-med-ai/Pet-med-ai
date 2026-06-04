@@ -1,0 +1,2 @@
+rollback_decision_id,batch_id,trigger,threshold_value,observed_value,decision,decided_by,decided_at,rollback_method,evidence,notes
+rollback-YYYYMMDD-001,emr-import-YYYYMMDD-wave01,duplicate_case_rate,0.01,0.00,no_rollback,tech_lead,2026-06-04T12:00:00+08:00,none,,

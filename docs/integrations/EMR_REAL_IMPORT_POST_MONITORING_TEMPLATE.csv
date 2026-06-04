@@ -1,0 +1,2 @@
+date,batch_id,new_cases,failed_records,duplicate_cases,case_detail_open_success_rate,webhook_inbox_accepted,webhook_inbox_rejected,audit_log_success_rate,clinician_feedback_count,status,owner,notes
+2026-06-04,emr-import-YYYYMMDD-wave01,0,0,0,1.00,0,0,1.00,0,pending,ops_lead,
