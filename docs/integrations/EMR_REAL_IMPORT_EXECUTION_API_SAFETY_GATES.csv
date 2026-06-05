@@ -1,0 +1,11 @@
+gate_id,gate_name,required_value,api_behavior_if_failed,notes
+G001,Batch status,approved,422,Only approved batches may reach real execution.
+G002,Clinical signoff,present and matching,422,Must match batch and request payload.
+G003,Rollback snapshot,verified,422,Snapshot must be confirmed before Case writes.
+G004,Execution dry-run,latest hash matches,409,Rebuild diff if batch changed.
+G005,Receipt status,all ready_for_import,422,No stale or rejected receipt can run.
+G006,Mapped case preview,present for every receipt,422,Required before CaseCreate.
+G007,Case write policy,create_only,422,V1 blocks updates.
+G008,Attachment policy,download disabled,422,V1 blocks attachment download.
+G009,Idempotency-Key,unique for payload,409,Duplicate request returns prior execution status.
+G010,Audit log,available,500,No Case write if audit cannot be appended.

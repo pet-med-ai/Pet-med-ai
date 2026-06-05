@@ -1,0 +1,94 @@
+{
+  "version": "EMR_REAL_IMPORT_EXECUTION_API_DESIGN_DOC_V1",
+  "stage": "design_only",
+  "proposed_endpoint": {
+    "method": "POST",
+    "path": "/api/emr/import-batches/{batch_id}/execute",
+    "auth_required": true,
+    "idempotency_header_required": true
+  },
+  "request_schema_draft": {
+    "operator_id": {
+      "type": "string",
+      "required": true
+    },
+    "clinical_signoff_id": {
+      "type": "string",
+      "required": true
+    },
+    "rollback_snapshot_id": {
+      "type": "string",
+      "required": true
+    },
+    "execution_dry_run_id": {
+      "type": "string",
+      "required": false
+    },
+    "execution_dry_run_hash": {
+      "type": "string",
+      "required": true
+    },
+    "mode": {
+      "type": "string",
+      "enum": [
+        "execute_real_import"
+      ],
+      "required": true
+    },
+    "policy": {
+      "type": "object",
+      "required": true,
+      "properties": {
+        "case_write_mode": {
+          "enum": [
+            "create_only"
+          ]
+        },
+        "allow_case_update": {
+          "const": false
+        },
+        "allow_attachment_download": {
+          "const": false
+        },
+        "max_items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "stop_on_first_error": {
+          "type": "boolean"
+        }
+      }
+    },
+    "note": {
+      "type": "string",
+      "required": false
+    },
+    "metadata": {
+      "type": "object",
+      "required": false
+    }
+  },
+  "response_schema_draft": {
+    "message": "emr_import_execution_started",
+    "mode": "real_import_execution",
+    "writes_case_database": true,
+    "creates_case": true,
+    "updates_case": false,
+    "downloads_attachments": false,
+    "executes_real_import": true,
+    "can_rollback": true
+  },
+  "hard_safety_gates": [
+    "batch.status must be approved",
+    "clinical_signoff_id must match batch and request",
+    "rollback_snapshot_id must be verified",
+    "latest execution dry-run quality gate must pass",
+    "all linked receipts must be ready_for_import",
+    "all receipts must have mapped_case_preview",
+    "V1 must not update existing Case records",
+    "V1 must not download attachments",
+    "audit log must be writable"
+  ],
+  "recommended_next_phase": "EMR import execution result model V1"
+}

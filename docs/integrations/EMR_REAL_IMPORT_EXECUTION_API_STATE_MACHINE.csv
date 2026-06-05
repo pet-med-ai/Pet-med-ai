@@ -1,0 +1,12 @@
+from_status,to_status,allowed,trigger,notes
+approved,running,true,POST /execute after all gates pass,Future implementation only.
+running,completed,true,All Case create operations succeed,Future implementation only.
+running,failed,true,Any execution failure,Must preserve audit trail.
+running,rolled_back,true,Rollback completed,Requires rollback evidence.
+draft,running,false,N/A,Draft batch cannot execute.
+frozen,running,false,N/A,Clinical approval still required.
+clinical_signed,running,false,N/A,Final approval still required unless policy changes.
+needs_fix,running,false,N/A,Needs correction.
+approval_rejected,running,false,N/A,Explicitly rejected.
+completed,running,false,N/A,Completed batch cannot rerun.
+rolled_back,running,false,N/A,Rolled back batch cannot rerun.
