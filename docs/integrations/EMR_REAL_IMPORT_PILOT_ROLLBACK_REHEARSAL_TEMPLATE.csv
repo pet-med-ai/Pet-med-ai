@@ -1,0 +1,2 @@
+rehearsal_id,batch_id,rollback_snapshot_id,environment,operator_id,rollback_owner,started_at,completed_at,snapshot_verified,created_case_identification_verified,rollback_steps_rehearsed,post_rollback_smoke_passed,clinical_check_passed,result,notes
+rollback-rehearsal-example,emr_batch_example,SNAPSHOT-EXAMPLE,staging,HS-0001,ops-owner,2026-06-05T20:00:00+09:00,2026-06-05T20:20:00+09:00,yes,yes,yes,yes,yes,pass,

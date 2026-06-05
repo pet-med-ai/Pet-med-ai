@@ -1,0 +1,2 @@
+batch_id,execution_id,receipt_id,created_case_id,external_case_id,external_encounter_id,patient_name_ok,species_ok,owner_ok,chief_complaint_ok,history_contains_emr_ids,exam_findings_contains_vitals,no_duplicate_case,no_update_performed,no_attachment_downloaded,no_medication_order_created,audit_log_present,execution_result_present,reviewer_id,review_result,notes
+emr_batch_example,exec_example,rcpt_example,123,CASE-EXAMPLE,ENC-EXAMPLE,yes,yes,yes,yes,yes,yes,yes,yes,yes,yes,yes,yes,HS-0001,pass,

@@ -1,0 +1,2 @@
+decision_id,batch_id,pilot_level,decision,decider_id,clinical_signoff_id,rollback_snapshot_id,execution_dry_run_passed,smoke_before_passed,rollback_rehearsal_passed,spot_check_required,known_risks,decision_reason,decision_time
+decision-example,emr_batch_example,pilot_0,go,HS-0001,SIGNOFF-EXAMPLE,SNAPSHOT-EXAMPLE,yes,yes,yes,yes,none,All gates passed for create-only pilot,2026-06-05T20:30:00+09:00

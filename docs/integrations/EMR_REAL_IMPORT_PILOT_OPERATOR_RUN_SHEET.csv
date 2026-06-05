@@ -1,0 +1,11 @@
+step_number,phase,owner,command_or_action,expected_result,stop_if_failed,evidence_location,completed_by,completed_at,notes
+1,precheck,operator,confirm batch.status approved or clinical_signed,batch approved,yes,UI/API,,
+2,precheck,operator,confirm clinical_signoff_id present,signoff present,yes,UI/API,,
+3,precheck,operator,confirm rollback_snapshot_id present,snapshot present,yes,Render/Postgres snapshot,,
+4,precheck,operator,run execution dry-run,quality_gate passed,yes,API response,,
+5,precheck,operator,run smoke before execution,ALL PASS,yes,terminal log,,
+6,execution,operator,execute pilot create-only batch,future implementation only,yes,execution log,,
+7,postcheck,operator,run smoke after execution,ALL PASS,yes,terminal log,,
+8,postcheck,clinician,spot-check 100 percent created cases,all pass,yes,spot check csv,,
+9,closeout,operator,record execution results and audit,execution result rows present,yes,database/API,,
+10,decision,clinical lead,continue / pause / rollback decision,decision recorded,yes,decision template,,

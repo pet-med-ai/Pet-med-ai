@@ -1,0 +1,5 @@
+pilot_level,max_receipts,allowed_operations,updates_allowed,attachments_allowed,medication_orders_allowed,billing_allowed,required_clean_previous_runs,go_condition,no_go_condition
+pilot_0,1,create_only,false,false,false,false,0,rollback rehearsal passed and execution dry-run passed,any missing signoff or snapshot
+pilot_1,3,create_only,false,false,false,false,1,100 percent clinical spot check passed on pilot_0,any duplicate or rollback defect
+pilot_2,5,create_only,false,false,false,false,1,100 percent clinical spot check passed on pilot_1,any clinical mismatch
+pilot_3,10,create_only,false,false,false,false,2,two clean pilots and smoke all pass,any unresolved qa issue
