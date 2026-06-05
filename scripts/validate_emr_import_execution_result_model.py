@@ -8,7 +8,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
-MIGRATION = BACKEND / "migrations" / "versions" / "0006_emr_import_execution_results.py"
+MIGRATION = BACKEND / "migrations" / "versions" / "0006_emr_import_results.py"
 MODELS = BACKEND / "models.py"
 
 
@@ -51,7 +51,7 @@ def main() -> int:
     rc = require_text(
         MIGRATION,
         (
-            'revision = "0006_emr_import_execution_results"',
+            'revision = "0006_emr_import_results"',
             'down_revision = "0005_emr_import_batches"',
             'op.create_table(',
             '"emr_import_execution_runs"',

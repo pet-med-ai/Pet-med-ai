@@ -16,7 +16,7 @@ MIGRATIONS = [
     "0003_audit_log.py",
     "0004_webhook_inbox_receipts.py",
     "0005_emr_import_batches.py",
-    "0006_emr_import_execution_results.py",
+    "0006_emr_import_results.py",
 ]
 
 REQUIRED_FILES = [
@@ -75,7 +75,7 @@ def main() -> int:
         ("0003_audit_log.py", ('revision = "0003_audit_log"', 'down_revision = "0002_kpi_data_models"', '"audit_log"')),
         ("0004_webhook_inbox_receipts.py", ('revision = "0004_webhook_inbox_receipts"', 'down_revision = "0003_audit_log"', '"webhook_inbox"')),
         ("0005_emr_import_batches.py", ('revision = "0005_emr_import_batches"', 'down_revision = "0004_webhook_inbox_receipts"', '"emr_import_batches"', '"emr_import_batch_receipts"')),
-        ("0006_emr_import_execution_results.py", ('revision = "0006_emr_import_execution_results"', 'down_revision = "0005_emr_import_batches"', '"emr_import_execution_runs"', '"emr_import_execution_item_results"')),
+        ("0006_emr_import_results.py", ('revision = "0006_emr_import_results"', 'down_revision = "0005_emr_import_batches"', '"emr_import_execution_runs"', '"emr_import_execution_item_results"')),
     ]
     for filename, needles in checks:
         rc = require_text(VERSIONS / filename, needles, filename)

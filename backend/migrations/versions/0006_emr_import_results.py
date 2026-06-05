@@ -1,6 +1,6 @@
 """add EMR import execution result models
 
-Revision ID: 0006_emr_import_execution_results
+Revision ID: 0006_emr_import_results
 Revises: 0005_emr_import_batches
 Create Date: 2026-06-05 00:00:00
 """
@@ -9,7 +9,7 @@ from __future__ import annotations
 from alembic import op
 import sqlalchemy as sa
 
-revision = "0006_emr_import_execution_results"
+revision = "0006_emr_import_results"
 down_revision = "0005_emr_import_batches"
 branch_labels = None
 depends_on = None
