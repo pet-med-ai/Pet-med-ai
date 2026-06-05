@@ -6,22 +6,25 @@ import py_compile
 import sys
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[1]
 BACKEND = ROOT / "backend"
 VERSIONS = BACKEND / "migrations" / "versions"
+
+MIGRATIONS = [
+    "0001_baseline_current_schema.py",
+    "0002_kpi_data_models.py",
+    "0003_audit_log.py",
+    "0004_webhook_inbox_receipts.py",
+    "0005_emr_import_batches.py",
+    "0006_emr_import_execution_results.py",
+]
 
 REQUIRED_FILES = [
     BACKEND / "alembic.ini",
     BACKEND / "migrations" / "env.py",
     BACKEND / "migrations" / "script.py.mako",
     BACKEND / "migrations" / "README",
-    VERSIONS / "0001_baseline_current_schema.py",
-    VERSIONS / "0002_kpi_data_models.py",
-    VERSIONS / "0003_audit_log.py",
-    VERSIONS / "0004_webhook_inbox_receipts.py",
-    VERSIONS / "0005_emr_import_batches.py",
-]
+] + [VERSIONS / name for name in MIGRATIONS]
 
 EXPECTED_METADATA_TABLES = {
     "users",
@@ -35,6 +38,8 @@ EXPECTED_METADATA_TABLES = {
     "webhook_inbox",
     "emr_import_batches",
     "emr_import_batch_receipts",
+    "emr_import_execution_runs",
+    "emr_import_execution_item_results",
 }
 
 
@@ -45,9 +50,9 @@ def fail(message: str) -> int:
 
 def require_text(path: Path, needles: tuple[str, ...], label: str) -> int:
     text = path.read_text(encoding="utf-8")
-    missing = [needle for needle in needles if needle not in text]
-    if missing:
-        return fail(f"{label} missing expected content: {missing[0]}")
+    for needle in needles:
+        if needle not in text:
+            return fail(f"{label} missing expected content: {needle}")
     return 0
 
 
@@ -65,65 +70,15 @@ def main() -> int:
         return fail("backend/alembic.ini must set script_location = migrations")
 
     checks = [
-        (
-            VERSIONS / "0001_baseline_current_schema.py",
-            (
-                'revision = "0001_baseline"',
-                'op.create_table(',
-                '"users"',
-                '"cases"',
-                '"consult_sessions"',
-            ),
-            "baseline migration",
-        ),
-        (
-            VERSIONS / "0002_kpi_data_models.py",
-            (
-                'revision = "0002_kpi_data_models"',
-                'down_revision = "0001_baseline"',
-                'op.create_table(',
-                '"imaging_studies"',
-                '"imaging_billing"',
-                '"followups"',
-                '"qa_audit"',
-            ),
-            "KPI data model migration",
-        ),
-        (
-            VERSIONS / "0003_audit_log.py",
-            (
-                'revision = "0003_audit_log"',
-                'down_revision = "0002_kpi_data_models"',
-                'op.create_table(',
-                '"audit_log"',
-            ),
-            "audit log migration",
-        ),
-        (
-            VERSIONS / "0004_webhook_inbox_receipts.py",
-            (
-                'revision = "0004_webhook_inbox_receipts"',
-                'down_revision = "0003_audit_log"',
-                'op.create_table(',
-                '"webhook_inbox"',
-            ),
-            "webhook inbox migration",
-        ),
-        (
-            VERSIONS / "0005_emr_import_batches.py",
-            (
-                'revision = "0005_emr_import_batches"',
-                'down_revision = "0004_webhook_inbox_receipts"',
-                'op.create_table(',
-                '"emr_import_batches"',
-                '"emr_import_batch_receipts"',
-            ),
-            "EMR import batch migration",
-        ),
+        ("0001_baseline_current_schema.py", ('revision = "0001_baseline"', 'op.create_table(', '"users"', '"cases"', '"consult_sessions"')),
+        ("0002_kpi_data_models.py", ('revision = "0002_kpi_data_models"', 'down_revision = "0001_baseline"', '"imaging_studies"', '"imaging_billing"', '"followups"', '"qa_audit"')),
+        ("0003_audit_log.py", ('revision = "0003_audit_log"', 'down_revision = "0002_kpi_data_models"', '"audit_log"')),
+        ("0004_webhook_inbox_receipts.py", ('revision = "0004_webhook_inbox_receipts"', 'down_revision = "0003_audit_log"', '"webhook_inbox"')),
+        ("0005_emr_import_batches.py", ('revision = "0005_emr_import_batches"', 'down_revision = "0004_webhook_inbox_receipts"', '"emr_import_batches"', '"emr_import_batch_receipts"')),
+        ("0006_emr_import_execution_results.py", ('revision = "0006_emr_import_execution_results"', 'down_revision = "0005_emr_import_batches"', '"emr_import_execution_runs"', '"emr_import_execution_item_results"')),
     ]
-
-    for path, needles, label in checks:
-        rc = require_text(path, needles, label)
+    for filename, needles in checks:
+        rc = require_text(VERSIONS / filename, needles, filename)
         if rc:
             return rc
 
@@ -138,7 +93,7 @@ def main() -> int:
             f"actual={sorted(tables)}, expected={sorted(EXPECTED_METADATA_TABLES)}"
         )
 
-    print("OK Alembic setup: baseline, KPI, audit log, webhook inbox, EMR import batch migrations and SQLAlchemy metadata are present")
+    print("OK Alembic setup: baseline, KPI, audit log, webhook inbox, EMR batch and execution result migrations are present")
     return 0
 
 

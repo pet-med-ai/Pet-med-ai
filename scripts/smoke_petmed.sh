@@ -105,6 +105,9 @@ pass "emr real import batch planning API validation"
 python3 scripts/validate_emr_import_execution_dry_run.py >/dev/null || fail "emr real import execution dry-run validation failed"
 pass "emr real import execution dry-run validation"
 
+python3 scripts/validate_emr_import_execution_result_model.py >/dev/null || fail "emr import execution result model validation failed"
+pass "emr import execution result model validation"
+
 python3 scripts/validate_emr_import_clinical_approval_api.py >/dev/null || fail "emr real import clinical approval API validation failed"
 pass "emr real import clinical approval API validation"
 

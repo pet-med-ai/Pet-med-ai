@@ -410,3 +410,130 @@ class EmrImportBatchReceipt(Base):
         Index("ix_emr_import_batch_receipts_ready", "batch_id", "ready_for_import"),
     )
 
+class EmrImportExecutionRun(Base):
+    """
+    EMR real import execution result V1.
+
+    This table records a future real-import execution run for a previously
+    approved EMR import batch. The model is result tracking only; it does not
+    execute imports by itself.
+    """
+    __tablename__ = "emr_import_execution_runs"
+
+    execution_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"emr_exec_{uuid4().hex}")
+    batch_id: Mapped[str] = mapped_column(
+        ForeignKey("emr_import_batches.batch_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    source_system: Mapped[str] = mapped_column(String(100), default="emr", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(50), default="planned", nullable=False, index=True)
+    mode: Mapped[str] = mapped_column(String(100), default="real_import_execution_result", nullable=False)
+
+    operator_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    clinical_signoff_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    rollback_snapshot_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    approval_audit_log_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("audit_log.log_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    receipt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    updated_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    skipped_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    failed_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    rolled_back_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    rolled_back_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+    created_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_emr_import_execution_runs_batch_status", "batch_id", "status"),
+        Index("ix_emr_import_execution_runs_source_created", "source_system", "created_at"),
+    )
+
+
+class EmrImportExecutionItemResult(Base):
+    """
+    Per-receipt execution result V1.
+
+    Each row records what happened, or would be recorded, for one webhook_inbox
+    receipt inside a future real-import execution run. It supports tracking
+    created_case_id, failure reasons, and rollback status without changing the
+    Case table model in this phase.
+    """
+    __tablename__ = "emr_import_execution_item_results"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    execution_id: Mapped[str] = mapped_column(
+        ForeignKey("emr_import_execution_runs.execution_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    batch_id: Mapped[str] = mapped_column(
+        ForeignKey("emr_import_batches.batch_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    receipt_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("webhook_inbox.receipt_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    external_case_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    external_encounter_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    payload_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
+
+    operation: Mapped[str] = mapped_column(String(50), default="case_create", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(50), default="pending", nullable=False, index=True)
+
+    created_case_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    target_case_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    failure_code: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    failure_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    rollback_status: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    rollback_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    case_diff: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    result_payload: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    started_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    rolled_back_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ux_emr_import_execution_item_receipt", "execution_id", "receipt_id", unique=True),
+        Index("ix_emr_import_execution_items_batch_status", "batch_id", "status"),
+        Index("ix_emr_import_execution_items_failure", "failure_code", "status"),
+        Index("ix_emr_import_execution_items_created_case", "created_case_id", "status"),
+    )
+
