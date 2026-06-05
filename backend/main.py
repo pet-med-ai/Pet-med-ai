@@ -1331,6 +1331,11 @@ def ai_consult_session_answer(
     return _consult_session_payload(session)
 
 try:
+    from backend.system_info import router as system_info_router
+except ModuleNotFoundError:
+    from system_info import router as system_info_router
+
+try:
     from backend.audit_log_api import router as audit_log_api_router
 except ModuleNotFoundError:
     from audit_log_api import router as audit_log_api_router
@@ -1362,6 +1367,7 @@ except ModuleNotFoundError:
 
 # 将 /api 路由挂载到应用
 app.include_router(api)
+app.include_router(system_info_router)
 app.include_router(audit_log_api_router)
 app.include_router(kpi_api_router)
 app.include_router(emr_webhook_router)

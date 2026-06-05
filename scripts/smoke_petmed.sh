@@ -84,6 +84,9 @@ pass "alembic migration setup validation"
 python3 scripts/validate_release_readiness.py >/dev/null || fail "release readiness validation failed"
 pass "release readiness validation"
 
+python3 scripts/validate_system_version_info.py >/dev/null || fail "system version/build info validation failed"
+pass "system version/build info validation"
+
 python3 scripts/validate_kpi_api.py >/dev/null || fail "kpi aggregation API validation failed"
 pass "kpi aggregation API validation"
 
@@ -378,6 +381,12 @@ echo
 # 1. healthz
 http_json GET "/healthz"
 expect_status 200 "healthz"
+http_json GET "/api/system/version"
+expect_status 200 "system version"
+json_assert_text_contains "$RESPONSE_BODY" "message" "system_version" >/dev/null || fail "system version：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "schema_ok" "True" >/dev/null || fail "system version：schema_ok 应为 true"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "system version：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "exposes_database_url" "False" >/dev/null || fail "system version：不应暴露数据库 URL"
 
 # EMR Webhook dry-run V1: signed handshake without DB writes.
 emr_body_file="$TMP_DIR/emr_webhook_body.json"
