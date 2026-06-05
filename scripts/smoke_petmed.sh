@@ -87,6 +87,9 @@ pass "release readiness validation"
 python3 scripts/validate_system_version_info.py >/dev/null || fail "system version/build info validation failed"
 pass "system version/build info validation"
 
+python3 scripts/validate_feature_flags.py >/dev/null || fail "feature flags safety gate validation failed"
+pass "feature flags safety gate validation"
+
 python3 scripts/validate_kpi_api.py >/dev/null || fail "kpi aggregation API validation failed"
 pass "kpi aggregation API validation"
 
@@ -387,6 +390,16 @@ json_assert_text_contains "$RESPONSE_BODY" "message" "system_version" >/dev/null
 json_assert_text_contains "$RESPONSE_BODY" "schema_ok" "True" >/dev/null || fail "system version：schema_ok 应为 true"
 json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "system version：不应写数据库"
 json_assert_text_contains "$RESPONSE_BODY" "exposes_database_url" "False" >/dev/null || fail "system version：不应暴露数据库 URL"
+
+http_json GET "/api/system/feature-flags"
+expect_status 200 "system feature flags"
+json_assert_text_contains "$RESPONSE_BODY" "message" "system_feature_flags" >/dev/null || fail "system feature flags：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "all_dangerous_features_disabled" "True" >/dev/null || fail "system feature flags：危险功能应默认关闭"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "system feature flags：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "exposes_secret_values" "False" >/dev/null || fail "system feature flags：不应暴露 secret"
+json_assert_text_contains "$RESPONSE_BODY" "flags.ENABLE_EMR_REAL_IMPORT.enabled" "False" >/dev/null || fail "system feature flags：EMR real import 默认应关闭"
+json_assert_text_contains "$RESPONSE_BODY" "flags.ENABLE_EMR_IMPORT_CASE_UPDATE.enabled" "False" >/dev/null || fail "system feature flags：EMR case update 默认应关闭"
+json_assert_text_contains "$RESPONSE_BODY" "flags.ENABLE_EMR_ATTACHMENT_DOWNLOAD.enabled" "False" >/dev/null || fail "system feature flags：附件下载默认应关闭"
 
 # EMR Webhook dry-run V1: signed handshake without DB writes.
 emr_body_file="$TMP_DIR/emr_webhook_body.json"

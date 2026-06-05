@@ -1336,6 +1336,11 @@ except ModuleNotFoundError:
     from system_info import router as system_info_router
 
 try:
+    from backend.feature_flags import router as feature_flags_router
+except ModuleNotFoundError:
+    from feature_flags import router as feature_flags_router
+
+try:
     from backend.audit_log_api import router as audit_log_api_router
 except ModuleNotFoundError:
     from audit_log_api import router as audit_log_api_router
@@ -1368,6 +1373,7 @@ except ModuleNotFoundError:
 # 将 /api 路由挂载到应用
 app.include_router(api)
 app.include_router(system_info_router)
+app.include_router(feature_flags_router)
 app.include_router(audit_log_api_router)
 app.include_router(kpi_api_router)
 app.include_router(emr_webhook_router)
