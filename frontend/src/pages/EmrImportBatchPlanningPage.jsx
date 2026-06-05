@@ -85,6 +85,14 @@ export default function EmrImportBatchPlanningPage() {
   const [errMsg, setErrMsg] = useState("");
   const [lastPlanResult, setLastPlanResult] = useState(null);
 
+  const [approvalOperatorId, setApprovalOperatorId] = useState(localStorage.getItem("clinician_id") || "");
+  const [approvalSignoffId, setApprovalSignoffId] = useState("");
+  const [approvalRollbackSnapshotId, setApprovalRollbackSnapshotId] = useState("");
+  const [approvalAction, setApprovalAction] = useState("approve");
+  const [approvalNote, setApprovalNote] = useState("EMR real import clinical approval UI V1：临床 Go / No-Go 批准；仍不执行真实导入。");
+  const [approving, setApproving] = useState(false);
+  const [lastApprovalResult, setLastApprovalResult] = useState(null);
+
   const selectedCount = selectedReceiptIds.size;
   const batchTotalPages = Math.max(1, Math.ceil((batchTotal || 0) / PAGE_SIZE));
 
@@ -235,6 +243,71 @@ export default function EmrImportBatchPlanningPage() {
       setErrMsg(`创建 batch planning 失败：${typeof detail === "string" ? detail : JSON.stringify(detail || err.message)}`);
     } finally {
       setPlanning(false);
+    }
+  };
+
+  const handleClinicalApproval = async () => {
+    if (!localStorage.getItem("token")) {
+      alert("请先登录");
+      return;
+    }
+    const batchId = batchDetail?.batch?.batch_id || selectedBatchId;
+    if (!batchId) {
+      alert("请先选择一个 batch");
+      return;
+    }
+
+    const cleanOperator = String(approvalOperatorId || "").trim();
+    const cleanSignoff = String(approvalSignoffId || batchDetail?.batch?.clinical_signoff_id || "").trim();
+    const cleanSnapshot = String(approvalRollbackSnapshotId || batchDetail?.batch?.rollback_snapshot_id || "").trim();
+    if (!cleanOperator) {
+      alert("请填写 operator_id / 临床人员 ID");
+      return;
+    }
+    if (!cleanSignoff) {
+      alert("请填写 clinical_signoff_id");
+      return;
+    }
+    if (!cleanSnapshot) {
+      alert("请填写 rollback_snapshot_id");
+      return;
+    }
+    if (["needs_fix", "reject", "rejected"].includes(approvalAction) && String(approvalNote || "").trim().length < 10) {
+      alert("needs_fix / reject 必须填写至少 10 字说明");
+      return;
+    }
+
+    try {
+      setErrMsg("");
+      setApproving(true);
+      localStorage.setItem("clinician_id", cleanOperator);
+      const body = {
+        operator_id: cleanOperator,
+        clinical_signoff_id: cleanSignoff,
+        rollback_snapshot_id: cleanSnapshot,
+        approval_action: approvalAction,
+        note: approvalNote.trim() || null,
+        request_id: `emr-clinical-approval-ui-${Date.now()}`,
+        metadata: {
+          ui: "emr_import_clinical_approval_ui_v1",
+          batch_id: batchId,
+        },
+      };
+
+      const res = await api.post(`/api/emr/import-batches/${encodeURIComponent(batchId)}/clinical-approval`, body);
+      const payload = res.data || {};
+      setLastApprovalResult(payload);
+      if (payload.batch?.clinical_signoff_id) setApprovalSignoffId(payload.batch.clinical_signoff_id);
+      if (payload.batch?.rollback_snapshot_id) setApprovalRollbackSnapshotId(payload.batch.rollback_snapshot_id);
+      await fetchBatches(batchPage);
+      await fetchBatchDetail(batchId);
+      alert(`已写入临床批准动作：${payload.status_after || payload.batch?.status || "unknown"}；audit_log_id=${payload.audit_log_id || "unknown"}`);
+    } catch (err) {
+      console.error("Clinical approval failed:", err);
+      const detail = err?.response?.data?.detail;
+      setErrMsg(`临床批准失败：${typeof detail === "string" ? detail : JSON.stringify(detail || err.message)}`);
+    } finally {
+      setApproving(false);
     }
   };
 
@@ -426,6 +499,75 @@ export default function EmrImportBatchPlanningPage() {
             <JsonBlock title="batch" value={batchDetail.batch || {}} />
             <JsonBlock title="receipts" value={batchDetail.receipts || []} />
             <JsonBlock title="safety" value={batchDetail.safety || {}} />
+
+            <div style={{ marginTop: 16, padding: 14, border: "1px solid #bbf7d0", borderRadius: 12, background: "#f0fdf4" }}>
+              <h3 style={{ marginTop: 0 }}>EMR Real Import Clinical Approval</h3>
+              <div style={{ fontSize: 13, lineHeight: 1.55, color: "#166534", fontWeight: 700 }}>
+                临床 Go / No-Go 批准门禁：POST /api/emr/import-batches/{"{batch_id}"}/clinical-approval。
+              </div>
+              <div style={{ marginTop: 6, fontSize: 12, color: "#166534" }}>
+                安全边界：writes_emr_import_batches=true；writes_audit_log=true；writes_case_database=false；creates_case=false；updates_case=false；downloads_attachments=false；executes_real_import=false；can_execute_import=false。
+              </div>
+
+              <div style={formGridStyle}>
+                <label style={labelStyle}>
+                  operator_id / 临床人员 ID
+                  <input value={approvalOperatorId} onChange={(e) => setApprovalOperatorId(e.target.value)} placeholder="HS-0001" style={inputStyle} />
+                </label>
+                <label style={labelStyle}>
+                  clinical_signoff_id
+                  <input value={approvalSignoffId || batchDetail.batch?.clinical_signoff_id || ""} onChange={(e) => setApprovalSignoffId(e.target.value)} placeholder="SIGNOFF-YYYYMMDD-001" style={inputStyle} />
+                </label>
+                <label style={labelStyle}>
+                  rollback_snapshot_id
+                  <input value={approvalRollbackSnapshotId || batchDetail.batch?.rollback_snapshot_id || ""} onChange={(e) => setApprovalRollbackSnapshotId(e.target.value)} placeholder="SNAPSHOT-YYYYMMDD-001" style={inputStyle} />
+                </label>
+                <label style={labelStyle}>
+                  approval_action
+                  <select value={approvalAction} onChange={(e) => setApprovalAction(e.target.value)} style={inputStyle}>
+                    <option value="approve">approve → approved</option>
+                    <option value="clinical_signed">clinical_signed</option>
+                    <option value="needs_fix">needs_fix</option>
+                    <option value="reject">reject → approval_rejected</option>
+                    <option value="rejected">rejected → approval_rejected</option>
+                  </select>
+                </label>
+              </div>
+
+              <label style={{ ...labelStyle, marginTop: 10 }}>
+                note / 批准或 No-Go 说明
+                <textarea value={approvalNote} onChange={(e) => setApprovalNote(e.target.value)} rows={3} style={{ ...inputStyle, resize: "vertical" }} />
+              </label>
+
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+                <button type="button" onClick={handleClinicalApproval} disabled={approving || !batchDetail?.batch?.batch_id} style={btnStyle}>
+                  {approving ? "写入中…" : "写入临床批准动作"}
+                </button>
+                <span style={{ fontSize: 12, opacity: 0.72, alignSelf: "center" }}>
+                  返回字段：audit_log_id / status_after / approval_action / can_execute_import=false
+                </span>
+              </div>
+
+              {lastApprovalResult && (
+                <JsonBlock
+                  title="last_clinical_approval_result"
+                  value={{
+                    audit_log_id: lastApprovalResult.audit_log_id,
+                    status_before: lastApprovalResult.status_before,
+                    status_after: lastApprovalResult.status_after,
+                    approval_action: lastApprovalResult.approval_action || lastApprovalResult.action,
+                    writes_emr_import_batches: lastApprovalResult.writes_emr_import_batches,
+                    writes_audit_log: lastApprovalResult.writes_audit_log,
+                    writes_case_database: lastApprovalResult.writes_case_database,
+                    creates_case: lastApprovalResult.creates_case,
+                    updates_case: lastApprovalResult.updates_case,
+                    downloads_attachments: lastApprovalResult.downloads_attachments,
+                    executes_real_import: lastApprovalResult.executes_real_import,
+                    can_execute_import: lastApprovalResult.can_execute_import,
+                  }}
+                />
+              )}
+            </div>
           </div>
         )}
       </section>

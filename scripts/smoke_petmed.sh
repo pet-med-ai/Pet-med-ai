@@ -108,6 +108,9 @@ pass "emr real import execution dry-run validation"
 python3 scripts/validate_emr_import_clinical_approval_api.py >/dev/null || fail "emr real import clinical approval API validation failed"
 pass "emr real import clinical approval API validation"
 
+python3 scripts/validate_emr_import_clinical_approval_ui.py >/dev/null || fail "emr real import clinical approval UI validation failed"
+pass "emr real import clinical approval UI validation"
+
 
 python3 scripts/validate_audit_log_api.py >/dev/null || fail "audit log append-only API validation failed"
 pass "audit log append-only API validation"
