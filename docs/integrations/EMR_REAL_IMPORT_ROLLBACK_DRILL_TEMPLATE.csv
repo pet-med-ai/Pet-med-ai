@@ -1,0 +1,2 @@
+drill_id,batch_id,rollback_snapshot_id,restore_tested,smoke_after_restore,clinical_spot_check,owner,completed_at,notes
+DRILL-001,emr_batch_example,SNAPSHOT-YYYYMMDD-001,,,,,,

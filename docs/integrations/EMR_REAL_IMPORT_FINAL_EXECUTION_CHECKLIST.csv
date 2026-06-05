@@ -1,0 +1,11 @@
+gate_id,gate_name,required_value,actual_value,status,owner,checked_at,notes
+G01,Render backend deployed expected commit,yes,,,,,
+G02,PostgreSQL alembic current at expected head,yes,,,,,
+G03,online smoke ALL PASS,yes,,,,,
+G04,batch status approved or clinical_signed,yes,,,,,
+G05,execution dry-run quality_gate passed,true,,,,,
+G06,clinical_signoff_id present,yes,,,,,
+G07,rollback_snapshot_id verified,yes,,,,,
+G08,operator_id recorded,yes,,,,,
+G09,No-Go conditions absent,yes,,,,,
+G10,clinical spot-check plan ready,yes,,,,,

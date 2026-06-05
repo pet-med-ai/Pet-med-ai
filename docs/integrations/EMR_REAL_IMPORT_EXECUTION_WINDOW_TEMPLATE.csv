@@ -1,0 +1,2 @@
+batch_id,planned_start_at,planned_end_at,operator_id,clinical_approver_id,rollback_owner_id,rollback_snapshot_id,support_channel,max_receipts,status,notes
+emr_batch_example,2026-06-05T22:00:00+08:00,2026-06-05T23:00:00+08:00,HS-0001,CLINICIAN-001,OPS-001,SNAPSHOT-YYYYMMDD-001,wechat/group,20,planned,first production run should stay small

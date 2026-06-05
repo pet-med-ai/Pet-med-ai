@@ -1,0 +1,9 @@
+guardrail_id,guardrail,required,implementation_owner,verified,notes
+W01,batch status must be approved or clinical_signed,yes,backend,,
+W02,rollback_snapshot_id required,yes,backend,,
+W03,clinical_signoff_id required,yes,backend,,
+W04,operator_id required,yes,backend,,
+W05,each created/updated Case marked with import_batch_id,yes,backend,,
+W06,audit_log appended for execution,yes,backend,,
+W07,idempotent case write,yes,backend,,
+W08,attachments not downloaded unless separately approved,yes,backend,,

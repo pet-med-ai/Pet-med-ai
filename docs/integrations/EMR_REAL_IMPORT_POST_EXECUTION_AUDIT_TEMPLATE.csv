@@ -1,0 +1,2 @@
+batch_id,execution_started_at,execution_completed_at,created_case_count,updated_case_count,failed_count,smoke_result,clinical_spot_check_result,rollback_needed,final_status,reviewer,notes
+emr_batch_example,,,,,,,,no,,,

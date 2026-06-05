@@ -1,0 +1,2 @@
+batch_id,operator_id,clinical_signoff_id,rollback_snapshot_id,go_no_go_result,signed_at,signature,notes
+emr_batch_example,HS-0001,SIGNOFF-YYYYMMDD-001,SNAPSHOT-YYYYMMDD-001,GO,,,Confirm all runbook gates before real execution.
