@@ -1,0 +1,2 @@
+approval_id,gate_name,decision,technical_owner,clinical_owner,rollback_owner,operator,data_compliance_owner,approved_pilot_level,max_receipts,clinical_signoff_id,rollback_snapshot_id,approval_time,notes
+approval-example,create-only implementation risk gate,no-go,dev-owner,clinical-owner,rollback-owner,operator,data-owner,pilot_0,1,SIGNOFF-EXAMPLE,SNAPSHOT-EXAMPLE,2026-06-05T22:00:00+09:00,Default is no-go until all checklist items pass

@@ -1,0 +1,13 @@
+risk_id,risk,impact,likelihood,severity,mitigation,owner,go_no_go_rule,status,notes
+R-001,Duplicate Case creation,Duplicate clinical records and confusion,medium,P0,Check receipt_id/idempotency_key/external_case_id before create,developer,No-Go if duplicate risk unresolved,open,
+R-002,Accidental Case update,Existing doctor-edited records overwritten,medium,P0,Create-only policy; block case_update_preview,developer,No-Go if update path exists,open,
+R-003,Missing rollback snapshot,Unable to recover after bad import,low,P0,Require rollback_snapshot_id and verified backup,rollback_owner,No-Go without snapshot,open,
+R-004,Missing clinical signoff,Unapproved clinical data enters system,low,P0,Require clinical_signoff_id and approval status,clinical_owner,No-Go without signoff,open,
+R-005,Feature flag accidentally enabled,Dangerous workflow exposed,medium,P0,ENABLE_EMR_REAL_IMPORT must default false and be explicitly set,developer,No-Go without flag check,open,
+R-006,Attachment download side effects,Large files/PHI/security risks,medium,P0,Disable attachment download in V1,developer,No-Go if attachment download exists,open,
+R-007,Prescription write risk,Unsafe medication order creation,medium,P0,Disable structured prescription writes,clinical_owner,No-Go if prescription write exists,open,
+R-008,Billing write risk,Financial reconciliation errors,medium,P0,Disable billing writes,ops_owner,No-Go if billing write exists,open,
+R-009,Insufficient audit,No traceability after import,medium,P0,Append audit_log for execution start/item/completion,developer,No-Go without audit plan,open,
+R-010,Execution result missing,Cannot identify created cases for rollback,medium,P0,Write execution run and item result tables,developer,No-Go without result recording,open,
+R-011,Smoke failure before import,System already unhealthy,low,P0,Run smoke before execution,operator,No-Go if smoke fails,open,
+R-012,Clinical mismatch after import,Imported data incorrect,medium,P0,100% spot check for pilot,clinical_owner,Pause or rollback if mismatch found,open,

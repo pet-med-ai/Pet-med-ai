@@ -1,0 +1,18 @@
+field,source,required,write_policy,notes
+patient_name,mapped_case_preview.patient_name,yes,create_only,Required for Case creation
+species,mapped_case_preview.species,yes,create_only,Must be normalized
+chief_complaint,mapped_case_preview.chief_complaint,yes,create_only,Required clinical summary
+history,mapped_case_preview.history,recommended,create_only,Should include EMR case_id and encounter_id
+exam_findings,mapped_case_preview.exam_findings,recommended,create_only,Vitals and attachment count summary only
+owner_name,mapped_case_preview.owner_name,recommended,create_only,Do not create separate owner table in V1
+owner_phone,mapped_case_preview.owner_phone,recommended,create_only,Do not expose beyond existing Case schema
+weight,mapped_case_preview.weight,recommended,create_only,Prefer kg text format
+sex,mapped_case_preview.sex,optional,create_only,No validation beyond current Case schema
+age_info,mapped_case_preview.age_info,optional,create_only,DOB can be represented as text
+breed,mapped_case_preview.breed,optional,create_only,
+coat_color,mapped_case_preview.coat_color,optional,create_only,
+attachments,payload.attachments,no,do_not_download,Only summarize count or source references in text
+meds,encounter.meds,no,text_summary_only,No structured prescription write
+diagnosis_codes,encounter.diagnosis_codes,no,text_summary_only,Do not create diagnosis table in V1
+billing,payload.billing,no,forbidden,No billing writes in V1
+existing_case,receipt.case_id,no,block_if_present,No update in V1
