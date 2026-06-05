@@ -120,8 +120,8 @@ pass "emr import execution result model validation"
 python3 scripts/validate_emr_import_clinical_approval_api.py >/dev/null || fail "emr real import clinical approval API validation failed"
 pass "emr real import clinical approval API validation"
 
-python3 scripts/validate_emr_import_execute_skeleton.py >/dev/null || fail "emr real import execute skeleton validation failed"
-pass "emr real import execute skeleton validation"
+python3 scripts/validate_emr_import_execute_create_only.py >/dev/null || fail "emr real import execute create-only validation failed"
+pass "emr real import execute create-only validation"
 
 python3 scripts/validate_emr_import_clinical_approval_ui.py >/dev/null || fail "emr real import clinical approval UI validation failed"
 pass "emr real import clinical approval UI validation"
@@ -796,7 +796,7 @@ json_assert_text_contains "$RESPONSE_BODY" "batch.status" "approved" >/dev/null 
 pass "emr real import clinical approval checks"
 
 
-emr_execute_skeleton_body="$(python3 - "$run_id" <<'PY'
+emr_execute_create_only_blocked_body="$(python3 - "$run_id" <<'PY'
 import json
 import sys
 run_id = sys.argv[1]
@@ -805,29 +805,22 @@ body = {
     "clinical_signoff_id": f"signoff-smoke-{run_id}",
     "rollback_snapshot_id": f"snapshot-smoke-{run_id}",
     "dry_run_ack": True,
-    "execution_confirmation": "I_UNDERSTAND_THIS_ENDPOINT_IS_DISABLED",
-    "request_id": f"smoke-emr-execute-skeleton-{run_id}",
-    "note": "Smoke execute skeleton must remain blocked and must not write Case records.",
-    "metadata": {"test": "emr-real-import-execute-skeleton-v1"},
-    "max_items": 20,
+    "create_only_ack": True,
+    "execution_confirmation": "I_UNDERSTAND_THIS_WILL_CREATE_CASES",
+    "request_id": f"smoke-emr-execute-create-only-blocked-{run_id}",
+    "note": "Smoke verifies feature flag blocks real Case writes by default.",
+    "metadata": {"test": "emr-real-import-execute-create-only-v1"},
+    "max_items": 5,
 }
 print(json.dumps(body, ensure_ascii=False))
 PY
 )"
-http_json POST "/api/emr/import-batches/${emr_batch_id}/execute" "$emr_execute_skeleton_body" "$token_a"
-expect_status 409 "emr real import execute skeleton blocked"
-json_assert_text_contains "$RESPONSE_BODY" "message" "emr_real_import_execute_blocked" >/dev/null || fail "emr execute skeleton：message 不正确"
-json_assert_text_contains "$RESPONSE_BODY" "mode" "execute_api_skeleton" >/dev/null || fail "emr execute skeleton：mode 不正确"
-json_assert_text_contains "$RESPONSE_BODY" "blocked_by_design" "True" >/dev/null || fail "emr execute skeleton：必须 blocked_by_design"
-json_assert_text_contains "$RESPONSE_BODY" "execution_enabled" "False" >/dev/null || fail "emr execute skeleton：execution_enabled 应为 false"
-json_assert_text_contains "$RESPONSE_BODY" "writes_case_database" "False" >/dev/null || fail "emr execute skeleton：不应写病例库"
-json_assert_text_contains "$RESPONSE_BODY" "writes_audit_log" "False" >/dev/null || fail "emr execute skeleton：不应写 audit_log"
-json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "emr execute skeleton：不应创建病例"
-json_assert_text_contains "$RESPONSE_BODY" "updates_case" "False" >/dev/null || fail "emr execute skeleton：不应更新病例"
-json_assert_text_contains "$RESPONSE_BODY" "downloads_attachments" "False" >/dev/null || fail "emr execute skeleton：不应下载附件"
-json_assert_text_contains "$RESPONSE_BODY" "executes_real_import" "False" >/dev/null || fail "emr execute skeleton：不应执行真实导入"
-json_assert_text_contains "$RESPONSE_BODY" "can_execute_import" "False" >/dev/null || fail "emr execute skeleton：不应允许执行真实导入"
-pass "emr real import execute skeleton checks"
+http_json POST "/api/emr/import-batches/${emr_batch_id}/execute" "$emr_execute_create_only_blocked_body" "$token_a"
+expect_status 403 "emr real import execute feature flag blocked"
+json_assert_text_contains "$RESPONSE_BODY" "detail.message" "feature flag disabled" >/dev/null || fail "emr execute create-only：应被 feature flag 阻断"
+json_assert_text_contains "$RESPONSE_BODY" "detail.feature_flag" "ENABLE_EMR_REAL_IMPORT" >/dev/null || fail "emr execute create-only：应提示 ENABLE_EMR_REAL_IMPORT"
+pass "emr real import execute create-only default block checks"
+
 
 
 legacy_mock_body="$(python3 - "$TMP_DIR/legacy_case_payloads.jsonl" <<'PY'
