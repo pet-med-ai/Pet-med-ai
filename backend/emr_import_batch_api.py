@@ -63,6 +63,23 @@ class EmrImportExecutionDryRunIn(BaseModel):
     note: Optional[str] = None
 
 
+class EmrImportClinicalApprovalIn(BaseModel):
+    """Clinical approval gate for a planned EMR import batch.
+
+    V1 is still a safety gate only. It may update emr_import_batches and append
+    one audit_log row, but it never executes real Case import.
+    """
+
+    operator_id: str = Field(..., min_length=1, max_length=100)
+    clinical_signoff_id: str = Field(..., min_length=1, max_length=100)
+    rollback_snapshot_id: str = Field(..., min_length=1, max_length=100)
+    approval_action: str = Field(default="approve", min_length=1, max_length=50)
+    note: Optional[str] = None
+    request_id: Optional[str] = Field(default=None, max_length=100)
+    metadata: Optional[Dict[str, Any]] = None
+    max_items: int = Field(default=500, ge=1, le=500)
+
+
 def _text(value: Any) -> str:
     return str(value if value is not None else "").strip()
 
@@ -113,6 +130,72 @@ def _batch_summary(item: EmrImportBatch) -> Dict[str, Any]:
         "created_at": _dt(item.created_at),
         "updated_at": _dt(item.updated_at),
     }
+
+
+APPROVAL_ACTION_TO_STATUS = {
+    "approve": "approved",
+    "clinical_signed": "clinical_signed",
+    "needs_fix": "needs_fix",
+    "reject": "approval_rejected",
+    "rejected": "approval_rejected",
+}
+
+APPROVAL_ALLOWED_BATCH_STATUSES = {"frozen", "clinical_signed", "approved"}
+
+
+def _approval_status(action: str) -> str:
+    key = _text(action).lower()
+    if key not in APPROVAL_ACTION_TO_STATUS:
+        raise HTTPException(
+            status_code=422,
+            detail="approval_action must be one of: approve, clinical_signed, needs_fix, reject, rejected",
+        )
+    return APPROVAL_ACTION_TO_STATUS[key]
+
+
+def _append_clinical_approval_audit(
+    db: Session,
+    *,
+    batch: EmrImportBatch,
+    operator_id: str,
+    approval_action: str,
+    status_before: str,
+    status_after: str,
+    data: EmrImportClinicalApprovalIn,
+    quality_gate: Dict[str, Any],
+) -> AuditLog:
+    audit = AuditLog(
+        request_id=_text(data.request_id) or f"emr-import-clinical-approval-{batch.batch_id}",
+        patient_token=batch.source_system,
+        clinician_id=operator_id,
+        model_version=None,
+        confidence=None,
+        suggested_action=f"Clinical approval gate for EMR import batch {batch.batch_id}",
+        action_taken=approval_action,
+        override_reason="Clinical Go/No-Go approval before any real EMR import execution",
+        note=_text(data.note) or None,
+        case_id=None,
+        session_uid=None,
+        event_type="emr_import_clinical_approval",
+        source="pet-med-ai",
+        extra_data={
+            "batch_id": batch.batch_id,
+            "source_system": batch.source_system,
+            "clinical_signoff_id": data.clinical_signoff_id,
+            "rollback_snapshot_id": data.rollback_snapshot_id,
+            "status_before": status_before,
+            "status_after": status_after,
+            "approval_action": approval_action,
+            "quality_gate": quality_gate,
+            "metadata": data.metadata or {},
+            "writes_case_database": False,
+            "creates_case": False,
+            "updates_case": False,
+            "executes_real_import": False,
+        },
+    )
+    db.add(audit)
+    return audit
 
 
 def _get_receipts_for_plan(db: Session, data: EmrImportBatchPlanIn) -> List[WebhookInbox]:
@@ -530,6 +613,140 @@ def build_execution_dry_run_report(
             ],
         },
         "next_gate": "A separate audited real import execution API is required before writing Case records.",
+    }
+
+
+@router.post("/{batch_id}/clinical-approval", response_model=dict)
+def approve_emr_real_import_batch(
+    batch_id: str,
+    data: EmrImportClinicalApprovalIn,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Apply clinical approval / Go-No-Go decision to a planned EMR batch.
+
+    Safety boundary:
+    - writes emr_import_batches approval fields / status
+    - appends one audit_log row
+    - does not create or update Case
+    - does not download attachments
+    - does not execute real import
+    """
+
+    batch = db.get(EmrImportBatch, batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail="EMR import batch not found")
+
+    if batch.status not in APPROVAL_ALLOWED_BATCH_STATUSES:
+        raise HTTPException(
+            status_code=422,
+            detail="batch must be frozen, clinical_signed or approved before clinical approval",
+        )
+
+    operator_id = _text(data.operator_id)
+    clinical_signoff_id = _text(data.clinical_signoff_id)
+    rollback_snapshot_id = _text(data.rollback_snapshot_id)
+    approval_action = _text(data.approval_action).lower() or "approve"
+    status_after = _approval_status(approval_action)
+
+    if not operator_id:
+        raise HTTPException(status_code=422, detail="operator_id is required")
+    if not clinical_signoff_id:
+        raise HTTPException(status_code=422, detail="clinical_signoff_id is required")
+    if not rollback_snapshot_id:
+        raise HTTPException(status_code=422, detail="rollback_snapshot_id is required")
+
+    if status_after in {"needs_fix", "approval_rejected"} and len(_text(data.note)) < 10:
+        raise HTTPException(
+            status_code=422,
+            detail="note must be at least 10 characters for needs_fix/rejected approvals",
+        )
+
+    dry_run_data = EmrImportExecutionDryRunIn(
+        operator_id=operator_id,
+        clinical_signoff_id=clinical_signoff_id,
+        rollback_snapshot_id=rollback_snapshot_id,
+        include_payload_preview=False,
+        max_items=data.max_items,
+        note=data.note,
+    )
+    dry_run_report = build_execution_dry_run_report(db=db, batch=batch, data=dry_run_data)
+    quality_gate = dry_run_report.get("quality_gate") or {}
+
+    if status_after in {"approved", "clinical_signed"} and not bool(quality_gate.get("passed")):
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": "execution dry-run quality gate must pass before clinical approval",
+                "quality_gate": quality_gate,
+            },
+        )
+
+    now = datetime.utcnow()
+    status_before = batch.status
+    batch.status = status_after
+    batch.clinical_signoff_id = clinical_signoff_id
+    batch.rollback_snapshot_id = rollback_snapshot_id
+    if status_after in {"approved", "clinical_signed"}:
+        batch.approved_at = now
+        batch.approved_by = operator_id
+    batch.updated_at = now
+
+    existing_meta = batch.extra_data if isinstance(batch.extra_data, dict) else {}
+    batch.extra_data = {
+        **existing_meta,
+        "clinical_approval": {
+            "operator_id": operator_id,
+            "clinical_signoff_id": clinical_signoff_id,
+            "rollback_snapshot_id": rollback_snapshot_id,
+            "approval_action": approval_action,
+            "status_before": status_before,
+            "status_after": status_after,
+            "approved_at": now.isoformat(),
+            "quality_gate_passed": bool(quality_gate.get("passed")),
+            "metadata": data.metadata or {},
+        },
+    }
+
+    audit = _append_clinical_approval_audit(
+        db,
+        batch=batch,
+        operator_id=operator_id,
+        approval_action=approval_action,
+        status_before=status_before,
+        status_after=status_after,
+        data=data,
+        quality_gate=quality_gate,
+    )
+
+    db.add(batch)
+    db.add(audit)
+    db.commit()
+    db.refresh(batch)
+    db.refresh(audit)
+
+    return {
+        "message": "emr_import_clinical_approval",
+        "mode": "clinical_approval_api",
+        "batch": _batch_summary(batch),
+        "status_before": status_before,
+        "status_after": batch.status,
+        "approval_action": approval_action,
+        "clinical_signoff_id": batch.clinical_signoff_id,
+        "rollback_snapshot_id": batch.rollback_snapshot_id,
+        "approved_by": batch.approved_by,
+        "audit_log_id": audit.log_id,
+        "quality_gate": quality_gate,
+        "import_diff_summary": (dry_run_report.get("import_diff") or {}).get("summary") or {},
+        "writes_emr_import_batches": True,
+        "writes_audit_log": True,
+        "writes_case_database": False,
+        "creates_case": False,
+        "updates_case": False,
+        "downloads_attachments": False,
+        "executes_real_import": False,
+        "can_execute_import": False,
+        "next_gate": "A separate real import execution API is required before writing Case records.",
     }
 
 

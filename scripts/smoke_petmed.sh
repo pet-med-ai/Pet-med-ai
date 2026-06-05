@@ -105,6 +105,9 @@ pass "emr real import batch planning API validation"
 python3 scripts/validate_emr_import_execution_dry_run.py >/dev/null || fail "emr real import execution dry-run validation failed"
 pass "emr real import execution dry-run validation"
 
+python3 scripts/validate_emr_import_clinical_approval_api.py >/dev/null || fail "emr real import clinical approval API validation failed"
+pass "emr real import clinical approval API validation"
+
 
 python3 scripts/validate_audit_log_api.py >/dev/null || fail "audit log append-only API validation failed"
 pass "audit log append-only API validation"
@@ -721,6 +724,42 @@ json_assert_text_contains "$RESPONSE_BODY" "import_diff.summary.would_create_cou
 json_assert_text_contains "$RESPONSE_BODY" "rollback_plan.snapshot_required" "True" >/dev/null || fail "emr execution dry-run：必须要求回滚快照"
 json_assert_text_contains "$RESPONSE_BODY" "can_execute_import" "False" >/dev/null || fail "emr execution dry-run：不应允许直接执行真实导入"
 pass "emr real import execution dry-run checks"
+
+
+emr_clinical_approval_body="$(python3 - "$run_id" <<'PY'
+import json
+import sys
+run_id = sys.argv[1]
+body = {
+    "operator_id": "SMOKE-CLINICIAN",
+    "clinical_signoff_id": f"signoff-smoke-{run_id}",
+    "rollback_snapshot_id": f"snapshot-smoke-{run_id}",
+    "approval_action": "approve",
+    "note": "Smoke clinical approval only; this does not execute real import or create Case records.",
+    "request_id": f"smoke-emr-clinical-approval-{run_id}",
+    "metadata": {"test": "emr-import-clinical-approval-api-v1"},
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/emr/import-batches/${emr_batch_id}/clinical-approval" "$emr_clinical_approval_body" "$token_a"
+expect_status 200 "emr real import clinical approval"
+emr_clinical_approval_audit_id="$(json_get "$RESPONSE_BODY" "audit_log_id")"
+[[ -n "$emr_clinical_approval_audit_id" ]] || fail "emr clinical approval：没有 audit_log_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "emr_import_clinical_approval" >/dev/null || fail "emr clinical approval：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "status_after" "approved" >/dev/null || fail "emr clinical approval：status_after 应为 approved"
+json_assert_text_contains "$RESPONSE_BODY" "quality_gate.passed" "True" >/dev/null || fail "emr clinical approval：quality_gate 应通过"
+json_assert_text_contains "$RESPONSE_BODY" "writes_emr_import_batches" "True" >/dev/null || fail "emr clinical approval：应写 emr_import_batches"
+json_assert_text_contains "$RESPONSE_BODY" "writes_audit_log" "True" >/dev/null || fail "emr clinical approval：应写 audit_log"
+json_assert_text_contains "$RESPONSE_BODY" "writes_case_database" "False" >/dev/null || fail "emr clinical approval：不应写病例库"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "emr clinical approval：不应创建病例"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_import" "False" >/dev/null || fail "emr clinical approval：不应执行真实导入"
+json_assert_text_contains "$RESPONSE_BODY" "can_execute_import" "False" >/dev/null || fail "emr clinical approval：仍不应允许直接执行真实导入"
+
+http_json GET "/api/emr/import-batches/${emr_batch_id}" "" "$token_a"
+expect_status 200 "emr import batch detail after clinical approval"
+json_assert_text_contains "$RESPONSE_BODY" "batch.status" "approved" >/dev/null || fail "emr batch detail：status 未更新为 approved"
+pass "emr real import clinical approval checks"
 
 legacy_mock_body="$(python3 - "$TMP_DIR/legacy_case_payloads.jsonl" <<'PY'
 import json
