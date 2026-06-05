@@ -81,6 +81,9 @@ pass "legacy case payload dry-run"
 python3 scripts/validate_alembic_setup.py >/dev/null || fail "alembic migration setup validation failed"
 pass "alembic migration setup validation"
 
+python3 scripts/validate_release_readiness.py >/dev/null || fail "release readiness validation failed"
+pass "release readiness validation"
+
 python3 scripts/validate_kpi_api.py >/dev/null || fail "kpi aggregation API validation failed"
 pass "kpi aggregation API validation"
 

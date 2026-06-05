@@ -1,0 +1,11 @@
+trigger,severity,immediate_action,owner,rollback_action,verification,stop_condition,evidence_location,notes
+frontend build failure,P2,Do not deploy,developer,Fix code or revert frontend commit,npm run build succeeds,Build green,terminal,
+local smoke failure,P1,Do not push,developer,Fix failing stage or revert changed files,local smoke ALL PASS,Smoke green,terminal,
+online smoke failure,P1,Stop rollout,developer,Inspect Render logs and revert commit if needed,online smoke ALL PASS,Smoke green,terminal,
+backend healthz failure,P0,Stop rollout,developer,Revert backend deploy or restore previous commit,curl /healthz returns ok,Health green,Render logs,
+Alembic upgrade failure,P0,Stop immediately,developer,Do not stamp; inspect failure; restore snapshot if partial migration,current/head consistent,Alembic stable,Render shell,
+Alembic revision id too long,P0,Stop migration,developer,Shorten revision id and redeploy,upgrade head succeeds,Head reached,Render shell,
+real import pre-smoke failure,P0,Abort import,operator,Do not execute import; fix release,smoke ALL PASS,Smoke green,terminal,
+real import partial failure,P0,Freeze system writes,rollback owner,Use rollback snapshot or designed reversal,post-rollback smoke ALL PASS and clinical check pass,Data restored,runbook,
+duplicate case detected,P0,Pause import,clinical lead,Stop batch; identify import marker; rollback if needed,no duplicate remains,Clinical signoff,QA sheet,
+clinical mismatch found,P0,Pause import,clinical lead,Rollback or correct according to approved runbook,100% spot check pass,Clinical approval,spot check CSV,
