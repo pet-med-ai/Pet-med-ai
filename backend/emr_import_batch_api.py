@@ -80,6 +80,25 @@ class EmrImportClinicalApprovalIn(BaseModel):
     max_items: int = Field(default=500, ge=1, le=500)
 
 
+class EmrImportExecuteIn(BaseModel):
+    """Skeleton payload for a future real EMR import execution endpoint.
+
+    V1 is deliberately dry-run protected. Even with clinical approval, this
+    endpoint refuses to execute real Case writes. It exists only to prove the
+    final safety gate and API contract.
+    """
+
+    operator_id: str = Field(..., min_length=1, max_length=100)
+    clinical_signoff_id: str = Field(..., min_length=1, max_length=100)
+    rollback_snapshot_id: str = Field(..., min_length=1, max_length=100)
+    dry_run_ack: bool = Field(default=False)
+    execution_confirmation: str = Field(default="", max_length=100)
+    request_id: Optional[str] = Field(default=None, max_length=100)
+    note: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+    max_items: int = Field(default=500, ge=1, le=500)
+
+
 def _text(value: Any) -> str:
     return str(value if value is not None else "").strip()
 
@@ -747,6 +766,91 @@ def approve_emr_real_import_batch(
         "executes_real_import": False,
         "can_execute_import": False,
         "next_gate": "A separate real import execution API is required before writing Case records.",
+    }
+
+
+@router.post("/{batch_id}/execute", response_model=dict, status_code=409)
+def execute_emr_real_import_skeleton(
+    batch_id: str,
+    data: EmrImportExecuteIn,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    """Dry-run protected skeleton for future real EMR import execution.
+
+    This route intentionally blocks execution in V1:
+    - reads batch and linked receipts
+    - reruns the execution dry-run safety report
+    - returns HTTP 409 by design
+    - does not mutate database
+    - does not create/update Case
+    - does not download attachments
+    """
+
+    batch = db.get(EmrImportBatch, batch_id)
+    if not batch:
+        raise HTTPException(status_code=404, detail="EMR import batch not found")
+
+    operator_id = _text(data.operator_id)
+    clinical_signoff_id = _text(data.clinical_signoff_id)
+    rollback_snapshot_id = _text(data.rollback_snapshot_id)
+
+    if not operator_id:
+        raise HTTPException(status_code=422, detail="operator_id is required")
+    if not clinical_signoff_id:
+        raise HTTPException(status_code=422, detail="clinical_signoff_id is required")
+    if not rollback_snapshot_id:
+        raise HTTPException(status_code=422, detail="rollback_snapshot_id is required")
+    if not bool(data.dry_run_ack):
+        raise HTTPException(status_code=422, detail="dry_run_ack must be true for skeleton V1")
+    if _text(data.execution_confirmation) != "I_UNDERSTAND_THIS_ENDPOINT_IS_DISABLED":
+        raise HTTPException(
+            status_code=422,
+            detail="execution_confirmation must be I_UNDERSTAND_THIS_ENDPOINT_IS_DISABLED",
+        )
+
+    if batch.status not in {"approved", "clinical_signed"}:
+        raise HTTPException(
+            status_code=422,
+            detail="batch must be approved or clinical_signed before execute skeleton can be inspected",
+        )
+
+    dry_run_data = EmrImportExecutionDryRunIn(
+        operator_id=operator_id,
+        clinical_signoff_id=clinical_signoff_id,
+        rollback_snapshot_id=rollback_snapshot_id,
+        include_payload_preview=False,
+        max_items=data.max_items,
+        note=data.note,
+    )
+    dry_run_report = build_execution_dry_run_report(db=db, batch=batch, data=dry_run_data)
+
+    return {
+        "message": "emr_real_import_execute_blocked",
+        "mode": "execute_api_skeleton",
+        "blocked_by_design": True,
+        "execution_enabled": False,
+        "batch": _batch_summary(batch),
+        "operator_id": operator_id,
+        "clinical_signoff_id": clinical_signoff_id,
+        "rollback_snapshot_id": rollback_snapshot_id,
+        "quality_gate": dry_run_report.get("quality_gate") or {},
+        "import_diff_summary": (dry_run_report.get("import_diff") or {}).get("summary") or {},
+        "rollback_plan": dry_run_report.get("rollback_plan") or {},
+        "writes_database": False,
+        "writes_case_database": False,
+        "writes_audit_log": False,
+        "creates_case": False,
+        "updates_case": False,
+        "downloads_attachments": False,
+        "executes_real_import": False,
+        "can_execute_import": False,
+        "execution_block_reason": (
+            "Real EMR import execution is intentionally disabled in skeleton V1. "
+            "A separate implementation must pass risk review, runbook signoff, "
+            "rollback rehearsal, and smoke coverage before any Case writes are allowed."
+        ),
+        "next_gate": "EMR real import execute API implementation V1 requires separate approval.",
     }
 
 
