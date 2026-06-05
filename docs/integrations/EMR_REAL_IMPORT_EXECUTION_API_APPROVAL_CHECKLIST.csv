@@ -1,0 +1,13 @@
+item_id,checkpoint,required,evidence,owner,status,notes
+A-001,Batch status is approved,yes,GET /api/emr/import-batches/{batch_id},clinical_lead,pending,
+A-002,Execution dry-run quality_gate.passed=true,yes,execution-dry-run report,clinical_lead,pending,
+A-003,blocked_count=0,yes,execution-dry-run report,backend_lead,pending,
+A-004,rollback_snapshot_id verified,yes,Render/PostgreSQL snapshot ID,ops_owner,pending,
+A-005,online smoke ALL PASS,yes,smoke output,ops_owner,pending,
+A-006,case matching policy approved,yes,decision matrix,clinical_lead,pending,
+A-007,create-only policy approved,yes,decision matrix,clinical_lead,pending,
+A-008,audit policy approved,yes,audit_log check,compliance_owner,pending,
+A-009,operator assigned,yes,operator signoff,ops_owner,pending,
+A-010,rollback owner assigned,yes,operator signoff,ops_owner,pending,
+A-011,execution window approved,yes,execution window template,ops_owner,pending,
+A-012,client communication plan prepared,no,clinic SOP,clinic_manager,pending,

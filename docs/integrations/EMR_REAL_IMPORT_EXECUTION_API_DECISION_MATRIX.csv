@@ -1,0 +1,11 @@
+decision_id,decision,allowed_in_first_real_execution,notes,owner,status
+D-001,Create new Case from approved EMR receipt,yes,Only when no existing case_id is linked and required fields pass,clinical_lead,pending
+D-002,Update existing Case from EMR receipt,no,Requires separate update policy and rollback plan,clinical_lead,pending
+D-003,Download attachments during execution,no,Separate async attachment pipeline required,backend_lead,rejected_for_v1
+D-004,Write medication orders,no,Only narrative summary allowed in first version,clinical_lead,rejected_for_v1
+D-005,Use fuzzy matching,no,Explicit mapping only,clinical_lead,rejected_for_v1
+D-006,Allow execution without rollback snapshot,no,Hard No-Go,ops_owner,rejected
+D-007,Allow execution if dry-run has blocked rows,no,Hard No-Go,backend_lead,rejected
+D-008,Allow repeated execution of same batch,no,Must be idempotent and return previous result,backend_lead,pending
+D-009,Store import marker on created Case,yes,Required for rollback and traceability,backend_lead,pending
+D-010,One audit_log row per written Case,yes,Required compliance gate,compliance_owner,pending

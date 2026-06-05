@@ -1,0 +1,13 @@
+field,value,required,notes
+batch_id,,yes,
+execution_window_start,,yes,ISO 8601
+execution_window_end,,yes,ISO 8601
+operator_id,,yes,
+clinical_approver_id,,yes,
+rollback_owner_id,,yes,
+rollback_snapshot_id,,yes,
+latest_execution_dry_run_report_id,,yes,
+online_smoke_result,,yes,Must be ALL PASS
+go_no_go_decision,,yes,GO / NO-GO
+decision_reason,,yes,
+signed_at,,yes,ISO 8601

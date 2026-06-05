@@ -1,0 +1,17 @@
+section,requirement,accepted_value,required_for_v1,notes
+HTTP method,POST,POST,yes,
+Path,/api/emr/import-batches/{batch_id}/execute,exact path,no,Future only; not implemented in risk review
+Authentication,JWT required,true,yes,
+Batch status,approved only,true,yes,
+Clinical signoff required,true,true,yes,
+Rollback snapshot required,true,true,yes,
+Idempotency,batch_id based,true,yes,
+Creates Case,allowed only after Go,true,no,Design doc first
+Updates Case,forbidden in first real execution,false,yes,
+Downloads attachments,forbidden,false,yes,
+Writes audit_log,required,true,yes,
+Returns rollback_plan,required,true,yes,
+Returns created_case_ids,required,true,yes,
+Returns blocked_items,required,true,yes,
+Allows execution when blocked_count>0,false,false,yes,
+Allows execution when smoke failed,false,false,yes,

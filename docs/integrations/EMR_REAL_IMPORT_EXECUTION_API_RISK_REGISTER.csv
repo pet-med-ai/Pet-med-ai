@@ -1,0 +1,11 @@
+risk_id,area,risk,impact,likelihood,severity,mitigation,owner,status,go_no_go
+R-001,case_write,Duplicate cases created from repeated batch execution,Duplicate medical records and client confusion,medium,high,Require batch-level idempotency and import marker,backend_lead,open,No-Go until mitigated
+R-002,case_matching,Wrong EMR record matched to existing Pet-Med-AI case,Patient safety and legal exposure,medium,critical,Use only explicit case_id mapping in first version,clinical_lead,open,No-Go until policy approved
+R-003,rollback,No verified database snapshot before execution,Unable to restore production state,medium,critical,Require rollback_snapshot_id and rollback drill,ops_owner,open,No-Go
+R-004,audit,Case writes without audit_log rows,No traceability,low,high,Require one audit_log per receipt / case write,compliance_owner,open,No-Go
+R-005,attachments,Execution downloads external attachments inline,Timeouts and data leakage risk,medium,high,Forbid attachment download in first execution API,backend_lead,open,No-Go if included
+R-006,medication_orders,EMR payload writes medication orders automatically,Clinical safety risk,low,critical,First execution only writes case narrative fields,clinical_lead,open,No-Go if included
+R-007,partial_failure,Some cases created and batch fails halfway,Inconsistent import state,medium,high,Use transaction boundary or per-item result and rollback marker,backend_lead,open,No-Go until design approved
+R-008,privacy,Raw EMR payload exposed in logs or UI,Privacy incident,medium,high,Payload hidden by default and audited access,compliance_owner,open,No-Go until reviewed
+R-009,alembic,Production DB not at migration head,Runtime failure or missing tables,low,high,Check Alembic current before execution,ops_owner,open,No-Go
+R-010,smoke,Online smoke not ALL PASS before execution,Unknown production regression,low,high,Require online smoke success within execution window,ops_owner,open,No-Go
