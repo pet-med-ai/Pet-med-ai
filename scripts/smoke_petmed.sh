@@ -87,6 +87,9 @@ pass "release readiness validation"
 python3 scripts/validate_system_version_info.py >/dev/null || fail "system version/build info validation failed"
 pass "system version/build info validation"
 
+python3 scripts/validate_release_changelog.py >/dev/null || fail "release changelog validation failed"
+pass "release changelog validation"
+
 python3 scripts/validate_feature_flags.py >/dev/null || fail "feature flags safety gate validation failed"
 pass "feature flags safety gate validation"
 

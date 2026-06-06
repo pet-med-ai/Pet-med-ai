@@ -1,0 +1,7 @@
+risk_class,requires_local_smoke,requires_online_smoke,requires_npm_build,requires_alembic_current,requires_rollback_snapshot,tag_timing,notes
+docs-only,false,false,false,false,false,after commit,Docs/templates only
+frontend,false,true,true,false,false,after frontend deploy and manual route check,Static site rewrite must be verified for new routes
+backend-api,true,true,false,false,false,after online smoke,Requires py_compile and API smoke
+database-migration,true,true,false,true,true,after Render alembic upgrade and online smoke,Do not tag if current/head mismatch
+real-write,true,true,false,true,true,after post-execution smoke and clinical spot check,Feature flags and rollback evidence required
+emergency-fix,true,true,conditional,conditional,conditional,after online smoke,Document incident and rollback path
