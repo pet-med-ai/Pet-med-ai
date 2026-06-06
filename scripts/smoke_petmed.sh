@@ -145,6 +145,9 @@ pass "webhook inbox detail UI validation"
 python3 scripts/validate_emr_import_batch_planning_ui.py >/dev/null || fail "emr import batch planning UI validation failed"
 pass "emr import batch planning UI validation"
 
+python3 scripts/validate_ops_dashboard.py >/dev/null || fail "ops dashboard frontend validation failed"
+pass "ops dashboard frontend validation"
+
 python3 scripts/validate_emr_case_mapping_dry_run.py >/dev/null || fail "emr to case mapping dry-run validation failed"
 pass "emr to case mapping dry-run validation"
 
