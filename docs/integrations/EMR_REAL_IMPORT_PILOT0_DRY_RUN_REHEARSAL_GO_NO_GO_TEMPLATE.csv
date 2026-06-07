@@ -1,0 +1,2 @@
+decision_id,rehearsal_id,batch_id,receipt_id,decision,severity,decider_id,reason,required_fix,next_stage_allowed,decision_time,notes
+decision-example,rehearsal-example,emr_batch_example,rcpt_example,go,P3,HS-0001,Dry-run rehearsal passed,no,EMR real import pilot_0 controlled execution,2026-06-07T22:30:00+09:00,

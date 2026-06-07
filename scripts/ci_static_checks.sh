@@ -30,6 +30,7 @@ run_if_exists scripts/validate_emr_import_execution_result_model.py
 # EMR import safety gates
 run_if_exists scripts/validate_emr_import_execute_create_only.py
 run_if_exists scripts/validate_emr_import_pilot0_checklist.py
+run_if_exists scripts/validate_emr_import_pilot0_dry_run_rehearsal.py
 run_if_exists scripts/validate_emr_import_execution_dry_run.py
 run_if_exists scripts/validate_emr_import_clinical_approval_api.py
 run_if_exists scripts/validate_emr_import_batch_planning_api.py

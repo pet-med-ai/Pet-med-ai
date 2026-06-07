@@ -99,6 +99,9 @@ pass "backup rollback verification validation"
 python3 scripts/validate_emr_import_pilot0_checklist.py >/dev/null || fail "emr real import pilot0 checklist validation failed"
 pass "emr real import pilot0 checklist validation"
 
+python3 scripts/validate_emr_import_pilot0_dry_run_rehearsal.py >/dev/null || fail "emr real import pilot0 dry-run rehearsal validation failed"
+pass "emr real import pilot0 dry-run rehearsal validation"
+
 python3 scripts/validate_feature_flags.py >/dev/null || fail "feature flags safety gate validation failed"
 pass "feature flags safety gate validation"
 
