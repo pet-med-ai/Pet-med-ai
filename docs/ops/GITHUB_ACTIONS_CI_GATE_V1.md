@@ -33,6 +33,13 @@ Runs:
 bash scripts/ci_static_checks.sh
 ```
 
+The workflow first installs Python dependencies:
+
+```txt
+pip install -r requirements.txt
+pip install -r backend/requirements.txt
+```
+
 The static script runs:
 
 ```txt

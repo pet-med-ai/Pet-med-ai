@@ -38,6 +38,8 @@ def main() -> int:
             "actions/checkout@v4",
             "actions/setup-python@v5",
             "python-version: \"3.11\"",
+            "pip install -r requirements.txt",
+            "pip install -r backend/requirements.txt",
             "bash scripts/ci_static_checks.sh",
             "actions/setup-node@v4",
             "node-version: \"20\"",
