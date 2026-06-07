@@ -1,0 +1,2 @@
+window_id,batch_id,execution_id,operator_id,opened_at,closed_at,ENABLE_EMR_REAL_IMPORT_before,ENABLE_EMR_REAL_IMPORT_during,ENABLE_EMR_REAL_IMPORT_after,case_update_flag,attachment_download_flag,prescription_write_flag,billing_write_flag,device_ingest_flag,verification_before,verification_after,result,notes
+flag-window-example,emr_batch_example,emr_exec_example,HS-0001,2026-06-07T22:00:00+09:00,2026-06-07T22:05:00+09:00,false,true,false,false,false,false,false,false,all_dangerous_features_disabled true before,all_dangerous_features_disabled true after,pass,

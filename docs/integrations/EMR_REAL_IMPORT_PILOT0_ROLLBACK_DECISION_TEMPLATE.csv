@@ -1,0 +1,2 @@
+decision_id,batch_id,execution_id,created_case_ids,rollback_snapshot_id,decision,severity,reason,rollback_required,rollback_owner,clinical_owner,operator_id,online_smoke_after,clinical_spot_check_result,decision_time,notes
+decision-example,emr_batch_example,emr_exec_example,123,SNAPSHOT-EXAMPLE,go,P3,All pilot_0 checks passed,no,rollback-owner,clinical-owner,HS-0001,pass,pass,2026-06-07T22:00:00+09:00,
