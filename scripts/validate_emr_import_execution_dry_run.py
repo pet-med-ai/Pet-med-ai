@@ -23,6 +23,19 @@ def require_text(path: Path, needles: tuple[str, ...], label: str) -> int:
     return 0
 
 
+def section_between(text: str, start_marker: str, end_markers: tuple[str, ...], label: str) -> str:
+    start = text.find(start_marker)
+    if start < 0:
+        raise ValueError(f"missing section start for {label}: {start_marker}")
+    candidates = []
+    for marker in end_markers:
+        idx = text.find(marker, start + len(start_marker))
+        if idx >= 0:
+            candidates.append(idx)
+    end = min(candidates) if candidates else len(text)
+    return text[start:end]
+
+
 def main() -> int:
     api = BACKEND / "emr_import_batch_api.py"
     main_py = BACKEND / "main.py"
@@ -57,8 +70,40 @@ def main() -> int:
         return rc
 
     api_text = api.read_text(encoding="utf-8")
+
+    try:
+        build_section = section_between(
+            api_text,
+            "def build_execution_dry_run_report(",
+            (
+                '\n\n@router.post("/{batch_id}/clinical-approval"',
+                "\n\nCREATE_ONLY_PILOT_MAX_RECEIPTS",
+                '\n\n@router.post("/{batch_id}/execute"',
+                '\n\n@router.post("/{batch_id}/execution-dry-run"',
+            ),
+            "build_execution_dry_run_report",
+        )
+        route_section = section_between(
+            api_text,
+            '@router.post("/{batch_id}/execution-dry-run"',
+            (
+                '\n\n@router.get("", response_model=dict)',
+                '\n\n@router.get("/{batch_id}"',
+            ),
+            "execution-dry-run route",
+        )
+    except ValueError as exc:
+        return fail(str(exc))
+
+    dry_run_scope = build_section + "\n" + route_section
+
     forbidden_needles = (
         "Case(",
+        "EmrImportExecutionRun(",
+        "EmrImportExecutionItemResult(",
+        "AuditLog(",
+        "db.add(",
+        "db.commit(",
         '.status = "running"',
         ".status = 'running'",
         'downloads_attachments": True',
@@ -67,8 +112,23 @@ def main() -> int:
         'updates_case": True',
     )
     for needle in forbidden_needles:
-        if needle in api_text:
-            return fail(f"execution dry-run must not perform real import behavior: {needle}")
+        if needle in dry_run_scope:
+            return fail(f"execution dry-run must not perform real import behavior inside dry-run scope: {needle}")
+
+    for needle in (
+        '"writes_database": False',
+        '"writes_case_database": False',
+        '"creates_case": False',
+        '"updates_case": False',
+        '"downloads_attachments": False',
+        '"executes_real_import": False',
+        '"can_execute_import": False',
+        '"quality_gate"',
+        '"import_diff"',
+        '"rollback_plan"',
+    ):
+        if needle not in dry_run_scope:
+            return fail(f"execution dry-run scope missing safety marker: {needle}")
 
     rc = require_text(
         main_py,

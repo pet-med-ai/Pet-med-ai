@@ -25,6 +25,21 @@ def require_text(path: Path, needles: tuple[str, ...], label: str) -> int:
     return 0
 
 
+def section_between(text: str, start_marker: str, end_markers: tuple[str, ...], label: str) -> str:
+    start = text.find(start_marker)
+    if start < 0:
+        raise ValueError(f"missing section start for {label}: {start_marker}")
+
+    candidates = []
+    for marker in end_markers:
+        idx = text.find(marker, start + len(start_marker))
+        if idx >= 0:
+            candidates.append(idx)
+
+    end = min(candidates) if candidates else len(text)
+    return text[start:end]
+
+
 def main() -> int:
     for path in (API, SMOKE, DOC):
         if not path.exists():
@@ -56,11 +71,53 @@ def main() -> int:
         return rc
 
     text = API.read_text(encoding="utf-8")
-    clinical_section = text.split('@router.post("/{batch_id}/clinical-approval"', 1)[-1].split('@router.post("/{batch_id}/execution-dry-run"', 1)[0]
-    forbidden = ("Case(", "db.delete(", 'downloads_attachments": True', 'creates_case": True', 'updates_case": True')
+
+    try:
+        clinical_section = section_between(
+            text,
+            '@router.post("/{batch_id}/clinical-approval"',
+            (
+                "\n\nCREATE_ONLY_PILOT_MAX_RECEIPTS",
+                '\n\n@router.post("/{batch_id}/execute"',
+                '\n\n@router.post("/{batch_id}/execution-dry-run"',
+                '\n\n@router.get("", response_model=dict)',
+            ),
+            "clinical approval route",
+        )
+    except ValueError as exc:
+        return fail(str(exc))
+
+    # These markers are forbidden only inside the clinical-approval route.
+    # They are allowed in the real /execute create-only endpoint.
+    forbidden = (
+        "Case(",
+        "EmrImportExecutionRun(",
+        "EmrImportExecutionItemResult(",
+        "db.delete(",
+        ".delete(",
+        'downloads_attachments": True',
+        'creates_case": True',
+        'updates_case": True',
+        'executes_real_import": True',
+    )
     for needle in forbidden:
         if needle in clinical_section:
-            return fail(f"clinical approval API must not perform real import or Case writes: {needle}")
+            return fail(f"clinical approval API must not perform real import or Case writes inside clinical section: {needle}")
+
+    for needle in (
+        '"writes_emr_import_batches": True',
+        '"writes_audit_log": True',
+        '"writes_case_database": False',
+        '"creates_case": False',
+        '"updates_case": False',
+        '"downloads_attachments": False',
+        '"executes_real_import": False',
+        '"can_execute_import": False',
+        '"quality_gate"',
+        '"audit_log_id"',
+    ):
+        if needle not in clinical_section:
+            return fail(f"clinical approval section missing safety marker: {needle}")
 
     rc = require_text(
         SMOKE,

@@ -54,26 +54,33 @@ echo "RUN Python syntax compilation"
 python3 - <<'PY'
 from pathlib import Path
 import py_compile
+import subprocess
 import sys
 
-roots = [
-    Path("backend"),
-    Path("scripts"),
-]
-exclude_names = {
-    "__pycache__",
-}
-targets = []
-for root in roots:
-    if not root.exists():
-        continue
-    for path in root.rglob("*.py"):
-        if any(part in exclude_names for part in path.parts):
-            continue
-        targets.append(path)
+try:
+    result = subprocess.run(
+        ["git", "ls-files", "backend", "scripts"],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        check=True,
+    )
+    targets = [
+        Path(line.strip())
+        for line in result.stdout.splitlines()
+        if line.strip().endswith(".py")
+    ]
+except Exception as exc:
+    print(f"git ls-files failed, falling back to tracked-safe rglob: {exc}")
+    targets = []
+    for root in (Path("backend"), Path("scripts")):
+        if root.exists():
+            for path in root.rglob("*.py"):
+                if "__pycache__" not in path.parts:
+                    targets.append(path)
 
 errors = []
-for path in sorted(targets):
+for path in sorted(set(targets)):
     try:
         py_compile.compile(str(path), doraise=True)
     except Exception as exc:
@@ -85,7 +92,7 @@ if errors:
         print("  " + item)
     sys.exit(1)
 
-print(f"Compiled {len(targets)} Python files")
+print(f"Compiled {len(set(targets))} git-tracked Python files")
 PY
 
 echo "CI static checks PASS"

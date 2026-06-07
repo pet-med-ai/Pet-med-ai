@@ -12,8 +12,9 @@ VERSIONS = BACKEND / "migrations" / "versions"
 MODEL_FILE = BACKEND / "models.py"
 MIGRATION_FILE = VERSIONS / "0003_audit_log.py"
 
+# Current AuditLog model uses log_id as the primary key.
+# There is intentionally no integer "id" column.
 EXPECTED_COLUMNS = {
-    "id",
     "log_id",
     "request_id",
     "patient_token",
@@ -72,6 +73,8 @@ def main() -> int:
             "suggested_action",
             "action_taken",
             "override_reason",
+            "extra_data",
+            'mapped_column("metadata"',
         ),
         "AuditLog ORM model",
     )
@@ -92,6 +95,8 @@ def main() -> int:
             "suggested_action",
             "action_taken",
             "override_reason",
+            "metadata",
+            "created_at",
         ),
         "audit log migration",
     )
@@ -106,10 +111,25 @@ def main() -> int:
     if "audit_log" not in tables:
         return fail(f"SQLAlchemy metadata missing audit_log table: actual={sorted(tables)}")
 
-    columns = set(Base.metadata.tables["audit_log"].columns.keys())
+    table = Base.metadata.tables["audit_log"]
+    columns = set(table.columns.keys())
     missing = sorted(EXPECTED_COLUMNS - columns)
     if missing:
         return fail(f"audit_log table missing columns: {missing}; actual={sorted(columns)}")
+
+    unexpected_required_old_columns = sorted({"id"} & columns)
+    if unexpected_required_old_columns:
+        return fail(
+            "audit_log should use log_id as primary key; unexpected old id column present: "
+            + ", ".join(unexpected_required_old_columns)
+        )
+
+    primary_keys = [column.name for column in table.primary_key.columns]
+    if primary_keys != ["log_id"]:
+        return fail(f"audit_log primary key should be ['log_id']; actual={primary_keys}")
+
+    if len("0003_audit_log") > 32:
+        return fail("audit_log Alembic revision id exceeds 32 chars")
 
     print("OK audit log model: ORM metadata and Alembic 0003 migration are present")
     return 0
