@@ -1,0 +1,9 @@
+condition,severity,decision,operator_action,requires_restore,requires_clinical_review,notes
+schema_ok=false,P0,no-go,pause release and inspect Alembic current/head,maybe,no,Do not continue real writes
+online smoke fails before pilot,P0,no-go,pause and fix failing smoke,no,no,Do not enable real import
+no rollback snapshot,P0,no-go,create/verify backup before proceeding,no,no,Hard stop
+clinical_signoff_id missing,P0,no-go,obtain clinical approval,no,yes,Hard stop
+pilot execution created duplicate Case,P0,rollback-evaluate,stop writes and inspect execution results,maybe,yes,Restore if duplicate cannot be safely reversed
+post-execution smoke fails,P0,pause-or-rollback,stop writes and collect logs,maybe,yes,Clinical owner and rollback owner decide
+single item skipped with no Case created,P2,pause,inspect item result,no,maybe,May continue after review
+all checks pass,P3,go,proceed to next approved step,no,no,Record evidence

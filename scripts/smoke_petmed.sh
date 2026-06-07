@@ -93,6 +93,9 @@ pass "release changelog validation"
 python3 scripts/validate_ci_gate.py >/dev/null || fail "GitHub Actions CI gate validation failed"
 pass "GitHub Actions CI gate validation"
 
+python3 scripts/validate_backup_rollback_runbook.py >/dev/null || fail "backup rollback verification validation failed"
+pass "backup rollback verification validation"
+
 python3 scripts/validate_feature_flags.py >/dev/null || fail "feature flags safety gate validation failed"
 pass "feature flags safety gate validation"
 

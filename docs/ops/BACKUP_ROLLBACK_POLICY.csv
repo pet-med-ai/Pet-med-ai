@@ -1,0 +1,9 @@
+operation,backup_required,rollback_snapshot_required,online_smoke_before,online_smoke_after,clinical_spot_check,feature_flags_required,notes
+docs-only,no,no,no,no,no,no,No database change
+frontend,no,no,no,yes,manual,no,Static site checks
+backend-api,no,no,yes,yes,conditional,no,No schema write
+database-migration,yes,yes,yes,yes,conditional,no,Alembic current/head required
+emr-create-only-pilot,yes,yes,yes,yes,100-percent,ENABLE_EMR_REAL_IMPORT true intentionally,Default must stay false until pilot window
+attachment-ingest,yes,yes,yes,yes,100-percent,ENABLE_EMR_ATTACHMENT_DOWNLOAD true intentionally,Not allowed in current V1
+prescription-write,yes,yes,yes,yes,100-percent,ENABLE_PRESCRIPTION_STRUCTURED_WRITE true intentionally,Requires separate clinical safety review
+billing-write,yes,yes,yes,yes,finance-review,ENABLE_BILLING_REAL_WRITE true intentionally,Requires reconciliation

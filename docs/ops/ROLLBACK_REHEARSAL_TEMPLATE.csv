@@ -1,0 +1,2 @@
+rehearsal_id,date,environment,database,backup_id,rollback_snapshot_id,operator_id,rollback_owner,clinical_owner,git_commit,database_revision_before,alembic_head,restore_path_verified,smoke_before_passed,restore_rehearsed,smoke_after_passed,clinical_check_passed,result,notes
+rollback-rehearsal-example,2026-06-07,production,pet-med-ai-db,backup-example,SNAPSHOT-EXAMPLE,HS-0001,rollback-owner,clinical-owner,commit-sha,0006_emr_import_results,0006_emr_import_results,yes,yes,yes,yes,yes,pass,
