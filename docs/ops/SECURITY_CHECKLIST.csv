@@ -1,0 +1,12 @@
+phase,item,owner,where_to_check,expected_result,required,evidence,status,notes
+github,Review classic PATs,developer,GitHub Settings Developer settings Classic tokens,unused tokens revoked,yes,screenshot/log,,
+github,Review fine-grained PATs,developer,GitHub Settings Developer settings Fine-grained tokens,short expiry minimal scope,yes,screenshot/log,,
+github,Review Actions secrets,developer,Repo Settings Secrets and variables Actions,secrets stored in GitHub not code,yes,settings screenshot,,
+github,Check workflow token use,developer,.github/workflows,no hardcoded token,yes,security_check output,,
+render,Review backend env vars,operator,Render pet-med-ai-backend Environment,secrets hidden and not in repo,yes,screenshot/log,,
+render,Review frontend env vars,operator,Render pet-med-ai-frontend-static Environment,no secret values exposed,yes,screenshot/log,,
+render,Search backend logs,operator,Render Logs SECRET TOKEN KEY PASSWORD,no secret values found,yes,log note,,
+repo,Run local security scan,developer,bash scripts/security_check.sh,findings reviewed,yes,terminal,,
+db,Confirm DB backup,rollback_owner,Render pet-med-ai-db backup/restore,backup exists,yes,screenshot/log,,
+db,Record restore drill,rollback_owner,docs/ops/DB_RESTORE_DRILL_LOG.csv,latest drill recorded,yes,csv,,
+closeout,Record decision,release_owner,release record,GO PAUSE or NO-GO recorded,yes,docs/ops/releases,,

@@ -108,6 +108,9 @@ pass "emr real import pilot0 rehearsal report validation"
 python3 scripts/validate_emr_import_pilot0_readiness_review.py >/dev/null || fail "emr real import pilot0 readiness review validation failed"
 pass "emr real import pilot0 readiness review validation"
 
+python3 scripts/validate_security_hardening.py >/dev/null || fail "render github security hardening validation failed"
+pass "render github security hardening validation"
+
 python3 scripts/validate_feature_flags.py >/dev/null || fail "feature flags safety gate validation failed"
 pass "feature flags safety gate validation"
 

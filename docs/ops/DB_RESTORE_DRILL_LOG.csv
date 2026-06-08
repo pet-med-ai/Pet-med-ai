@@ -1,0 +1,2 @@
+drill_id,date,environment,database,backup_id,rollback_snapshot_id,restore_target,restore_duration_minutes,schema_ok_after_restore,smoke_after_restore,operator_id,result,notes
+drill-example,2026-06-07,production,pet-med-ai-db,backup-example,SNAPSHOT-EXAMPLE,temporary-restore-db,3,true,pass,HS-0001,pass,
