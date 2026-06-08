@@ -1,0 +1,34 @@
+template,section,placeholder,source_path,required,example,notes
+admission,identity,case_id,case.case_id yes,HSC-2026-0602-001,Use Pet-Med-AI Case id or generated clinical document id
+admission,identity,pet.name,case.patient_name yes,豆豆,From Case.patient_name or EMR mapped_case_preview.patient_name
+admission,identity,species,case.species yes,Felis catus / 猫,Normalize species display
+admission,identity,dob,case.age_info no,2025-03-01,DOB or age_info text
+admission,owner,owner.name,case.owner_name no,王小花,
+admission,owner,contact,case.owner_phone no,13800000000,
+admission,clinical,vitals,case.exam_findings no,T 38.6℃ HR 120 RR 28 BW 2.3kg,May be assembled from EMR vitals
+admission,clinical,admission_reason,case.chief_complaint yes,呕吐腹泻3天,
+admission,clinical,provisional_dx,case.analysis no,急性胃肠炎待排胰腺炎,
+admission,clinical,treatment_plan,case.treatment no,补液+止吐+胃黏膜保护,
+admission,clinical,meds,emr.encounter.meds no,马罗匹坦、奥美拉唑,Text summary only; no structured prescription write in V1
+admission,signature,clinician.name,operator.clinician_name yes,赵海生,
+admission,audit,generator,system.app_name yes,Pet-Med-AI v1,
+admission,audit,clinician_id,operator.clinician_id yes,HS-0001,
+admission,audit,timestamp,system.now yes,2026-06-08T10:00:00+09:00,
+admission,audit,hash,computed.document_hash yes,abc123def456,Future renderer computes canonical context hash
+discharge,identity,case_id,case.case_id yes,HSC-2026-0602-002,
+discharge,identity,pet.name,case.patient_name yes,豆豆,
+discharge,identity,species,case.species yes,Felis catus / 猫,
+discharge,identity,dob,case.age_info no,2025-03-01,
+discharge,owner,owner.name,case.owner_name no,王小花,
+discharge,owner,contact,case.owner_phone no,13800000000,
+discharge,clinical,vitals,case.exam_findings no,住院期间总体平稳,
+discharge,clinical,hospital_course,case.history yes,入院第1天予补液止吐，第2天进食恢复,
+discharge,clinical,final_dx,case.analysis no,急性胃肠炎,
+discharge,clinical,discharge_instructions,case.prognosis no,少量多餐，3天后复诊,
+discharge,clinical,home_meds,case.treatment no,马罗匹坦 q24h ×3d,Text summary only; no structured prescription write in V1
+discharge,clinical,follow_up_plan,case.prognosis no,3天后复诊,
+discharge,signature,clinician.name,operator.clinician_name yes,赵海生,
+discharge,audit,generator,system.app_name yes,Pet-Med-AI v1,
+discharge,audit,clinician_id,operator.clinician_id yes,HS-0001,
+discharge,audit,timestamp,system.now yes,2026-06-08T10:00:00+09:00,
+discharge,audit,hash,computed.document_hash yes,abc123def456,

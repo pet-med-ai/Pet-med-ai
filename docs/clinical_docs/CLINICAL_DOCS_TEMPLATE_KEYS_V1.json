@@ -1,0 +1,70 @@
+{
+  "version": "clinical-docs-export-word-template-spec-v1",
+  "template_syntax": "docxtpl-compatible",
+  "safety": {
+    "writes_database": false,
+    "creates_case": false,
+    "updates_case": false,
+    "downloads_attachments": false,
+    "executes_real_import": false
+  },
+  "brand": {
+    "primary": "#0F3B2E",
+    "white": "#FFFFFF",
+    "text_dark": "#2B2B2B",
+    "background_gray": "#F5F7F6"
+  },
+  "page": {
+    "paper": "A4",
+    "orientation": "portrait",
+    "margin_cm": 2.54,
+    "stamp_placeholder_px": [120, 120]
+  },
+  "templates": {
+    "admission_hospitalization_record_bilingual": {
+      "required_keys": [
+        "case_id",
+        "pet.name",
+        "species",
+        "admission_reason",
+        "clinician.name",
+        "generator",
+        "clinician_id",
+        "timestamp",
+        "hash"
+      ],
+      "optional_keys": [
+        "dob",
+        "owner.name",
+        "contact",
+        "vitals",
+        "provisional_dx",
+        "treatment_plan",
+        "meds"
+      ]
+    },
+    "discharge_summary_bilingual": {
+      "required_keys": [
+        "case_id",
+        "pet.name",
+        "species",
+        "hospital_course",
+        "clinician.name",
+        "generator",
+        "clinician_id",
+        "timestamp",
+        "hash"
+      ],
+      "optional_keys": [
+        "dob",
+        "owner.name",
+        "contact",
+        "vitals",
+        "final_dx",
+        "discharge_instructions",
+        "home_meds",
+        "follow_up_plan"
+      ]
+    }
+  }
+}

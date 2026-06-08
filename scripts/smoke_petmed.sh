@@ -111,6 +111,9 @@ pass "emr real import pilot0 readiness review validation"
 python3 scripts/validate_security_hardening.py >/dev/null || fail "render github security hardening validation failed"
 pass "render github security hardening validation"
 
+python3 scripts/validate_clinical_docs_export_spec.py >/dev/null || fail "clinical docs export spec validation failed"
+pass "clinical docs export spec validation"
+
 python3 scripts/validate_emr_import_pilot0_final_go_no_go.py >/dev/null || fail "emr real import pilot0 final go no-go validation failed"
 pass "emr real import pilot0 final go no-go validation"
 
