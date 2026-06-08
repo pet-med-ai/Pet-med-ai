@@ -1,0 +1,2 @@
+decision_id,batch_id,receipt_id,decision,severity,decider_id,ci_green,online_smoke_before,schema_ok,db_aligned,backup_verified,rollback_snapshot_id,clinical_signoff_id,dry_run_passed,would_create_count,would_update_count,blocked_count,feature_flags_safe,operator_ready,clinical_reviewer_ready,rollback_owner_ready,reason,next_action,decision_time,notes
+decision-example,emr_batch_example,rcpt_example,NO-GO,P0,HS-0001,no,no,no,no,no,,,"no",,,,,no,no,no,no,Default no-go until complete evidence,complete missing gates,2026-06-07T23:00:00+09:00,

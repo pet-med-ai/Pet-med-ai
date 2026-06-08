@@ -1,0 +1,2 @@
+signoff_id,batch_id,receipt_id,operator_id,operator_understands_creates_one_case,operator_understands_no_updates,operator_understands_no_attachments,operator_understands_disable_flag_after,operator_has_smoke_command_ready,operator_has_rollback_contact_ready,operator_has_release_record_ready,signed_at,result,notes
+signoff-example,emr_batch_example,rcpt_example,HS-0001,yes,yes,yes,yes,yes,yes,yes,2026-06-07T22:55:00+09:00,pending,

@@ -1,0 +1,23 @@
+field,value,required,source,notes
+release_id,,yes,release record,
+git_commit,,yes,git,
+github_actions_run_url,,yes,GitHub Actions,
+database_revision,,yes,/api/system/version,
+alembic_head,,yes,/api/system/version,
+schema_ok,,yes,/api/system/version,must be true
+feature_flags_before,,yes,/api/system/feature-flags,all dangerous disabled
+backup_id,,yes,Render dashboard,
+rollback_snapshot_id,,yes,Render/batch record,
+receipt_id,,yes,webhook inbox,
+batch_id,,yes,EMR import batch,
+clinical_signoff_id,,yes,clinical approval,
+execution_dry_run_quality_gate,,yes,execution dry-run,must be passed
+would_create_count,,yes,execution dry-run,must be 1
+would_update_count,,yes,execution dry-run,must be 0
+blocked_count,,yes,execution dry-run,must be 0
+clinical_approval_audit_log_id,,yes,clinical approval,
+online_smoke_before,,yes,terminal,must be ALL PASS
+operator_id,,yes,operator signoff,
+clinical_owner,,yes,operator signoff,
+rollback_owner,,yes,operator signoff,
+final_decision,,yes,Go/No-Go decision,

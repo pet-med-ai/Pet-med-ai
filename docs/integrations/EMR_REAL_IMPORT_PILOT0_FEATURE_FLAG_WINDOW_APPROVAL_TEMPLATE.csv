@@ -1,0 +1,2 @@
+approval_id,batch_id,receipt_id,operator_id,clinical_owner,rollback_owner,requested_window_start,requested_window_end,ENABLE_EMR_REAL_IMPORT_before,ENABLE_EMR_REAL_IMPORT_during,ENABLE_EMR_REAL_IMPORT_after,other_dangerous_flags_remain_false,approved_by,approval_decision,approval_time,notes
+approval-example,emr_batch_example,rcpt_example,HS-0001,clinical-owner,rollback-owner,2026-06-07T23:00:00+09:00,2026-06-07T23:05:00+09:00,false,true,false,true,clinical-owner,NO-GO,2026-06-07T22:50:00+09:00,Default NO-GO until evidence is complete
