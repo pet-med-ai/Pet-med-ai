@@ -1,0 +1,2 @@
+closeout_id,window_id,batch_id,execution_id,operator_id,flag_closed_at,feature_flags_after,online_smoke_after,clinical_spot_check,created_case_id,rollback_required,rollback_owner,closeout_decision,decision_reason,closed_by,closed_at,notes
+closeout-example,window-example,emr_batch_example,emr_exec_example,HS-0001,2026-06-08T00:12:00+09:00,all_dangerous_disabled,pass,pass,123,no,rollback-owner,GO,All checks passed,HS-0001,2026-06-08T00:20:00+09:00,
