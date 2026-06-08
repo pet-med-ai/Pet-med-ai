@@ -1,0 +1,2 @@
+signoff_id,final_review_id,batch_id,receipt_id,clinical_owner,security_owner,rollback_owner,release_owner,clinical_decision,security_decision,rollback_decision,release_decision,post_execution_reviewer,clinical_signoff_id,rollback_snapshot_id,signed_at,notes
+signoff-example,final-review-example,emr_batch_example,rcpt_example,clinical-owner,security-owner,rollback-owner,release-owner,NO-GO,NO-GO,NO-GO,NO-GO,reviewer-id,SIGNOFF-EXAMPLE,SNAPSHOT-EXAMPLE,2026-06-08T00:00:00+09:00,Default NO-GO until evidence complete

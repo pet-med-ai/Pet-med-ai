@@ -1,0 +1,2 @@
+decision_id,final_review_id,batch_id,receipt_id,decision,severity,decider_id,all_required_evidence_complete,hard_no_go_present,missing_evidence,reason,next_stage_allowed,decision_time,notes
+decision-example,final-review-example,emr_batch_example,rcpt_example,NO-GO,P0,HS-0001,no,yes,fill missing evidence,Default no-go until every gate is complete,repeat readiness review,2026-06-08T00:00:00+09:00,

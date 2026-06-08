@@ -1,0 +1,34 @@
+field,value,required,source,notes
+final_review_id,,yes,final decision record,
+release_id,,yes,release record,
+git_commit,,yes,git,
+github_actions_run_url,,yes,GitHub Actions,
+ci_static_checks_result,,yes,terminal,
+frontend_build_result,,yes,terminal,
+online_smoke_before,,yes,terminal,
+database_revision,,yes,/api/system/version,
+alembic_head,,yes,/api/system/version,
+schema_ok,,yes,/api/system/version,must be true
+feature_flags_before,,yes,/api/system/feature-flags,all dangerous disabled
+security_hardening_complete,,yes,security hardening record,
+security_check_result,,yes,bash scripts/security_check.sh,
+render_log_review_result,,yes,Render logs,
+backup_id,,yes,Render pet-med-ai-db,
+rollback_snapshot_id,,yes,backup/rollback record,
+restore_path_known,,yes,rollback owner,
+rollback_owner,,yes,operator signoff,
+receipt_id,,yes,webhook inbox,
+batch_id,,yes,EMR import batch,
+batch_status,,yes,batch detail,approved or clinical_signed
+batch_receipt_count,,yes,batch detail,must be 1
+receipt_status,,yes,webhook inbox,must be ready_for_import
+mapped_case_preview_present,,yes,webhook inbox,
+clinical_signoff_id,,yes,clinical approval,
+execution_dry_run_quality_gate,,yes,execution dry-run,must be passed
+would_create_count,,yes,execution dry-run,must be 1
+would_update_count,,yes,execution dry-run,must be 0
+blocked_count,,yes,execution dry-run,must be 0
+clinical_owner,,yes,approver signoff,
+operator_id,,yes,operator signoff,
+post_execution_reviewer,,yes,approver signoff,
+final_decision,,yes,decision record,GO PAUSE NO-GO or ROLLBACK-REVIEW
