@@ -1,0 +1,24 @@
+field,value,required,notes
+rehearsal_id,,yes,
+date,,yes,
+operator_id,,yes,
+clinical_owner,,yes,
+rollback_owner,,yes,
+receipt_id,,yes,
+batch_id,,yes,
+execution_dry_run_request_id,,yes,
+clinical_approval_audit_log_id,,yes,
+clinical_signoff_id,,yes,
+rollback_snapshot_id,,yes,
+database_revision,,yes,
+alembic_head,,yes,
+schema_ok,,yes,must be true
+git_commit,,recommended,
+git_tag,,optional,
+online_smoke_before,,yes,must be ALL PASS
+online_smoke_after,,yes,must be ALL PASS
+feature_flags_before,,yes,all dangerous disabled
+feature_flags_after,,yes,all dangerous disabled
+execute_blocked_status,,yes,must be HTTP 403
+execute_blocked_reason,,yes,must include ENABLE_EMR_REAL_IMPORT
+final_decision,,yes,GO / PAUSE / NO-GO / ROLLBACK-REVIEW

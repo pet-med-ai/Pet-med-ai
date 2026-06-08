@@ -1,0 +1,2 @@
+decision_id,rehearsal_id,batch_id,receipt_id,decision,severity,decider_id,required_conditions_met,missing_conditions,reason,next_allowed_stage,decision_time,notes
+decision-example,rehearsal-example,emr_batch_example,rcpt_example,NO-GO,P0,HS-0001,no,fill actual missing conditions,Default no-go until evidence is complete,repeat dry-run rehearsal,2026-06-07T22:45:00+09:00,

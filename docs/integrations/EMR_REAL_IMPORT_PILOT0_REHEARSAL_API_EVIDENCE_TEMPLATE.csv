@@ -1,0 +1,11 @@
+step,endpoint,method,expected_status,required_response_marker_1,required_response_marker_2,required_response_marker_3,actual_status,actual_marker_result,evidence_location,notes
+system_version,/api/system/version,GET,200,schema_ok=true,database_revision==alembic_head,writes_database=false,,,,
+feature_flags_before,/api/system/feature-flags,GET,200,all_dangerous_features_disabled=true,ENABLE_EMR_REAL_IMPORT=false,writes_database=false,,,,
+emr_dry_run,/api/webhooks/emr/case-mapping/dry-run,POST,202,receipt_persisted=true,writes_webhook_inbox=true,writes_case_database=false,,,,
+review_action,/api/webhooks/emr/inbox/{receipt_id}/review-action,POST,200,status_after=ready_for_import,writes_audit_log=true,creates_case=false,,,,
+batch_plan,/api/emr/import-batches/plan,POST,201,receipt_count=1,writes_emr_import_batches=true,creates_case=false,,,,
+execution_dry_run,/api/emr/import-batches/{batch_id}/execution-dry-run,POST,200,quality_gate.passed=true,would_create_count=1,executes_real_import=false,,,,
+clinical_approval,/api/emr/import-batches/{batch_id}/clinical-approval,POST,200,status_after=approved,audit_log_id present,can_execute_import=false,,,,
+execute_blocked,/api/emr/import-batches/{batch_id}/execute,POST,403,feature flag disabled,ENABLE_EMR_REAL_IMPORT,creates_case not true,,,,
+feature_flags_after,/api/system/feature-flags,GET,200,all_dangerous_features_disabled=true,ENABLE_EMR_REAL_IMPORT=false,writes_database=false,,,,
+online_smoke_after,scripts/smoke_petmed.sh,bash,0,ALL PASS,no FAIL,online backend,,,,
