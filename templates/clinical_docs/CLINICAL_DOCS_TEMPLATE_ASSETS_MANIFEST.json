@@ -1,0 +1,62 @@
+{
+  "version": "clinical-docs-template-assets-v1",
+  "generated_assets": [
+    {
+      "template_id": "admission_hospitalization_record_bilingual",
+      "path": "templates/clinical_docs/admission_hospitalization_record_bilingual.docx",
+      "sha256": "fe16879d52873cc64405db307ba4635db8a32ef2cb2c9fd2c97bd4aef1c2495c",
+      "page_count_rendered": 1,
+      "required_placeholders": [
+        "case_id",
+        "pet.name",
+        "species",
+        "dob",
+        "owner.name",
+        "contact",
+        "vitals",
+        "admission_reason",
+        "provisional_dx",
+        "treatment_plan",
+        "meds",
+        "clinician.name",
+        "generator",
+        "clinician_id",
+        "timestamp",
+        "hash"
+      ]
+    },
+    {
+      "template_id": "discharge_summary_bilingual",
+      "path": "templates/clinical_docs/discharge_summary_bilingual.docx",
+      "sha256": "e986c9c5fde0e9c64033b4b95fcd56df9832bc2f4e8024d455bfed95056eb77d",
+      "page_count_rendered": 2,
+      "required_placeholders": [
+        "case_id",
+        "pet.name",
+        "species",
+        "dob",
+        "owner.name",
+        "contact",
+        "vitals",
+        "hospital_course",
+        "final_dx",
+        "discharge_instructions",
+        "home_meds",
+        "follow_up_plan",
+        "clinician.name",
+        "generator",
+        "clinician_id",
+        "timestamp",
+        "hash"
+      ]
+    }
+  ],
+  "safety": {
+    "writes_database": false,
+    "creates_case": false,
+    "updates_case": false,
+    "downloads_attachments": false,
+    "executes_real_import": false,
+    "contains_real_stamp": false
+  }
+}

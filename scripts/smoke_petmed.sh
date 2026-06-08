@@ -114,6 +114,9 @@ pass "render github security hardening validation"
 python3 scripts/validate_clinical_docs_export_spec.py >/dev/null || fail "clinical docs export spec validation failed"
 pass "clinical docs export spec validation"
 
+python3 scripts/validate_clinical_docs_template_assets.py >/dev/null || fail "clinical docs template assets validation failed"
+pass "clinical docs template assets validation"
+
 python3 scripts/validate_emr_import_pilot0_final_go_no_go.py >/dev/null || fail "emr real import pilot0 final go no-go validation failed"
 pass "emr real import pilot0 final go no-go validation"
 

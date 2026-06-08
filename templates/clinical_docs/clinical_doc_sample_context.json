@@ -1,0 +1,34 @@
+{
+  "case_id": "HSC-2026-0602-001",
+  "pet": {
+    "name": "豆豆"
+  },
+  "species": "Felis catus / 猫",
+  "dob": "2025-03-01",
+  "owner": {
+    "name": "王小花"
+  },
+  "contact": "13800000000",
+  "vitals": "T 38.6℃  HR 120  RR 28  BW 2.3kg",
+  "admission_reason": "呕吐腹泻3天，精神差",
+  "provisional_dx": "急性胃肠炎待排胰腺炎",
+  "treatment_plan": "补液+止吐+胃黏膜保护+粪检/腹超",
+  "meds": "马罗匹坦、奥美拉唑、蒙脱石",
+  "hospital_course": "入院第1天予补液止吐，第2天进食恢复。",
+  "final_dx": "急性胃肠炎",
+  "discharge_instructions": "少量多餐，禁油腻人食，3天后复诊。",
+  "home_meds": "益生菌 q12h × 5d",
+  "follow_up_plan": "3天后复诊；若呕吐加重随诊。",
+  "clinician": {
+    "name": "赵海生"
+  },
+  "generator": "Pet-Med-AI v1",
+  "clinician_id": "HS-0001",
+  "timestamp": "2026-06-08T10:00:00+09:00",
+  "hash": "abc123def456",
+  "clinic": {
+    "address": "{{clinic.address}}",
+    "phone": "{{clinic.phone}}",
+    "hours": "{{clinic.hours}}"
+  }
+}
