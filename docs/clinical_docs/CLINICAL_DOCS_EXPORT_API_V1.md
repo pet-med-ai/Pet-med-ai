@@ -159,3 +159,29 @@ audit log export tracking
 6. API safety markers remain false for database writes and Case mutation.
 7. Validator is included in smoke and CI static checks.
 ```
+
+## Template operational defaults
+
+The DOCX template assets may include non-clinical operational placeholders.
+
+Clinical Docs Export API V1 fills them with safe defaults:
+
+```txt
+{{clinic.name}} = 瀚森宠物医院 / Hanson Veterinary Clinic
+{{clinic.address}} = 地址待填写 / Address TBD
+{{clinic.phone}} = 电话待填写 / Phone TBD
+{{clinic.hours}} = 营业时间待填写 / Hours TBD
+{{stamp.image}} = 电子章位 / Stamp placeholder
+```
+
+Safety:
+
+```txt
+contains_real_stamp=false
+writes_database=false
+creates_case=false
+updates_case=false
+downloads_attachments=false
+executes_real_import=false
+```
+

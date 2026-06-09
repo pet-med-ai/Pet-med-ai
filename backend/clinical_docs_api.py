@@ -150,6 +150,13 @@ def _build_context(case: Case, *, data: ClinicalDocRenderIn, user, template_id: 
         "clinician_id": clinician_id,
         "timestamp": timestamp,
         "hash": "",
+        # Template-level operational placeholders.
+        # These are safe defaults; no real official stamp or secret value is embedded.
+        "clinic.name": "瀚森宠物医院 / Hanson Veterinary Clinic",
+        "clinic.address": "地址待填写 / Address TBD",
+        "clinic.phone": "电话待填写 / Phone TBD",
+        "clinic.hours": "营业时间待填写 / Hours TBD",
+        "stamp.image": "电子章位 / Stamp placeholder",
     }
 
     hash_input = {

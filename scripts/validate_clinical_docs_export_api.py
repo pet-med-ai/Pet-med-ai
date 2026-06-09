@@ -72,6 +72,10 @@ def main() -> int:
             '"executes_real_import": False',
             "admission_hospitalization_record_bilingual",
             "discharge_summary_bilingual",
+            "clinic.address",
+            "clinic.phone",
+            "clinic.hours",
+            "stamp.image",
         ),
         "backend/clinical_docs_api.py",
     )
