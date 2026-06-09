@@ -123,6 +123,9 @@ pass "clinical docs export API validation"
 python3 scripts/validate_clinical_docs_export_ui.py >/dev/null || fail "clinical docs export UI validation failed"
 pass "clinical docs export UI validation"
 
+python3 scripts/validate_clinical_docs_export_smoke.py >/dev/null || fail "clinical docs export smoke coverage validation failed"
+pass "clinical docs export smoke coverage validation"
+
 python3 scripts/validate_emr_import_pilot0_final_go_no_go.py >/dev/null || fail "emr real import pilot0 final go no-go validation failed"
 pass "emr real import pilot0 final go no-go validation"
 
@@ -1004,6 +1007,155 @@ repeat_case_id="$(json_get "$RESPONSE_BODY" "case_id")"
 [[ "$repeat_msg" == "already_saved" ]] || fail "repeat save：期望 already_saved，实际 $repeat_msg"
 [[ "$repeat_case_id" == "$case_id" ]] || fail "repeat save：case_id 不一致"
 pass "repeat save returns already_saved"
+
+
+# Clinical Docs Export Smoke Coverage V1: authenticated DOCX render checks.
+http_json GET "/api/clinical-docs/templates" "" "$token_a"
+expect_status 200 "clinical docs templates"
+json_assert_text_contains "$RESPONSE_BODY" "message" "clinical_doc_templates" >/dev/null || fail "clinical docs templates：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "templates" "admission_hospitalization_record_bilingual" >/dev/null || fail "clinical docs templates：缺少 admission 模板"
+json_assert_text_contains "$RESPONSE_BODY" "templates" "discharge_summary_bilingual" >/dev/null || fail "clinical docs templates：缺少 discharge 模板"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "clinical docs templates：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "clinical docs templates：不应创建病例"
+
+clinical_doc_preview_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "template_id": "admission_hospitalization_record_bilingual",
+    "output": "docx",
+    "clinician_name": "Smoke Clinician",
+    "clinician_id": "HS-SMOKE-DOCS",
+    "generator": "Pet-Med-AI smoke clinical docs",
+    "include_preview_context": True,
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/clinical-docs/render-preview" "$clinical_doc_preview_body" "$token_a"
+expect_status 200 "clinical docs admission render preview"
+clinical_doc_hash="$(json_get "$RESPONSE_BODY" "document_hash")"
+[[ -n "$clinical_doc_hash" ]] || fail "clinical docs render preview：没有 document_hash"
+json_assert_text_contains "$RESPONSE_BODY" "message" "clinical_doc_render_preview" >/dev/null || fail "clinical docs render preview：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "template_id" "admission_hospitalization_record_bilingual" >/dev/null || fail "clinical docs render preview：template_id 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "context.pet.name" "Smoke乐乐" >/dev/null || fail "clinical docs render preview：pet.name 未填充 smoke 病例"
+json_assert_text_contains "$RESPONSE_BODY" "context.clinician_id" "HS-SMOKE-DOCS" >/dev/null || fail "clinical docs render preview：clinician_id 未填充"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "clinical docs render preview：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "clinical docs render preview：不应创建病例"
+json_assert_text_contains "$RESPONSE_BODY" "updates_case" "False" >/dev/null || fail "clinical docs render preview：不应更新病例"
+json_assert_text_contains "$RESPONSE_BODY" "downloads_attachments" "False" >/dev/null || fail "clinical docs render preview：不应下载附件"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_import" "False" >/dev/null || fail "clinical docs render preview：不应执行真实导入"
+
+http_json POST "/api/clinical-docs/render-preview" "$clinical_doc_preview_body"
+expect_status 401 "clinical docs render preview requires auth"
+
+validate_docx_smoke_output() {
+  local docx_path="$1"
+  local expected_text="$2"
+  python3 - "$docx_path" "$expected_text" <<'PY'
+import io
+import sys
+import zipfile
+from xml.etree import ElementTree as ET
+
+docx_path, expected_text = sys.argv[1], sys.argv[2]
+
+with zipfile.ZipFile(docx_path, "r") as zf:
+    names = set(zf.namelist())
+    if "word/document.xml" not in names:
+        print("word/document.xml missing")
+        sys.exit(2)
+
+    chunks = []
+    raw_xml = []
+    for name in sorted(n for n in names if n.startswith("word/") and n.endswith(".xml")):
+        data = zf.read(name)
+        raw_xml.append(data.decode("utf-8", errors="ignore"))
+        try:
+            root = ET.fromstring(data)
+        except ET.ParseError:
+            continue
+        for node in root.iter():
+            if node.tag.endswith("}t") and node.text:
+                chunks.append(node.text)
+
+text = "".join(chunks)
+raw = "\n".join(raw_xml)
+if "{{" in raw or "}}" in raw:
+    print("unreplaced placeholders remain")
+    sys.exit(3)
+if expected_text not in text:
+    print(f"expected text not found in DOCX: {expected_text!r}")
+    print(text[:1000])
+    sys.exit(4)
+
+print("ok")
+PY
+}
+
+clinical_doc_render() {
+  local template_id="$1"
+  local label="$2"
+  local out_docx="$3"
+  local out_headers="$4"
+  local body
+
+  body="$(python3 - "$case_id" "$template_id" "$label" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+template_id = sys.argv[2]
+label = sys.argv[3]
+body = {
+    "case_id": case_id,
+    "template_id": template_id,
+    "output": "docx",
+    "clinician_name": "Smoke Clinician",
+    "clinician_id": "HS-SMOKE-DOCS",
+    "generator": "Pet-Med-AI smoke clinical docs",
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+
+  RESPONSE_STATUS="$(curl -sS --connect-timeout 15 --max-time 120 \
+    -X POST "${BASE_URL}/api/clinical-docs/render" \
+    -H "Authorization: Bearer ${token_a}" \
+    -H "Content-Type: application/json" \
+    --data "$body" \
+    -D "$out_headers" \
+    -o "$out_docx" \
+    -w "%{http_code}")" || {
+      RESPONSE_BODY="$out_headers"
+      fail "请求失败：POST /api/clinical-docs/render ${label}"
+    }
+  RESPONSE_BODY="$out_headers"
+}
+
+admission_docx="$TMP_DIR/clinical_docs_admission.docx"
+admission_headers="$TMP_DIR/clinical_docs_admission.headers"
+clinical_doc_render "admission_hospitalization_record_bilingual" "admission" "$admission_docx" "$admission_headers"
+expect_status 200 "clinical docs admission DOCX render"
+grep -qi "content-type: application/vnd.openxmlformats-officedocument.wordprocessingml.document" "$admission_headers" || fail "clinical docs admission DOCX：Content-Type 不正确"
+grep -qi "x-pmai-document-hash:" "$admission_headers" || fail "clinical docs admission DOCX：缺少 X-PMAI-Document-Hash"
+grep -qi "x-pmai-writes-database: false" "$admission_headers" || fail "clinical docs admission DOCX：X-PMAI-Writes-Database 应为 false"
+grep -qi "x-pmai-creates-case: false" "$admission_headers" || fail "clinical docs admission DOCX：X-PMAI-Creates-Case 应为 false"
+validate_docx_smoke_output "$admission_docx" "Smoke乐乐" >/dev/null || fail "clinical docs admission DOCX：内容校验失败"
+
+discharge_docx="$TMP_DIR/clinical_docs_discharge.docx"
+discharge_headers="$TMP_DIR/clinical_docs_discharge.headers"
+clinical_doc_render "discharge_summary_bilingual" "discharge" "$discharge_docx" "$discharge_headers"
+expect_status 200 "clinical docs discharge DOCX render"
+grep -qi "content-type: application/vnd.openxmlformats-officedocument.wordprocessingml.document" "$discharge_headers" || fail "clinical docs discharge DOCX：Content-Type 不正确"
+grep -qi "x-pmai-document-hash:" "$discharge_headers" || fail "clinical docs discharge DOCX：缺少 X-PMAI-Document-Hash"
+grep -qi "x-pmai-writes-database: false" "$discharge_headers" || fail "clinical docs discharge DOCX：X-PMAI-Writes-Database 应为 false"
+grep -qi "x-pmai-creates-case: false" "$discharge_headers" || fail "clinical docs discharge DOCX：X-PMAI-Creates-Case 应为 false"
+validate_docx_smoke_output "$discharge_docx" "Smoke乐乐" >/dev/null || fail "clinical docs discharge DOCX：内容校验失败"
+
+pass "clinical docs export runtime DOCX checks"
+
 
 # KPI aggregation API V1 checks. Read-only; does not write KPI records.
 http_json GET "/api/kpi/cases" "" "$token_a"
