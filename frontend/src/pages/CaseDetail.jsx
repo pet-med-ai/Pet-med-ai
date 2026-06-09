@@ -13,6 +13,8 @@ export default function CaseDetail() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [exportingDoc, setExportingDoc] = useState("");
+  const [exportStatus, setExportStatus] = useState("");
 
   // 拉取详情
   useEffect(() => {
@@ -59,6 +61,60 @@ export default function CaseDetail() {
 
   const doPrint = () => setTimeout(() => window.print(), 40);
 
+  // Clinical Docs Export UI V1: read-only DOCX download from Case detail.
+  const exportClinicalDoc = async (templateId, label) => {
+    if (!data?.id) {
+      alert("病例尚未加载，无法导出。");
+      return;
+    }
+
+    try {
+      setExportingDoc(templateId);
+      setExportStatus(`正在生成${label}…`);
+
+      const res = await api.post(
+        "/api/clinical-docs/render",
+        {
+          case_id: Number(data.id),
+          template_id: templateId,
+          output: "docx",
+        },
+        {
+          responseType: "blob",
+        }
+      );
+
+      const disposition = res.headers?.["content-disposition"] || res.headers?.["Content-Disposition"] || "";
+      const hash = res.headers?.["x-pmai-document-hash"] || res.headers?.["X-PMAI-Document-Hash"] || "";
+      const match = disposition.match(/filename="?([^";]+)"?/i);
+      const fallbackName = `${label.replace(/[\\/\s]+/g, "-")}-case-${data.id}${hash ? `-${hash}` : ""}.docx`;
+      const filename = decodeURIComponent(match?.[1] || fallbackName);
+
+      const blob = new Blob(
+        [res.data],
+        { type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }
+      );
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+
+      setExportStatus(`${label}已生成：${filename}`);
+    } catch (e) {
+      console.error("Clinical doc export failed:", e);
+      const detail = e?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
+      setExportStatus(`${label}导出失败`);
+      alert(`${label}导出失败：${msg}`);
+    } finally {
+      setExportingDoc("");
+    }
+  };
+
   const derived = useMemo(() => {
     if (!data) return {};
     return {
@@ -95,6 +151,22 @@ export default function CaseDetail() {
           <Link to="/" style={btn}>返回首页</Link>
           <Link to={`/cases/${data.id}/edit`} style={btnPrimary}>编辑</Link>
           <button onClick={doPrint} style={btnSecondary}>打印病例</button>
+          <button
+            type="button"
+            onClick={() => exportClinicalDoc("admission_hospitalization_record_bilingual", "入院/住院记录")}
+            disabled={Boolean(exportingDoc)}
+            style={btnDoc}
+          >
+            {exportingDoc === "admission_hospitalization_record_bilingual" ? "生成中…" : "导出入院/住院记录 DOCX"}
+          </button>
+          <button
+            type="button"
+            onClick={() => exportClinicalDoc("discharge_summary_bilingual", "出院小结")}
+            disabled={Boolean(exportingDoc)}
+            style={btnDoc}
+          >
+            {exportingDoc === "discharge_summary_bilingual" ? "生成中…" : "导出出院小结 DOCX"}
+          </button>
           <button onClick={doDelete} disabled={deleting} style={btnDanger}>
             {deleting ? "删除中…" : "删除"}
           </button>
@@ -103,6 +175,12 @@ export default function CaseDetail() {
           后端：{import.meta.env.VITE_API_BASE}
         </div>
       </div>
+
+      {exportStatus && (
+        <div className="clinical-doc-export-status screen-only">
+          {exportStatus}
+        </div>
+      )}
 
       <div className="print-header">
         <div style={{ fontSize: 20, fontWeight: 700 }}>病例报告 / Case Report</div>
@@ -372,6 +450,7 @@ const btn = {
 
 const btnPrimary = { ...btn, border: "1px solid #0ea5e9", background: "#0ea5e9", color: "#fff" };
 const btnSecondary = { ...btn, border: "1px solid #111", background: "#fff" };
+const btnDoc = { ...btn, border: "1px solid #0f3b2e", background: "#0f3b2e", color: "#fff" };
 const btnDanger = { ...btn, border: "1px solid #ef4444", background: "#ef4444", color: "#fff" };
 
 /* ===== 打印友好样式 ===== */
@@ -435,6 +514,17 @@ const css = `
   .risk-medium { border-color: #fed7aa; background: #fff7ed; color: #9a3412; }
   .risk-low { border-color: #bbf7d0; background: #f0fdf4; color: #166534; }
   .risk-unknown { color: #334155; }
+
+  .clinical-doc-export-status {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+    border-radius: 12px;
+    padding: 10px 12px;
+    margin: 10px 0;
+    font-size: 13px;
+    font-weight: 700;
+  }
 
   .notice {
     border: 1px solid #bfdbfe;

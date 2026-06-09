@@ -120,6 +120,9 @@ pass "clinical docs template assets validation"
 python3 scripts/validate_clinical_docs_export_api.py >/dev/null || fail "clinical docs export API validation failed"
 pass "clinical docs export API validation"
 
+python3 scripts/validate_clinical_docs_export_ui.py >/dev/null || fail "clinical docs export UI validation failed"
+pass "clinical docs export UI validation"
+
 python3 scripts/validate_emr_import_pilot0_final_go_no_go.py >/dev/null || fail "emr real import pilot0 final go no-go validation failed"
 pass "emr real import pilot0 final go no-go validation"
 
