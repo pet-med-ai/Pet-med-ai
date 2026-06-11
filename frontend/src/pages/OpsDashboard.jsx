@@ -62,6 +62,8 @@ export default function OpsDashboard() {
   const [loading, setLoading] = useState(false);
   const [lastLoadedAt, setLastLoadedAt] = useState("");
   const [errMsg, setErrMsg] = useState("");
+  const [preventiveCareOps, setPreventiveCareOps] = useState(null);
+  const [preventiveCareOpsError, setPreventiveCareOpsError] = useState("");
 
   const loadOpsStatus = async () => {
     try {
@@ -75,6 +77,16 @@ export default function OpsDashboard() {
       setHealthz(healthRes.data || {});
       setVersion(versionRes.data || {});
       setFlags(flagsRes.data || {});
+      try {
+        const pcOpsRes = await api.get("/api/preventive-care/ops/summary");
+        setPreventiveCareOps(pcOpsRes.data || {});
+        setPreventiveCareOpsError("");
+      } catch (opsErr) {
+        console.warn("Load preventive care ops summary failed:", opsErr);
+        const detail = opsErr?.response?.data?.detail;
+        setPreventiveCareOps(null);
+        setPreventiveCareOpsError(typeof detail === "string" ? detail : JSON.stringify(detail || opsErr.message));
+      }
       setLastLoadedAt(new Date().toLocaleString());
     } catch (err) {
       console.error("Load ops dashboard failed:", err);
@@ -102,6 +114,14 @@ export default function OpsDashboard() {
   }, [flags]);
 
   const overallOk = healthOk && schemaOk && dbAligned && dangerousOff && upgradeReady;
+  const pcReminders = preventiveCareOps?.reminders || {};
+  const pcQueue = preventiveCareOps?.notification_queue || {};
+  const pcAttention = preventiveCareOps?.attention || {};
+  const pcEvents = preventiveCareOps?.events || {};
+  const pcSafety = preventiveCareOps?.safety || {};
+  const pcOpsAvailable = !!preventiveCareOps && !preventiveCareOpsError;
+  const pcReadOnlyOk = pcSafety?.read_only === true && pcSafety?.writes_database === false;
+  const pcNoExternalSendOk = pcSafety?.auto_send === false && pcSafety?.sends_external_message === false;
 
   return (
     <div style={pageStyle}>
@@ -120,6 +140,7 @@ export default function OpsDashboard() {
           <Link to="/kpi" style={secondaryBtnStyle}>KPI</Link>
           <Link to="/webhooks/emr/inbox" style={secondaryBtnStyle}>Webhook Inbox</Link>
           <Link to="/emr/import-batches" style={secondaryBtnStyle}>EMR Batch</Link>
+          <Link to="/preventive-care/notification-queue" style={secondaryBtnStyle}>Preventive Queue</Link>
           <button type="button" onClick={loadOpsStatus} disabled={loading} style={btnStyle}>
             {loading ? "刷新中…" : "刷新状态"}
           </button>
@@ -140,6 +161,67 @@ export default function OpsDashboard() {
         <Card title="Git commit" value={fmt(version?.git_commit_short)} hint={fmt(version?.git_commit)} />
         <Card title="Upgrade ready" value={fmt(upgradeReady)} ok={upgradeReady} hint="来自 /api/system/version" />
       </div>
+
+      <section style={sectionStyle}>
+        <h2 style={sectionTitleStyle}>Preventive Care Reminder Ops Dashboard V1</h2>
+        <div style={{ opacity: 0.72, fontSize: 13, marginBottom: 10 }}>
+          预防保健运营摘要：站内提醒、逾期、今日到期、前台待联系、已人工联系、客户退订阻断。read_only=true；auto_send=false；sends_external_message=false。
+        </div>
+        {preventiveCareOpsError && (
+          <div style={{ ...noticeStyle, borderColor: "#fed7aa", background: "#fff7ed", color: "#9a3412" }}>
+            Preventive Care Ops 读取失败：{preventiveCareOpsError}
+          </div>
+        )}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+          <Card title="Preventive attention" value={fmt(pcAttention?.count)} ok={pcOpsAvailable && !pcAttention?.needs_attention} hint="overdue + due today + queue review + opt-out block" />
+          <Card title="Reminders open" value={fmt(pcReminders?.open)} ok={pcOpsAvailable} hint={`total=${fmt(pcReminders?.total)} / overdue=${fmt(pcReminders?.overdue)}`} />
+          <Card title="Due today" value={fmt(pcReminders?.due_today)} ok={pcOpsAvailable && Number(pcReminders?.due_today || 0) === 0} hint="今日到期提醒" />
+          <Card title="Queue needs review" value={fmt(pcQueue?.needs_review)} ok={pcOpsAvailable && Number(pcQueue?.needs_review || 0) === 0} hint="manual_review_required=true" />
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 10, marginTop: 10 }}>
+          <Card title="Manual contacted" value={fmt(pcQueue?.contacted_manually)} ok={pcOpsAvailable} hint="前台已人工联系记录" />
+          <Card title="Blocked opt-out" value={fmt(pcQueue?.blocked_opt_out)} ok={pcOpsAvailable && Number(pcQueue?.blocked_opt_out || 0) === 0} hint="客户退订/阻断队列" />
+          <Card title="Recent events 30d" value={fmt(pcEvents?.recent_30d_total)} ok={pcOpsAvailable} hint="完成疫苗/驱虫/体检事件" />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginTop: 10 }}>
+          <div style={cardStyle}>
+            <div style={{ fontSize: 13, opacity: 0.72, marginBottom: 6 }}>Reminder status</div>
+            <pre style={{ ...preStyle, maxHeight: 220 }}>{prettyJson(pcReminders?.by_status || {})}</pre>
+          </div>
+          <div style={cardStyle}>
+            <div style={{ fontSize: 13, opacity: 0.72, marginBottom: 6 }}>Queue status / channel</div>
+            <pre style={{ ...preStyle, maxHeight: 220 }}>{prettyJson({ by_status: pcQueue?.by_status || {}, by_channel: pcQueue?.by_channel || {} })}</pre>
+          </div>
+        </div>
+
+        <table style={{ ...tableStyle, marginTop: 10 }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Safety gate</th>
+              <th style={thStyle}>Status</th>
+              <th style={thStyle}>Expected</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={tdStyle}>read_only / writes_database</td>
+              <td style={tdStyle}><span style={badgeStyle(pcReadOnlyOk)}>{statusLabel(pcReadOnlyOk)}</span></td>
+              <td style={tdStyle}>read_only=true；writes_database=false</td>
+            </tr>
+            <tr>
+              <td style={tdStyle}>auto_send / sends_external_message</td>
+              <td style={tdStyle}><span style={badgeStyle(pcNoExternalSendOk)}>{statusLabel(pcNoExternalSendOk)}</span></td>
+              <td style={tdStyle}>auto_send=false；sends_external_message=false</td>
+            </tr>
+            <tr>
+              <td style={tdStyle}>manual review</td>
+              <td style={tdStyle}><span style={badgeStyle(pcSafety?.manual_review_required === true)}>{statusLabel(pcSafety?.manual_review_required === true)}</span></td>
+              <td style={tdStyle}>manual_review_required=true</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
 
       <section style={sectionStyle}>
         <h2 style={sectionTitleStyle}>Release Gate Summary</h2>

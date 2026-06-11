@@ -156,6 +156,9 @@ pass "preventive care reminder online verification validation"
 python3 scripts/validate_preventive_care_release_record.py >/dev/null || fail "preventive care reminder release record validation failed"
 pass "preventive care reminder release record validation"
 
+python3 scripts/validate_preventive_care_ops_dashboard.py >/dev/null || fail "preventive care reminder ops dashboard validation failed"
+pass "preventive care reminder ops dashboard validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
@@ -1507,6 +1510,26 @@ json_assert_text_contains "$RESPONSE_BODY" "items" "[]" >/dev/null || fail "prev
 http_json POST "/api/preventive-care/notification-queue/${preventive_notification_id}/review" '{"action":"approve_for_manual_contact","reviewed_by":"HS-SMOKE-B"}' "$token_b"
 expect_status 404 "preventive care notification queue user B cannot review user A item"
 pass "preventive care notification queue checks"
+
+# Preventive Care Reminder Ops Dashboard V1: read-only operational summary.
+http_json GET "/api/preventive-care/ops/summary" "" "$token_a"
+expect_status 200 "preventive care ops summary"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_ops_summary" >/dev/null || fail "preventive care ops summary：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "mode" "preventive_care_reminder_ops_dashboard_v1" >/dev/null || fail "preventive care ops summary：mode 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "reminders.total" "1" >/dev/null || fail "preventive care ops summary：应包含 reminders.total"
+json_assert_text_contains "$RESPONSE_BODY" "notification_queue.total" "1" >/dev/null || fail "preventive care ops summary：应包含 notification_queue.total"
+json_assert_text_contains "$RESPONSE_BODY" "safety.read_only" "True" >/dev/null || fail "preventive care ops summary：read_only 应为 true"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "preventive care ops summary：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "auto_send" "False" >/dev/null || fail "preventive care ops summary：不应自动发送"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care ops summary：不应外发消息"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "preventive care ops summary：不应创建病例"
+
+http_json GET "/api/preventive-care/ops/summary" "" "$token_b"
+expect_status 200 "preventive care ops summary user B"
+json_assert_text_contains "$RESPONSE_BODY" "reminders.total" "0" >/dev/null || fail "preventive care ops summary user B：不应看到 user A reminders"
+json_assert_text_contains "$RESPONSE_BODY" "notification_queue.total" "0" >/dev/null || fail "preventive care ops summary user B：不应看到 user A queue"
+pass "preventive care ops dashboard checks"
+
 
 
 
