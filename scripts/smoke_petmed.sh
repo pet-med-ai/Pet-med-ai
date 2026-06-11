@@ -153,6 +153,9 @@ pass "preventive care notification queue UI validation"
 python3 scripts/validate_preventive_care_online_verification.py >/dev/null || fail "preventive care reminder online verification validation failed"
 pass "preventive care reminder online verification validation"
 
+python3 scripts/validate_preventive_care_release_record.py >/dev/null || fail "preventive care reminder release record validation failed"
+pass "preventive care reminder release record validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
