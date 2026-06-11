@@ -1,0 +1,19 @@
+{
+  "as_of_date": "2026-06-11",
+  "pet": {
+    "owner_id": 1,
+    "case_id": 101,
+    "pet_name": "乐乐",
+    "species": "dog",
+    "life_stage": "adult",
+    "last_core_vaccine_date": "2025-06-01",
+    "last_rabies_vaccine_date": "2025-06-01",
+    "last_lepto_vaccine_date": "2025-06-01",
+    "last_lifestyle_vaccine_date": "2025-07-10",
+    "last_deworming_date": "2026-02-01",
+    "last_external_parasite_prevention_date": "2026-05-20",
+    "last_fecal_exam_date": "2025-12-01",
+    "last_heartworm_test_date": "2025-06-01",
+    "last_preventive_exam_date": "2025-06-01"
+  }
+}

@@ -135,6 +135,12 @@ pass "clinical docs PDF conversion design validation"
 python3 scripts/validate_preventive_care_reminder_spec.py >/dev/null || fail "preventive care reminder spec validation failed"
 pass "preventive care reminder spec validation"
 
+python3 scripts/validate_preventive_care_reminder_model.py >/dev/null || fail "preventive care reminder data model validation failed"
+pass "preventive care reminder data model validation"
+
+python3 scripts/validate_preventive_care_rule_engine_dry_run.py >/dev/null || fail "preventive care reminder rule engine dry-run validation failed"
+pass "preventive care reminder rule engine dry-run validation"
+
 python3 scripts/validate_emr_import_pilot0_final_go_no_go.py >/dev/null || fail "emr real import pilot0 final go no-go validation failed"
 pass "emr real import pilot0 final go no-go validation"
 
