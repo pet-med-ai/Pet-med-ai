@@ -8,6 +8,7 @@ import KpiDashboard from "./pages/KpiDashboard";
 import WebhookInboxPage from "./pages/WebhookInboxPage";
 import EmrImportBatchPlanningPage from "./pages/EmrImportBatchPlanningPage";
 import OpsDashboard from "./pages/OpsDashboard";
+import PreventiveCareNotificationQueuePage from "./pages/PreventiveCareNotificationQueuePage";
 
 function getErrorDetail(err) {
   const detail = err?.response?.data?.detail;
@@ -1195,6 +1196,9 @@ function Home() {
         <Link to="/kpi" style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}>
           运维 KPI 仪表盘
         </Link>
+        <Link to="/preventive-care/notification-queue" style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}>
+          预防保健待联系队列
+        </Link>
       </div>
 
       {/* 登录区 */}
@@ -1857,6 +1861,7 @@ export default function App() {
         <Route path="/ops" element={<OpsDashboard />} />
         <Route path="/webhooks/emr/inbox" element={<WebhookInboxPage />} />
         <Route path="/emr/import-batches" element={<EmrImportBatchPlanningPage />} />
+        <Route path="/preventive-care/notification-queue" element={<PreventiveCareNotificationQueuePage />} />
         <Route path="*" element={<div style={{ padding: 24 }}>页面不存在（404）。</div>} />
       </Routes>
     </Router>
