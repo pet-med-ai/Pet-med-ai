@@ -144,6 +144,9 @@ pass "preventive care reminder rule engine dry-run validation"
 python3 scripts/validate_preventive_care_reminder_api.py >/dev/null || fail "preventive care reminder API validation failed"
 pass "preventive care reminder API validation"
 
+python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
+pass "preventive care reminder UI validation"
+
 python3 scripts/validate_emr_import_pilot0_final_go_no_go.py >/dev/null || fail "emr real import pilot0 final go no-go validation failed"
 pass "emr real import pilot0 final go no-go validation"
 

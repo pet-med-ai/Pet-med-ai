@@ -13,6 +13,11 @@ export default function CaseDetail() {
   const [err, setErr] = useState("");
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
+  const [preventiveCareReminders, setPreventiveCareReminders] = useState([]);
+  const [preventiveCarePreview, setPreventiveCarePreview] = useState([]);
+  const [preventiveCareLoading, setPreventiveCareLoading] = useState(false);
+  const [preventiveCareBusy, setPreventiveCareBusy] = useState("");
+  const [preventiveCareStatus, setPreventiveCareStatus] = useState("");
   const [exportingDoc, setExportingDoc] = useState("");
   const [exportStatus, setExportStatus] = useState("");
 
@@ -60,6 +65,182 @@ export default function CaseDetail() {
   };
 
   const doPrint = () => setTimeout(() => window.print(), 40);
+
+  // Preventive Care Reminder UI V1: in-app reminders only; sends_external_message=false.
+  const fetchPreventiveCareReminders = async () => {
+    if (!data?.id) return;
+
+    try {
+      setPreventiveCareLoading(true);
+      const res = await api.get("/api/preventive-care/reminders", {
+        params: {
+          case_id: Number(data.id),
+          page: 1,
+          page_size: 20,
+        },
+      });
+      const items = Array.isArray(res.data?.items) ? res.data.items : [];
+      setPreventiveCareReminders(items);
+      setPreventiveCareStatus(`已加载 ${items.length} 条站内提醒 · sends_external_message=false`);
+    } catch (e) {
+      console.error("Preventive care reminders load failed:", e);
+      setPreventiveCareStatus("预防保健提醒加载失败");
+    } finally {
+      setPreventiveCareLoading(false);
+    }
+  };
+
+  const runPreventiveCareDryRun = async () => {
+    if (!data?.id) return;
+
+    try {
+      setPreventiveCareBusy("dry-run");
+      setPreventiveCareStatus("正在计算疫苗/驱虫提醒预览…");
+
+      const res = await api.post("/api/preventive-care/dry-run", {
+        case_id: Number(data.id),
+        as_of_date: new Date().toISOString().slice(0, 10),
+        include_active: false,
+        pet: {
+          pet_name: derived.patientName !== "—" ? derived.patientName : undefined,
+          species: derived.species !== "—" ? derived.species : undefined,
+          life_stage: "adult",
+        },
+      });
+
+      const items = Array.isArray(res.data?.items) ? res.data.items : [];
+      setPreventiveCarePreview(items);
+      setPreventiveCareStatus(`已生成 ${items.length} 条预览 · writes_database=false · sends_external_message=false`);
+    } catch (e) {
+      console.error("Preventive care dry-run failed:", e);
+      const detail = e?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
+      setPreventiveCareStatus(`提醒预览失败：${msg}`);
+      alert(`提醒预览失败：${msg}`);
+    } finally {
+      setPreventiveCareBusy("");
+    }
+  };
+
+  const createPreventiveCareReminderFromPreview = async (item) => {
+    if (!data?.id || !item?.category) return;
+
+    try {
+      setPreventiveCareBusy(`create-${item.rule_id || item.category}`);
+      const body = {
+        case_id: Number(data.id),
+        category: item.category,
+        rule_id: item.rule_id || undefined,
+        source_rule_id: item.source_rule_id || item.rule_id || undefined,
+        status: item.status === "overdue" ? "overdue" : "active",
+        due_date: item.due_date ? `${item.due_date}T00:00:00Z` : undefined,
+        due_window_start: item.due_window_start ? `${item.due_window_start}T00:00:00Z` : undefined,
+        due_window_end: item.due_window_end ? `${item.due_window_end}T00:00:00Z` : undefined,
+        reminder_lead_days: item.reminder_lead_days,
+        note: `由 Preventive Care dry-run 创建：${item.category} / ${item.rule_id || ""}`,
+        metadata: {
+          source: "preventive-care-ui-v1",
+          dry_run_status: item.status,
+          reason: item.reason,
+          writes_case_database: false,
+          sends_external_message: false,
+        },
+      };
+
+      await api.post("/api/preventive-care/reminders", body);
+      setPreventiveCareStatus("已创建站内提醒 · sends_external_message=false");
+      await fetchPreventiveCareReminders();
+    } catch (e) {
+      console.error("Preventive care reminder create failed:", e);
+      alert("创建站内提醒失败：" + String(e?.message || e));
+    } finally {
+      setPreventiveCareBusy("");
+    }
+  };
+
+  const completePreventiveCareReminder = async (reminder) => {
+    try {
+      setPreventiveCareBusy(`complete-${reminder.reminder_id}`);
+      await api.post(`/api/preventive-care/reminders/${reminder.reminder_id}/complete`, {
+        event_type: reminder.category || "preventive_care_completed",
+        event_date: new Date().toISOString(),
+        clinician_id: "UI-OPERATOR",
+        note: "由病例详情页标记完成；不发送外部消息。",
+        metadata: {
+          source: "preventive-care-ui-v1",
+          sends_external_message: false,
+        },
+      });
+      setPreventiveCareStatus("提醒已完成");
+      await fetchPreventiveCareReminders();
+    } catch (e) {
+      console.error("Preventive care reminder complete failed:", e);
+      alert("完成提醒失败：" + String(e?.message || e));
+    } finally {
+      setPreventiveCareBusy("");
+    }
+  };
+
+  const snoozePreventiveCareReminder = async (reminder) => {
+    try {
+      setPreventiveCareBusy(`snooze-${reminder.reminder_id}`);
+      const due = new Date();
+      due.setDate(due.getDate() + 14);
+      await api.post(`/api/preventive-care/reminders/${reminder.reminder_id}/snooze`, {
+        due_date: due.toISOString(),
+        reason: "病例详情页手动延后14天",
+        note: "站内提醒延后；不发送外部消息。",
+      });
+      setPreventiveCareStatus("提醒已延后14天");
+      await fetchPreventiveCareReminders();
+    } catch (e) {
+      console.error("Preventive care reminder snooze failed:", e);
+      alert("延后提醒失败：" + String(e?.message || e));
+    } finally {
+      setPreventiveCareBusy("");
+    }
+  };
+
+  const dismissPreventiveCareReminder = async (reminder) => {
+    try {
+      setPreventiveCareBusy(`dismiss-${reminder.reminder_id}`);
+      await api.post(`/api/preventive-care/reminders/${reminder.reminder_id}/dismiss`, {
+        reason: "病例详情页手动关闭",
+        note: "关闭本次站内提醒；不发送外部消息。",
+      });
+      setPreventiveCareStatus("提醒已关闭");
+      await fetchPreventiveCareReminders();
+    } catch (e) {
+      console.error("Preventive care reminder dismiss failed:", e);
+      alert("关闭提醒失败：" + String(e?.message || e));
+    } finally {
+      setPreventiveCareBusy("");
+    }
+  };
+
+  const disablePreventiveCareReminder = async (reminder) => {
+    if (!confirm("确定禁用这条提醒？这会把该提醒标记为 client_opt_out。")) return;
+
+    try {
+      setPreventiveCareBusy(`disable-${reminder.reminder_id}`);
+      await api.post(`/api/preventive-care/reminders/${reminder.reminder_id}/disable`, {
+        reason: "客户暂不接收该提醒",
+        note: "禁用本条站内提醒；不发送外部消息。",
+      });
+      setPreventiveCareStatus("提醒已禁用 · client_opt_out=true");
+      await fetchPreventiveCareReminders();
+    } catch (e) {
+      console.error("Preventive care reminder disable failed:", e);
+      alert("禁用提醒失败：" + String(e?.message || e));
+    } finally {
+      setPreventiveCareBusy("");
+    }
+  };
+
+  useEffect(() => {
+    if (!data?.id) return;
+    fetchPreventiveCareReminders();
+  }, [data?.id]);
 
   // Clinical Docs Export UI V1: read-only DOCX download from Case detail.
   const exportClinicalDoc = async (templateId, label) => {
@@ -235,6 +416,23 @@ export default function CaseDetail() {
         />
       </Section>
 
+      <Section title="八、预防保健提醒 / Preventive Care">
+        <PreventiveCarePanel
+          reminders={preventiveCareReminders}
+          preview={preventiveCarePreview}
+          loading={preventiveCareLoading}
+          busy={preventiveCareBusy}
+          status={preventiveCareStatus}
+          onRefresh={fetchPreventiveCareReminders}
+          onDryRun={runPreventiveCareDryRun}
+          onCreateFromPreview={createPreventiveCareReminderFromPreview}
+          onComplete={completePreventiveCareReminder}
+          onSnooze={snoozePreventiveCareReminder}
+          onDismiss={dismissPreventiveCareReminder}
+          onDisable={disablePreventiveCareReminder}
+        />
+      </Section>
+
       <Section title="二、主诉">
         <TextCard>{data.chief_complaint}</TextCard>
       </Section>
@@ -353,6 +551,105 @@ function DynamicHistory({ value }) {
   );
 }
 
+function PreventiveCarePanel({
+  reminders,
+  preview,
+  loading,
+  busy,
+  status,
+  onRefresh,
+  onDryRun,
+  onCreateFromPreview,
+  onComplete,
+  onSnooze,
+  onDismiss,
+  onDisable,
+}) {
+  const actionablePreview = Array.isArray(preview) ? preview.slice(0, 8) : [];
+  const reminderItems = Array.isArray(reminders) ? reminders : [];
+
+  return (
+    <div className="preventive-care-panel">
+      <div className="preventive-care-actions screen-only">
+        <button type="button" style={btnSecondary} onClick={onRefresh} disabled={loading || Boolean(busy)}>
+          {loading ? "加载中…" : "刷新站内提醒"}
+        </button>
+        <button type="button" style={btnDoc} onClick={onDryRun} disabled={Boolean(busy)}>
+          {busy === "dry-run" ? "计算中…" : "生成疫苗/驱虫提醒预览"}
+        </button>
+      </div>
+
+      <div className="preventive-care-status">
+        {status || "站内提醒功能仅用于预防保健复核，不发送短信/微信/邮件。sends_external_message=false"}
+      </div>
+
+      {actionablePreview.length > 0 && (
+        <div className="preventive-care-subblock">
+          <div className="preventive-care-subtitle">Dry-run 预览 / Reminder Preview</div>
+          <div className="preventive-care-list">
+            {actionablePreview.map((item) => (
+              <div className="preventive-care-item" key={`${item.rule_id}-${item.due_date}`}>
+                <div>
+                  <div className="preventive-care-title">
+                    {formatPreventiveCategory(item.category)} · {formatPreventiveStatus(item.status)}
+                  </div>
+                  <div className="preventive-care-meta">
+                    到期：{item.due_date || "—"}　规则：{item.rule_id || "—"}　原因：{item.reason || "—"}
+                  </div>
+                  <div className="preventive-care-safe">
+                    writes_database=false · sends_external_message=false · clinician confirmation required
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="screen-only"
+                  style={btnSmall}
+                  disabled={Boolean(busy)}
+                  onClick={() => onCreateFromPreview(item)}
+                >
+                  创建站内提醒
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="preventive-care-subblock">
+        <div className="preventive-care-subtitle">已建站内提醒 / Existing In-app Reminders</div>
+        {reminderItems.length === 0 ? (
+          <div className="preventive-care-empty">暂无站内提醒。可先生成 dry-run 预览，再创建提醒。</div>
+        ) : (
+          <div className="preventive-care-list">
+            {reminderItems.map((item) => (
+              <div className="preventive-care-item" key={item.reminder_id}>
+                <div>
+                  <div className="preventive-care-title">
+                    {formatPreventiveCategory(item.category)} · {formatPreventiveStatus(item.status)}
+                  </div>
+                  <div className="preventive-care-meta">
+                    到期：{formatDateOnly(item.due_date)}　宠物：{item.pet_name || "—"}　ID：{item.reminder_id}
+                  </div>
+                  <div className="preventive-care-safe">
+                    sends_external_message=false · creates_case=false · updates_case=false
+                  </div>
+                </div>
+                <div className="preventive-care-row-actions screen-only">
+                  <button type="button" style={btnTiny} disabled={Boolean(busy)} onClick={() => onComplete(item)}>完成</button>
+                  <button type="button" style={btnTiny} disabled={Boolean(busy)} onClick={() => onSnooze(item)}>延后14天</button>
+                  <button type="button" style={btnTiny} disabled={Boolean(busy)} onClick={() => onDismiss(item)}>关闭</button>
+                  <button type="button" style={btnTinyDanger} disabled={Boolean(busy)} onClick={() => onDisable(item)}>禁用提醒</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
 /* ===== 工具函数 ===== */
 function safeText(v) { return v ? String(v) : "—"; }
 
@@ -391,6 +688,43 @@ function isDynamicConsultCase(data) {
     .join("\n");
   return /动态问诊|原始会话|风险等级|后续追问/.test(combined);
 }
+
+function formatDateOnly(value) {
+  if (!value) return "—";
+  return String(value).slice(0, 10);
+}
+
+function formatPreventiveCategory(value) {
+  const map = {
+    canine_core_vaccine: "犬核心疫苗",
+    canine_rabies: "犬狂犬疫苗",
+    feline_core_vaccine: "猫核心疫苗",
+    feline_rabies: "猫狂犬疫苗",
+    internal_deworming: "体内驱虫",
+    external_parasite_prevention: "体外寄生虫预防",
+    fecal_exam: "粪检",
+    annual_preventive_exam: "年度体检",
+    heartworm_test_placeholder: "心丝虫检测",
+  };
+  return map[value] || value || "预防保健";
+}
+
+function formatPreventiveStatus(value) {
+  const map = {
+    active: "未到期",
+    due_soon: "即将到期",
+    due: "已到期",
+    overdue: "逾期",
+    completed: "已完成",
+    snoozed: "已延后",
+    dismissed: "已关闭",
+    disabled: "已禁用",
+    opted_out: "已退订",
+    draft: "草稿",
+  };
+  return map[value] || value || "未记录";
+}
+
 
 function parseDynamicHistory(value) {
   const lines = String(value || "").split(/\r?\n/);
@@ -452,6 +786,9 @@ const btnPrimary = { ...btn, border: "1px solid #0ea5e9", background: "#0ea5e9",
 const btnSecondary = { ...btn, border: "1px solid #111", background: "#fff" };
 const btnDoc = { ...btn, border: "1px solid #0f3b2e", background: "#0f3b2e", color: "#fff" };
 const btnDanger = { ...btn, border: "1px solid #ef4444", background: "#ef4444", color: "#fff" };
+const btnSmall = { ...btn, padding: "6px 10px", fontSize: 12, border: "1px solid #0f3b2e", color: "#0f3b2e", background: "#fff" };
+const btnTiny = { ...btn, padding: "5px 8px", fontSize: 12 };
+const btnTinyDanger = { ...btnTiny, border: "1px solid #ef4444", background: "#fff", color: "#b91c1c" };
 
 /* ===== 打印友好样式 ===== */
 const css = `
@@ -524,6 +861,76 @@ const css = `
     margin: 10px 0;
     font-size: 13px;
     font-weight: 700;
+  }
+
+  .preventive-care-panel {
+    display: grid;
+    gap: 12px;
+  }
+  .preventive-care-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .preventive-care-status {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .preventive-care-subblock {
+    display: grid;
+    gap: 8px;
+  }
+  .preventive-care-subtitle {
+    font-size: 14px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .preventive-care-list {
+    display: grid;
+    gap: 8px;
+  }
+  .preventive-care-item {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .preventive-care-title {
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .preventive-care-meta {
+    font-size: 12px;
+    color: #475569;
+    word-break: break-word;
+  }
+  .preventive-care-safe {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #166534;
+  }
+  .preventive-care-empty {
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: #64748b;
+    background: #fff;
+  }
+  .preventive-care-row-actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
   }
 
   .notice {
