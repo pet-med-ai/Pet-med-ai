@@ -1,0 +1,83 @@
+{
+  "version": "preventive-care-reminder-spec-v1",
+  "stage": "spec_only",
+  "safety": {
+    "writes_database": false,
+    "creates_case": false,
+    "updates_case": false,
+    "sends_external_message": false,
+    "executes_real_import": false
+  },
+  "future_entities": {
+    "preventive_care_reminders": {
+      "purpose": "store one planned reminder",
+      "fields": {
+        "reminder_id": "string uuid",
+        "owner_id": "integer",
+        "case_id": "integer nullable",
+        "pet_id": "future nullable",
+        "pet_name": "string",
+        "species": "dog | cat | other",
+        "category": "string enum",
+        "rule_id": "string",
+        "due_date": "date",
+        "due_window_start": "date",
+        "due_window_end": "date",
+        "status": "draft | active | due_soon | due | overdue | completed | snoozed | dismissed | disabled | opted_out",
+        "last_completed_at": "datetime nullable",
+        "completed_by": "string nullable",
+        "clinician_override": "boolean",
+        "override_reason": "string nullable",
+        "client_opt_out": "boolean",
+        "created_at": "datetime",
+        "updated_at": "datetime"
+      }
+    },
+    "preventive_care_events": {
+      "purpose": "record actual vaccine/deworming/preventive events",
+      "fields": {
+        "event_id": "string uuid",
+        "reminder_id": "string nullable",
+        "owner_id": "integer",
+        "case_id": "integer nullable",
+        "pet_id": "future nullable",
+        "event_type": "vaccine | deworming | parasite_prevention | fecal_exam | wellness_exam",
+        "event_date": "date",
+        "product_name": "string nullable",
+        "lot_number": "string nullable",
+        "next_due_date": "date nullable",
+        "clinician_id": "string",
+        "note": "string nullable"
+      }
+    },
+    "preventive_care_client_preferences": {
+      "purpose": "store consent and communication preferences before external messaging",
+      "fields": {
+        "owner_id": "integer",
+        "allow_in_app": "boolean",
+        "allow_sms": "boolean",
+        "allow_wechat": "boolean",
+        "allow_email": "boolean",
+        "opt_out_all": "boolean",
+        "preferred_channel": "in_app | sms | wechat | email | phone_call",
+        "updated_at": "datetime"
+      }
+    }
+  },
+  "default_status_values": [
+    "draft",
+    "active",
+    "due_soon",
+    "due",
+    "overdue",
+    "completed",
+    "snoozed",
+    "dismissed",
+    "disabled",
+    "opted_out"
+  ],
+  "first_supported_species": [
+    "dog",
+    "cat"
+  ]
+}

@@ -132,6 +132,9 @@ pass "clinical docs export UI online verification validation"
 python3 scripts/validate_clinical_docs_pdf_conversion_design.py >/dev/null || fail "clinical docs PDF conversion design validation failed"
 pass "clinical docs PDF conversion design validation"
 
+python3 scripts/validate_preventive_care_reminder_spec.py >/dev/null || fail "preventive care reminder spec validation failed"
+pass "preventive care reminder spec validation"
+
 python3 scripts/validate_emr_import_pilot0_final_go_no_go.py >/dev/null || fail "emr real import pilot0 final go no-go validation failed"
 pass "emr real import pilot0 final go no-go validation"
 

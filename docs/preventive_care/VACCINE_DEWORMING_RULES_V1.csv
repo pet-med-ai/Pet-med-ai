@@ -1,0 +1,16 @@
+rule_id,species,life_stage,category,trigger_basis,interval_days,due_window_days,lead_days,requires_clinician_confirmation,requires_client_consent,allow_auto_send,recommended_stage,source_note,notes
+canine_core_vaccine_review_adult,dog,adult,canine_core_vaccine,last_core_vaccine_date,365,30,30,yes,no,no,spec_v1,AAHA core/noncore individualized plan,Clinic may use product label 1-year or 3-year intervals
+canine_rabies_local_law_review,dog,all,canine_rabies,last_rabies_vaccine_date,365,30,30,yes,no,no,spec_v1,Local law and product label,Rabies interval must be configured by jurisdiction
+canine_leptospirosis_review,dog,all,canine_leptospirosis,last_lepto_vaccine_date,365,30,30,yes,no,no,spec_v1,AAHA 2024 core update,Annual reminder placeholder; clinician confirms
+canine_lifestyle_vaccine_review,dog,all,canine_noncore_lifestyle_vaccine,last_lifestyle_vaccine_date,365,30,30,yes,no,no,spec_v1,Lifestyle risk assessment,Bordetella influenza Lyme etc only by risk
+feline_core_vaccine_review_adult,cat,adult,feline_core_vaccine,last_core_vaccine_date,365,30,30,yes,no,no,spec_v1,AAHA/AAFP individualized plan,Interval depends vaccine type label and risk
+feline_rabies_local_law_review,cat,all,feline_rabies,last_rabies_vaccine_date,365,30,30,yes,no,no,spec_v1,Local law and product label,Rabies interval must be configured by jurisdiction
+feline_felv_risk_review,cat,kitten_or_at_risk,feline_felv_risk_based,last_felv_vaccine_date,365,30,30,yes,no,no,spec_v1,Risk based feline vaccination,Clinic confirms based on age exposure and local practice
+puppy_kitten_deworming_early,dog_cat,juvenile,internal_deworming,age_or_last_deworming_date,14,7,3,yes,no,no,spec_v1,CAPC early puppy kitten anthelmintic guidance,Starting at 2 weeks repeated q2w until broad-spectrum control begins
+adult_deworming_quarterly_if_no_broad_control,dog_cat,adult,internal_deworming,last_deworming_date,90,14,14,yes,no,no,spec_v1,CAPC fallback if year-round broad-spectrum not maintained,Quarterly placeholder; risk assessment required
+monthly_broad_spectrum_parasite_control,dog_cat,all,external_parasite_prevention,last_preventive_date,30,7,7,yes,no,no,spec_v1,CAPC year-round broad-spectrum parasite control,Product-specific and region-specific
+fecal_exam_juvenile,dog_cat,juvenile,fecal_exam,last_fecal_exam_date,90,14,14,yes,no,no,spec_v1,CAPC fecal exam first year,At least four times in first year placeholder
+fecal_exam_adult,dog_cat,adult,fecal_exam,last_fecal_exam_date,180,30,30,yes,no,no,spec_v1,CAPC adult fecal testing baseline,At least twice yearly adjusted by risk
+heartworm_test_dog_annual,dog,adult,heartworm_test_placeholder,last_heartworm_test_date,365,30,30,yes,no,no,spec_v1,CAPC annual dog heartworm testing,Region-specific; future integration
+annual_wellness_exam,dog_cat,adult,annual_preventive_exam,last_preventive_exam_date,365,30,30,yes,no,no,spec_v1,preventive care baseline,General wellness reminder
+senior_semiannual_exam,dog_cat,senior,annual_preventive_exam,last_preventive_exam_date,180,30,30,yes,no,no,spec_v1,clinic policy placeholder,Clinic defines senior threshold
