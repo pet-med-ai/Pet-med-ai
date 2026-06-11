@@ -1,0 +1,6 @@
+engine,where,output_quality,ops_complexity,render_compatibility,concurrency_risk,recommended_for_v1,notes
+LibreOffice headless,in backend container,high,medium,depends on image/package availability,medium,conditional,Preferred if Render image supports stable soffice
+LibreOffice worker,separate worker service,high,high,high if custom image supported,low,yes for production hardening,Best isolation but more infra
+Browser print to PDF,frontend/manual,medium,low,high,low,no,Useful as fallback but not standardized export
+ReportLab direct PDF,backend python,medium-high,medium,high,low,no for Word templates,Good for programmatic forms but duplicates DOCX template work
+Cloud conversion API,external service,high,medium,depends on vendor,low,no for V1,Adds data privacy/vendor risk

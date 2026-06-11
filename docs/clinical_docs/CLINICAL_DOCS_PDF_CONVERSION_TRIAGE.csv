@@ -1,0 +1,8 @@
+issue_id,severity,area,symptom,likely_cause,first_action,owner,status,notes
+PDF-NO-SOFFICE,P1,render,soffice command not found,LibreOffice not installed,keep DOCX-only and evaluate worker,developer,open,
+PDF-CJK-MISSING,P1,font,Chinese text missing or boxes,missing CJK fonts,add approved Noto CJK package,developer,open,
+PDF-TIMEOUT,P1,conversion,conversion timeout,large doc or soffice hung,enforce timeout and retry manually,developer,open,
+PDF-CORRUPT,P1,output,PDF cannot open,conversion failed,pause PDF release and preserve temp files,developer,open,
+PDF-PLACEHOLDER,P1,template,PDF contains {{placeholder}},context mapping missing,fix DOCX/API mapping before PDF,developer,open,
+PDF-SECRET,P0,security,secret appears in PDF/log,context/log leak,rotate secret and stop release,security_owner,open,
+PDF-LAYOUT,P2,layout,page break or table broken,LibreOffice rendering difference,adjust DOCX template and re-render,clinical_docs_owner,open,
