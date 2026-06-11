@@ -141,6 +141,9 @@ pass "preventive care reminder data model validation"
 python3 scripts/validate_preventive_care_rule_engine_dry_run.py >/dev/null || fail "preventive care reminder rule engine dry-run validation failed"
 pass "preventive care reminder rule engine dry-run validation"
 
+python3 scripts/validate_preventive_care_reminder_api.py >/dev/null || fail "preventive care reminder API validation failed"
+pass "preventive care reminder API validation"
+
 python3 scripts/validate_emr_import_pilot0_final_go_no_go.py >/dev/null || fail "emr real import pilot0 final go no-go validation failed"
 pass "emr real import pilot0 final go no-go validation"
 
@@ -1258,6 +1261,153 @@ http_json GET "/api/ai/consult/sessions?page=1&page_size=20&saved=all" "" "$toke
 expect_status 200 "history list user B"
 json_assert_not_contains_session "$RESPONSE_BODY" "$session_id" >/dev/null || fail "user B history：看到了 user A session"
 pass "user B cannot see user A session"
+
+# Preventive Care Reminder API V1: in-app reminders only, no external messages.
+http_json GET "/api/preventive-care/rules" "" "$token_a"
+expect_status 200 "preventive care rules"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_rules" >/dev/null || fail "preventive care rules：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "items" "internal_deworming" >/dev/null || fail "preventive care rules：缺少驱虫规则"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care rules：不应外发消息"
+
+preventive_dry_run_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "as_of_date": "2026-06-11",
+    "include_active": True,
+    "pet": {
+        "pet_name": "Smoke乐乐",
+        "species": "dog",
+        "life_stage": "adult",
+        "last_core_vaccine_date": "2025-06-01",
+        "last_rabies_vaccine_date": "2025-06-01",
+        "last_deworming_date": "2026-02-01",
+        "last_external_parasite_prevention_date": "2026-05-20",
+        "last_fecal_exam_date": "2025-12-01",
+        "last_preventive_exam_date": "2025-06-01"
+    }
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/preventive-care/dry-run" "$preventive_dry_run_body" "$token_a"
+expect_status 200 "preventive care dry-run"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_rule_engine_dry_run" >/dev/null || fail "preventive care dry-run：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "summary.total" "1" >/dev/null || fail "preventive care dry-run：应返回提醒预览"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "preventive care dry-run：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care dry-run：不应外发消息"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "preventive care dry-run：不应创建病例"
+
+preventive_create_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "category": "internal_deworming",
+    "rule_id": "adult_deworming_quarterly_if_no_broad_control",
+    "source_rule_id": "adult_deworming_quarterly_if_no_broad_control",
+    "status": "active",
+    "due_date": "2026-06-20T00:00:00Z",
+    "due_window_start": "2026-06-10T00:00:00Z",
+    "due_window_end": "2026-07-04T00:00:00Z",
+    "reminder_lead_days": 10,
+    "note": "Smoke in-app preventive care reminder only.",
+    "metadata": {"test": "preventive-care-reminder-api-v1"}
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/preventive-care/reminders" "$preventive_create_body" "$token_a"
+expect_status 201 "preventive care reminder create"
+preventive_reminder_id="$(json_get "$RESPONSE_BODY" "reminder.reminder_id")"
+[[ -n "$preventive_reminder_id" ]] || fail "preventive care reminder create：没有 reminder_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_reminder_created" >/dev/null || fail "preventive care reminder create：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "True" >/dev/null || fail "preventive care reminder create：应写提醒表"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "preventive care reminder create：不应创建病例"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care reminder create：不应外发消息"
+
+http_json GET "/api/preventive-care/reminders?page=1&page_size=10&category=internal_deworming" "" "$token_a"
+expect_status 200 "preventive care reminder list"
+json_assert_text_contains "$RESPONSE_BODY" "items" "$preventive_reminder_id" >/dev/null || fail "preventive care reminder list：没有找到新提醒"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "preventive care reminder list：不应写数据库"
+
+preventive_complete_body="$(python3 <<'PY'
+import json
+body = {
+    "event_type": "internal_deworming",
+    "event_date": "2026-06-11T00:00:00Z",
+    "product_name": "Smoke Deworming Product",
+    "next_due_date": "2026-09-11T00:00:00Z",
+    "clinician_id": "HS-SMOKE",
+    "note": "Smoke complete reminder only.",
+    "metadata": {"test": "preventive-care-complete"}
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/preventive-care/reminders/${preventive_reminder_id}/complete" "$preventive_complete_body" "$token_a"
+expect_status 200 "preventive care reminder complete"
+preventive_event_id="$(json_get "$RESPONSE_BODY" "event.event_id")"
+[[ -n "$preventive_event_id" ]] || fail "preventive care reminder complete：没有 event_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_reminder_completed" >/dev/null || fail "preventive care reminder complete：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "reminder.status" "completed" >/dev/null || fail "preventive care reminder complete：status 未 completed"
+json_assert_text_contains "$RESPONSE_BODY" "writes_preventive_care_events" "True" >/dev/null || fail "preventive care reminder complete：应写 event"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care reminder complete：不应外发消息"
+
+preventive_create_body_2="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "category": "annual_preventive_exam",
+    "status": "active",
+    "due_date": "2026-07-01T00:00:00Z",
+    "note": "Smoke second reminder for action tests."
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/preventive-care/reminders" "$preventive_create_body_2" "$token_a"
+expect_status 201 "preventive care reminder create second"
+preventive_reminder_id_2="$(json_get "$RESPONSE_BODY" "reminder.reminder_id")"
+[[ -n "$preventive_reminder_id_2" ]] || fail "preventive care second reminder：没有 reminder_id"
+
+http_json POST "/api/preventive-care/reminders/${preventive_reminder_id_2}/snooze" '{"due_date":"2026-07-15T00:00:00Z","reason":"前台电话确认延期","note":"Smoke snooze only."}' "$token_a"
+expect_status 200 "preventive care reminder snooze"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_reminder_snoozed" >/dev/null || fail "preventive care reminder snooze：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "reminder.status" "snoozed" >/dev/null || fail "preventive care reminder snooze：status 未 snoozed"
+
+http_json POST "/api/preventive-care/reminders/${preventive_reminder_id_2}/dismiss" '{"reason":"重复提醒","note":"Smoke dismiss only."}' "$token_a"
+expect_status 200 "preventive care reminder dismiss"
+json_assert_text_contains "$RESPONSE_BODY" "reminder.status" "dismissed" >/dev/null || fail "preventive care reminder dismiss：status 未 dismissed"
+
+http_json POST "/api/preventive-care/reminders/${preventive_reminder_id_2}/disable" '{"reason":"客户暂不接收","note":"Smoke disable only."}' "$token_a"
+expect_status 200 "preventive care reminder disable"
+json_assert_text_contains "$RESPONSE_BODY" "reminder.status" "disabled" >/dev/null || fail "preventive care reminder disable：status 未 disabled"
+json_assert_text_contains "$RESPONSE_BODY" "reminder.client_opt_out" "True" >/dev/null || fail "preventive care reminder disable：client_opt_out 未 true"
+
+http_json GET "/api/preventive-care/client-preferences" "" "$token_a"
+expect_status 200 "preventive care client preferences read"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care preferences read：不应外发消息"
+
+http_json PUT "/api/preventive-care/client-preferences" '{"allow_in_app":true,"allow_sms":false,"allow_wechat":false,"allow_email":false,"opt_out_all":true,"preferred_channel":"in_app","updated_by":"HS-SMOKE","note":"Smoke opt-out preference."}' "$token_a"
+expect_status 200 "preventive care client preferences save"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_client_preferences_saved" >/dev/null || fail "preventive care preferences save：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "preferences.opt_out_all" "True" >/dev/null || fail "preventive care preferences save：opt_out_all 未 true"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care preferences save：不应外发消息"
+
+http_json GET "/api/preventive-care/reminders" "" "$token_b"
+expect_status 200 "preventive care user B reminder list"
+json_assert_text_contains "$RESPONSE_BODY" "items" "[]" >/dev/null || fail "preventive care user B：不应看到 user A reminders"
+
+http_json POST "/api/preventive-care/reminders/${preventive_reminder_id}/complete" "$preventive_complete_body" "$token_b"
+expect_status 404 "preventive care user B cannot complete user A reminder"
+pass "preventive care reminder API checks"
+
 
 http_json GET "/api/ai/consult/session/${session_id}" "" "$token_b"
 expect_status 404 "user B cannot read user A session"

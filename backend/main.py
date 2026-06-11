@@ -1375,6 +1375,11 @@ try:
 except ModuleNotFoundError:
     from clinical_docs_api import router as clinical_docs_api_router
 
+try:
+    from backend.preventive_care_api import router as preventive_care_api_router
+except ModuleNotFoundError:
+    from preventive_care_api import router as preventive_care_api_router
+
 # 将 /api 路由挂载到应用
 app.include_router(api)
 app.include_router(system_info_router)
@@ -1385,6 +1390,7 @@ app.include_router(emr_webhook_router)
 app.include_router(webhook_inbox_api_router)
 app.include_router(emr_import_batch_api_router)
 app.include_router(clinical_docs_api_router)
+app.include_router(preventive_care_api_router)
 app.include_router(legacy_import_mock_router)
 
 # 本地调试
