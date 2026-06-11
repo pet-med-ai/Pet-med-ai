@@ -144,6 +144,9 @@ pass "preventive care reminder rule engine dry-run validation"
 python3 scripts/validate_preventive_care_reminder_api.py >/dev/null || fail "preventive care reminder API validation failed"
 pass "preventive care reminder API validation"
 
+python3 scripts/validate_preventive_care_notification_queue.py >/dev/null || fail "preventive care notification queue validation failed"
+pass "preventive care notification queue validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
@@ -1410,6 +1413,92 @@ json_assert_text_contains "$RESPONSE_BODY" "items" "[]" >/dev/null || fail "prev
 http_json POST "/api/preventive-care/reminders/${preventive_reminder_id}/complete" "$preventive_complete_body" "$token_b"
 expect_status 404 "preventive care user B cannot complete user A reminder"
 pass "preventive care reminder API checks"
+
+# Preventive Care Reminder Notification Queue V1: manual front-desk queue only, no external send.
+preventive_queue_reminder_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "category": "external_parasite_prevention",
+    "rule_id": "monthly_broad_spectrum_parasite_control",
+    "source_rule_id": "monthly_broad_spectrum_parasite_control",
+    "status": "active",
+    "due_date": "2026-07-11T00:00:00Z",
+    "note": "Smoke notification queue reminder."
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/preventive-care/reminders" "$preventive_queue_reminder_body" "$token_a"
+expect_status 201 "preventive care queue reminder create"
+preventive_queue_reminder_id="$(json_get "$RESPONSE_BODY" "reminder.reminder_id")"
+[[ -n "$preventive_queue_reminder_id" ]] || fail "preventive care queue reminder create：没有 reminder_id"
+
+preventive_queue_draft_body="$(python3 - "$preventive_queue_reminder_id" <<'PY'
+import json
+import sys
+reminder_id = sys.argv[1]
+body = {
+    "reminder_id": reminder_id,
+    "channel": "phone_call",
+    "scheduled_for": "2026-07-01T09:00:00Z",
+    "message_preview": "【预防保健提醒】Smoke乐乐 需要复核体外驱虫计划。请前台人工电话确认。",
+    "reviewed_by": "HS-SMOKE",
+    "note": "Smoke draft queue item only.",
+    "metadata": {"test": "preventive-care-notification-queue-v1"}
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/preventive-care/notification-queue/draft" "$preventive_queue_draft_body" "$token_a"
+expect_status 201 "preventive care notification queue draft"
+preventive_notification_id="$(json_get "$RESPONSE_BODY" "notification.notification_id")"
+[[ -n "$preventive_notification_id" ]] || fail "preventive care notification queue draft：没有 notification_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_notification_draft_created" >/dev/null || fail "preventive care notification queue draft：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "manual_review_required" "True" >/dev/null || fail "preventive care notification queue draft：必须人工审核"
+json_assert_text_contains "$RESPONSE_BODY" "auto_send" "False" >/dev/null || fail "preventive care notification queue draft：不应自动发送"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care notification queue draft：不应外发消息"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "preventive care notification queue draft：不应创建病例"
+
+http_json GET "/api/preventive-care/notification-queue?page=1&page_size=10" "" "$token_a"
+expect_status 200 "preventive care notification queue list"
+json_assert_text_contains "$RESPONSE_BODY" "items" "$preventive_notification_id" >/dev/null || fail "preventive care notification queue list：没有找到 draft"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "preventive care notification queue list：不应写数据库"
+
+http_json POST "/api/preventive-care/notification-queue/${preventive_notification_id}/review" '{"action":"approve_for_manual_contact","reviewed_by":"HS-SMOKE","note":"Smoke manual review only."}' "$token_a"
+expect_status 200 "preventive care notification queue review"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_notification_reviewed" >/dev/null || fail "preventive care notification queue review：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "notification.status" "reviewed" >/dev/null || fail "preventive care notification queue review：status 未 reviewed"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care notification queue review：不应外发消息"
+
+http_json POST "/api/preventive-care/notification-queue/${preventive_notification_id}/mark-contacted" '{"contacted_by":"HS-SMOKE","contact_result":"manual_phone_call_completed","note":"Smoke manually contacted marker only."}' "$token_a"
+expect_status 200 "preventive care notification queue mark contacted"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_notification_marked_contacted" >/dev/null || fail "preventive care notification queue contacted：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "notification.status" "contacted_manually" >/dev/null || fail "preventive care notification queue contacted：status 未 contacted_manually"
+json_assert_text_contains "$RESPONSE_BODY" "manual_contact_only" "True" >/dev/null || fail "preventive care notification queue contacted：应为人工联系"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care notification queue contacted：系统不应外发消息"
+
+http_json POST "/api/preventive-care/notification-queue/draft" "$preventive_queue_draft_body" "$token_a"
+expect_status 201 "preventive care notification queue draft for cancel"
+preventive_notification_cancel_id="$(json_get "$RESPONSE_BODY" "notification.notification_id")"
+[[ -n "$preventive_notification_cancel_id" ]] || fail "preventive care notification queue cancel draft：没有 notification_id"
+
+http_json POST "/api/preventive-care/notification-queue/${preventive_notification_cancel_id}/cancel" '{"canceled_by":"HS-SMOKE","reason":"Smoke cancel queue item","note":"No external message sent."}' "$token_a"
+expect_status 200 "preventive care notification queue cancel"
+json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_notification_canceled" >/dev/null || fail "preventive care notification queue cancel：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "notification.status" "canceled" >/dev/null || fail "preventive care notification queue cancel：status 未 canceled"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care notification queue cancel：不应外发消息"
+
+http_json GET "/api/preventive-care/notification-queue" "" "$token_b"
+expect_status 200 "preventive care notification queue user B list"
+json_assert_text_contains "$RESPONSE_BODY" "items" "[]" >/dev/null || fail "preventive care notification queue user B：不应看到 user A 队列"
+
+http_json POST "/api/preventive-care/notification-queue/${preventive_notification_id}/review" '{"action":"approve_for_manual_contact","reviewed_by":"HS-SMOKE-B"}' "$token_b"
+expect_status 404 "preventive care notification queue user B cannot review user A item"
+pass "preventive care notification queue checks"
+
 
 
 http_json GET "/api/ai/consult/session/${session_id}" "" "$token_b"
