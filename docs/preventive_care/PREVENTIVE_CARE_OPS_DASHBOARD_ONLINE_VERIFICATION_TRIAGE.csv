@@ -1,0 +1,9 @@
+issue_id,date,severity,area,symptom,likely_cause,first_action,owner,status,notes
+PCOPS-401,2026-06-11,P2,auth,summary endpoint returns 401,expired or missing token,clear token and login again,operator,open,
+PCOPS-500,2026-06-11,P1,backend,summary endpoint returns 500,migration or backend deploy mismatch,check Render logs and /api/system/version,developer,open,
+PCOPS-SECTION-MISSING,2026-06-11,P1,frontend,Preventive Ops section missing,frontend deploy stale or patch not deployed,check frontend build and Render deploy,developer,open,
+PCOPS-SCHEMA,2026-06-11,P1,database,database_revision not 0007_preventive_care,migration not applied or wrong DB,run migration verification before release,operator,open,
+PCOPS-WRITE,2026-06-11,P0,safety,ops summary writes database,read-only regression,stop release and inspect API,developer,open,
+PCOPS-EXTMSG,2026-06-11,P0,safety,ops summary sends external message,unexpected automation leak,stop release and disable credentials,security_owner,open,
+PCOPS-MANUAL-REVIEW,2026-06-11,P1,safety,manual_review_required false,safety marker regression,pause release and fix API/UI,developer,open,
+PCOPS-SECRET,2026-06-11,P0,security,secret appears in console/log,logging leak,rotate secret and stop release,security_owner,open,

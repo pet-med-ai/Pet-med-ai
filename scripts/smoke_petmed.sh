@@ -159,6 +159,9 @@ pass "preventive care reminder release record validation"
 python3 scripts/validate_preventive_care_ops_dashboard.py >/dev/null || fail "preventive care reminder ops dashboard validation failed"
 pass "preventive care reminder ops dashboard validation"
 
+python3 scripts/validate_preventive_care_ops_dashboard_online_verification.py >/dev/null || fail "preventive care ops dashboard online verification validation failed"
+pass "preventive care ops dashboard online verification validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
