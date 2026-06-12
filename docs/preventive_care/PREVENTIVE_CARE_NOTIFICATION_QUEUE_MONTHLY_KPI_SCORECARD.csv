@@ -1,0 +1,13 @@
+metric,green,amber,red,owner,monthly_action
+online_smoke_pass_rate,100%,75-99%,<75%,developer,investigate failed smoke before expanding
+weekly_ops_completion_rate,>=75%,50-74%,<50%,front_desk_owner,assign accountable owner and missed-week reason
+external_message_sent_count,0,n/a,>0,security_owner,P0 stop and investigate
+opt_out_incident_count,0,n/a,>0,clinical_ops_owner,P0 pause contact queue and review opt-out process
+secret_leak_count,0,n/a,>0,security_owner,P0 rotate secrets and stop release
+case_mutation_incident_count,0,n/a,>0,developer,P0 inspect API side effects
+emr_import_incident_count,0,n/a,>0,release_owner,P0 stop EMR operations
+total_overdue,0,1-10,>10,clinical_ops_owner,prioritize overdue reminders
+total_queue_needs_review,0,1-20,>20,front_desk_owner,clear review backlog
+total_blocked_opt_out,0,1-10,>10,clinical_ops_owner,review consent communication
+queue_backlog_trend,decreasing,flat,increasing,front_desk_owner,adjust staffing or cadence
+sample_review_completion,>=10 items,5-9 items,<5 items,clinical_ops_owner,increase monthly sampling

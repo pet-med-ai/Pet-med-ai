@@ -165,6 +165,9 @@ pass "preventive care ops dashboard online verification validation"
 python3 scripts/validate_preventive_care_weekly_ops_runbook.py >/dev/null || fail "preventive care weekly ops runbook validation failed"
 pass "preventive care weekly ops runbook validation"
 
+python3 scripts/validate_preventive_care_notification_queue_monthly_review.py >/dev/null || fail "preventive care notification queue monthly review validation failed"
+pass "preventive care notification queue monthly review validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 

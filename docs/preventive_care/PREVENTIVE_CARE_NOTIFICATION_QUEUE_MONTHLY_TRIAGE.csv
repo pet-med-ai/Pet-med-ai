@@ -1,0 +1,11 @@
+issue_id,severity,area,symptom,likely_cause,first_action,owner,status,notes
+PC-MONTH-SMOKE,P1,preflight,online smoke pass rate below 100,backend/frontend/API instability,review smoke failures and pause expansion,developer,open,
+PC-MONTH-WEEKLY,P2,ops,weekly ops completion rate low,process ownership issue,assign owner and missed-week reason,front_desk_owner,open,
+PC-MONTH-BACKLOG,P2,ops,queue backlog increasing,front desk capacity or unclear workflow,increase review cadence or clarify process,front_desk_owner,open,
+PC-MONTH-OVERDUE,P2,clinical,overdue reminders increasing,clinical follow-up backlog,prioritize overdue list,clinical_ops_owner,open,
+PC-MONTH-EXTMSG,P0,safety,external message sent unexpectedly,automation leak or credential misuse,stop release and disable notification credentials,security_owner,open,
+PC-MONTH-OPTOUT,P0,compliance,opt-out bypassed,manual process failure or UI/API bug,pause queue and review opt-out evidence,clinical_ops_owner,open,
+PC-MONTH-SECRET,P0,security,secret appears in console/logs,logging leak,rotate secret and stop release,security_owner,open,
+PC-MONTH-CASE,P0,safety,Case created or updated unexpectedly,API side effect regression,stop release and inspect backend,developer,open,
+PC-MONTH-EMR,P0,safety,EMR import executed unexpectedly,feature flag or route misuse,stop release and inspect import controls,release_owner,open,
+PC-MONTH-SCHEMA,P1,database,schema mismatch,migration drift,verify Alembic and /api/system/version,operator,open,
