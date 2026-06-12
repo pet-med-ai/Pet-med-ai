@@ -171,6 +171,9 @@ pass "preventive care notification queue monthly review validation"
 python3 scripts/validate_automated_reminder_delivery_risk_review.py >/dev/null || fail "automated reminder delivery risk review validation failed"
 pass "automated reminder delivery risk review validation"
 
+python3 scripts/validate_automated_reminder_delivery_design.py >/dev/null || fail "automated reminder delivery design validation failed"
+pass "automated reminder delivery design validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 

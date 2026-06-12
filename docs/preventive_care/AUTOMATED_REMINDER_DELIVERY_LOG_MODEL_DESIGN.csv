@@ -1,0 +1,26 @@
+field,type,required,notes
+delivery_id,string,yes,primary external delivery attempt id
+owner_id,integer,yes,current owner id
+reminder_id,string,yes,source preventive reminder
+notification_id,string,yes,source notification queue item
+channel,string,yes,sms wechat email etc
+template_id,string,yes,approved template id
+template_version,string,yes,approved version
+eligibility_result,string,yes,eligible or blocked
+blocked_reason,string,no,required if blocked
+consent_snapshot,json,yes,channel consent at send time
+opt_out_snapshot,json,yes,opt-out state at send time
+contact_destination_hash,string,yes,hash only; avoid storing plain contact if possible
+message_hash,string,yes,hash of rendered message
+provider_message_id,string,no,set after provider send
+status,string,yes,draft queued sent delivered failed canceled blocked
+attempt_count,integer,yes,retry count
+last_error,string,no,provider/system failure
+approved_by,string,no,human approver for pilot
+created_at,datetime,yes,
+approved_at,datetime,no,
+sent_at,datetime,no,
+delivered_at,datetime,no,
+failed_at,datetime,no,
+canceled_at,datetime,no,
+metadata,json,no,redacted auxiliary data
