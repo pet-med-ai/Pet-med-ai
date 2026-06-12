@@ -174,6 +174,9 @@ pass "automated reminder delivery risk review validation"
 python3 scripts/validate_automated_reminder_delivery_design.py >/dev/null || fail "automated reminder delivery design validation failed"
 pass "automated reminder delivery design validation"
 
+python3 scripts/validate_automated_reminder_delivery_model.py >/dev/null || fail "automated reminder delivery data model validation failed"
+pass "automated reminder delivery data model validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 

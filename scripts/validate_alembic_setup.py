@@ -18,6 +18,7 @@ MIGRATIONS = [
     "0005_emr_import_batches.py",
     "0006_emr_import_results.py",
     "0007_preventive_care.py",
+    "0008_automated_delivery.py",
 ]
 
 REQUIRED_FILES = [
@@ -46,6 +47,10 @@ EXPECTED_METADATA_TABLES = {
     "preventive_care_events",
     "preventive_care_client_preferences",
     "preventive_care_notification_queue",
+    "automated_reminder_delivery_templates",
+    "automated_reminder_delivery_attempts",
+    "automated_reminder_delivery_receipts",
+    "automated_reminder_delivery_suppression_rules",
 }
 
 
@@ -83,6 +88,7 @@ def main() -> int:
         ("0005_emr_import_batches.py", ('revision = "0005_emr_import_batches"', 'down_revision = "0004_webhook_inbox_receipts"', '"emr_import_batches"', '"emr_import_batch_receipts"')),
         ("0006_emr_import_results.py", ('revision = "0006_emr_import_results"', 'down_revision = "0005_emr_import_batches"', '"emr_import_execution_runs"', '"emr_import_execution_item_results"')),
         ("0007_preventive_care.py", ('revision = "0007_preventive_care"', 'down_revision = "0006_emr_import_results"', '"preventive_care_rule_sets"', '"preventive_care_reminders"', '"preventive_care_events"', '"preventive_care_client_preferences"', '"preventive_care_notification_queue"')),
+        ("0008_automated_delivery.py", ('revision = "0008_auto_delivery"', 'down_revision = "0007_preventive_care"', '"automated_reminder_delivery_templates"', '"automated_reminder_delivery_attempts"', '"automated_reminder_delivery_receipts"', '"automated_reminder_delivery_suppression_rules"')),
     ]
     for filename, needles in checks:
         rc = require_text(VERSIONS / filename, needles, filename)
@@ -100,7 +106,7 @@ def main() -> int:
             f"actual={sorted(tables)}, expected={sorted(EXPECTED_METADATA_TABLES)}"
         )
 
-    print("OK Alembic setup: baseline, KPI, audit log, webhook inbox, EMR batch, execution result and preventive care migrations are present")
+    print("OK Alembic setup: baseline, KPI, audit log, webhook inbox, EMR batch, execution result, preventive care and automated delivery migrations are present")
     return 0
 
 

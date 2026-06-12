@@ -774,3 +774,198 @@ class PreventiveCareNotificationQueue(Base):
         Index("ix_preventive_notifications_owner_status", "owner_id", "status"),
         Index("ix_preventive_notifications_manual_review", "manual_review_required", "status"),
     )
+
+class AutomatedReminderDeliveryTemplate(Base):
+    """
+    Automated reminder delivery template registry V1.
+
+    Design/data model only. No template in this table is approved to send
+    unless review_status and future feature flags allow it.
+    """
+    __tablename__ = "automated_reminder_delivery_templates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    template_key: Mapped[str] = mapped_column(String(120), nullable=False, index=True)
+    template_version: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    channel: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    language: Mapped[str] = mapped_column(String(20), default="zh-CN", nullable=False, index=True)
+    category: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    subject: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    body: Mapped[str] = mapped_column(Text, nullable=False)
+    clinical_safety_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    opt_out_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    review_status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False, index=True)
+    approved_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ux_automated_delivery_template_version", "template_key", "template_version", "channel", unique=True),
+        Index("ix_automated_delivery_template_review", "review_status", "channel", "category"),
+    )
+
+
+class AutomatedReminderDeliveryAttempt(Base):
+    """
+    Automated reminder delivery attempt V1.
+
+    This is an auditable delivery-attempt model for future dry-run/manual
+    approval stages. It must not imply that live delivery is enabled.
+    """
+    __tablename__ = "automated_reminder_delivery_attempts"
+
+    delivery_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"ard_{uuid4().hex}")
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    reminder_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("preventive_care_reminders.reminder_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    notification_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("preventive_care_notification_queue.notification_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    channel: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    template_key: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
+    template_version: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+
+    eligibility_result: Mapped[str] = mapped_column(String(50), default="dry_run_only", nullable=False, index=True)
+    blocked_reason: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False, index=True)
+
+    manual_review_required: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    approved_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    approved_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+    dry_run: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    auto_send: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    sends_external_message: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+
+    consent_snapshot: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    opt_out_snapshot: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    contact_destination_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
+    message_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True, index=True)
+
+    provider_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    provider_message_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    attempt_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    last_error: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    queued_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    delivered_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    failed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    canceled_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_automated_delivery_owner_status_channel", "owner_id", "status", "channel"),
+        Index("ix_automated_delivery_reminder_status", "reminder_id", "status"),
+        Index("ix_automated_delivery_notification_status", "notification_id", "status"),
+        Index("ix_automated_delivery_safety", "dry_run", "auto_send", "sends_external_message"),
+    )
+
+
+class AutomatedReminderDeliveryReceipt(Base):
+    """
+    Automated reminder delivery receipt V1.
+
+    Stores future provider receipt/callback metadata. No provider webhook is
+    implemented in this stage.
+    """
+    __tablename__ = "automated_reminder_delivery_receipts"
+
+    receipt_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"arr_{uuid4().hex}")
+    delivery_id: Mapped[str] = mapped_column(
+        ForeignKey("automated_reminder_delivery_attempts.delivery_id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    provider_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    provider_message_id: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, index=True)
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+
+    received_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    signature_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    idempotency_key: Mapped[Optional[str]] = mapped_column(String(120), nullable=True, index=True)
+    raw_payload_hash: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
+    failure_code: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    failure_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    __table_args__ = (
+        Index("ix_automated_receipts_delivery_status", "delivery_id", "status"),
+        Index("ix_automated_receipts_provider_event", "provider_name", "event_type", "received_at"),
+    )
+
+
+class AutomatedReminderDeliverySuppressionRule(Base):
+    """
+    Automated reminder delivery suppression rule V1.
+
+    Stores future cooldown/quiet/manual suppression decisions. This table does
+    not send or schedule messages by itself.
+    """
+    __tablename__ = "automated_reminder_delivery_suppression_rules"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    owner_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+    )
+    reminder_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("preventive_care_reminders.reminder_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    notification_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("preventive_care_notification_queue.notification_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    pet_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+    category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    channel: Mapped[Optional[str]] = mapped_column(String(50), nullable=True, index=True)
+    reason: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+
+    starts_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    ends_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    created_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_automated_suppression_owner_channel_active", "owner_id", "channel", "active"),
+        Index("ix_automated_suppression_category_active", "category", "active"),
+    )
