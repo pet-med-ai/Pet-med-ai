@@ -180,6 +180,9 @@ pass "automated reminder delivery data model validation"
 python3 scripts/validate_automated_reminder_delivery_eligibility_dry_run.py >/dev/null || fail "automated reminder delivery eligibility dry-run validation failed"
 pass "automated reminder delivery eligibility dry-run validation"
 
+python3 scripts/validate_automated_reminder_delivery_template_registry.py >/dev/null || fail "automated reminder delivery template registry validation failed"
+pass "automated reminder delivery template registry validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
@@ -1550,6 +1553,79 @@ expect_status 200 "preventive care ops summary user B"
 json_assert_text_contains "$RESPONSE_BODY" "reminders.total" "0" >/dev/null || fail "preventive care ops summary user B：不应看到 user A reminders"
 json_assert_text_contains "$RESPONSE_BODY" "notification_queue.total" "0" >/dev/null || fail "preventive care ops summary user B：不应看到 user A queue"
 pass "preventive care ops dashboard checks"
+
+# Automated Reminder Delivery Template Registry V1: templates only, no provider calls.
+automated_template_body="$(python3 <<'PY'
+import json
+from uuid import uuid4
+template_key = f"smoke_parasite_review_{uuid4().hex[:12]}"
+body = {
+    "template_key": template_key,
+    "template_version": "v1",
+    "channel": "sms",
+    "language": "zh-CN",
+    "category": "external_parasite_prevention",
+    "subject": "预防保健提醒 / Preventive Care Reminder",
+    "body": "【预防保健提醒】{{pet_name}} 可能已到 {{reminder_type}} 复核时间。请联系 {{clinic_name}} 确认具体方案。",
+    "clinical_safety_text": "此提醒不是诊断或处方。接种/驱虫计划和产品必须由兽医确认；狂犬及受监管疫苗需遵守当地法规和产品标签。",
+    "opt_out_text": "如不想接收此类提醒，请联系前台登记退订。",
+    "metadata": {"test": "automated-reminder-delivery-template-registry-v1"}
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/automated-reminder-delivery/templates" "$automated_template_body" "$token_a"
+expect_status 201 "automated reminder delivery template create"
+automated_template_id="$(json_get "$RESPONSE_BODY" "template.id")"
+automated_template_key="$(json_get "$RESPONSE_BODY" "template.template_key")"
+[[ -n "$automated_template_id" ]] || fail "automated reminder delivery template create：没有 template.id"
+[[ -n "$automated_template_key" ]] || fail "automated reminder delivery template create：没有 template_key"
+json_assert_text_contains "$RESPONSE_BODY" "message" "automated_reminder_delivery_template_created" >/dev/null || fail "automated reminder delivery template create：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "writes_template_registry" "True" >/dev/null || fail "automated reminder delivery template create：应写 template registry"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "automated reminder delivery template create：不应外发消息"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "automated reminder delivery template create：不应创建病例"
+
+http_json GET "/api/automated-reminder-delivery/templates?channel=sms&page=1&page_size=20" "" "$token_a"
+expect_status 200 "automated reminder delivery template list"
+json_assert_text_contains "$RESPONSE_BODY" "items" "$automated_template_key" >/dev/null || fail "automated reminder delivery template list：没有找到新模板"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "automated reminder delivery template list：不应写数据库"
+
+automated_template_preview_body="$(python3 <<'PY'
+import json
+body = {
+    "context": {
+        "pet_name": "Smoke乐乐",
+        "reminder_type": "体外寄生虫预防",
+        "clinic_name": "瀚森宠物医院"
+    }
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/automated-reminder-delivery/templates/${automated_template_id}/render-preview" "$automated_template_preview_body" "$token_a"
+expect_status 200 "automated reminder delivery template render preview"
+json_assert_text_contains "$RESPONSE_BODY" "message" "automated_reminder_delivery_template_render_preview" >/dev/null || fail "automated reminder delivery template preview：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "rendered" "Smoke乐乐" >/dev/null || fail "automated reminder delivery template preview：未渲染 pet_name"
+json_assert_text_contains "$RESPONSE_BODY" "dry_run" "True" >/dev/null || fail "automated reminder delivery template preview：必须 dry_run"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "automated reminder delivery template preview：不应外发消息"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "automated reminder delivery template preview：不应写数据库"
+
+http_json POST "/api/automated-reminder-delivery/templates/${automated_template_id}/review" '{"review_status":"approved","reviewed_by":"HS-SMOKE","note":"Smoke template registry approval only; live delivery remains disabled."}' "$token_a"
+expect_status 200 "automated reminder delivery template review"
+json_assert_text_contains "$RESPONSE_BODY" "message" "automated_reminder_delivery_template_reviewed" >/dev/null || fail "automated reminder delivery template review：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "template.review_status" "approved" >/dev/null || fail "automated reminder delivery template review：status 未 approved"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "automated reminder delivery template review：不应外发消息"
+
+http_json POST "/api/automated-reminder-delivery/templates/${automated_template_id}/retire" '{"review_status":"retired","reviewed_by":"HS-SMOKE","note":"Smoke retire template."}' "$token_a"
+expect_status 200 "automated reminder delivery template retire"
+json_assert_text_contains "$RESPONSE_BODY" "message" "automated_reminder_delivery_template_retired" >/dev/null || fail "automated reminder delivery template retire：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "template.review_status" "retired" >/dev/null || fail "automated reminder delivery template retire：status 未 retired"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "automated reminder delivery template retire：不应外发消息"
+
+http_json GET "/api/automated-reminder-delivery/templates"
+expect_status 401 "automated reminder delivery templates require auth"
+pass "automated reminder delivery template registry checks"
+
 
 
 
