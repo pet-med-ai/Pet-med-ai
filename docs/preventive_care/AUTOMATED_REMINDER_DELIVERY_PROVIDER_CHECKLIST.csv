@@ -1,0 +1,13 @@
+item,required,owner,evidence,notes
+Provider selected,no,release_owner,,Risk review only; no provider selected in this stage
+Credentials stored in Render env,yes before implementation,security_owner,,
+No credentials in repo,yes,security_owner,,
+No credentials in logs,yes,security_owner,,
+Provider webhook signing available,yes before delivery,developer,,
+Delivery receipt support,yes before delivery,developer,,
+Sandbox mode available,yes before pilot,developer,,
+Rate limit documented,yes before pilot,developer,,
+Cost cap documented,yes before pilot,release_owner,,
+Data processing terms reviewed,yes before pilot,clinic_owner,,
+Kill switch tested,yes before pilot,release_owner,,
+Dry-run mode tested,yes before pilot,developer,,

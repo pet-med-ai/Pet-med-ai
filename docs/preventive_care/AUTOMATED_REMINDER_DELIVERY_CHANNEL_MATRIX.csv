@@ -1,0 +1,8 @@
+channel,allowed_in_current_v1,eligible_for_future_pilot,required_consent,main_risks,required_controls,notes
+in_app,true,true,allow_in_app,low visibility / user may not see,manual review and UI clarity,Current approved channel
+phone_call_manual,true,true,manual workflow consent/client relationship,staff script inconsistency,front desk SOP and call notes,Current manual queue
+sms_automated,false,conditional,allow_sms,privacy opt-out duplicate send carrier rules,opt-out enforcement rate limit delivery log,Not allowed until future design
+wechat_automated,false,conditional,allow_wechat,account binding opt-out provider webhook,provider verification opt-out delivery log,Not allowed until future design
+email_automated,false,conditional,allow_email,spam privacy stale address,unsubscribe quiet hours delivery log,Not allowed until future design
+push_notification,false,later,allow_push,device ownership unclear,device binding opt-out delivery log,Not in current platform
+automated_phone_call,false,no,allow_phone_auto,high annoyance wrong recipient,not recommended for V1,Do not pilot first
