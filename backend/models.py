@@ -537,3 +537,240 @@ class EmrImportExecutionItemResult(Base):
         Index("ix_emr_import_execution_items_created_case", "created_case_id", "status"),
     )
 
+class PreventiveCareRuleSet(Base):
+    """
+    Preventive care reminder rule set V1.
+
+    Stores editable seed rules for vaccine, deworming, parasite prevention,
+    fecal exam, and wellness reminders. It does not send external messages.
+    """
+    __tablename__ = "preventive_care_rule_sets"
+
+    rule_id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    species: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    life_stage: Mapped[str] = mapped_column(String(50), default="all", nullable=False, index=True)
+    category: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    trigger_basis: Mapped[str] = mapped_column(String(100), nullable=False)
+
+    interval_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    due_window_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    lead_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    requires_clinician_confirmation: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    requires_client_consent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    allow_auto_send: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    recommended_stage: Mapped[str] = mapped_column(String(100), default="spec_v1", nullable=False)
+    source_note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_preventive_rule_species_category", "species", "category"),
+        Index("ix_preventive_rule_stage_category", "recommended_stage", "category"),
+    )
+
+
+class PreventiveCareReminder(Base):
+    """
+    Preventive care reminder V1.
+
+    Stores in-app reminder state only. V1 does not send SMS/WeChat/email and
+    does not mutate Case records.
+    """
+    __tablename__ = "preventive_care_reminders"
+
+    reminder_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"pcr_{uuid4().hex}")
+
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    case_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    pet_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+
+    pet_name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
+    species: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    category: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+
+    rule_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("preventive_care_rule_sets.rule_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    source_rule_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+
+    status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False, index=True)
+    due_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    due_window_start: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    due_window_end: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    reminder_lead_days: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+
+    last_completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    next_due_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+    clinician_override: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    override_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    client_opt_out: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+    channel_preference: Mapped[str] = mapped_column(String(50), default="in_app", nullable=False)
+
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_preventive_reminders_owner_status_due", "owner_id", "status", "due_date"),
+        Index("ix_preventive_reminders_case_category", "case_id", "category"),
+        Index("ix_preventive_reminders_pet_category_due", "pet_name", "category", "due_date"),
+        Index("ix_preventive_reminders_optout_status", "client_opt_out", "status"),
+    )
+
+
+class PreventiveCareEvent(Base):
+    """
+    Preventive care event V1.
+
+    Records actual vaccine/deworming/preventive-care events for future reminder
+    calculation. This model is not an automatic notification sender.
+    """
+    __tablename__ = "preventive_care_events"
+
+    event_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"pce_{uuid4().hex}")
+    reminder_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("preventive_care_reminders.reminder_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    case_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    pet_id: Mapped[Optional[str]] = mapped_column(String(64), nullable=True, index=True)
+
+    event_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    category: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    event_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    product_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    lot_number: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    next_due_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+    clinician_id: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    __table_args__ = (
+        Index("ix_preventive_events_owner_type_date", "owner_id", "event_type", "event_date"),
+        Index("ix_preventive_events_case_type_date", "case_id", "event_type", "event_date"),
+        Index("ix_preventive_events_reminder_type", "reminder_id", "event_type"),
+    )
+
+
+class PreventiveCareClientPreference(Base):
+    """
+    Preventive care client communication preference V1.
+
+    Stores future consent and opt-out preferences. External messaging remains
+    disabled until a later reviewed stage.
+    """
+    __tablename__ = "preventive_care_client_preferences"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True,
+    )
+
+    allow_in_app: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    allow_sms: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    allow_wechat: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    allow_email: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    opt_out_all: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
+
+    preferred_channel: Mapped[str] = mapped_column(String(50), default="in_app", nullable=False)
+    updated_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_preventive_client_preferences_optout", "opt_out_all", "preferred_channel"),
+    )
+
+
+class PreventiveCareNotificationQueue(Base):
+    """
+    Preventive care notification queue V1.
+
+    Draft/manual-review queue only. It must not auto-send SMS/WeChat/email in V1.
+    """
+    __tablename__ = "preventive_care_notification_queue"
+
+    notification_id: Mapped[str] = mapped_column(String(64), primary_key=True, default=lambda: f"pcn_{uuid4().hex}")
+    reminder_id: Mapped[Optional[str]] = mapped_column(
+        ForeignKey("preventive_care_reminders.reminder_id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    owner_id: Mapped[int] = mapped_column(
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    case_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("cases.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+
+    channel: Mapped[str] = mapped_column(String(50), default="in_app", nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False, index=True)
+    scheduled_for: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+    sent_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True, index=True)
+
+    manual_review_required: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False, index=True)
+    reviewed_by: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    client_opt_out_snapshot: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+
+    message_preview: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    failure_code: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
+    failure_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False, index=True)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_preventive_notifications_status_scheduled", "status", "scheduled_for"),
+        Index("ix_preventive_notifications_owner_status", "owner_id", "status"),
+        Index("ix_preventive_notifications_manual_review", "manual_review_required", "status"),
+    )
