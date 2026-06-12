@@ -1,0 +1,2 @@
+pilot_id,review_date,review_owner,send_count,success_count,failure_count,duplicate_count,opt_out_incident_count,wrong_recipient_count,client_complaint_count,secret_leak_count,case_mutation_incident_count,emr_import_incident_count,operator_feedback,clinical_feedback,security_feedback,decision,next_action,notes
+pilot-example,2026-06-13,release-owner,0,0,0,0,0,0,0,0,0,0,No live pilot executed,No live pilot executed,No live pilot executed,NO-GO,Continue design/sandbox only,

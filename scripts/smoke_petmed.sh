@@ -189,6 +189,9 @@ pass "automated reminder delivery API dry-run validation"
 python3 scripts/validate_automated_reminder_delivery_manual_approval_ui.py >/dev/null || fail "automated reminder delivery manual approval UI validation failed"
 pass "automated reminder delivery manual approval UI validation"
 
+python3 scripts/validate_automated_reminder_delivery_pilot_runbook.py >/dev/null || fail "automated reminder delivery pilot runbook validation failed"
+pass "automated reminder delivery pilot runbook validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 

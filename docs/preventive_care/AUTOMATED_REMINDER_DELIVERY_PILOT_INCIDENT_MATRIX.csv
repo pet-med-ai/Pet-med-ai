@@ -1,0 +1,11 @@
+incident_id,severity,area,trigger,immediate_action,owner,status,notes
+ARD-PILOT-WRONG-RECIPIENT,P0,privacy,message sent to wrong recipient,stop pilot disable flags preserve logs notify security_owner,security_owner,open,
+ARD-PILOT-OPTOUT,P0,compliance,opt-out client contacted,stop pilot disable flags review consent snapshots,clinical_ops_owner,open,
+ARD-PILOT-DUPLICATE,P1,delivery,duplicate message sent,stop candidate sends inspect idempotency and provider retries,developer,open,
+ARD-PILOT-SECRET,P0,security,secret appears in logs,stop pilot rotate credentials preserve evidence,security_owner,open,
+ARD-PILOT-CASE,P0,safety,Case created or updated unexpectedly,stop pilot inspect API side effects,developer,open,
+ARD-PILOT-EMR,P0,safety,EMR import executed unexpectedly,stop pilot inspect feature flags and routes,release_owner,open,
+ARD-PILOT-SMOKE,P1,reliability,online smoke fails before or after window,pause pilot inspect deployment,developer,open,
+ARD-PILOT-PROVIDER,P1,provider,provider error spike,stop candidate sends inspect provider dashboard,developer,open,
+ARD-PILOT-TEMPLATE,P1,clinical,unapproved template used,stop pilot review template registry,clinical_ops_owner,open,
+ARD-PILOT-QUIET-HOURS,P1,client_experience,send outside quiet hours,stop pilot review timezone/send window,front_desk_owner,open,

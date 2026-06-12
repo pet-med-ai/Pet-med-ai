@@ -1,0 +1,2 @@
+candidate_id,owner_id,reminder_id,notification_id,delivery_id,pet_name,category,channel,contact_destination_verified,client_consent_verified,opt_out_all_false,channel_permission_true,template_id,template_approved,dry_run_attempt_created,eligibility_reviewed,manual_approval_recorded,quiet_hours_ok,rate_limit_ok,duplicate_cooldown_ok,clinical_ops_approved,status,notes
+candidate-example,1,pcr_example,pcn_example,ard_example,Smoke乐乐,external_parasite_prevention,sms,yes,yes,yes,yes,1,yes,yes,yes,yes,yes,yes,yes,yes,ready,
