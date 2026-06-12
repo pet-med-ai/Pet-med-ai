@@ -186,6 +186,9 @@ pass "automated reminder delivery template registry validation"
 python3 scripts/validate_automated_reminder_delivery_api_dry_run.py >/dev/null || fail "automated reminder delivery API dry-run validation failed"
 pass "automated reminder delivery API dry-run validation"
 
+python3 scripts/validate_automated_reminder_delivery_manual_approval_ui.py >/dev/null || fail "automated reminder delivery manual approval UI validation failed"
+pass "automated reminder delivery manual approval UI validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
@@ -1785,6 +1788,27 @@ expect_status 404 "automated reminder delivery user B cannot see user A attempt"
 http_json POST "/api/automated-reminder-delivery/dry-run" "$automated_delivery_dry_run_body"
 expect_status 401 "automated reminder delivery dry-run requires auth"
 pass "automated reminder delivery API dry-run checks"
+
+# Automated Reminder Delivery Manual Approval UI V1: review dry-run attempts only, no live send.
+http_json POST "/api/automated-reminder-delivery/dry-run" "$automated_delivery_dry_run_body" "$token_a"
+expect_status 201 "automated reminder delivery dry-run create for manual approval"
+manual_approval_delivery_id="$(json_get "$RESPONSE_BODY" "attempt.delivery_id")"
+[[ -n "$manual_approval_delivery_id" ]] || fail "automated reminder delivery manual approval：没有 delivery_id"
+
+http_json POST "/api/automated-reminder-delivery/attempts/${manual_approval_delivery_id}/manual-review" '{"decision":"approve_dry_run_only","reviewed_by":"HS-SMOKE","note":"Smoke manual approval for dry-run only; no live delivery.","metadata":{"test":"automated-reminder-delivery-manual-approval-ui-v1"}}' "$token_a"
+expect_status 200 "automated reminder delivery manual review"
+json_assert_text_contains "$RESPONSE_BODY" "message" "automated_reminder_delivery_attempt_manual_reviewed" >/dev/null || fail "automated reminder delivery manual review：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "attempt.status" "manual_reviewed_dry_run" >/dev/null || fail "automated reminder delivery manual review：status 未 manual_reviewed_dry_run"
+json_assert_text_contains "$RESPONSE_BODY" "attempt.approved_by" "HS-SMOKE" >/dev/null || fail "automated reminder delivery manual review：approved_by 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "attempt.dry_run" "True" >/dev/null || fail "automated reminder delivery manual review：必须 dry_run"
+json_assert_text_contains "$RESPONSE_BODY" "attempt.auto_send" "False" >/dev/null || fail "automated reminder delivery manual review：不应 auto_send"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "automated reminder delivery manual review：不应外发消息"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "automated reminder delivery manual review：不应创建病例"
+
+http_json POST "/api/automated-reminder-delivery/attempts/${manual_approval_delivery_id}/manual-review" '{"decision":"reject","reviewed_by":"HS-SMOKE-B","note":"User B should not review user A attempt."}' "$token_b"
+expect_status 404 "automated reminder delivery user B cannot review user A attempt"
+pass "automated reminder delivery manual approval UI checks"
+
 
 
 

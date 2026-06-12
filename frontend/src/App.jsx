@@ -9,6 +9,7 @@ import WebhookInboxPage from "./pages/WebhookInboxPage";
 import EmrImportBatchPlanningPage from "./pages/EmrImportBatchPlanningPage";
 import OpsDashboard from "./pages/OpsDashboard";
 import PreventiveCareNotificationQueuePage from "./pages/PreventiveCareNotificationQueuePage";
+import AutomatedReminderDeliveryManualApprovalPage from "./pages/AutomatedReminderDeliveryManualApprovalPage";
 
 function getErrorDetail(err) {
   const detail = err?.response?.data?.detail;
@@ -1199,6 +1200,10 @@ function Home() {
         <Link to="/preventive-care/notification-queue" style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}>
           预防保健待联系队列
         </Link>
+        <Link to="/automated-reminder-delivery/manual-approval" style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}>
+          自动提醒审批
+        </Link>
+
       </div>
 
       {/* 登录区 */}
@@ -1863,7 +1868,8 @@ export default function App() {
         <Route path="/emr/import-batches" element={<EmrImportBatchPlanningPage />} />
         <Route path="/preventive-care/notification-queue" element={<PreventiveCareNotificationQueuePage />} />
         <Route path="*" element={<div style={{ padding: 24 }}>页面不存在（404）。</div>} />
-      </Routes>
+              <Route path="/automated-reminder-delivery/manual-approval" element={<AutomatedReminderDeliveryManualApprovalPage />} />
+</Routes>
     </Router>
   );
 }

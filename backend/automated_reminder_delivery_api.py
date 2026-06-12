@@ -69,6 +69,13 @@ class AutomatedReminderDeliveryAttemptCancelIn(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 
+class AutomatedReminderDeliveryManualReviewIn(BaseModel):
+    decision: str = Field(default="approve_dry_run_only", max_length=80)
+    reviewed_by: str = Field(..., min_length=1, max_length=100)
+    note: Optional[str] = None
+    metadata: Optional[Dict[str, Any]] = None
+
+
 def _now() -> datetime:
     return datetime.utcnow()
 
@@ -444,6 +451,79 @@ def get_automated_reminder_delivery_attempt(
         "executes_real_import": False,
     }
 
+
+
+@router.post("/attempts/{delivery_id}/manual-review", response_model=dict)
+def manual_review_automated_reminder_delivery_attempt(
+    delivery_id: str,
+    data: AutomatedReminderDeliveryManualReviewIn,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    attempt = _attempt_or_404(db, delivery_id, user)
+
+    if attempt.auto_send or attempt.sends_external_message:
+        raise HTTPException(status_code=409, detail="unsafe attempt state cannot be manually reviewed")
+
+    decision = data.decision.strip().lower()
+    allowed = {"approve_dry_run_only", "changes_requested", "reject", "pause"}
+    if decision not in allowed:
+        raise HTTPException(status_code=422, detail=f"decision must be one of: {', '.join(sorted(allowed))}")
+
+    if decision == "approve_dry_run_only":
+        attempt.status = "manual_reviewed_dry_run"
+        attempt.approved_by = data.reviewed_by.strip()
+        attempt.approved_at = _now()
+    elif decision == "changes_requested":
+        attempt.status = "manual_changes_requested"
+        attempt.approved_by = data.reviewed_by.strip()
+        attempt.approved_at = None
+    elif decision == "reject":
+        attempt.status = "manual_rejected"
+        attempt.approved_by = data.reviewed_by.strip()
+        attempt.approved_at = None
+    else:
+        attempt.status = "manual_paused"
+        attempt.approved_by = data.reviewed_by.strip()
+        attempt.approved_at = None
+
+    attempt.manual_review_required = True
+    attempt.dry_run = True
+    attempt.auto_send = False
+    attempt.sends_external_message = False
+    attempt.updated_at = _now()
+    attempt.extra_data = {
+        **(attempt.extra_data or {}),
+        "manual_review": {
+            "decision": decision,
+            "reviewed_by": data.reviewed_by,
+            "note": data.note,
+            "metadata": data.metadata or {},
+            "reviewed_at": attempt.updated_at.isoformat(),
+        },
+        "dry_run": True,
+        "auto_send": False,
+        "sends_external_message": False,
+    }
+
+    db.add(attempt)
+    db.commit()
+    db.refresh(attempt)
+
+    return {
+        "message": "automated_reminder_delivery_attempt_manual_reviewed",
+        "mode": "automated_reminder_delivery_manual_approval_ui_v1",
+        "attempt": _attempt_payload(attempt),
+        "writes_database": True,
+        "writes_delivery_attempt": True,
+        "dry_run": True,
+        "manual_review_required": True,
+        "creates_case": False,
+        "updates_case": False,
+        "auto_send": False,
+        "sends_external_message": False,
+        "executes_real_import": False,
+    }
 
 @router.post("/attempts/{delivery_id}/cancel", response_model=dict)
 def cancel_automated_reminder_delivery_attempt(
