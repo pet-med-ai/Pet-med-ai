@@ -1,0 +1,2 @@
+week_id,week_start,week_end,operator_id,online_smoke_result,schema_ok,database_revision,alembic_head,preventive_attention,reminders_open,due_today,due_soon,overdue,queue_needs_review,manual_contacted,blocked_opt_out,recent_events_30d,actions_taken,escalations,client_opt_out_issues,external_message_sent,secret_leak_found,final_status,notes
+week-example,2026-06-08,2026-06-14,HS-0001,ALL PASS,true,0007_preventive_care,0007_preventive_care,0,0,0,0,0,0,0,0,0,none,none,none,false,false,PASS,

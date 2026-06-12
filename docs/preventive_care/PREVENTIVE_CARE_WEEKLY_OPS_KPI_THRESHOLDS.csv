@@ -1,0 +1,14 @@
+metric,green,amber,red,owner,action
+online_smoke_result,ALL PASS,n/a,fail,developer,stop weekly ops and inspect logs
+schema_ok,true,n/a,false,operator,stop and verify migration
+database_revision_alignment,db=head,n/a,mismatch,operator,stop and verify Alembic
+preventive_attention,0,1-10,>10,front_desk_owner,review overdue and queue
+overdue_reminders,0,1-5,>5,clinical_ops_owner,prioritize clinical review
+due_today,0-10,11-30,>30,front_desk_owner,triage by urgency
+queue_needs_review,0,1-10,>10,front_desk_owner,clear draft/review queue
+blocked_opt_out,0,1-5,>5,clinical_ops_owner,verify opt-out policy and avoid contact
+manual_contacted,tracked,tracked,missing,front_desk_owner,record manual contacts
+auto_send,false,n/a,true,security_owner,P0 stop release and disable automation
+sends_external_message,false,n/a,true,security_owner,P0 stop release and investigate
+manual_review_required,true,n/a,false,clinical_ops_owner,stop queue processing
+secret_leak_found,false,n/a,true,security_owner,P0 rotate secrets and stop release

@@ -1,0 +1,11 @@
+issue_id,severity,area,symptom,likely_cause,first_action,owner,status,notes
+PC-WEEK-SMOKE,P1,preflight,online smoke fails,backend/frontend/API mismatch,stop weekly ops and inspect smoke output,developer,open,
+PC-WEEK-SCHEMA,P1,database,schema mismatch,migration not applied or wrong DB,verify /api/system/version and Alembic current,operator,open,
+PC-WEEK-OPS,P1,frontend,/ops preventive section missing,frontend deploy stale or build issue,check Render frontend deploy,developer,open,
+PC-WEEK-QUEUE,P1,frontend,queue page fails to load,backend route or auth issue,check Network and smoke,developer,open,
+PC-WEEK-EXTMSG,P0,safety,external message sent unexpectedly,automation leak or credential misuse,stop release and disable notification credentials,security_owner,open,
+PC-WEEK-OPTOUT,P0,compliance,opt-out item contacted,manual process failure or UI bug,pause operations and review client preference,clinical_ops_owner,open,
+PC-WEEK-CASE,P0,safety,Case created or updated unexpectedly,wrong API side effect,stop release and inspect backend,developer,open,
+PC-WEEK-SECRET,P0,security,secret appears in console/logs,logging leak,rotate secret and stop release,security_owner,open,
+PC-WEEK-BACKLOG,P2,ops,queue backlog grows,front desk review not completed,assign owner and clear queue,front_desk_owner,open,
+PC-WEEK-OVERDUE,P2,clinical,overdue reminders grow,clinical review backlog,prioritize overdue and schedule owner callbacks,clinical_ops_owner,open,
