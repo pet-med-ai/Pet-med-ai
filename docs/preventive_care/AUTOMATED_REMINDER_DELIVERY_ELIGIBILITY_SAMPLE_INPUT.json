@@ -1,0 +1,168 @@
+{
+  "base": {
+    "dry_run": true,
+    "channel": "sms",
+    "feature_flags": {
+      "ENABLE_PREVENTIVE_AUTO_DELIVERY": false,
+      "ENABLE_PREVENTIVE_SMS_DELIVERY": false,
+      "ENABLE_PREVENTIVE_WECHAT_DELIVERY": false,
+      "ENABLE_PREVENTIVE_EMAIL_DELIVERY": false,
+      "ENABLE_PREVENTIVE_DELIVERY_DRY_RUN": true,
+      "ENABLE_PREVENTIVE_DELIVERY_MANUAL_APPROVAL": true
+    },
+    "owner": {
+      "owner_id": 1,
+      "opt_out_all": false,
+      "consent": {
+        "allow_in_app": true,
+        "allow_sms": true,
+        "allow_wechat": false,
+        "allow_email": false,
+        "opt_out_all": false,
+        "consent_source": "front_desk_form_v1"
+      }
+    },
+    "reminder": {
+      "reminder_id": "pcr_sample",
+      "owner_id": 1,
+      "category": "external_parasite_prevention",
+      "client_opt_out": false
+    },
+    "notification_queue": {
+      "notification_id": "pcn_sample",
+      "status": "reviewed",
+      "reviewed_by": "HS-SMOKE",
+      "client_opt_out_snapshot": false
+    },
+    "template": {
+      "template_key": "parasite_prevention_review_zh_cn",
+      "template_version": "v1",
+      "review_status": "approved",
+      "approved_by": "clinical_ops_owner"
+    },
+    "destination": {
+      "exists": true,
+      "contact_destination_hash": "sha256:example"
+    },
+    "provider": {
+      "name": "sms_sandbox",
+      "credentials_available": true
+    },
+    "rate_limits": {
+      "owner_daily_sent_count": 0,
+      "owner_daily_cap": 1,
+      "owner_weekly_sent_count": 0,
+      "owner_weekly_cap": 3,
+      "global_hourly_sent_count": 0,
+      "global_hourly_cap": 100,
+      "duplicate_within_cooldown": false
+    },
+    "quiet_hours": {
+      "enabled": true,
+      "local_hour": 10,
+      "send_window_start_hour": 9,
+      "send_window_end_hour": 18
+    },
+    "suppression": {
+      "active": false
+    }
+  },
+  "scenarios": [
+    {
+      "scenario_id": "dry_run_with_live_flags_off",
+      "patch": {}
+    },
+    {
+      "scenario_id": "blocked_opt_out",
+      "patch": {
+        "owner": {
+          "owner_id": 1,
+          "opt_out_all": true,
+          "consent": {
+            "allow_in_app": true,
+            "allow_sms": true,
+            "allow_wechat": false,
+            "allow_email": false,
+            "opt_out_all": true,
+            "consent_source": "front_desk_form_v1"
+          }
+        }
+      }
+    },
+    {
+      "scenario_id": "blocked_missing_consent",
+      "patch": {
+        "owner": {
+          "owner_id": 1,
+          "opt_out_all": false,
+          "consent": {
+            "allow_in_app": true,
+            "allow_sms": false,
+            "allow_wechat": false,
+            "allow_email": false,
+            "opt_out_all": false,
+            "consent_source": "front_desk_form_v1"
+          }
+        }
+      }
+    },
+    {
+      "scenario_id": "blocked_manual_review",
+      "patch": {
+        "notification_queue": {
+          "notification_id": "pcn_sample",
+          "status": "draft",
+          "reviewed_by": "",
+          "client_opt_out_snapshot": false
+        }
+      }
+    },
+    {
+      "scenario_id": "blocked_unapproved_template",
+      "patch": {
+        "template": {
+          "template_key": "parasite_prevention_review_zh_cn",
+          "template_version": "v1",
+          "review_status": "draft",
+          "approved_by": ""
+        }
+      }
+    },
+    {
+      "scenario_id": "blocked_quiet_hours",
+      "patch": {
+        "quiet_hours": {
+          "enabled": true,
+          "local_hour": 23,
+          "send_window_start_hour": 9,
+          "send_window_end_hour": 18
+        }
+      }
+    },
+    {
+      "scenario_id": "blocked_rate_limit",
+      "patch": {
+        "rate_limits": {
+          "owner_daily_sent_count": 0,
+          "owner_daily_cap": 1,
+          "owner_weekly_sent_count": 0,
+          "owner_weekly_cap": 3,
+          "global_hourly_sent_count": 0,
+          "global_hourly_cap": 100,
+          "duplicate_within_cooldown": true
+        }
+      }
+    },
+    {
+      "scenario_id": "live_eligible_if_flags_on",
+      "patch": {
+        "feature_flags": {
+          "ENABLE_PREVENTIVE_AUTO_DELIVERY": true,
+          "ENABLE_PREVENTIVE_SMS_DELIVERY": true,
+          "ENABLE_PREVENTIVE_DELIVERY_DRY_RUN": true,
+          "ENABLE_PREVENTIVE_DELIVERY_MANUAL_APPROVAL": true
+        }
+      }
+    }
+  ]
+}

@@ -177,6 +177,9 @@ pass "automated reminder delivery design validation"
 python3 scripts/validate_automated_reminder_delivery_model.py >/dev/null || fail "automated reminder delivery data model validation failed"
 pass "automated reminder delivery data model validation"
 
+python3 scripts/validate_automated_reminder_delivery_eligibility_dry_run.py >/dev/null || fail "automated reminder delivery eligibility dry-run validation failed"
+pass "automated reminder delivery eligibility dry-run validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
