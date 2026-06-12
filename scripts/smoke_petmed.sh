@@ -183,6 +183,9 @@ pass "automated reminder delivery eligibility dry-run validation"
 python3 scripts/validate_automated_reminder_delivery_template_registry.py >/dev/null || fail "automated reminder delivery template registry validation failed"
 pass "automated reminder delivery template registry validation"
 
+python3 scripts/validate_automated_reminder_delivery_api_dry_run.py >/dev/null || fail "automated reminder delivery API dry-run validation failed"
+pass "automated reminder delivery API dry-run validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
@@ -1625,6 +1628,164 @@ json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/de
 http_json GET "/api/automated-reminder-delivery/templates"
 expect_status 401 "automated reminder delivery templates require auth"
 pass "automated reminder delivery template registry checks"
+
+# Automated Reminder Delivery API Dry-run V1: creates dry-run attempts only, no provider calls.
+http_json PUT "/api/preventive-care/client-preferences" '{"allow_in_app":true,"allow_sms":true,"allow_wechat":false,"allow_email":false,"opt_out_all":false,"preferred_channel":"sms","updated_by":"HS-SMOKE","note":"Smoke automated delivery dry-run consent.","metadata":{"consent_source":"smoke-test"}}' "$token_a"
+expect_status 200 "automated reminder delivery prepare consent"
+
+automated_delivery_template_body="$(python3 <<'PY'
+import json
+from uuid import uuid4
+template_key = f"smoke_auto_delivery_{uuid4().hex[:12]}"
+body = {
+    "template_key": template_key,
+    "template_version": "v1",
+    "channel": "sms",
+    "language": "zh-CN",
+    "category": "external_parasite_prevention",
+    "subject": "预防保健提醒 / Preventive Care Reminder",
+    "body": "【预防保健提醒】{{pet_name}} 可能已到 {{reminder_type}} 复核时间。请联系 {{clinic_name}} 确认具体方案。",
+    "clinical_safety_text": "此提醒不是诊断或处方。接种/驱虫计划和产品必须由兽医确认；狂犬及受监管疫苗需遵守当地法规和产品标签。",
+    "opt_out_text": "如不想接收此类提醒，请联系前台登记退订。",
+    "metadata": {"test": "automated-reminder-delivery-api-dry-run-v1"}
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/automated-reminder-delivery/templates" "$automated_delivery_template_body" "$token_a"
+expect_status 201 "automated reminder delivery dry-run template create"
+automated_delivery_template_id="$(json_get "$RESPONSE_BODY" "template.id")"
+[[ -n "$automated_delivery_template_id" ]] || fail "automated reminder delivery dry-run template：没有 template.id"
+
+http_json POST "/api/automated-reminder-delivery/templates/${automated_delivery_template_id}/review" '{"review_status":"approved","reviewed_by":"HS-SMOKE","note":"Smoke dry-run approval only; live delivery disabled."}' "$token_a"
+expect_status 200 "automated reminder delivery dry-run template approve"
+
+automated_delivery_reminder_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "category": "external_parasite_prevention",
+    "rule_id": "monthly_broad_spectrum_parasite_control",
+    "source_rule_id": "monthly_broad_spectrum_parasite_control",
+    "status": "active",
+    "due_date": "2026-08-11T00:00:00Z",
+    "note": "Smoke automated delivery dry-run reminder."
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/preventive-care/reminders" "$automated_delivery_reminder_body" "$token_a"
+expect_status 201 "automated reminder delivery dry-run reminder create"
+automated_delivery_reminder_id="$(json_get "$RESPONSE_BODY" "reminder.reminder_id")"
+[[ -n "$automated_delivery_reminder_id" ]] || fail "automated reminder delivery dry-run reminder：没有 reminder_id"
+
+automated_delivery_queue_body="$(python3 - "$automated_delivery_reminder_id" <<'PY'
+import json
+import sys
+reminder_id = sys.argv[1]
+body = {
+    "reminder_id": reminder_id,
+    "channel": "phone_call",
+    "message_preview": "Smoke dry-run queue item.",
+    "reviewed_by": "HS-SMOKE",
+    "note": "Queue item for automated delivery dry-run only.",
+    "metadata": {"test": "automated-delivery-dry-run"}
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/preventive-care/notification-queue/draft" "$automated_delivery_queue_body" "$token_a"
+expect_status 201 "automated reminder delivery dry-run queue draft"
+automated_delivery_notification_id="$(json_get "$RESPONSE_BODY" "notification.notification_id")"
+[[ -n "$automated_delivery_notification_id" ]] || fail "automated reminder delivery dry-run queue：没有 notification_id"
+
+http_json POST "/api/preventive-care/notification-queue/${automated_delivery_notification_id}/review" '{"action":"approve_for_manual_contact","reviewed_by":"HS-SMOKE","note":"Smoke manual review for automated delivery dry-run."}' "$token_a"
+expect_status 200 "automated reminder delivery dry-run queue review"
+
+automated_delivery_dry_run_body="$(python3 - "$automated_delivery_reminder_id" "$automated_delivery_notification_id" "$automated_delivery_template_id" <<'PY'
+import json
+import sys
+reminder_id, notification_id, template_id = sys.argv[1], sys.argv[2], int(sys.argv[3])
+body = {
+    "reminder_id": reminder_id,
+    "notification_id": notification_id,
+    "template_id": template_id,
+    "channel": "sms",
+    "context": {
+        "pet_name": "Smoke乐乐",
+        "reminder_type": "体外寄生虫预防",
+        "clinic_name": "瀚森宠物医院"
+    },
+    "destination_exists": True,
+    "contact_destination_hash": "sha256:smoke-destination",
+    "feature_flags": {
+        "ENABLE_PREVENTIVE_AUTO_DELIVERY": False,
+        "ENABLE_PREVENTIVE_SMS_DELIVERY": False,
+        "ENABLE_PREVENTIVE_DELIVERY_DRY_RUN": True,
+        "ENABLE_PREVENTIVE_DELIVERY_MANUAL_APPROVAL": True
+    },
+    "rate_limits": {
+        "owner_daily_sent_count": 0,
+        "owner_daily_cap": 1,
+        "owner_weekly_sent_count": 0,
+        "owner_weekly_cap": 3,
+        "global_hourly_sent_count": 0,
+        "global_hourly_cap": 100,
+        "duplicate_within_cooldown": False
+    },
+    "quiet_hours": {
+        "enabled": True,
+        "local_hour": 10,
+        "send_window_start_hour": 9,
+        "send_window_end_hour": 18
+    },
+    "provider": {
+        "name": "sms_dry_run",
+        "credentials_available": True
+    },
+    "save_attempt": True,
+    "metadata": {"test": "automated-reminder-delivery-api-dry-run-v1"}
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/automated-reminder-delivery/dry-run" "$automated_delivery_dry_run_body" "$token_a"
+expect_status 201 "automated reminder delivery dry-run create"
+automated_delivery_id="$(json_get "$RESPONSE_BODY" "attempt.delivery_id")"
+[[ -n "$automated_delivery_id" ]] || fail "automated reminder delivery dry-run：没有 delivery_id"
+json_assert_text_contains "$RESPONSE_BODY" "message" "automated_reminder_delivery_dry_run_created" >/dev/null || fail "automated reminder delivery dry-run：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "eligibility.first_blocked_reason" "blocked_kill_switch" >/dev/null || fail "automated reminder delivery dry-run：应被 kill switch 阻断"
+json_assert_text_contains "$RESPONSE_BODY" "rendered.body" "Smoke乐乐" >/dev/null || fail "automated reminder delivery dry-run：模板未渲染"
+json_assert_text_contains "$RESPONSE_BODY" "attempt.dry_run" "True" >/dev/null || fail "automated reminder delivery dry-run：attempt 必须 dry_run"
+json_assert_text_contains "$RESPONSE_BODY" "attempt.auto_send" "False" >/dev/null || fail "automated reminder delivery dry-run：attempt 不应 auto_send"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "automated reminder delivery dry-run：不应外发消息"
+json_assert_text_contains "$RESPONSE_BODY" "creates_case" "False" >/dev/null || fail "automated reminder delivery dry-run：不应创建病例"
+
+http_json GET "/api/automated-reminder-delivery/attempts?page=1&page_size=20" "" "$token_a"
+expect_status 200 "automated reminder delivery attempt list"
+json_assert_text_contains "$RESPONSE_BODY" "items" "$automated_delivery_id" >/dev/null || fail "automated reminder delivery attempt list：没有找到 dry-run attempt"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "automated reminder delivery attempt list：不应写数据库"
+
+http_json GET "/api/automated-reminder-delivery/attempts/${automated_delivery_id}" "" "$token_a"
+expect_status 200 "automated reminder delivery attempt get"
+json_assert_text_contains "$RESPONSE_BODY" "attempt.delivery_id" "$automated_delivery_id" >/dev/null || fail "automated reminder delivery attempt get：ID 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "automated reminder delivery attempt get：不应外发消息"
+
+http_json POST "/api/automated-reminder-delivery/attempts/${automated_delivery_id}/cancel" '{"canceled_by":"HS-SMOKE","reason":"Smoke cancel dry-run attempt","note":"No provider was called."}' "$token_a"
+expect_status 200 "automated reminder delivery attempt cancel"
+json_assert_text_contains "$RESPONSE_BODY" "message" "automated_reminder_delivery_attempt_canceled" >/dev/null || fail "automated reminder delivery attempt cancel：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "attempt.status" "canceled" >/dev/null || fail "automated reminder delivery attempt cancel：status 未 canceled"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "automated reminder delivery attempt cancel：不应外发消息"
+
+http_json GET "/api/automated-reminder-delivery/attempts/${automated_delivery_id}" "" "$token_b"
+expect_status 404 "automated reminder delivery user B cannot see user A attempt"
+
+http_json POST "/api/automated-reminder-delivery/dry-run" "$automated_delivery_dry_run_body"
+expect_status 401 "automated reminder delivery dry-run requires auth"
+pass "automated reminder delivery API dry-run checks"
+
 
 
 
