@@ -1,0 +1,10 @@
+role,description,allowed_commercial_v1,forbidden_commercial_v1,notes
+anonymous,not logged in,login/signup only,case data consult sessions reminders queues exports ops emr automated delivery,No clinical data access
+clinic_user,general logged-in clinic user,own AI consults own sessions own cases own case detail own case edit own Word export own preventive reminders,other users data EMR real import automated live delivery provider credentials internal ops,Owner-scoped core role
+clinician,doctor/clinical user,clinic_user permissions plus AI human review audit and clinical case review,other users data EMR real import automated live delivery provider credentials,May be same account type until RBAC exists
+front_desk,front desk workflow user,manual preventive care contact queue and own/assigned reminder workflow,EMR import automated delivery manual approval provider credentials feature flag changes,Target role; guard enforcement to be reviewed
+clinic_admin,clinic manager/admin,KPI dashboard clinic ops summary release/version read-only support views,EMR real import automated live delivery provider credentials secret values,Target role; full RBAC pending
+internal_admin,internal Pet-Med-AI operator,ops dashboard webhook inbox EMR dry-run/batch planning automated delivery dry-run manual approval,external live sending without separate pilot EMR case update without gate,Must not be ordinary clinic-user default
+release_owner,operational owner,deploy smoke release rollback version checks,clinical data browsing unless also authorized role,Operational role not necessarily app role
+security_owner,security owner,feature flag review secret incident cross-user incident investigation,clinical use unless authorized,Operational role not necessarily app role
+clinical_ops_owner,clinic operations owner,queue review preventive care review incident workflow decision,security secrets EMR writes provider credentials,Operational role not necessarily app role

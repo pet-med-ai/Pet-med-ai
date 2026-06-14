@@ -203,6 +203,9 @@ pass "commercial launch feature scope lock validation"
 python3 scripts/validate_commercial_launch_ops_runbook.py >/dev/null || fail "commercial launch ops runbook validation failed"
 pass "commercial launch ops runbook validation"
 
+python3 scripts/validate_commercial_launch_access_review.py >/dev/null || fail "commercial launch access review validation failed"
+pass "commercial launch access review validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 

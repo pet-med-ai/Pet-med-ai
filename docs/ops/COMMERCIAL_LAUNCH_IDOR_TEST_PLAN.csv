@@ -1,0 +1,19 @@
+test_id,area,setup,attacker_action,expected_result,owner,status,notes
+IDOR-CASE-001,cases,user A creates case; user B logs in,user B GET /api/cases/{user_a_case_id},404 or 403 no case body,security_owner,pending,Must not reveal user A data
+IDOR-CASE-002,cases,user A creates case; user B logs in,user B PUT /api/cases/{user_a_case_id},404 or 403 no mutation,security_owner,pending,Check DB unchanged
+IDOR-CASE-003,cases,user A creates case; user B logs in,user B DELETE /api/cases/{user_a_case_id},404 or 403 no delete,security_owner,pending,Check case still visible to A
+IDOR-CASE-004,cases,user A creates deleted case; user B logs in,user B POST /api/cases/{user_a_case_id}/restore,404 or 403 no restore,security_owner,pending,If soft delete supported
+IDOR-CASE-005,cases,user A creates case; user B logs in,user B POST /api/cases/{user_a_case_id}/analyze,404 or 403 no mutation,security_owner,pending,No cross-user reanalysis
+IDOR-CASE-006,cases,user A creates case; user B logs in,user B attempts clinical docs export for user A case,404 or 403 no file,security_owner,pending,Export must be owner-scoped
+IDOR-CONSULT-001,consult_sessions,user A creates consult session; user B logs in,user B GET user A session,404 or 403,security_owner,pending,No session leakage
+IDOR-CONSULT-002,consult_sessions,user A creates consult session; user B logs in,user B answer/update user A session,404 or 403 no mutation,security_owner,pending,No cross-user follow-up
+IDOR-CONSULT-003,consult_sessions,user A creates consult session; user B logs in,user B save user A session as case,404 or 403 no case created,security_owner,pending,No cross-user case creation
+IDOR-PREV-001,preventive_care,user A creates reminder; user B logs in,user B GET/modify user A reminder,404 or 403 no data,security_owner,pending,Reminder owner_id check
+IDOR-PREV-002,preventive_care,user A creates queue item; user B logs in,user B review/contact/cancel user A queue item,404 or 403 no mutation,security_owner,pending,Queue owner/clinic scope
+IDOR-PREV-003,preventive_care,user A has client preference; user B logs in,user B reads/updates user A preference,404 or 403 no data,security_owner,pending,Preference owner scoped
+IDOR-ARD-001,automated_delivery,user A creates dry-run attempt; user B logs in,user B GET user A delivery attempt,404 or 403 no data,security_owner,pending,Delivery attempt owner_id check
+IDOR-ARD-002,automated_delivery,user A creates dry-run attempt; user B logs in,user B manual-review user A attempt,404 or 403 no mutation,security_owner,pending,Manual approval must be owner/internal scoped
+IDOR-ARD-003,automated_delivery,user A creates dry-run attempt; user B logs in,user B cancel user A attempt,404 or 403 no mutation,security_owner,pending,Cancel must be owner/internal scoped
+IDOR-EMR-001,emr,user B ordinary clinic user logs in,user B opens EMR inbox/import routes,403/hidden/internal-only,security_owner,pending,Final Go requires guard decision
+IDOR-OPS-001,ops,user B ordinary clinic user logs in,user B opens /ops,403/hidden/internal-only,security_owner,pending,Final Go requires guard decision
+IDOR-AUDIT-001,audit,user A has AI review audit; user B logs in,user B reads or mutates user A audit evidence,404/403 no data,security_owner,pending,Audit evidence should be scoped

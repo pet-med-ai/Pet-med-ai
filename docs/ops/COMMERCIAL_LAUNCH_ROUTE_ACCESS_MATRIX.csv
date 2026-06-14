@@ -1,0 +1,13 @@
+route,component,commercial_v1_class,target_roles,current_action,final_go_requirement,risk
+/,Home,public_clinic,clinic_user clinician front_desk clinic_admin,keep,authenticated owner-scoped workflows pass IDOR tests,medium
+/cases/new/edit,CaseEditorPage,public_clinic,clinic_user clinician clinic_admin,keep,create/edit remains authenticated and owner-scoped,medium
+/cases/:id/edit,CaseEditorPage,public_clinic,clinic_user clinician clinic_admin,keep,user B cannot edit user A case,high
+/cases/:id,CaseDetail,public_clinic,clinic_user clinician clinic_admin,keep,user B cannot read/export/print user A case,high
+/preventive-care/notification-queue,PreventiveCareNotificationQueuePage,clinic_staff,front_desk clinic_admin clinical_ops_owner,keep,queue items owner/clinic-scoped and no external auto-send,high
+/kpi,KpiDashboard,clinic_admin,clinic_admin internal_admin,admin/internal route,ordinary clinic_user must not see cross-user/global sensitive data,medium
+/ops,OpsDashboard,internal_admin,internal_admin release_owner,internal route,ordinary clinic_user must not access internal ops data,high
+/webhooks/emr/inbox,WebhookInboxPage,internal_admin,internal_admin,internal route,ordinary clinic_user must not access EMR webhook data,high
+/emr/import-batches,EmrImportBatchPlanningPage,internal_admin,internal_admin,internal route,ordinary clinic_user must not access import planning,high
+/automated-reminder-delivery/manual-approval,AutomatedReminderDeliveryManualApprovalPage,internal_dry_run,internal_admin,default nav hidden,ordinary clinic_user must not access or review attempts,high
+/api/system/version,SystemVersion,read_only_support,release_owner clinic_admin internal_admin,read-only endpoint,must not expose DATABASE_URL or mutate data,medium
+/api/system/feature-flags,FeatureFlags,read_only_support,security_owner internal_admin,read-only endpoint,must not expose secret values or allow mutation,high

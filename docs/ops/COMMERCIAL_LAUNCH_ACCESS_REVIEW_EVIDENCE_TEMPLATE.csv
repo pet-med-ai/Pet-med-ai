@@ -1,0 +1,2 @@
+review_id,date,reviewer,base_url,frontend_url,git_commit,ci_static_pass,online_smoke_pass,schema_ok,database_revision,alembic_head,case_idor_pass,consult_session_idor_pass,preventive_care_idor_pass,automated_delivery_idor_pass,admin_route_review_pass,open_p0_count,open_p1_count,decision,notes
+ACCESS-REVIEW-V1,,,,,,,false,false,,,false,false,false,false,false,,,,NO-GO by default until evidence is filled
