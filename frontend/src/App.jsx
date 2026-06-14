@@ -1200,9 +1200,10 @@ function Home() {
         <Link to="/preventive-care/notification-queue" style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}>
           预防保健待联系队列
         </Link>
-        <Link to="/automated-reminder-delivery/manual-approval" style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}>
-          自动提醒审批
-        </Link>
+        {/* Commercial Launch Feature Scope Lock V1:
+            Automated Reminder Delivery manual approval remains internal dry-run only.
+            Do not expose this link in default clinic-facing navigation.
+            Route/API authorization is handled in Commercial Launch User Roles / Access Review V1. */}
 
       </div>
 
@@ -1868,7 +1869,8 @@ export default function App() {
         <Route path="/emr/import-batches" element={<EmrImportBatchPlanningPage />} />
         <Route path="/preventive-care/notification-queue" element={<PreventiveCareNotificationQueuePage />} />
         <Route path="*" element={<div style={{ padding: 24 }}>页面不存在（404）。</div>} />
-              <Route path="/automated-reminder-delivery/manual-approval" element={<AutomatedReminderDeliveryManualApprovalPage />} />
+              {/* Commercial Launch Feature Scope Lock V1: route remains for internal dry-run until Access Review adds authorization. */}
+        <Route path="/automated-reminder-delivery/manual-approval" element={<AutomatedReminderDeliveryManualApprovalPage />} />
 </Routes>
     </Router>
   );

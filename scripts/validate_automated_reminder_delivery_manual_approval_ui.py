@@ -91,12 +91,23 @@ def main() -> int:
         (
             "AutomatedReminderDeliveryManualApprovalPage",
             "/automated-reminder-delivery/manual-approval",
-            "自动提醒审批",
         ),
         "frontend App route",
     )
     if rc:
         return rc
+
+    app_text = APP.read_text(encoding="utf-8")
+    if 'to="/automated-reminder-delivery/manual-approval"' in app_text:
+        return fail(
+            "automated reminder manual approval must remain hidden from default clinic navigation "
+            "after Commercial Launch Feature Scope Lock V1"
+        )
+    if "Commercial Launch Feature Scope Lock V1" not in app_text:
+        return fail(
+            "frontend App route should document that manual approval remains internal dry-run "
+            "until Commercial Launch User Roles / Access Review V1"
+        )
 
     rc = require_text(
         DOC,
@@ -136,7 +147,7 @@ def main() -> int:
     if rc:
         return rc
 
-    print("OK automated reminder delivery manual approval UI: dry-run approval route, page and validation are present")
+    print("OK automated reminder delivery manual approval UI: dry-run route/page are present and default clinic navigation is hidden")
     return 0
 
 

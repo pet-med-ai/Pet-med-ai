@@ -197,6 +197,9 @@ pass "automated reminder delivery pilot runbook validation"
 python3 scripts/validate_commercial_launch_readiness.py >/dev/null || fail "commercial launch readiness validation failed"
 pass "commercial launch readiness validation"
 
+python3 scripts/validate_commercial_launch_feature_scope_lock.py >/dev/null || fail "commercial launch feature scope lock validation failed"
+pass "commercial launch feature scope lock validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 

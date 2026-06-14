@@ -1,0 +1,42 @@
+feature_id,area,feature_name,commercial_v1_status,visible_to,frontend_surface,backend_surface,data_writes,external_effect,launch_decision,notes
+FS-AI-001,ai_consultation,AI consultation,public_clinic,clinic_user,home consultation panel,/ai/consult and /api/ai/consult,no external writes unless saved,false,GO,Core clinical workflow
+FS-AI-002,ai_consultation,Dynamic consultation,public_clinic,clinic_user,home dynamic consultation panel,/ai/consult/dynamic and /api/ai/consult/dynamic,consult session writes,false,GO,Core clinical workflow
+FS-AI-003,ai_consultation,Consultation session persistence,public_clinic,clinic_user,history and restore session UI,/api/ai/consult/session*,session writes,false,GO,Owner-scoped
+FS-AI-004,ai_consultation,Save consultation as case,public_clinic,clinic_user,save-case preview and confirm,/api/ai/consult/session/*/save-case,case writes,false,GO,Requires AI human review audit
+FS-AI-005,ai_consultation,Update bound case after follow-up,public_clinic,clinic_user,update bound case action,/api/ai/consult/session/*/update-case,case update,false,GO,Owner-scoped and review-gated
+FS-CASE-001,cases,Case create/list/detail/edit,public_clinic,clinic_user,home list case detail case editor,/api/cases*,case writes,false,GO,Commercial V1 core
+FS-CASE-002,cases,Case filtering and pagination,public_clinic,clinic_user,home case table,/api/cases query,false,false,GO,Commercial V1 core
+FS-CASE-003,cases,Case CSV export,public_clinic,clinic_user,home export action,/api/cases/export,false,false,GO,Must remain owner-scoped
+FS-CASE-004,cases,Case print,public_clinic,clinic_user,case detail print route,/api/cases/{id},false,false,GO,Commercial V1 utility
+FS-DOC-001,clinical_docs,Clinical Docs Word export,public_clinic,clinic_user,case detail export button,/api/clinical-docs*,file generated,false,GO,Word export is available
+FS-DOC-002,clinical_docs,Clinical Docs PDF conversion,future_not_in_v1,not_visible,none,none,false,false,NO-GO for V1 promise,Design exists but implementation not launch scope
+FS-INTAKE-001,structured_intake,Dog/cat structured intake templates,public_clinic,clinic_user,structured intake block,AI consult payload,session/case context,false,GO,Core clinical data quality feature
+FS-INTAKE-002,structured_intake,Exotic structured intake templates,public_clinic,clinic_user,structured intake block,AI consult payload,session/case context,false,GO,Core clinical data quality feature
+FS-INTAKE-003,structured_intake,Save-before-case history merge preview,public_clinic,clinic_user,case save preview,/preview-case,false,false,GO,Prevents blind case writes
+FS-AUDIT-001,audit,AI suggestion human review audit,public_clinic,clinician,AI review audit block,/api/audit*,audit append,false,GO,Required before saving AI-assisted cases
+FS-PREV-001,preventive_care,Preventive care in-app reminders,public_clinic,clinic_user,case detail preventive care UI,/api/preventive-care*,reminder writes,false,GO,Commercial V1 operational value
+FS-PREV-002,preventive_care,Front-desk manual contact queue,clinic_staff,front_desk,notification queue page,/api/preventive-care/notification-queue*,queue status writes,false,GO,Manual contact only
+FS-PREV-003,preventive_care,Preventive care ops dashboard,clinic_admin,clinic_admin,ops dashboard preventive summary,/api/ops* or dashboard APIs,false,false,GO with admin visibility,No external sending
+FS-OPS-001,ops,KPI dashboard,clinic_admin,clinic_admin,/kpi,KPI APIs,false,false,GO with admin visibility,Not ordinary user default
+FS-OPS-002,ops,Ops dashboard,internal_admin,internal_admin,/ops,ops APIs,false,false,GO internal/admin only,Access Review must enforce visibility
+FS-OPS-003,release,System version read-only view,clinic_admin,clinic_admin,/api/system/version,/api/system/version,false,false,GO read-only,Useful for support
+FS-OPS-004,release,Feature flags read-only safety view,internal_admin,internal_admin,/api/system/feature-flags,/api/system/feature-flags,false,false,GO internal/admin only,Must not expose secrets
+FS-EMR-001,emr,Webhook inbox,internal_admin,internal_admin,/webhooks/emr/inbox,/api/emr/webhooks*,review writes,false,NO-GO public,Internal integration review only
+FS-EMR-002,emr,EMR import batch planning,internal_admin,internal_admin,/emr/import-batches,/api/emr/import-batches*,plan writes,false,NO-GO public,Internal dry-run/planning only
+FS-EMR-003,emr,EMR execution dry-run,internal_dry_run,internal_admin,no public nav,/api/emr/import-execution/dry-run*,dry-run records,false,NO-GO public,Dry-run only
+FS-EMR-004,emr,EMR real import execution,hidden_paused,not_visible,none,feature-flag gated,true writes possible,false unless enabled,NO-GO,Must remain disabled
+FS-EMR-005,emr,EMR case update,hidden_paused,not_visible,none,feature-flag gated,true writes possible,false,NO-GO,Must remain disabled
+FS-ARD-001,automated_reminder_delivery,Automated delivery eligibility dry-run,internal_dry_run,internal_admin,no public nav,/api/automated-reminder-delivery/dry-run,delivery attempt writes,false,NO-GO public,Dry-run only
+FS-ARD-002,automated_reminder_delivery,Automated delivery manual approval UI,internal_dry_run,internal_admin,/automated-reminder-delivery/manual-approval,/api/automated-reminder-delivery/attempts/*/manual-review,delivery attempt writes,false,NO-GO public,Default nav hidden in this stage
+FS-ARD-003,automated_reminder_delivery,Automated reminder live delivery,hidden_paused,not_visible,none,none,false,true if implemented,NO-GO,Paused
+FS-ARD-004,automated_reminder_delivery,SMS provider,hidden_paused,not_visible,none,none,false,true,NO-GO,No provider credentials
+FS-ARD-005,automated_reminder_delivery,WeChat provider,hidden_paused,not_visible,none,none,false,true,NO-GO,No provider credentials
+FS-ARD-006,automated_reminder_delivery,Email provider,hidden_paused,not_visible,none,none,false,true,NO-GO,No provider credentials
+FS-DEVICE-001,device_integration,Hospital device interface architecture,future_not_in_v1,not_visible,docs only,none,false,false,NO-GO for V1 promise,Original long-term clinical direction
+FS-DEVICE-002,device_integration,Local device gateway,future_not_in_v1,not_visible,none,none,false,false,NO-GO for V1 promise,Future clinical integration
+FS-LAB-001,diagnostics,Lab result ingest,future_not_in_v1,not_visible,none,none,false,false,NO-GO for V1 promise,Future DiagnosticReport/Observation path
+FS-DICOM-001,diagnostics,DICOM imaging ingest,future_not_in_v1,not_visible,none,none,false,false,NO-GO for V1 promise,Future ImagingStudy path
+FS-AI-006,diagnostics,AI lab abnormality summary,future_not_in_v1,not_visible,none,none,false,false,NO-GO for V1 promise,Future clinical intelligence layer
+FS-TX-001,treatment,Treatment suggestion refinement,future_not_in_v1,not_visible,none,none,false,false,NO-GO for V1 promise,Future clinical safety work
+FS-MED-001,medication_safety,Medication dose safety framework,future_not_in_v1,not_visible,none,none,false,false,NO-GO for V1 promise,Future high-risk clinical safety work
+FS-KB-001,knowledge_base,Knowledge base admin UI,future_not_in_v1,not_visible,none,none,false,false,NO-GO for V1 promise,Future controlled content management

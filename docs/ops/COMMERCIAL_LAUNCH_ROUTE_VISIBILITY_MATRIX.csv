@@ -1,0 +1,12 @@
+route,component,current_surface,commercial_v1_status,visible_to,required_action_v1,next_access_review_action,notes
+/,Home,default entry,public_clinic,clinic_user,keep,verify logged-in data ownership,Contains AI consult case list structured intake and manual case flow
+/cases/new/edit,CaseEditorPage,direct route,public_clinic,clinic_user,keep,verify owner-scoped create/edit behavior,Case creation/editing core flow
+/cases/:id/edit,CaseEditorPage,direct route,public_clinic,clinic_user,keep,verify cannot edit another user's case,Commercial V1 core
+/cases/:id,CaseDetail,direct route,public_clinic,clinic_user,keep,verify cannot read another user's case,Case detail print and document export
+/kpi,KpiDashboard,direct route,clinic_admin,clinic_admin,keep but do not market as ordinary user feature,add admin/clinic role guard,KPI dashboard is admin-facing
+/ops,OpsDashboard,direct route,internal_admin,internal_admin,keep but not ordinary user nav,add internal/admin guard,Ops dashboard must not expose sensitive internals to ordinary users
+/webhooks/emr/inbox,WebhookInboxPage,direct route,internal_admin,internal_admin,no default clinic nav,add internal/admin guard,EMR webhook review is internal integration surface
+/emr/import-batches,EmrImportBatchPlanningPage,direct route,internal_admin,internal_admin,no default clinic nav,add internal/admin guard,EMR import planning not Commercial V1 public
+/preventive-care/notification-queue,PreventiveCareNotificationQueuePage,default nav link,clinic_staff,front_desk,keep,add staff/admin guard,Manual contact queue is commercial V1 operational workflow
+/automated-reminder-delivery/manual-approval,AutomatedReminderDeliveryManualApprovalPage,was default nav link,internal_dry_run,internal_admin,remove from default clinic navigation,add internal/admin guard or hide route,Real external delivery remains paused; dry-run approval only
+*,NotFound,fallback,public_clinic,all,keep,no special guard,404 fallback
