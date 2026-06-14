@@ -63,6 +63,72 @@ def require_csv(path: Path, required_columns: tuple[str, ...], needles: tuple[st
     return 0
 
 
+
+def _truthy(value: object) -> bool:
+    return str(value or "").strip().lower() in {"true", "yes", "1", "y", "approved", "pass", "go"}
+
+
+def validate_legal_evidence_state() -> int:
+    # Accept either the pending template row or a completed GO signoff row.
+    try:
+        with EVIDENCE.open("r", encoding="utf-8", newline="") as f:
+            rows = list(csv.DictReader(f))
+    except Exception as exc:
+        return fail(f"legal review evidence template is not valid CSV: {exc}")
+
+    if not rows:
+        return fail("legal review evidence template has no rows")
+
+    row = rows[0]
+    if row.get("review_id") != "LEGAL-CONSENT-V1":
+        return fail("legal review evidence review_id must be LEGAL-CONSENT-V1")
+
+    decision = str(row.get("decision") or "").strip().upper()
+    notes = str(row.get("notes") or "")
+
+    # Pending state is valid for docs+validation, but it is not a real legal signoff.
+    if "NO-GO until review and signoff are filled" in notes or decision.startswith("NO-GO"):
+        return 0
+
+    if decision != "GO":
+        return fail("legal review evidence decision must be GO after real signoff, or NO-GO while pending")
+
+    required_true = (
+        "legal_review_completed",
+        "clinic_owner_signoff",
+        "clinical_director_signoff",
+        "security_owner_signoff",
+        "release_owner_signoff",
+        "client_consent_template_approved",
+        "ai_notice_approved",
+        "preventive_notice_approved",
+        "opt_out_sop_approved",
+        "privacy_sop_approved",
+        "no_secrets_in_evidence",
+        "no_phi_in_evidence",
+        "commercial_v1_manual_contact_only",
+        "automated_live_delivery_disabled",
+        "emr_real_import_disabled",
+    )
+
+    missing = [name for name in required_true if not _truthy(row.get(name))]
+    if missing:
+        return fail(
+            "legal review evidence decision=GO requires these fields to be true: "
+            + ", ".join(missing)
+        )
+
+    legal_owner = str(row.get("legal_review_owner") or "").strip().lower()
+    if not legal_owner or legal_owner in {"pending", "todo", "tbd", "none"}:
+        return fail("legal review evidence decision=GO requires a real legal_review_owner value")
+
+    clinic_name = str(row.get("clinic_name") or "").strip()
+    if not clinic_name:
+        return fail("legal review evidence decision=GO requires clinic_name")
+
+    return 0
+
+
 def main() -> int:
     py_compile.compile(str(Path(__file__)), doraise=True)
 
@@ -247,11 +313,14 @@ def main() -> int:
         ),
         (
             "LEGAL-CONSENT-V1",
-            "NO-GO until review and signoff are filled",
         ),
         "legal review evidence template",
         min_rows=1,
     )
+    if rc:
+        return rc
+
+    rc = validate_legal_evidence_state()
     if rc:
         return rc
 
