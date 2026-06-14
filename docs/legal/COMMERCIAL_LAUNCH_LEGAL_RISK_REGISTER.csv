@@ -1,0 +1,13 @@
+risk_id,risk,severity,trigger,mitigation,go_no_go,owner,status
+LEGAL-R001,no legal/professional review,Critical,templates used without review,require local legal/professional review before Final Go,NO-GO,legal_review_owner,open
+LEGAL-R002,AI represented as replacing veterinarian,Critical,marketing or notice says AI final diagnosis,AI notice and clinical responsibility statement,NO-GO,clinical_ops_owner,open
+LEGAL-R003,preventive reminder represented as diagnosis/prescription,High,client-facing language overclaims,preventive reminder notice and staff SOP,NO-GO,clinical_ops_owner,open
+LEGAL-R004,automated external sending implied enabled,Critical,SMS/WeChat/email described as live,scope lock and reminder notice say manual-only,NO-GO,security_owner,open
+LEGAL-R005,opt-out ignored,High,client contacted after opt-out,opt-out SOP and incident response,NO-GO if unresolved,clinical_ops_owner,open
+LEGAL-R006,client data shared with unreviewed third party,Critical,provider added without review,third-party legal/security review before credentials,NO-GO,security_owner,open
+LEGAL-R007,PHI/client data in evidence,Critical,committed client name/phone/raw case,remove evidence and handle privacy incident,NO-GO,security_owner,open
+LEGAL-R008,secrets in legal evidence,Critical,DATABASE_URL/token included,remove evidence rotate if exposed,NO-GO,security_owner,open
+LEGAL-R009,unclear deletion/retention policy,High,client requests deletion and staff deletes blindly,escalate deletion requests to legal/clinic owner,NO-GO before Final Go,legal_review_owner,open
+LEGAL-R010,AI advice sent without review,High,staff sends AI-generated advice directly,AI notice and staff training,NO-GO if repeated/unresolved,clinical_ops_owner,open
+LEGAL-R011,clinic owner signoff missing,High,commercial launch without clinic approval,require signoff evidence,NO-GO before Final Go,clinic_owner,open
+LEGAL-R012,jurisdiction mismatch,High,templates not adapted to local clinic jurisdiction,local legal/professional review required,NO-GO before Final Go,legal_review_owner,open

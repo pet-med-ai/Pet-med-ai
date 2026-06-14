@@ -1,0 +1,16 @@
+check_id,area,item,required_state,evidence,owner,go_no_go,status,notes
+LEGAL-001,pack,Consent pack index exists,COMMERCIAL_LAUNCH_CONSENT_PACK_V1.md present,file exists,product_owner,NO-GO if missing,pending,Top-level package
+LEGAL-002,client_consent,Client data use consent template exists,present,file exists,product_owner,NO-GO if missing,pending,Must be adapted before client use
+LEGAL-003,ai_notice,AI assisted clinical notice exists,present,file exists,clinical_ops_owner,NO-GO if missing,pending,AI assistive only
+LEGAL-004,ai_notice,Veterinarian final responsibility statement,present,AI notice text,clinical_ops_owner,NO-GO if missing,pending,Core clinical boundary
+LEGAL-005,reminders,Preventive reminder notice exists,present,file exists,clinical_ops_owner,NO-GO if missing,pending,Non-diagnosis/non-prescription
+LEGAL-006,opt_out,Client opt-out SOP exists,present,file exists,clinical_ops_owner,NO-GO if missing,pending,Required before contact workflows
+LEGAL-007,privacy,Privacy/data handling SOP exists,present,file exists,security_owner,NO-GO if missing,pending,Data minimization and evidence rules
+LEGAL-008,boundary,No automated external sending claim,confirmed,consent pack/reminder notice,security_owner,NO-GO if false,pending,SMS/WeChat/email live sending paused
+LEGAL-009,boundary,No EMR real import claim,confirmed,consent pack,security_owner,NO-GO if false,pending,EMR real import gated
+LEGAL-010,review,Legal/professional review completed,recorded,evidence template,legal_review_owner,NO-GO before Final Go,pending,Must be real review
+LEGAL-011,signoff,Clinic owner signoff recorded,recorded,evidence template,clinic_owner,NO-GO before Final Go,pending,Required for commercial use
+LEGAL-012,signoff,Clinical director signoff recorded,recorded,evidence template,clinical_ops_owner,NO-GO before Final Go,pending,Required for clinical safety
+LEGAL-013,signoff,Security owner signoff recorded,recorded,evidence template,security_owner,NO-GO before Final Go,pending,Required for data handling
+LEGAL-014,evidence,No secrets in evidence,true,review evidence,security_owner,NO-GO if leaked,pending,No DATABASE_URL/token
+LEGAL-015,evidence,No PHI/client data in committed docs,true,review files,security_owner,NO-GO if leaked,pending,No names/phones/raw records
