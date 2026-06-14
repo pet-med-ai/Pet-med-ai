@@ -1,0 +1,19 @@
+check_id,frequency,area,item,command_or_evidence,expected_result,owner,go_no_go,status,notes
+DAILY-001,daily,backend,Backend healthz,curl -sS https://pet-med-ai-backend.onrender.com/healthz,HTTP 200 / OK,release_owner,NO-GO if fail,pending,Run before clinic use
+DAILY-002,daily,frontend,Frontend static site,curl -sS -o /dev/null -w "%{http_code}" https://pet-med-ai-frontend-static.onrender.com,HTTP 200 or 304,frontend_owner,NO-GO if fail,pending,Static site must load
+DAILY-003,daily,database,System version,curl -sS https://pet-med-ai-backend.onrender.com/api/system/version | python3 -m json.tool,message=system_version,release_owner,NO-GO if fail,pending,Read-only endpoint
+DAILY-004,daily,database,schema_ok,System version output,schema_ok=true,release_owner,NO-GO if false,pending,Hard launch gate
+DAILY-005,daily,database,Database revision equals head,System version output,database_revision == alembic_head,release_owner,NO-GO if mismatch,pending,Hard launch gate
+DAILY-006,daily,database,Expected database revision,System version output,database_revision == 0008_auto_delivery,release_owner,NO-GO if different,pending,Hard launch gate
+DAILY-007,daily,feature_flags,Dangerous flags status,curl -sS https://pet-med-ai-backend.onrender.com/api/system/feature-flags | python3 -m json.tool,all_dangerous_features_disabled=true,security_owner,NO-GO if false,pending,Hard launch gate
+DAILY-008,daily,feature_flags,EMR real import disabled,Feature flags output,ENABLE_EMR_REAL_IMPORT=false,security_owner,NO-GO if true,pending,No real EMR import in Commercial V1
+DAILY-009,daily,feature_flags,EMR case update disabled,Feature flags output,ENABLE_EMR_IMPORT_CASE_UPDATE=false,security_owner,NO-GO if true,pending,Case update disabled
+DAILY-010,daily,feature_flags,EMR attachment download disabled,Feature flags output,ENABLE_EMR_ATTACHMENT_DOWNLOAD=false,security_owner,NO-GO if true,pending,External attachment ingest disabled
+DAILY-011,daily,feature_flags,Automated reminder live send disabled,Render env / feature review,ENABLE_PREVENTIVE_AUTO_DELIVERY=false,security_owner,NO-GO if true,pending,No true external sending
+DAILY-012,daily,feature_flags,SMS WeChat email disabled,Render env / feature review,SMS/WeChat/email live flags false,security_owner,NO-GO if true,pending,No provider credentials
+DAILY-013,daily,smoke,Online smoke,BASE_URL=https://pet-med-ai-backend.onrender.com FRONTEND_URL=https://pet-med-ai-frontend-static.onrender.com bash scripts/smoke_petmed.sh,ALL PASS,release_owner,NO-GO if fail,pending,Primary acceptance check
+DAILY-014,daily,clinical_workflow,AI consultation smoke,Smoke output,AI consult and dynamic consult pass,clinical_ops_owner,NO-GO if fail,pending,Core clinical workflow
+DAILY-015,daily,clinical_workflow,Case workflow smoke,Smoke output,case create/detail/list/save/update pass,clinical_ops_owner,NO-GO if fail,pending,Core case workflow
+DAILY-016,daily,clinical_workflow,Clinical Docs Word export smoke,Smoke output,DOCX export pass,clinical_ops_owner,GO with limitation if fail,pending,Can be triaged if not blocking consult/case
+DAILY-017,daily,preventive_care,Manual contact queue reachable,Smoke output or UI check,queue reachable and manual-only,clinical_ops_owner,GO with limitation if fail,pending,No external send
+DAILY-018,daily,incident,Open incident review,Incident matrix / ops notes,no open P0,release_owner,NO-GO if unresolved P0,pending,Review before clinic use

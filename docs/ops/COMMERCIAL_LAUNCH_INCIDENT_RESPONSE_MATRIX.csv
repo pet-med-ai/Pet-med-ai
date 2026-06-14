@@ -1,0 +1,17 @@
+incident_id,severity,area,trigger,immediate_action,owner,resume_criteria,status,notes
+OPS-P0-DATA-CROSS-USER,P0,data_access,user A can see user B data,stop clinic-facing use and preserve evidence,security_owner,root cause fixed and access test passes,open,Hard NO-GO
+OPS-P0-SCHEMA,P0,database,schema_ok=false or revision mismatch,stop launch and capture /api/system/version,release_owner,schema_ok=true and smoke PASS,open,Hard NO-GO
+OPS-P0-REVISION,P0,database,database_revision != 0008_auto_delivery,stop launch and inspect Alembic current/head,release_owner,revision expected and smoke PASS,open,Hard NO-GO
+OPS-P0-AUTO-SEND,P0,automated_delivery,external message sent unexpectedly,disable live-send flags and preserve logs,security_owner,no sends possible and incident reviewed,open,Hard NO-GO
+OPS-P0-AUTO-FLAG,P0,feature_flags,ENABLE_PREVENTIVE_AUTO_DELIVERY=true unexpectedly,disable flag and verify no sends,security_owner,flag false and smoke PASS,open,Hard NO-GO
+OPS-P0-EMR-IMPORT,P0,emr,ENABLE_EMR_REAL_IMPORT=true or real import executed,disable EMR flags and preserve logs,security_owner,flag false no unintended writes and smoke PASS,open,Hard NO-GO
+OPS-P0-EMR-UPDATE,P0,emr,EMR case update executed unexpectedly,disable update flag and identify affected cases,security_owner,affected cases reviewed and flag false,open,Hard NO-GO
+OPS-P0-SECRET,P0,security,secret leaked in logs or UI,rotate secret and preserve incident record,security_owner,secret rotated and exposure removed,open,Hard NO-GO
+OPS-P1-BACKEND-DOWN,P1,availability,backend /healthz unavailable,check Render logs and rollback/redeploy,release_owner,healthz and smoke PASS,open,Clinic-facing outage
+OPS-P1-FRONTEND-DOWN,P1,availability,frontend static site unavailable,check Render static deploy and rollback/redeploy,frontend_owner,frontend live and smoke PASS,open,Clinic-facing outage
+OPS-P1-CI-RED,P1,release,GitHub Actions latest main red,block launch promotion and fix targeted files,release_owner,latest run green,open,Do not use git add .
+OPS-P1-SMOKE-FAIL,P1,release,online smoke fails,triage failing endpoint and block launch,release_owner,online smoke ALL PASS,open,Primary gate
+OPS-P1-WORD-EXPORT,P1,clinical_docs,Word export repeatedly fails,triage clinical docs API/logs,backend_owner,export smoke PASS or documented workaround,open,Commercial utility impact
+OPS-P2-QUEUE-BACKLOG,P2,preventive_care,manual contact queue backlog grows,assign queue owner and review weekly,clinical_ops_owner,backlog reduced or accepted,open,Operational issue
+OPS-P2-OPT-OUT,P2,preventive_care,opt-out not reflected in queue,pause affected contacts and correct preference,clinical_ops_owner,opt-out respected and reviewed,open,Client trust issue
+OPS-P2-SCOPE-DRIFT,P2,scope,hidden/paused feature appears in UI,remove exposure and review feature matrix,product_owner,validator PASS and UI corrected,open,Scope Lock regression

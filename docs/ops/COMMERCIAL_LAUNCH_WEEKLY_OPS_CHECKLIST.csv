@@ -1,0 +1,16 @@
+check_id,frequency,area,item,evidence,expected_result,owner,status,notes
+WEEKLY-001,weekly,preventive_care,Review preventive care notification queue,Ops dashboard / queue UI,all due items reviewed,clinical_ops_owner,pending,Manual contact only
+WEEKLY-002,weekly,preventive_care,Review overdue manual contact items,Queue filter / ops summary,overdue items assigned,clinical_ops_owner,pending,Escalate backlog
+WEEKLY-003,weekly,preventive_care,Review canceled queue items,Queue records,cancel reasons documented,clinical_ops_owner,pending,Look for workflow errors
+WEEKLY-004,weekly,preventive_care,Review client opt-outs,Client preferences / queue records,opt-out respected,clinical_ops_owner,pending,No contacted opt-out clients
+WEEKLY-005,weekly,clinical_quality,Review high-risk AI consult cases,Case list / audit logs,human review recorded,clinical_ops_owner,pending,Clinical governance
+WEEKLY-006,weekly,clinical_docs,Review Word export failures,Logs / user reports,no unresolved repeated failure,backend_owner,pending,Commercial utility
+WEEKLY-007,weekly,release,Review GitHub Actions latest main status,GitHub Actions,latest run green,release_owner,pending,No launch promotion if red
+WEEKLY-008,weekly,release,Review Render deploy history,Render backend/frontend logs,no failed active deploy,release_owner,pending,Record failed deploys
+WEEKLY-009,weekly,database,Review system version state,/api/system/version,schema_ok=true and revision 0008_auto_delivery,release_owner,pending,Hard gate check
+WEEKLY-010,weekly,feature_flags,Review high-risk flags,/api/system/feature-flags,dangerous flags disabled,security_owner,pending,Includes EMR dangerous flags
+WEEKLY-011,weekly,security,Review secrets/log exposure,Render logs / GitHub,zero exposed secrets,security_owner,pending,Rotate if exposed
+WEEKLY-012,weekly,backup,Review backup evidence,Render Postgres backup / manual note,backup evidence exists,release_owner,pending,Full restore drill is V2
+WEEKLY-013,weekly,incidents,Review open incidents,incident response matrix,no unresolved P0/P1,release_owner,pending,Assign owner and deadline
+WEEKLY-014,weekly,scope,Confirm high-risk pages not default clinic nav,frontend App / UI,manual approval not default nav,product_owner,pending,Scope Lock V1 guard
+WEEKLY-015,weekly,output,Create weekly ops summary,weekly notes,summary and actions recorded,release_owner,pending,Required evidence

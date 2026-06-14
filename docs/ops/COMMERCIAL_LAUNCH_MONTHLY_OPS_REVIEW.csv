@@ -1,0 +1,13 @@
+review_id,frequency,area,item,evidence,expected_result,owner,status,notes
+MONTHLY-001,monthly,release,Review release records,changelog / release docs,release history complete,release_owner,pending,Commercial operation evidence
+MONTHLY-002,monthly,smoke,Review smoke stability,smoke logs / weekly notes,no repeated unresolved smoke failures,release_owner,pending,Look for pattern failures
+MONTHLY-003,monthly,database,Review database revision history,system version evidence,schema_ok maintained,release_owner,pending,Expected revision 0008_auto_delivery until next migration
+MONTHLY-004,monthly,backup,Review backup rollback evidence,backup / rollback docs,evidence current,release_owner,pending,Prepare Backup Restore Drill V2
+MONTHLY-005,monthly,security,Review security hardening evidence,security docs / logs,no open secret or access incident,security_owner,pending,Rotate if needed
+MONTHLY-006,monthly,access,Review access complaints or suspected leaks,support notes / incident matrix,no unresolved cross-user access issue,security_owner,pending,Feeds Access Review V1
+MONTHLY-007,monthly,preventive_care,Review preventive care queue metrics,Ops dashboard / monthly queue review,queue health understood,clinical_ops_owner,pending,Manual contact workflow
+MONTHLY-008,monthly,clinical_quality,Review AI audit acceptance/rejection patterns,audit logs / case review,clinician oversight functioning,clinical_ops_owner,pending,Clinical safety evidence
+MONTHLY-009,monthly,feature_scope,Review feature scope drift,feature matrix / UI routes,no hidden_paused feature exposed,product_owner,pending,No scope creep
+MONTHLY-010,monthly,legal,Review consent/legal readiness,Legal Consent Pack status,legal gaps tracked,product_owner,pending,Before final commercial launch
+MONTHLY-011,monthly,roadmap,Review long-term clinical roadmap,device/lab/DICOM/medication backlog,not promised in Commercial V1,product_owner,pending,Protect original product direction
+MONTHLY-012,monthly,decision,Monthly operating decision,monthly review notes,continue / pause / no-go recorded,release_owner,pending,Required decision
