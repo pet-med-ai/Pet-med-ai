@@ -1,0 +1,5 @@
+blocker_id,severity,area,blocker,current_status,required_to_close,owner,go_no_go,status,notes
+BRD2_REAL_RESTORE_EVIDENCE_PENDING,Critical,backup_restore,Backup / Restore Drill V2 real restore evidence missing,pending,complete real non-production restore evidence and owner signoff,release_owner,NO-GO,open,Only hard blocker currently recorded
+FINAL-CI-PENDING,High,ci,Final CI/static/smoke not recorded,pending,run CI static and online smoke before any real GO decision,release_owner,NO-GO before GO,pending,Decision docs can exist before final evidence
+FINAL-RUNTIME-PENDING,High,runtime,Final runtime health/version/flags not recorded,pending,record healthz/version/feature-flags before any real GO decision,release_owner,NO-GO before GO,pending,Must be filled in evidence record
+FINAL-INCIDENT-PENDING,High,incidents,No-open-P0 evidence not recorded,pending,review incident matrices and record no open P0,release_owner,NO-GO before GO,pending,Final evidence required

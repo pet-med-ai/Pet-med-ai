@@ -1,0 +1,27 @@
+gate_id,area,item,required_state,current_state,go_no_go,owner,status,notes
+FINAL-001,ci,GitHub Actions latest main run,green,pending,NO-GO if red,release_owner,pending,Check before final decision
+FINAL-002,ci,CI static checks,PASS,pending,NO-GO if fail,release_owner,pending,bash scripts/ci_static_checks.sh
+FINAL-003,backend,Render backend live,healthz OK,pending,NO-GO if fail,release_owner,pending,pet-med-ai-backend
+FINAL-004,frontend,Render frontend live,HTTP 200/304,pending,NO-GO if fail,frontend_owner,pending,pet-med-ai-frontend-static
+FINAL-005,smoke,Online smoke,ALL PASS,pending,NO-GO if fail,release_owner,pending,scripts/smoke_petmed.sh
+FINAL-006,database,schema_ok,true,pending,NO-GO if false,release_owner,pending,/api/system/version
+FINAL-007,database,database_revision equals alembic_head,true,pending,NO-GO if mismatch,release_owner,pending,/api/system/version
+FINAL-008,database,Expected database revision,0008_auto_delivery,pending,NO-GO if different,release_owner,pending,Commercial V1 expected revision
+FINAL-009,feature_flags,Dangerous features disabled,true,pending,NO-GO if false,security_owner,pending,/api/system/feature-flags
+FINAL-010,feature_flags,EMR real import disabled,ENABLE_EMR_REAL_IMPORT=false,pending,NO-GO if true,security_owner,pending,Hard gate
+FINAL-011,feature_flags,EMR case update disabled,ENABLE_EMR_IMPORT_CASE_UPDATE=false,pending,NO-GO if true,security_owner,pending,Hard gate
+FINAL-012,feature_flags,Automated reminder live delivery disabled,ENABLE_PREVENTIVE_AUTO_DELIVERY=false,pending,NO-GO if true,security_owner,pending,Hard gate
+FINAL-013,readiness,Commercial Launch Readiness Review V1,complete,complete,GO,release_owner,complete,Docs and validation complete
+FINAL-014,scope,Commercial Launch Feature Scope Lock V1,complete,complete,GO,product_owner,complete,Feature matrix and route visibility complete
+FINAL-015,ops,Commercial Launch Ops Runbook V1,complete,complete,GO,release_owner,complete,Runbook/checklists complete
+FINAL-016,access,Commercial Launch User Roles / Access Review V1,complete,complete,GO,security_owner,complete,Role matrix and IDOR plan complete
+FINAL-017,monitoring,Commercial Launch Monitoring / Alerting Plan V1,complete,complete,GO,release_owner,complete,Alert matrix complete
+FINAL-018,backup,Backup Restore Drill V2 docs + validation,complete,complete,GO,release_owner,complete,Package exists
+FINAL-019,backup,Backup Restore Drill V2 real restore evidence,complete,pending,NO-GO,release_owner,pending,Hard blocker before production launch
+FINAL-020,legal,Legal Consent Pack V1 docs + validation,complete,complete,GO,product_owner,complete,Templates/SOPs complete
+FINAL-021,legal,Legal Consent Pack V1 real review + signoff,complete,complete,GO,legal_review_owner,complete,Per owner confirmation
+FINAL-022,security,No secret leak,true,pending,NO-GO if false,security_owner,pending,Review repo/evidence/logs
+FINAL-023,privacy,No PHI in committed evidence,true,pending,NO-GO if false,security_owner,pending,Review evidence files
+FINAL-024,incidents,No open P0,true,pending,NO-GO if false,release_owner,pending,Review incident matrix
+FINAL-025,decision,Final production launch decision,GO,NO-GO_PRODUCTION_COMMERCIAL_LAUNCH,NO-GO,release_owner,pending,Blocked by FINAL-019
+FINAL-026,decision,Continue internal pre-launch preparation,GO,GO_CONTINUED_INTERNAL_PRE_LAUNCH_PREPARATION,GO,release_owner,complete,Allowed while blocker remains

@@ -215,6 +215,9 @@ pass "commercial launch backup restore drill v2 validation"
 python3 scripts/validate_commercial_launch_legal_consent_pack.py >/dev/null || fail "commercial launch legal consent pack validation failed"
 pass "commercial launch legal consent pack validation"
 
+python3 scripts/validate_commercial_launch_final_go_no_go.py >/dev/null || fail "commercial launch final go no-go validation failed"
+pass "commercial launch final go no-go validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
