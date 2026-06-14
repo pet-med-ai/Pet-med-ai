@@ -22,6 +22,7 @@ run_if_exists scripts/validate_release_changelog.py
 run_if_exists scripts/validate_system_version_info.py
 run_if_exists scripts/validate_feature_flags.py
 run_if_exists scripts/validate_ops_dashboard.py
+run_if_exists scripts/validate_commercial_launch_readiness.py
 
 # Database / Alembic static gates. These must not connect to production DB.
 run_if_exists scripts/validate_alembic_setup.py

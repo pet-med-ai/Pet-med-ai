@@ -3,6 +3,8 @@ set -euo pipefail
 
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
 BASE_URL="${BASE_URL%/}"
+FRONTEND_URL="${FRONTEND_URL:-}"
+FRONTEND_URL="${FRONTEND_URL%/}"
 PASSWORD="${PASSWORD:-123456}"
 KEEP_TMP="${KEEP_TMP:-0}"
 
@@ -191,6 +193,9 @@ pass "automated reminder delivery manual approval UI validation"
 
 python3 scripts/validate_automated_reminder_delivery_pilot_runbook.py >/dev/null || fail "automated reminder delivery pilot runbook validation failed"
 pass "automated reminder delivery pilot runbook validation"
+
+python3 scripts/validate_commercial_launch_readiness.py >/dev/null || fail "commercial launch readiness validation failed"
+pass "commercial launch readiness validation"
 
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
@@ -505,6 +510,15 @@ http_json GET "/api/system/version"
 expect_status 200 "system version"
 json_assert_text_contains "$RESPONSE_BODY" "message" "system_version" >/dev/null || fail "system version：message 不正确"
 json_assert_text_contains "$RESPONSE_BODY" "schema_ok" "True" >/dev/null || fail "system version：schema_ok 应为 true"
+database_revision="$(json_get "$RESPONSE_BODY" "database_revision")"
+alembic_head="$(json_get "$RESPONSE_BODY" "alembic_head")"
+if [[ "$database_revision" != "0008_auto_delivery" ]]; then
+  fail "system version：database_revision 应为 0008_auto_delivery，实际为 ${database_revision:-empty}"
+fi
+if [[ -z "$alembic_head" || "$database_revision" != "$alembic_head" ]]; then
+  fail "system version：database_revision 必须等于 alembic_head，database_revision=${database_revision:-empty}, alembic_head=${alembic_head:-empty}"
+fi
+pass "system version database revision commercial launch gate"
 json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "system version：不应写数据库"
 json_assert_text_contains "$RESPONSE_BODY" "exposes_database_url" "False" >/dev/null || fail "system version：不应暴露数据库 URL"
 
@@ -517,6 +531,14 @@ json_assert_text_contains "$RESPONSE_BODY" "exposes_secret_values" "False" >/dev
 json_assert_text_contains "$RESPONSE_BODY" "flags.ENABLE_EMR_REAL_IMPORT.enabled" "False" >/dev/null || fail "system feature flags：EMR real import 默认应关闭"
 json_assert_text_contains "$RESPONSE_BODY" "flags.ENABLE_EMR_IMPORT_CASE_UPDATE.enabled" "False" >/dev/null || fail "system feature flags：EMR case update 默认应关闭"
 json_assert_text_contains "$RESPONSE_BODY" "flags.ENABLE_EMR_ATTACHMENT_DOWNLOAD.enabled" "False" >/dev/null || fail "system feature flags：附件下载默认应关闭"
+
+if [[ -n "$FRONTEND_URL" ]]; then
+  FRONTEND_STATUS="$(curl -sS --connect-timeout 15 --max-time 60 -o /dev/null -w "%{http_code}" "$FRONTEND_URL")" || fail "frontend live check failed"
+  if [[ "$FRONTEND_STATUS" != "200" && "$FRONTEND_STATUS" != "304" ]]; then
+    fail "frontend live：期望 HTTP 200/304，实际 HTTP $FRONTEND_STATUS"
+  fi
+  pass "frontend live"
+fi
 
 # EMR Webhook dry-run V1: signed handshake without DB writes.
 emr_body_file="$TMP_DIR/emr_webhook_body.json"

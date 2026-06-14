@@ -1,0 +1,23 @@
+area,item,required_state,evidence_command,go_no_go,owner,status,notes
+ci,GitHub Actions latest run,green,GitHub Actions main branch latest run,NO-GO if red,release_owner,pending,Must be checked before deploy
+backend,Render backend live,HTTP 200 /healthz,curl -sS https://pet-med-ai-backend.onrender.com/healthz,NO-GO if unavailable,release_owner,pending,Backend service pet-med-ai-backend
+frontend,Render frontend live,HTTP 200 static site,curl -sS -o /dev/null -w "%{http_code}" https://pet-med-ai-frontend-static.onrender.com,NO-GO if unavailable,release_owner,pending,Frontend static site pet-med-ai-frontend-static
+smoke,Online smoke,ALL PASS,BASE_URL=https://pet-med-ai-backend.onrender.com FRONTEND_URL=https://pet-med-ai-frontend-static.onrender.com bash scripts/smoke_petmed.sh,NO-GO if fail,release_owner,pending,Primary online acceptance gate
+database,schema_ok,true,curl -sS https://pet-med-ai-backend.onrender.com/api/system/version | python3 -m json.tool,NO-GO if false,release_owner,pending,System version endpoint
+database,database_revision equals alembic_head,true,curl -sS https://pet-med-ai-backend.onrender.com/api/system/version | python3 -m json.tool,NO-GO if mismatch,release_owner,pending,Alembic head must match DB
+database,database_revision expected value,0008_auto_delivery,curl -sS https://pet-med-ai-backend.onrender.com/api/system/version | python3 -m json.tool,NO-GO if different,release_owner,pending,Commercial launch expected revision
+feature_flags,EMR real import disabled,ENABLE_EMR_REAL_IMPORT=false,curl -sS https://pet-med-ai-backend.onrender.com/api/system/feature-flags | python3 -m json.tool,NO-GO if enabled,security_owner,pending,Real EMR writes remain gated
+feature_flags,EMR case update disabled,ENABLE_EMR_IMPORT_CASE_UPDATE=false,curl -sS https://pet-med-ai-backend.onrender.com/api/system/feature-flags | python3 -m json.tool,NO-GO if enabled,security_owner,pending,Case update remains disabled
+feature_flags,EMR attachment download disabled,ENABLE_EMR_ATTACHMENT_DOWNLOAD=false,curl -sS https://pet-med-ai-backend.onrender.com/api/system/feature-flags | python3 -m json.tool,NO-GO if enabled,security_owner,pending,External attachment ingestion remains disabled
+feature_flags,Automated reminder real sending disabled,ENABLE_PREVENTIVE_AUTO_DELIVERY=false,review Render environment and automated delivery dry-run evidence,NO-GO if enabled,security_owner,pending,True external messaging paused
+feature_flags,Automated SMS disabled,ENABLE_PREVENTIVE_SMS_DELIVERY=false,review Render environment and launch notes,NO-GO if enabled,security_owner,pending,No true SMS provider in Commercial V1
+feature_flags,Automated WeChat disabled,ENABLE_PREVENTIVE_WECHAT_DELIVERY=false,review Render environment and launch notes,NO-GO if enabled,security_owner,pending,No true WeChat provider in Commercial V1
+feature_flags,Automated email disabled,ENABLE_PREVENTIVE_EMAIL_DELIVERY=false,review Render environment and launch notes,NO-GO if enabled,security_owner,pending,No true email provider in Commercial V1
+data_access,Cross-user case isolation,pass manual or automated access review,Commercial Launch User Roles / Access Review V1,NO-GO if fail,security_owner,pending,Must block user A from user B data
+data_access,Cross-user reminder and delivery isolation,pass manual or automated access review,Commercial Launch User Roles / Access Review V1,NO-GO if fail,security_owner,pending,Reminder and delivery attempts must be owner scoped
+backup,Backup rollback evidence,exists,docs/ops backup rollback evidence plus restore drill plan,NO-GO if missing,release_owner,pending,V2 restore drill still required before final Go
+audit,Audit evidence,exists,review audit log model/API and release records,NO-GO if missing,release_owner,pending,Clinical and ops changes should be traceable
+security,Secrets not exposed,no leaked values,review GitHub / Render env and logs,NO-GO if leaked,security_owner,pending,Never expose DATABASE_URL or provider secrets
+scope,Commercial feature scope reviewed,scope lock pending,Commercial Launch Feature Scope Lock V1,NO-GO before final launch,product_owner,pending,This stage only identifies need
+legal,Consent and AI notice reviewed,legal pack pending,Commercial Launch Legal / Consent Pack V1,NO-GO before final launch,product_owner,pending,Required before external commercial operation
+decision,Readiness Review V1 decision,GO to next stage only after all hard gates pass,this checklist plus validator plus online smoke,NO-GO by default,release_owner,pending,This is not final launch approval

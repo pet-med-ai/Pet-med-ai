@@ -1,0 +1,19 @@
+risk_id,risk,severity,trigger,mitigation,go_no_go,owner,status
+CLR-R001,database_revision mismatch,Critical,database_revision != alembic_head,/api/system/version and smoke hard gate,NO-GO,release_owner,open
+CLR-R002,unexpected Alembic revision,Critical,database_revision != 0008_auto_delivery,smoke checks exact expected revision,NO-GO,release_owner,open
+CLR-R003,schema not OK,Critical,schema_ok=false,stop launch and inspect migrations,NO-GO,release_owner,open
+CLR-R004,automated reminder live sending enabled,Critical,ENABLE_PREVENTIVE_AUTO_DELIVERY=true,keep true sending paused and verify env flags,NO-GO,security_owner,open
+CLR-R005,external SMS WeChat email enabled,Critical,channel provider flag or credentials enabled,no provider credentials or background workers in Commercial V1,NO-GO,security_owner,open
+CLR-R006,EMR real import enabled,Critical,ENABLE_EMR_REAL_IMPORT=true,feature flag gate and admin-only review,NO-GO,security_owner,open
+CLR-R007,EMR case update enabled,Critical,ENABLE_EMR_IMPORT_CASE_UPDATE=true,case update remains disabled until policy exists,NO-GO,security_owner,open
+CLR-R008,cross-user data access,Critical,user A can access user B data,access review and owner_id scoped tests,NO-GO,security_owner,open
+CLR-R009,backup restore evidence missing,Critical,no restore evidence before final launch,Backup Restore Drill V2,NO-GO before final Go,release_owner,open
+CLR-R010,secret leak,Critical,DATABASE_URL provider token or JWT secret leaked,rotate secret and preserve incident record,NO-GO,security_owner,open
+CLR-R011,online smoke failure,High,smoke_petmed.sh fails,block launch and triage failing endpoint,NO-GO,release_owner,open
+CLR-R012,Render backend unavailable,High,/healthz unavailable,rollback or redeploy backend,NO-GO,release_owner,open
+CLR-R013,Render frontend unavailable,High,frontend static site unavailable,rollback or redeploy frontend,NO-GO,release_owner,open
+CLR-R014,GitHub Actions red,High,latest main workflow failed,fix CI before launch,NO-GO,release_owner,open
+CLR-R015,high-risk pages visible to ordinary users,High,EMR or automated delivery pages exposed,Feature Scope Lock and Access Review,NO-GO before final launch,product_owner,open
+CLR-R016,legal consent missing,High,no AI assistance notice or client consent SOP,Legal Consent Pack V1,NO-GO before final launch,product_owner,open
+CLR-R017,monitoring absent,Medium,no alerting for health/schema/flags,Monitoring Alerting Plan V1,NO-GO before final launch,release_owner,open
+CLR-R018,PDF export incomplete,Medium,clinic expects PDF not Word,position Word as available and PDF as future feature,GO with limitation,product_owner,open
