@@ -26,6 +26,7 @@ run_if_exists scripts/validate_commercial_launch_readiness.py
 run_if_exists scripts/validate_commercial_launch_feature_scope_lock.py
 run_if_exists scripts/validate_commercial_launch_ops_runbook.py
 run_if_exists scripts/validate_commercial_launch_access_review.py
+run_if_exists scripts/validate_commercial_launch_monitoring_alerting_plan.py
 
 # Database / Alembic static gates. These must not connect to production DB.
 run_if_exists scripts/validate_alembic_setup.py

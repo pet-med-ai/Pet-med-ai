@@ -1,0 +1,2 @@
+alert_id,date,detected_by,environment,base_url,frontend_url,git_commit,healthz_status,frontend_status,schema_ok,database_revision,alembic_head,dangerous_flags_disabled,smoke_result,ci_static_result,render_reference,github_actions_reference,owner,severity,decision,next_action,notes
+ALERT-EVIDENCE-TEMPLATE,,,,,,,,,,,,,,,,,,,,,

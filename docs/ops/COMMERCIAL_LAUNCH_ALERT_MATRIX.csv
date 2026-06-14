@@ -1,0 +1,21 @@
+alert_id,severity,area,trigger,detect_by,notify,first_response_sla,stop_clinic_use,required_evidence,resume_condition
+ALERT-P0-SCHEMA,P0,database,schema_ok=false,/api/system/version,release_owner security_owner,immediate,true,version output and commit,schema_ok=true and smoke PASS
+ALERT-P0-REVISION-MISMATCH,P0,database,database_revision != alembic_head,/api/system/version,release_owner,immediate,true,version output Alembic current/head,database_revision == alembic_head and smoke PASS
+ALERT-P0-REVISION-EXPECTED,P0,database,database_revision != 0008_auto_delivery,/api/system/version,release_owner,immediate,true,version output,expected revision restored or approved migration plan
+ALERT-P0-DANGEROUS-FLAG,P0,feature_flags,all_dangerous_features_disabled=false,/api/system/feature-flags,security_owner release_owner,immediate,true,feature flag output,flag disabled and impact reviewed
+ALERT-P0-EMR-REAL-IMPORT,P0,emr,ENABLE_EMR_REAL_IMPORT=true,/api/system/feature-flags,security_owner release_owner,immediate,true,flag output and logs,flag false and no unintended writes
+ALERT-P0-EMR-CASE-UPDATE,P0,emr,ENABLE_EMR_IMPORT_CASE_UPDATE=true,/api/system/feature-flags,security_owner,immediate,true,flag output and case audit,flag false and affected cases reviewed
+ALERT-P0-AUTO-DELIVERY,P0,automated_delivery,ENABLE_PREVENTIVE_AUTO_DELIVERY=true,Render env / feature review,security_owner clinical_ops_owner,immediate,true,flag/env evidence and logs,flag false and no sends occurred
+ALERT-P0-EXTERNAL-SEND,P0,automated_delivery,unexpected SMS/WeChat/email sent,incident report/logs,security_owner clinical_ops_owner,immediate,true,logs delivery records affected clients,root cause fixed and owner signoff
+ALERT-P0-CROSS-USER,P0,data_access,cross-user data visible,support report / IDOR test,security_owner release_owner,immediate,true,steps to reproduce user ids affected records,fix verified by IDOR tests
+ALERT-P0-SECRET,P0,security,secret leaked in UI/logs/repo,manual/security review,security_owner,immediate,true,secret type exposure location rotation evidence,secret rotated and exposure removed
+ALERT-P1-BACKEND-DOWN,P1,availability,/healthz unavailable,curl/uptime/manual check,release_owner,same business day,true if clinic in use,healthz response Render logs,healthz and smoke PASS
+ALERT-P1-FRONTEND-DOWN,P1,availability,frontend unavailable,curl/uptime/manual check,frontend_owner,same business day,true if clinic in use,http status Render logs,frontend live and smoke PASS
+ALERT-P1-SMOKE-FAIL,P1,release,online smoke fails,smoke_petmed.sh,release_owner,same business day,true if core workflow impacted,smoke log failing endpoint,online smoke ALL PASS
+ALERT-P1-CI-RED,P1,release,GitHub Actions latest main red,GitHub Actions,release_owner,same business day,false,failed workflow link,latest run green
+ALERT-P1-RENDER-DEPLOY,P1,deploy,Render deploy failed,Render deploy log,release_owner,same business day,false,deploy log commit,last good deploy active and smoke PASS
+ALERT-P1-WORD-EXPORT,P1,clinical_docs,Word export repeatedly fails,smoke/log/user report,backend_owner,same business day,false,case id smoke log,error fixed or workaround documented
+ALERT-P2-QUEUE-BACKLOG,P2,preventive_care,manual contact backlog grows,weekly queue review,clinical_ops_owner,weekly,false,queue summary,backlog assigned and tracked
+ALERT-P2-OPTOUT,P2,preventive_care,opt-out not respected,queue/preference review,clinical_ops_owner,weekly,false,affected clients preference record,opt-out corrected and contact paused
+ALERT-P2-SCOPE-DRIFT,P2,scope,hidden feature visible in default nav,feature scope validator/UI review,product_owner,weekly,false,screenshot or file diff,validator PASS and UI corrected
+ALERT-P3-TREND,P3,ops,non-critical recurring warning,monthly ops review,release_owner,monthly,false,monthly note,tracked or accepted

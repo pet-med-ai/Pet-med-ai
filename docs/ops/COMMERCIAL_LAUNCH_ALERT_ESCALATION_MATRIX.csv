@@ -1,0 +1,5 @@
+severity,response_time,notify_roles,required_action,decision_owner,resume_approval
+P0,immediate,release_owner security_owner clinical_ops_owner,stop affected clinic-facing use preserve evidence run version/flags checks,release_owner,release_owner plus security_owner for data/security incidents
+P1,same business day,release_owner component_owner,triage failing component block release promotion if launch gate affected,release_owner,release_owner
+P2,weekly,owning_ops_role,record in weekly ops review assign owner and deadline,clinical_ops_owner or product_owner,owning_ops_role
+P3,monthly,release_owner product_owner,record trend in monthly review decide whether to track or accept,product_owner,monthly review decision

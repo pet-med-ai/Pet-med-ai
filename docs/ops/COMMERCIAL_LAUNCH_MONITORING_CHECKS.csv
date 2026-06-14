@@ -1,0 +1,24 @@
+check_id,mode,area,signal,source,frequency,expected_state,severity_if_fail,owner,action
+MON-001,manual_daily_check,backend,Backend healthz,https://pet-med-ai-backend.onrender.com/healthz,daily,HTTP 200/PASS,P1,release_owner,triage Render backend and run smoke
+MON-002,manual_daily_check,frontend,Frontend live,https://pet-med-ai-frontend-static.onrender.com,daily,HTTP 200 or 304,P1,frontend_owner,triage Render static site and run smoke
+MON-003,manual_daily_check,database,schema_ok,/api/system/version,daily,schema_ok=true,P0,release_owner,NO-GO and inspect Alembic
+MON-004,manual_daily_check,database,database_revision equals alembic_head,/api/system/version,daily,database_revision == alembic_head,P0,release_owner,NO-GO and inspect Alembic current/head
+MON-005,manual_daily_check,database,expected database revision,/api/system/version,daily,database_revision == 0008_auto_delivery,P0,release_owner,NO-GO and stop launch
+MON-006,manual_daily_check,feature_flags,all dangerous features disabled,/api/system/feature-flags,daily,all_dangerous_features_disabled=true,P0,security_owner,disable unexpected flags and preserve evidence
+MON-007,manual_daily_check,feature_flags,EMR real import disabled,/api/system/feature-flags,daily,ENABLE_EMR_REAL_IMPORT=false,P0,security_owner,disable flag and check for writes
+MON-008,manual_daily_check,feature_flags,EMR case update disabled,/api/system/feature-flags,daily,ENABLE_EMR_IMPORT_CASE_UPDATE=false,P0,security_owner,disable flag and check affected cases
+MON-009,manual_daily_check,feature_flags,EMR attachment download disabled,/api/system/feature-flags,daily,ENABLE_EMR_ATTACHMENT_DOWNLOAD=false,P0,security_owner,disable flag and check logs
+MON-010,manual_daily_check,feature_flags,Automated reminder live delivery disabled,Render env / feature review,daily,ENABLE_PREVENTIVE_AUTO_DELIVERY=false,P0,security_owner,disable flag and verify no sends
+MON-011,manual_daily_check,feature_flags,SMS/WeChat/email live flags disabled,Render env / feature review,daily,SMS/WeChat/email live flags false,P0,security_owner,disable flags and verify no credentials
+MON-012,manual_daily_check,smoke,Online smoke,scripts/smoke_petmed.sh,daily,ALL PASS,P1,release_owner,triage failing endpoint
+MON-013,release_gate_check,ci,CI static checks,scripts/ci_static_checks.sh,before deploy,PASS,P1,release_owner,fix targeted files only
+MON-014,release_gate_check,ci,GitHub Actions latest main run,GitHub Actions,before deploy,green,P1,release_owner,block promotion until green
+MON-015,release_gate_check,deploy,Render backend deploy,Render deploy log,after deploy,succeeded,P1,release_owner,rollback or redeploy
+MON-016,release_gate_check,deploy,Render frontend deploy,Render static deploy log,after deploy,succeeded,P1,frontend_owner,rollback or redeploy
+MON-017,weekly_ops,preventive_care,Manual contact queue backlog,Preventive care queue/ops dashboard,weekly,reviewed and assigned,P2,clinical_ops_owner,assign backlog owner
+MON-018,weekly_ops,preventive_care,Client opt-out handling,preferences/queue records,weekly,opt-out respected,P2,clinical_ops_owner,pause affected contacts and correct preferences
+MON-019,weekly_ops,security,Cross-user access complaint,support/incident reports,weekly,no unresolved cross-user access issue,P0,security_owner,stop clinic-facing use and investigate
+MON-020,weekly_ops,security,Secret exposure check,logs/UI/GitHub/Render,weekly,no secret exposed,P0,security_owner,rotate and preserve evidence
+MON-021,weekly_ops,scope,High-risk UI exposure,feature/route matrix,weekly,no hidden_paused surface in default clinic nav,P2,product_owner,remove exposure and re-run validator
+MON-022,monthly_ops,backup,Backup evidence,backup/rollback docs,monthly,current evidence present,P2,release_owner,schedule Backup Restore Drill V2
+MON-023,monthly_ops,roadmap,Clinical roadmap drift,monthly ops review,monthly,long-term clinical scope not promised in V1,P3,product_owner,update roadmap notes
