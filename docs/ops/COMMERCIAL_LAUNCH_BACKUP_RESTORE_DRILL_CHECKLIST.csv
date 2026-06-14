@@ -1,0 +1,26 @@
+check_id,phase,item,required_state,evidence,owner,go_no_go,status,notes
+BRD2-001,preflight,Backend healthz,pass,curl /healthz output,release_owner,NO-GO if fail,pending,Run before backup/restore drill
+BRD2-002,preflight,System version reachable,pass,/api/system/version output,release_owner,NO-GO if fail,pending,Do not expose DATABASE_URL
+BRD2-003,preflight,schema_ok,true,/api/system/version output,release_owner,NO-GO if false,pending,Hard gate
+BRD2-004,preflight,database_revision equals alembic_head,true,/api/system/version output,release_owner,NO-GO if mismatch,pending,Hard gate
+BRD2-005,preflight,Expected revision,0008_auto_delivery,/api/system/version output,release_owner,NO-GO if different,pending,Hard gate
+BRD2-006,preflight,Dangerous flags disabled,true,/api/system/feature-flags output,security_owner,NO-GO if false,pending,EMR and auto-send flags must remain closed
+BRD2-007,preflight,Online smoke,ALL PASS,scripts/smoke_petmed.sh output,release_owner,NO-GO if fail,pending,Primary pre-drill acceptance
+BRD2-008,backup,Recent Render backup exists,verified,Render backup reference without secrets,release_owner,NO-GO if missing,pending,Backup source pet-med-ai-db
+BRD2-009,backup,Backup timestamp recorded,recorded,evidence template,release_owner,NO-GO if missing,pending,Used for RPO
+BRD2-010,backup,Backup retention reviewed,recorded,evidence template,release_owner,NO-GO if unknown,pending,Document retention expectation
+BRD2-011,export_optional,Manual export command reviewed,sanitized command template,command template no secrets,backend_owner,GO if skipped with reason,pending,Do not commit dump
+BRD2-012,restore_target,Non-production restore target identified,verified,target name or reference,release_owner,NO-GO if production target,pending,Never restore over production
+BRD2-013,restore_target,Target is disposable,verified,operator note,security_owner,NO-GO if not disposable,pending,Avoid damaging active data
+BRD2-014,restore,Restore started_at recorded,recorded,evidence template,backend_owner,NO-GO if missing,pending,Used for RTO
+BRD2-015,restore,Restore finished_at recorded,recorded,evidence template,backend_owner,NO-GO if missing,pending,Used for RTO
+BRD2-016,restore,Restore duration recorded,minutes recorded,evidence template,backend_owner,NO-GO if missing,pending,Observed RTO
+BRD2-017,validation,alembic_version exists,true,SQL or system version evidence,backend_owner,NO-GO if missing,pending,Restored DB schema check
+BRD2-018,validation,Restored revision expected,0008_auto_delivery,SQL or system version evidence,backend_owner,NO-GO if different,pending,Commercial launch expected revision
+BRD2-019,validation,Core tables exist,true,SQL evidence,backend_owner,NO-GO if missing,pending,users cases consult_sessions preventive care automated delivery
+BRD2-020,validation,Restored backend smoke,ALL PASS or documented limitation,smoke output or limitation note,release_owner,NO-GO if fail without explanation,pending,Preferred validation
+BRD2-021,security,No secrets in evidence,true,review evidence,security_owner,NO-GO if leaked,pending,Do not commit DATABASE_URL
+BRD2-022,security,No PHI in evidence,true,review evidence,security_owner,NO-GO if PHI leaked,pending,Do not commit client data
+BRD2-023,cleanup,Temporary restore target cleaned or locked,recorded,cleanup note,backend_owner,NO-GO if unmanaged,pending,Prevent accidental exposure
+BRD2-024,signoff,Release owner signoff,recorded,evidence template,release_owner,NO-GO if missing,pending,Required before Final Go
+BRD2-025,signoff,Security owner signoff,recorded,evidence template,security_owner,NO-GO if missing,pending,Required before Final Go

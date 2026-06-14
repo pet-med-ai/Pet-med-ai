@@ -1,0 +1,13 @@
+risk_id,risk,severity,trigger,mitigation,go_no_go,owner,status
+BRD2-R001,no recent backup exists,Critical,backup not found,stop final launch until backup exists,NO-GO,release_owner,open
+BRD2-R002,restore performed against production,Critical,production target selected,never restore over pet-med-ai-db during drill,NO-GO,release_owner,open
+BRD2-R003,restore fails,Critical,pg_restore or managed restore fails,triage backup integrity and target compatibility,NO-GO,backend_owner,open
+BRD2-R004,restored revision mismatch,Critical,restored revision not 0008_auto_delivery,inspect backup age and migrations,NO-GO,release_owner,open
+BRD2-R005,schema validation fails,Critical,missing alembic_version or core tables,investigate backup integrity,NO-GO,backend_owner,open
+BRD2-R006,restored smoke fails,High,smoke against restored backend fails,triage failing endpoint or document accepted limitation,NO-GO unless accepted,release_owner,open
+BRD2-R007,secrets in evidence,Critical,DATABASE_URL or password recorded,remove evidence rotate secret if exposed,NO-GO,security_owner,open
+BRD2-R008,PHI in evidence,Critical,client data committed or shown,remove evidence and handle privacy incident,NO-GO,security_owner,open
+BRD2-R009,restore duration not recorded,High,missing RTO evidence,repeat or reconstruct drill timeline,NO-GO before Final Go,release_owner,open
+BRD2-R010,temp restore target not cleaned,High,target left accessible,delete or lock down target,NO-GO before Final Go,security_owner,open
+BRD2-R011,owner signoff missing,High,no release/security owner signoff,collect signoff before Final Go,NO-GO before Final Go,release_owner,open
+BRD2-R012,backup too old,High,RPO unacceptable,create fresh backup before launch,NO-GO before Final Go,release_owner,open

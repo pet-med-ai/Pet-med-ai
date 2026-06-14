@@ -209,6 +209,9 @@ pass "commercial launch access review validation"
 python3 scripts/validate_commercial_launch_monitoring_alerting_plan.py >/dev/null || fail "commercial launch monitoring alerting plan validation failed"
 pass "commercial launch monitoring alerting plan validation"
 
+python3 scripts/validate_commercial_launch_backup_restore_drill_v2.py >/dev/null || fail "commercial launch backup restore drill v2 validation failed"
+pass "commercial launch backup restore drill v2 validation"
+
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
