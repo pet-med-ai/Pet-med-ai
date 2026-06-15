@@ -120,6 +120,26 @@ def main() -> int:
     if len("0008_auto_delivery") > 32:
         return fail("automated delivery Alembic revision id exceeds 32 chars")
 
+    # PostgreSQL limits identifiers to 63 bytes. 0008 must avoid long index names.
+    migration_text = MIGRATION_FILE.read_text(encoding="utf-8")
+    required_short_indexes = (
+        "ix_auto_delivery_attempt_contact_hash",
+        "ix_auto_suppression_notification_id",
+    )
+    for name in required_short_indexes:
+        if name not in migration_text:
+            return fail(f"automated delivery migration missing short PostgreSQL-safe index name: {name}")
+        if len(name) > 63:
+            return fail(f"automated delivery index name exceeds PostgreSQL identifier length: {name}")
+
+    forbidden_long_indexes = (
+        "ix_automated_reminder_delivery_attempts_contact_destination_hash",
+        "ix_automated_reminder_delivery_suppression_rules_notification_id",
+    )
+    for name in forbidden_long_indexes:
+        if name in migration_text:
+            return fail(f"automated delivery migration still contains PostgreSQL-unsafe index name: {name}")
+
     rc = require_text(
         ALEMBIC_VALIDATOR,
         (

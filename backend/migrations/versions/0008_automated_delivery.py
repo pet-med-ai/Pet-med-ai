@@ -80,6 +80,9 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["reminder_id"], ["preventive_care_reminders.reminder_id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("delivery_id"),
     )
+    attempt_index_names = {
+        "contact_destination_hash": "ix_auto_delivery_attempt_contact_hash",
+    }
     for column in (
         "owner_id", "reminder_id", "notification_id", "channel", "template_key", "template_version",
         "eligibility_result", "blocked_reason", "status", "manual_review_required", "approved_by",
@@ -87,7 +90,12 @@ def upgrade() -> None:
         "message_hash", "provider_name", "provider_message_id", "queued_at", "sent_at",
         "delivered_at", "failed_at", "canceled_at", "created_at",
     ):
-        op.create_index(f"ix_automated_reminder_delivery_attempts_{column}", "automated_reminder_delivery_attempts", [column], unique=False)
+        op.create_index(
+            attempt_index_names.get(column, f"ix_automated_reminder_delivery_attempts_{column}"),
+            "automated_reminder_delivery_attempts",
+            [column],
+            unique=False,
+        )
     op.create_index("ix_automated_delivery_owner_status_channel", "automated_reminder_delivery_attempts", ["owner_id", "status", "channel"], unique=False)
     op.create_index("ix_automated_delivery_reminder_status", "automated_reminder_delivery_attempts", ["reminder_id", "status"], unique=False)
     op.create_index("ix_automated_delivery_notification_status", "automated_reminder_delivery_attempts", ["notification_id", "status"], unique=False)
@@ -140,8 +148,16 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(["reminder_id"], ["preventive_care_reminders.reminder_id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),
     )
+    suppression_index_names = {
+        "notification_id": "ix_auto_suppression_notification_id",
+    }
     for column in ("id", "owner_id", "reminder_id", "notification_id", "pet_id", "category", "channel", "reason", "active", "starts_at", "ends_at", "created_by", "created_at"):
-        op.create_index(f"ix_automated_reminder_delivery_suppression_rules_{column}", "automated_reminder_delivery_suppression_rules", [column], unique=False)
+        op.create_index(
+            suppression_index_names.get(column, f"ix_automated_reminder_delivery_suppression_rules_{column}"),
+            "automated_reminder_delivery_suppression_rules",
+            [column],
+            unique=False,
+        )
     op.create_index("ix_automated_suppression_owner_channel_active", "automated_reminder_delivery_suppression_rules", ["owner_id", "channel", "active"], unique=False)
     op.create_index("ix_automated_suppression_category_active", "automated_reminder_delivery_suppression_rules", ["category", "active"], unique=False)
 
@@ -149,8 +165,14 @@ def upgrade() -> None:
 def downgrade() -> None:
     op.drop_index("ix_automated_suppression_category_active", table_name="automated_reminder_delivery_suppression_rules")
     op.drop_index("ix_automated_suppression_owner_channel_active", table_name="automated_reminder_delivery_suppression_rules")
+    suppression_index_names = {
+        "notification_id": "ix_auto_suppression_notification_id",
+    }
     for column in ("created_at", "created_by", "ends_at", "starts_at", "active", "reason", "channel", "category", "pet_id", "notification_id", "reminder_id", "owner_id", "id"):
-        op.drop_index(f"ix_automated_reminder_delivery_suppression_rules_{column}", table_name="automated_reminder_delivery_suppression_rules")
+        op.drop_index(
+            suppression_index_names.get(column, f"ix_automated_reminder_delivery_suppression_rules_{column}"),
+            table_name="automated_reminder_delivery_suppression_rules",
+        )
     op.drop_table("automated_reminder_delivery_suppression_rules")
 
     op.drop_index("ix_automated_receipts_provider_event", table_name="automated_reminder_delivery_receipts")
@@ -163,6 +185,9 @@ def downgrade() -> None:
     op.drop_index("ix_automated_delivery_notification_status", table_name="automated_reminder_delivery_attempts")
     op.drop_index("ix_automated_delivery_reminder_status", table_name="automated_reminder_delivery_attempts")
     op.drop_index("ix_automated_delivery_owner_status_channel", table_name="automated_reminder_delivery_attempts")
+    attempt_index_names = {
+        "contact_destination_hash": "ix_auto_delivery_attempt_contact_hash",
+    }
     for column in (
         "created_at", "canceled_at", "failed_at", "delivered_at", "sent_at", "queued_at",
         "provider_message_id", "provider_name", "message_hash", "contact_destination_hash",
@@ -170,7 +195,10 @@ def downgrade() -> None:
         "manual_review_required", "status", "blocked_reason", "eligibility_result",
         "template_version", "template_key", "channel", "notification_id", "reminder_id", "owner_id",
     ):
-        op.drop_index(f"ix_automated_reminder_delivery_attempts_{column}", table_name="automated_reminder_delivery_attempts")
+        op.drop_index(
+            attempt_index_names.get(column, f"ix_automated_reminder_delivery_attempts_{column}"),
+            table_name="automated_reminder_delivery_attempts",
+        )
     op.drop_table("automated_reminder_delivery_attempts")
 
     op.drop_index("ix_automated_delivery_template_review", table_name="automated_reminder_delivery_templates")
