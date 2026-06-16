@@ -1,0 +1,2 @@
+incident_id,date,severity,area,summary,detected_by,affected_workflow,immediate_action,owner,status,resolution,notes
+PV1-INCIDENT-TEMPLATE,,P2,ops,Template row; replace with real incident or keep zero-incident daily note,,,,,,open,,

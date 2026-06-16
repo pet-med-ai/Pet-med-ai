@@ -1,0 +1,19 @@
+check_id,phase,item,required_state,owner,status,notes
+PV1-001,pre_pilot,Commercial V1 final GO recorded,GO_PRODUCTION_COMMERCIAL_LAUNCH,release_owner,complete,Final Go complete
+PV1-002,pre_pilot,Named pilot clinic selected,recorded,pilot_clinic_owner,pending,One clinic only
+PV1-003,pre_pilot,Named pilot users confirmed,recorded,pilot_clinic_owner,pending,No broad rollout
+PV1-004,pre_pilot,Staff briefing completed,recorded,clinical_ops_owner,pending,AI assistive only
+PV1-005,pre_pilot,Manual contact only confirmed,true,clinical_ops_owner,pending,No SMS/WeChat/email live sending
+PV1-006,pre_pilot,EMR real import disabled,true,security_owner,pending,No real writes
+PV1-007,pre_pilot,Daily health check command available,true,release_owner,complete,Run every pilot day
+PV1-008,D0,Supervised AI consultation,pass,clinical_ops_owner,pending,Launch day workflow
+PV1-009,D0,Supervised case save,pass,clinical_ops_owner,pending,AI review audit required
+PV1-010,D0,Word export checked,pass,clinical_ops_owner,pending,Commercial V1 document output
+PV1-011,D0,Manual queue opened,pass,pilot_front_desk_lead,pending,Manual contact workflow
+PV1-012,D1-D7,Daily smoke recorded,ALL PASS,release_owner,pending,Hard operating gate
+PV1-013,D1-D7,Feature flags reviewed,closed,security_owner,pending,Daily
+PV1-014,D1-D7,Incident log reviewed,recorded,release_owner,pending,Even if zero incidents
+PV1-015,exit,No open P0,true,release_owner,pending,Exit criterion
+PV1-016,exit,No unresolved P1,true,release_owner,pending,Exit criterion
+PV1-017,exit,Metrics review completed,recorded,clinical_ops_owner,pending,Exit criterion
+PV1-018,exit,Expansion decision recorded,continue/extend/pause,pilot_clinic_owner,pending,Do not expand blindly

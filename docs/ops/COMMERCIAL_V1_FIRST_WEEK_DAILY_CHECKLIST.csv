@@ -1,0 +1,9 @@
+day,date,reviewer,backend_healthz,frontend_live,system_version_ok,schema_ok,database_revision,alembic_head,dangerous_flags_disabled,online_smoke,ai_consult_ok,dynamic_consult_ok,case_save_ok,case_detail_ok,case_edit_ok,word_export_ok,preventive_reminder_ok,manual_queue_ok,opt_out_ok,open_p0_count,open_p1_count,decision,notes
+D0,,,,,,,,0008_auto_delivery,0008_auto_delivery,,pending,pending,pending,pending,pending,pending,pending,pending,pending,0,0,pending,Launch day supervised workflow
+D1,,,,,,,,0008_auto_delivery,0008_auto_delivery,,pending,pending,pending,pending,pending,pending,pending,pending,pending,0,0,pending,
+D2,,,,,,,,0008_auto_delivery,0008_auto_delivery,,pending,pending,pending,pending,pending,pending,pending,pending,pending,0,0,pending,
+D3,,,,,,,,0008_auto_delivery,0008_auto_delivery,,pending,pending,pending,pending,pending,pending,pending,pending,pending,0,0,pending,
+D4,,,,,,,,0008_auto_delivery,0008_auto_delivery,,pending,pending,pending,pending,pending,pending,pending,pending,pending,0,0,pending,
+D5,,,,,,,,0008_auto_delivery,0008_auto_delivery,,pending,pending,pending,pending,pending,pending,pending,pending,pending,0,0,pending,
+D6,,,,,,,,0008_auto_delivery,0008_auto_delivery,,pending,pending,pending,pending,pending,pending,pending,pending,pending,0,0,pending,
+D7,,,,,,,,0008_auto_delivery,0008_auto_delivery,,pending,pending,pending,pending,pending,pending,pending,pending,pending,0,0,pending,Exit review day

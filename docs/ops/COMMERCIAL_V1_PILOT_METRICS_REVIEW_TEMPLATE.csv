@@ -1,0 +1,2 @@
+review_id,period_start,period_end,clinic_name,reviewer,ai_consults_count,dynamic_followups_count,cases_created_count,cases_updated_count,word_exports_count,preventive_reminders_reviewed,manual_queue_items_reviewed,opt_out_events_count,p0_count,p1_count,p2_count,staff_feedback_summary,client_feedback_summary,decision,next_actions
+PV1-METRICS-TEMPLATE,,,,,0,0,0,0,0,0,0,0,0,0,0,,,continue_or_extend_or_pause,
