@@ -22,6 +22,10 @@ All dangerous flags default to false.
 ENABLE_EMR_REAL_IMPORT=false
 ENABLE_EMR_IMPORT_CASE_UPDATE=false
 ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
 ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
 ENABLE_DEVICE_REAL_INGEST=false
 ENABLE_BILLING_REAL_WRITE=false
@@ -66,6 +70,54 @@ false
 ```
 
 Attachment ingestion requires storage, malware, PHI, size, timeout, retry, and rollback controls.
+
+### ENABLE_PREVENTIVE_AUTO_DELIVERY
+
+Allows automated preventive reminder delivery.
+
+Default:
+
+```txt
+false
+```
+
+Commercial V1 is manual-contact only. Real automated outbound delivery requires a separate controlled pilot and risk review.
+
+### ENABLE_PREVENTIVE_SMS_DELIVERY
+
+Allows automated preventive SMS delivery.
+
+Default:
+
+```txt
+false
+```
+
+Commercial V1 has no real SMS provider and no automatic SMS approval.
+
+### ENABLE_PREVENTIVE_WECHAT_DELIVERY
+
+Allows automated preventive WeChat delivery.
+
+Default:
+
+```txt
+false
+```
+
+Commercial V1 has no real WeChat provider and no automatic WeChat approval.
+
+### ENABLE_PREVENTIVE_EMAIL_DELIVERY
+
+Allows automated preventive email delivery.
+
+Default:
+
+```txt
+false
+```
+
+Commercial V1 has no real email provider and no automatic email approval.
 
 ### ENABLE_PRESCRIPTION_STRUCTURED_WRITE
 
@@ -139,6 +191,10 @@ exposes_secret_values=false
 flags.ENABLE_EMR_REAL_IMPORT.enabled=false
 flags.ENABLE_EMR_IMPORT_CASE_UPDATE.enabled=false
 flags.ENABLE_EMR_ATTACHMENT_DOWNLOAD.enabled=false
+flags.ENABLE_PREVENTIVE_AUTO_DELIVERY.enabled=false
+flags.ENABLE_PREVENTIVE_SMS_DELIVERY.enabled=false
+flags.ENABLE_PREVENTIVE_WECHAT_DELIVERY.enabled=false
+flags.ENABLE_PREVENTIVE_EMAIL_DELIVERY.enabled=false
 ```
 
 ## Safety boundary
