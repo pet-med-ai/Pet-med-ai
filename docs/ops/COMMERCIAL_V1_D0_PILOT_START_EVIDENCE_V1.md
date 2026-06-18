@@ -6,7 +6,7 @@
 - phase: Commercial V1 Post-Go
 - evidence_stage: Commercial V1 D0 Pilot Start Evidence
 - date: 2026-06-17
-- status: D0_EVIDENCE_IN_PROGRESS
+- status: D0_REAL_OPERATING_EVIDENCE_RECORDED
 - scope: first clinic supervised pilot start
 - production_backend: https://pet-med-ai-backend.onrender.com
 - production_frontend: https://pet-med-ai-frontend-static.onrender.com
@@ -123,10 +123,10 @@ decision=NO_GO_PAUSE_PILOT
 
 ## 8. Owner Signoff
 
-- release_owner: TBD
-- security_owner: TBD
-- clinical_ops_owner: TBD
-- final_decision: TBD
+- release_owner: release_owner
+- security_owner: security_owner
+- clinical_ops_owner: clinical_ops_owner
+- final_decision: GO_CONTINUE_D1
 
 ## 9. Completion Criteria
 

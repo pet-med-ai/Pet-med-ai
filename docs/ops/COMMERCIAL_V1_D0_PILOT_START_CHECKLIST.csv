@@ -1,27 +1,27 @@
 check_id,area,item,required_state,actual_state,evidence,owner,go_no_go,status,notes
-D0-001,health,Production healthz,OK,TBD,curl /healthz,TBD,GO_REQUIRED,TBD,
-D0-002,version,database_revision,0008_auto_delivery,TBD,/api/system/version,TBD,GO_REQUIRED,TBD,
-D0-003,version,alembic_head,0008_auto_delivery,TBD,/api/system/version,TBD,GO_REQUIRED,TBD,
-D0-004,version,schema_ok,true,TBD,/api/system/version,TBD,GO_REQUIRED,TBD,
-D0-005,flags,EMR real import disabled,false,TBD,/api/system/feature-flags,TBD,GO_REQUIRED,TBD,ENABLE_EMR_REAL_IMPORT
-D0-006,flags,EMR case update disabled,false,TBD,/api/system/feature-flags,TBD,GO_REQUIRED,TBD,ENABLE_EMR_IMPORT_CASE_UPDATE
-D0-007,flags,EMR attachment download disabled,false,TBD,/api/system/feature-flags,TBD,GO_REQUIRED,TBD,ENABLE_EMR_ATTACHMENT_DOWNLOAD
-D0-008,flags,preventive auto delivery disabled,false,TBD,/api/system/feature-flags,TBD,GO_REQUIRED,TBD,ENABLE_PREVENTIVE_AUTO_DELIVERY
-D0-009,flags,SMS delivery disabled,false,TBD,/api/system/feature-flags,TBD,GO_REQUIRED,TBD,ENABLE_PREVENTIVE_SMS_DELIVERY
-D0-010,flags,WeChat delivery disabled,false,TBD,/api/system/feature-flags,TBD,GO_REQUIRED,TBD,ENABLE_PREVENTIVE_WECHAT_DELIVERY
-D0-011,flags,email delivery disabled,false,TBD,/api/system/feature-flags,TBD,GO_REQUIRED,TBD,ENABLE_PREVENTIVE_EMAIL_DELIVERY
-D0-012,smoke,online smoke,PASS,TBD,scripts/smoke_petmed.sh,TBD,GO_REQUIRED,TBD,
-D0-013,clinic,pilot clinic recorded,one named clinic,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-014,users,pilot users recorded,named users only,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-015,workflow,supervised AI consultation,OK,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-016,workflow,supervised dynamic consultation,OK,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-017,workflow,supervised case save,OK,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-018,workflow,case detail open,OK,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-019,workflow,case edit check,OK,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-020,workflow,Word export check,OK,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-021,workflow,preventive reminder review,OK,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-022,workflow,manual queue check,OK,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-023,workflow,opt-out handling check,OK,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
-D0-024,incident,open P0 count,0,TBD,D0 incident snapshot,TBD,GO_REQUIRED,TBD,
-D0-025,incident,open P1 count,0,TBD,D0 incident snapshot,TBD,GO_REQUIRED,TBD,
-D0-026,decision,D0 decision,GO_CONTINUE_D1,TBD,D0 workflow evidence,TBD,GO_REQUIRED,TBD,
+D0-001,health,Production healthz,OK,OK,healthz ok=true,release_owner,GO_REQUIRED,PASS,
+D0-002,version,database_revision,0008_auto_delivery,0008_auto_delivery,/api/system/version,release_owner,GO_REQUIRED,PASS,
+D0-003,version,alembic_head,0008_auto_delivery,0008_auto_delivery,/api/system/version,release_owner,GO_REQUIRED,PASS,
+D0-004,version,schema_ok,true,true,/api/system/version,release_owner,GO_REQUIRED,PASS,
+D0-005,flags,EMR real import disabled,false,false,/api/system/feature-flags,security_owner,GO_REQUIRED,PASS,ENABLE_EMR_REAL_IMPORT
+D0-006,flags,EMR case update disabled,false,false,/api/system/feature-flags,security_owner,GO_REQUIRED,PASS,ENABLE_EMR_IMPORT_CASE_UPDATE
+D0-007,flags,EMR attachment download disabled,false,false,/api/system/feature-flags,security_owner,GO_REQUIRED,PASS,ENABLE_EMR_ATTACHMENT_DOWNLOAD
+D0-008,flags,preventive auto delivery disabled,false,false,/api/system/feature-flags,security_owner,GO_REQUIRED,PASS,ENABLE_PREVENTIVE_AUTO_DELIVERY
+D0-009,flags,SMS delivery disabled,false,false,/api/system/feature-flags,security_owner,GO_REQUIRED,PASS,ENABLE_PREVENTIVE_SMS_DELIVERY
+D0-010,flags,WeChat delivery disabled,false,false,/api/system/feature-flags,security_owner,GO_REQUIRED,PASS,ENABLE_PREVENTIVE_WECHAT_DELIVERY
+D0-011,flags,email delivery disabled,false,false,/api/system/feature-flags,security_owner,GO_REQUIRED,PASS,ENABLE_PREVENTIVE_EMAIL_DELIVERY
+D0-012,smoke,online smoke,PASS,PASS,smoke_petmed.sh SMOKE_EXIT=0,release_owner,GO_REQUIRED,PASS,
+D0-013,clinic,pilot clinic recorded,one named clinic,FIRST_CLINIC_PILOT_001,de-identified pilot clinic alias,release_owner,GO_REQUIRED,PASS,
+D0-014,users,pilot users recorded,named users only,"release_owner,clinical_ops_user_01,frontdesk_user_01",named pilot users only; de-identified aliases,release_owner,GO_REQUIRED,PASS,
+D0-015,workflow,supervised AI consultation,OK,OK,supervised D0 workflow,clinical_ops_owner,GO_REQUIRED,PASS,
+D0-016,workflow,supervised dynamic consultation,OK,OK,supervised D0 workflow,clinical_ops_owner,GO_REQUIRED,PASS,
+D0-017,workflow,supervised case save,OK,OK,supervised D0 workflow,clinical_ops_owner,GO_REQUIRED,PASS,
+D0-018,workflow,case detail open,OK,OK,supervised D0 workflow,clinical_ops_owner,GO_REQUIRED,PASS,
+D0-019,workflow,case edit check,OK,OK,supervised D0 workflow,clinical_ops_owner,GO_REQUIRED,PASS,
+D0-020,workflow,Word export check,OK,OK,supervised D0 workflow,clinical_ops_owner,GO_REQUIRED,PASS,
+D0-021,workflow,preventive reminder review,OK,OK,supervised D0 workflow,clinical_ops_owner,GO_REQUIRED,PASS,
+D0-022,workflow,manual queue check,OK,OK,supervised D0 workflow,clinical_ops_owner,GO_REQUIRED,PASS,
+D0-023,workflow,opt-out handling check,OK,OK,supervised D0 workflow,clinical_ops_owner,GO_REQUIRED,PASS,
+D0-024,incident,open P0 count,0,0,D0 incident snapshot,release_owner,GO_REQUIRED,PASS,
+D0-025,incident,open P1 count,0,0,D0 incident snapshot,release_owner,GO_REQUIRED,PASS,
+D0-026,decision,D0 decision,GO_CONTINUE_D1,GO_CONTINUE_D1,D0 workflow evidence,release_owner,GO_REQUIRED,PASS,

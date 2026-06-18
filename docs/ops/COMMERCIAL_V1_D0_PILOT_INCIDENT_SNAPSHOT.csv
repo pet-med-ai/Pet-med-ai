@@ -1,2 +1,2 @@
 incident_id,date,severity,area,summary,status,owner,decision,notes
-D0-NO-INCIDENT,2026-06-17,none,all,no incident observed,closed,release_owner,GO_CONTINUE_D1,no P0/P1 during D0 supervised start
+D0-NO-INCIDENT,2026-06-18,none,all,no incident observed,closed,release_owner,GO_CONTINUE_D1,no P0/P1 during D0 supervised start; evidence uses de-identified aliases only
