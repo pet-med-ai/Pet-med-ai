@@ -249,4 +249,28 @@ Next: First Clinic Weekly Pilot Review / Controlled Rollout Gate
 - notes: D1 supervised operations completed with de-identified evidence; no PHI in repo.
 
 D1 evidence is de-identified. No real client name, phone number, medical record number, secret, database URL, or PHI is committed in repo evidence.
+---
+
+## D2 Daily Operating Evidence
+
+- date: 2026-06-18
+- pilot_clinic: FIRST_CLINIC_PILOT_001
+- pilot_users: release_owner,clinical_ops_user_01,frontdesk_user_01
+- healthz_ok: true
+- database_revision: 0008_auto_delivery
+- alembic_head: 0008_auto_delivery
+- schema_ok: true
+- dangerous_flags_disabled: true
+- ci_static_pass: true
+- online_smoke_pass: true
+- supervised_workflow_ok: true
+- open_p0_count: 0
+- open_p1_count: 0
+- decision: GO_CONTINUE_NEXT_DAY
+- release_owner: release_owner
+- security_owner: security_owner
+- clinical_ops_owner: clinical_ops_owner
+- notes: D2 supervised operations completed with de-identified evidence; no PHI in repo.
+
+D2 evidence is de-identified. No real client name, phone number, medical record number, secret, database URL, or PHI is committed in repo evidence.
 
