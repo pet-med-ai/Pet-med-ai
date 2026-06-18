@@ -1,5 +1,5 @@
 incident_id,day,date,severity,area,summary,status,owner,decision,notes
-D1-NO-INCIDENT,D1,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
+D1-NO-INCIDENT,D1,2026-06-18,none,all,no incident observed,closed,release_owner,GO_CONTINUE_NEXT_DAY,no P0/P1 during D1 supervised daily operations; evidence de-identified
 D2-NO-INCIDENT,D2,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
 D3-NO-INCIDENT,D3,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
 D4-NO-INCIDENT,D4,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
