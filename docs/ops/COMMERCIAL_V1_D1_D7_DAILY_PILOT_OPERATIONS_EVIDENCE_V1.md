@@ -274,3 +274,39 @@ D1 evidence is de-identified. No real client name, phone number, medical record 
 
 D2 evidence is de-identified. No real client name, phone number, medical record number, secret, database URL, or PHI is committed in repo evidence.
 
+
+<!-- D3_REAL_OPERATING_EVIDENCE_START -->
+## D3 Real Daily Operating Evidence
+
+- date: 2026-06-18
+- pilot_clinic: FIRST_CLINIC_PILOT_001
+- pilot_users: release_owner,clinical_ops_user_01,frontdesk_user_01
+- base_url: https://pet-med-ai-backend.onrender.com
+- frontend_url: https://pet-med-ai-frontend-static.onrender.com
+- git_commit: 47cd6ad
+- healthz_ok: true
+- ci_static_pass: true
+- online_smoke_pass: true
+- schema_ok: true
+- database_revision: 0008_auto_delivery
+- alembic_head: 0008_auto_delivery
+- dangerous_flags_disabled: true
+- ai_consult_ok: true
+- dynamic_consult_ok: true
+- case_save_ok: true
+- case_detail_ok: true
+- case_edit_ok: true
+- word_export_ok: true
+- preventive_reminder_ok: true
+- manual_queue_ok: true
+- opt_out_ok: true
+- open_p0_count: 0
+- open_p1_count: 0
+- decision: GO_CONTINUE_NEXT_DAY
+- release_owner: release_owner
+- security_owner: security_owner
+- clinical_ops_owner: clinical_ops_owner
+- smoke_log_status: not_provided
+- notes: D3 supervised daily pilot operations evidence; no PHI stored in repo evidence.
+
+<!-- D3_REAL_OPERATING_EVIDENCE_END -->
