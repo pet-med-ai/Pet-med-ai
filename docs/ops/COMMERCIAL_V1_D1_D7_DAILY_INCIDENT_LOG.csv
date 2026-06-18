@@ -1,0 +1,8 @@
+incident_id,day,date,severity,area,summary,status,owner,decision,notes
+D1-NO-INCIDENT,D1,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
+D2-NO-INCIDENT,D2,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
+D3-NO-INCIDENT,D3,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
+D4-NO-INCIDENT,D4,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
+D5-NO-INCIDENT,D5,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
+D6-NO-INCIDENT,D6,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
+D7-NO-INCIDENT,D7,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
