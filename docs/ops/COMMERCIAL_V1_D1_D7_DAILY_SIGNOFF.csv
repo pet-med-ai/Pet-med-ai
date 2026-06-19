@@ -2,7 +2,7 @@ day,date,release_owner,security_owner,clinical_ops_owner,daily_decision,signoff_
 D1,2026-06-18,release_owner,security_owner,clinical_ops_owner,GO_CONTINUE_NEXT_DAY,signed,D1 daily pilot operations evidence reviewed; de-identified repo evidence only
 D2,2026-06-18,release_owner,security_owner,clinical_ops_owner,GO_CONTINUE_NEXT_DAY,signed,D2 daily pilot operations evidence reviewed; de-identified repo evidence only
 D3,2026-06-18,release_owner,security_owner,clinical_ops_owner,GO_CONTINUE_NEXT_DAY,signed,D3 daily pilot operations evidence reviewed; de-identified repo evidence only
-D4,TBD,TBD,TBD,TBD,GO_CONTINUE_NEXT_DAY,TBD,
+D4,2026-06-19,release_owner,security_owner,clinical_ops_owner,GO_CONTINUE_NEXT_DAY,signed,D4 daily pilot operations evidence reviewed; de-identified repo evidence only
 D5,TBD,TBD,TBD,TBD,GO_CONTINUE_NEXT_DAY,TBD,
 D6,TBD,TBD,TBD,TBD,GO_CONTINUE_NEXT_DAY,TBD,
 D7,TBD,TBD,TBD,TBD,GO_COMPLETE_D7,TBD,

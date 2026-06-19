@@ -2,7 +2,7 @@ incident_id,day,date,severity,area,summary,status,owner,decision,notes
 D1-NO-INCIDENT,D1,2026-06-18,none,all,no incident observed,closed,release_owner,GO_CONTINUE_NEXT_DAY,no P0/P1 during D1 supervised daily operations; evidence de-identified
 D2-NO-INCIDENT,D2,2026-06-18,none,all,no incident observed,closed,release_owner,GO_CONTINUE_NEXT_DAY,no P0/P1 during D2 supervised daily operations; evidence de-identified
 D3-NO-INCIDENT,D3,2026-06-18,none,all,no incident observed,closed,release_owner,GO_CONTINUE_NEXT_DAY,no P0/P1 during D3 supervised daily operations
-D4-NO-INCIDENT,D4,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
+D4-NO-INCIDENT,D4,2026-06-19,none,all,no incident observed,closed,release_owner,GO_CONTINUE_NEXT_DAY,no P0/P1 during D4 supervised daily operations; evidence de-identified
 D5-NO-INCIDENT,D5,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
 D6-NO-INCIDENT,D6,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
 D7-NO-INCIDENT,D7,TBD,none,all,no incident observed,TBD,release_owner,TBD,pending daily review; replace if any incident occurs
