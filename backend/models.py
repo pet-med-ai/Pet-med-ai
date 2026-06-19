@@ -147,10 +147,137 @@ class ImagingStudy(Base):
     thumbnail_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
     extra_data: Mapped[Optional[dict]] = mapped_column("metadata", JSON, nullable=True)
 
+    # Diagnostic data model V1 additive fields.
+    # These are nullable to preserve existing KPI / imaging rows created before 0009.
+    study_uid: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    accession_number: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    source_type: Mapped[Optional[str]] = mapped_column(String(50), default="manual", nullable=True)
+    source_system: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    report_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    abnormal_flag: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    ai_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ai_summary_status: Mapped[Optional[str]] = mapped_column(String(50), default="not_generated", nullable=True)
+    review_status: Mapped[Optional[str]] = mapped_column(String(50), default="draft", nullable=True)
+    reviewed_by: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    attachment_ref: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
 
     __table_args__ = (
         Index("ix_imaging_studies_case_modality_part_time", "case_id", "modality", "body_part", "taken_at"),
+        Index("ix_img_studies_source", "source_type"),
+        Index("ix_img_studies_review", "review_status"),
+        Index("ix_img_studies_abnormal", "abnormal_flag"),
+    )
+
+
+class DiagnosticReport(Base):
+    """
+    Clinical diagnostic data model V1.
+    Report-level object for lab panels, device reports, EMR diagnostic previews,
+    and future reviewed diagnostic summaries.
+
+    This model does not enable real ingest by itself.
+    """
+    __tablename__ = "diagnostic_reports"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    report_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    source_type: Mapped[str] = mapped_column(String(50), default="manual", nullable=False)
+    source_system: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    source_report_id: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+
+    status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False)
+    title: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    report_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    abnormal_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+
+    ai_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    ai_summary_status: Mapped[str] = mapped_column(String(50), default="not_generated", nullable=False)
+
+    ordering_clinician: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    reviewed_by: Mapped[Optional[str]] = mapped_column(String(120), nullable=True)
+    reviewed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    attachment_ref: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)
+    metadata_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_diag_reports_case_id", "case_id"),
+        Index("ix_diag_reports_status", "status"),
+        Index("ix_diag_reports_source", "source_type"),
+        Index("ix_diag_reports_ai_status", "ai_summary_status"),
+    )
+
+
+class Observation(Base):
+    """
+    Clinical diagnostic data model V1.
+    Atomic observation for lab values, vital/device measurements and other
+    structured diagnostic items.
+
+    Observation belongs to DiagnosticReport and is also queryable by Case.
+    """
+    __tablename__ = "observations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    case_id: Mapped[int] = mapped_column(
+        ForeignKey("cases.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    diagnostic_report_id: Mapped[int] = mapped_column(
+        ForeignKey("diagnostic_reports.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+
+    code: Mapped[Optional[str]] = mapped_column(String(80), nullable=True)
+    display_name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    value_text: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    value_numeric: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    value_type: Mapped[str] = mapped_column(String(50), default="text", nullable=False)
+
+    unit: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    reference_low: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    reference_high: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    reference_text: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+
+    abnormal_flag: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
+    interpretation: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    specimen_type: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+    collected_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+    observed_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
+
+    source_type: Mapped[str] = mapped_column(String(50), default="manual", nullable=False)
+    review_status: Mapped[str] = mapped_column(String(50), default="draft", nullable=False)
+    metadata_json: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at: Mapped[Optional[datetime]] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True
+    )
+
+    __table_args__ = (
+        Index("ix_observations_case_id", "case_id"),
+        Index("ix_observations_report_id", "diagnostic_report_id"),
+        Index("ix_observations_code", "code"),
+        Index("ix_observations_abnormal", "abnormal_flag"),
+        Index("ix_observations_review", "review_status"),
     )
 
 
