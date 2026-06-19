@@ -1,0 +1,21 @@
+check_id,area,item,required_state,actual_state,evidence,owner,go_no_go,status,notes
+WR-001,d0,D0 Pilot Start Evidence,completed,completed,D0 evidence docs,release_owner,GO_REQUIRED,PASS,D0 completed before weekly review
+WR-002,d1_d7,D1-D7 Daily Pilot Operations Evidence,completed,completed,D1-D7 evidence docs,release_owner,GO_REQUIRED,PASS,D1-D7 completed before weekly review
+WR-003,version,final database_revision,0008_auto_delivery,0008_auto_delivery,/api/system/version,release_owner,GO_REQUIRED,PASS,
+WR-004,version,final alembic_head,0008_auto_delivery,0008_auto_delivery,/api/system/version,release_owner,GO_REQUIRED,PASS,
+WR-005,version,final schema_ok,true,true,/api/system/version,release_owner,GO_REQUIRED,PASS,
+WR-006,flags,dangerous flags disabled,true,true,/api/system/feature-flags,security_owner,GO_REQUIRED,PASS,
+WR-007,smoke,D7 online smoke,PASS,PASS,D7 smoke evidence,release_owner,GO_REQUIRED,PASS,
+WR-008,workflow,AI consult stable,D0-D7 OK,OK,D0-D7 daily logs,clinical_ops_owner,GO_REQUIRED,PASS,
+WR-009,workflow,dynamic consult stable,D0-D7 OK,OK,D0-D7 daily logs,clinical_ops_owner,GO_REQUIRED,PASS,
+WR-010,workflow,case save/detail/edit stable,D0-D7 OK,OK,D0-D7 daily logs,clinical_ops_owner,GO_REQUIRED,PASS,
+WR-011,workflow,Word export stable,D0-D7 OK,OK,D0-D7 daily logs,clinical_ops_owner,GO_REQUIRED,PASS,
+WR-012,workflow,manual queue stable,D0-D7 OK,OK,D0-D7 daily logs,clinical_ops_owner,GO_REQUIRED,PASS,
+WR-013,workflow,opt-out handling stable,D0-D7 OK,OK,D0-D7 daily logs,clinical_ops_owner,GO_REQUIRED,PASS,
+WR-014,incident,total open P0 count,0,0,D0-D7 incident logs,release_owner,GO_REQUIRED,PASS,
+WR-015,incident,total open P1 count,0,0,D0-D7 incident logs,release_owner,GO_REQUIRED,PASS,
+WR-016,safety,no automatic outbound delivery,true,true,D0-D7 evidence/security review,security_owner,GO_REQUIRED,PASS,
+WR-017,safety,no EMR real write,true,true,D0-D7 evidence/security review,security_owner,GO_REQUIRED,PASS,
+WR-018,safety,no cross-user access incident,true,true,D0-D7 incident review,security_owner,GO_REQUIRED,PASS,
+WR-019,safety,no PHI or secret in repo evidence,true,true,evidence review,security_owner,GO_REQUIRED,PASS,
+WR-020,decision,weekly review decision,GO_CLOSE_D0_D7_OBSERVATION_WINDOW,GO_CLOSE_D0_D7_OBSERVATION_WINDOW,weekly review decision,release_owner,GO_REQUIRED,PASS,next=CLINICAL_CORE_ROADMAP_REFRESH_V1

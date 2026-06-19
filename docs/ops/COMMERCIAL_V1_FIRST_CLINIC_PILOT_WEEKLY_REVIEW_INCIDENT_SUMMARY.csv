@@ -1,0 +1,2 @@
+review_id,date,total_p0,total_p1,total_p2,total_p3,open_p0_count,open_p1_count,automatic_outbound_incident_count,emr_real_write_incident_count,cross_user_access_incident_count,phi_or_secret_repo_incident_count,decision,owner,notes
+WR-D0-D7,2026-06-19,0,0,0,0,0,0,0,0,0,0,GO_CLOSE_D0_D7_OBSERVATION_WINDOW,release_owner,no P0/P1 and no high-risk safety incidents observed during D0-D7

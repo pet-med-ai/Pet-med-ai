@@ -1,0 +1,2 @@
+decision_id,date,review_stage,pilot_clinic,decision,next_stage,release_owner,security_owner,clinical_ops_owner,signoff_status,notes
+WR-DECISION-D0-D7,2026-06-19,First Clinic Pilot Weekly Review V1,FIRST_CLINIC_PILOT_001,GO_CLOSE_D0_D7_OBSERVATION_WINDOW,CLINICAL_CORE_ROADMAP_REFRESH_V1,release_owner,security_owner,clinical_ops_owner,signed,D0-D7 observation window complete; return to clinical core roadmap without enabling high-risk Commercial V1 exclusions
