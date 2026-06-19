@@ -1,0 +1,21 @@
+field_name,type_candidate,required_candidate,purpose,notes
+id,int,true,primary key,implementation detail for design stage
+case_id,int,true,query by Case,derived from report relationship
+diagnostic_report_id,int,true,parent report,Observation should belong to report
+code,string,false,test code or local item code,LOINC-style mapping can come later
+display_name,string,true,human-readable test name,
+value_text,string,false,text value,
+value_numeric,float,false,numeric value if applicable,
+value_type,string,true,numeric/text/boolean/ordinal,
+unit,string,false,measurement unit,unit normalization needed
+reference_low,float,false,lower reference range,
+reference_high,float,false,upper reference range,
+reference_text,string,false,text reference range,
+abnormal_flag,string,false,low/high/critical/abnormal/normal,
+interpretation,string,false,clinical interpretation draft,clinician review required
+specimen_type,string,false,blood/urine/feces/etc,
+collected_at,datetime,false,sample collection time,
+observed_at,datetime,false,observation time,
+source_type,string,true,manual/lab_device_dry_run/etc,
+review_status,string,true,draft/review_pending/reviewed/final,
+metadata_json,json,false,non-secret metadata only,

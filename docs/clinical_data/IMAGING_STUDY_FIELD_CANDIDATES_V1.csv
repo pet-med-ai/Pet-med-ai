@@ -1,0 +1,19 @@
+field_name,type_candidate,required_candidate,purpose,notes
+id,int,true,primary key,implementation detail for design stage
+case_id,int,true,link imaging study to Case,must be owner-scoped through Case
+modality,string,true,XR/US/CT/MRI/etc,controlled vocabulary needed
+body_region,string,false,anatomic region,
+study_date,datetime,false,study date/time,
+accession_number,string,false,local accession identifier,
+study_uid,string,false,DICOM UID or safe external reference,privacy review required
+source_type,string,true,manual/imaging_gateway_dry_run/etc,real gateway requires review
+source_system,string,false,source system name,no secrets
+report_text,text,false,imaging report text,clinician review required
+abnormal_flag,string,false,normal/abnormal/critical,
+ai_summary,text,false,AI imaging summary draft,not final without review
+ai_summary_status,string,false,not_generated/draft/reviewed/rejected,
+review_status,string,true,draft/review_pending/reviewed/final/amended,
+reviewed_by,string,false,reviewing clinician,
+reviewed_at,datetime,false,review timestamp,
+attachment_ref,string,false,safe internal attachment reference,no direct external secret URL
+metadata_json,json,false,non-secret metadata only,

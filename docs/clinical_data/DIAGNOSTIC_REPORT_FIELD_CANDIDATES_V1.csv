@@ -1,0 +1,18 @@
+field_name,type_candidate,required_candidate,purpose,notes
+id,int,true,primary key,implementation detail for design stage
+case_id,int,true,link report to Case,must be owner-scoped through Case
+report_type,string,true,lab/device/imaging/emr/manual category,controlled vocabulary needed
+source_type,string,true,manual/emr_dry_run/lab_device_dry_run/etc,real source types require risk review
+source_system,string,false,source system name,no secrets
+source_report_id,string,false,external report identifier,avoid exposing sensitive URLs
+status,string,true,draft/review_pending/reviewed/final/amended/voided,clinical review workflow
+title,string,false,report display title,
+report_text,text,false,human-readable report text,may contain PHI; repo evidence must not
+abnormal_summary,text,false,clinician-reviewed abnormal summary,AI draft must be marked
+ai_summary_status,string,false,not_generated/draft/reviewed/rejected,
+ordering_clinician,string,false,ordering clinician identifier,
+reviewed_by,string,false,reviewing clinician identifier,
+reviewed_at,datetime,false,review timestamp,
+created_at,datetime,true,audit timestamp,
+updated_at,datetime,true,audit timestamp,
+metadata_json,json,false,non-secret metadata only,

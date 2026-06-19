@@ -1,0 +1,2 @@
+recommendation_id,current_stage,decision,next_stage,allowed_next_outputs,blocked_next_outputs,owner,notes
+DDM-NEXT-001,Diagnostic Data Model Gap Review V1,GO_TO_DIAGNOSTIC_REPORT_OBSERVATION_IMAGINGSTUDY_DESIGN_V1,DiagnosticReport / Observation / ImagingStudy Design V1,design docs schema candidates validators smoke plan,no migration and no real ingest,release_owner,next stage should lock model design before migration

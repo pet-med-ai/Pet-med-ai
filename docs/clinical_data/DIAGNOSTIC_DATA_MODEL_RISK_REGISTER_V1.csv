@@ -1,0 +1,11 @@
+risk_id,area,severity,risk,mitigation,owner,status,notes
+DDM-R001,migration,P1,Creating tables before field design is stable,complete gap review and design review before migration,release_owner,open,no migration in gap review
+DDM-R002,units,P1,Inconsistent lab units create unsafe interpretation,define unit field and normalization plan,clinical_ops_owner,open,
+DDM-R003,reference_range,P1,Missing reference ranges reduce abnormal flag safety,model low/high/text ranges explicitly,clinical_ops_owner,open,
+DDM-R004,ai_summary,P0,AI abnormal summary could be mistaken as final diagnosis,require AI draft status and clinician review,clinical_ops_owner,open,
+DDM-R005,phi,P0,Diagnostic report text may contain PHI,avoid PHI in repo evidence and add redaction policy,security_owner,open,
+DDM-R006,external_refs,P1,External report URLs could expose secrets or expire,use safe attachment_ref not secret URLs,security_owner,open,
+DDM-R007,real_ingest,P0,Lab/device/DICOM real ingest before dry-run safety review,keep real ingest out of scope,release_owner,open,
+DDM-R008,case_scope,P0,Cross-user diagnostic data access,scope through Case ownership and tests,security_owner,open,
+DDM-R009,amendment,P1,Final reports may later be amended,include amended/voided status and audit,clinical_ops_owner,open,
+DDM-R010,rollback,P1,Migration rollback not rehearsed,require rollback plan before migration,release_owner,open,

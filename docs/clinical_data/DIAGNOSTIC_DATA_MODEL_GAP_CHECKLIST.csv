@@ -1,0 +1,13 @@
+check_id,area,item,required_state,actual_state,evidence,owner,go_no_go,status,notes
+DDM-GAP-001,scope,Gap review is docs-only,true,true,Diagnostic Data Model Gap Review V1,release_owner,GO_REQUIRED,PASS,no runtime implementation
+DDM-GAP-002,boundary,no Alembic migration,true,true,scope review,release_owner,GO_REQUIRED,PASS,
+DDM-GAP-003,boundary,no backend runtime API change,true,true,scope review,release_owner,GO_REQUIRED,PASS,
+DDM-GAP-004,boundary,no frontend runtime UI change,true,true,scope review,release_owner,GO_REQUIRED,PASS,
+DDM-GAP-005,model,DiagnosticReport gap reviewed,true,true,field candidates,clinical_ops_owner,GO_REQUIRED,PASS,
+DDM-GAP-006,model,Observation gap reviewed,true,true,field candidates,clinical_ops_owner,GO_REQUIRED,PASS,
+DDM-GAP-007,model,ImagingStudy gap reviewed,true,true,field candidates,clinical_ops_owner,GO_REQUIRED,PASS,
+DDM-GAP-008,relationship,Case relationship reviewed,true,true,gap review,clinical_ops_owner,GO_REQUIRED,PASS,
+DDM-GAP-009,safety,AI summary requires clinician review,true,true,gap review,clinical_ops_owner,GO_REQUIRED,PASS,
+DDM-GAP-010,integration,real ingest remains blocked,true,true,scope lock,security_owner,GO_REQUIRED,PASS,
+DDM-GAP-011,risk,migration risk register exists,true,true,risk register,release_owner,GO_REQUIRED,PASS,
+DDM-GAP-012,next_stage,next stage recommendation recorded,GO_TO_DIAGNOSTIC_REPORT_OBSERVATION_IMAGINGSTUDY_DESIGN_V1,GO_TO_DIAGNOSTIC_REPORT_OBSERVATION_IMAGINGSTUDY_DESIGN_V1,next stage recommendation,release_owner,GO_REQUIRED,PASS,
