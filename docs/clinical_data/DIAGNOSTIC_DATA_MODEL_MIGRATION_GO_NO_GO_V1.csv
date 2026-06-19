@@ -1,0 +1,2 @@
+decision_id,stage,decision,next_stage,required_state,actual_state,owner,signoff_status,notes
+DMR-GNG-001,Diagnostic Data Model Migration Readiness Review V1,GO_TO_DIAGNOSTIC_DATA_MODEL_MIGRATION_V1,Diagnostic Data Model Migration V1,all readiness checks PASS,all readiness checks PASS,release_owner,signed,migration may be prepared next but real ingest remains blocked

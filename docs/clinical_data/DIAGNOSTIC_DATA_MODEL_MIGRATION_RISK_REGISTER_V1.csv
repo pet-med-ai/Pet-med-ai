@@ -1,0 +1,13 @@
+risk_id,area,severity,risk,mitigation,owner,status,notes
+DMR-R001,alembic,P0,Alembic revision id too long,Use short revision id such as 0009_diag_data,release_owner,open,avoid previous long-revision issue
+DMR-R002,postgres,P0,PostgreSQL identifier name exceeds 63 chars,Predefine short index and constraint names,release_owner,open,avoid previous 0008 index issue
+DMR-R003,rollback,P1,Migration downgrade not safe,Write downgrade and rollback plan before migration,release_owner,open,
+DMR-R004,compatibility,P1,SQLite and PostgreSQL type mismatch,Use conservative SQLAlchemy types and test both,release_owner,open,
+DMR-R005,security,P0,Cross-user diagnostic data access,All reads must scope through Case owner/clinic,security_owner,open,
+DMR-R006,phi,P0,Report text may contain PHI,No PHI fixtures in repo and add redaction policy,security_owner,open,
+DMR-R007,attachment,P1,External attachment refs may expose secrets,Use safe attachment_ref only; no secret URLs,security_owner,open,
+DMR-R008,ai_summary,P0,AI summary mistaken as final diagnosis,Store AI summary as draft and require clinician review,clinical_ops_owner,open,
+DMR-R009,real_ingest,P0,Migration stage used to sneak in real ingest,Scope lock forbids real ingest,release_owner,open,
+DMR-R010,performance,P2,Large Observation table may need indexes,Add short safe indexes on case/report/status/source,release_owner,open,
+DMR-R011,data_quality,P1,Units and reference ranges inconsistent,Keep explicit unit/reference fields and validation plan,clinical_ops_owner,open,
+DMR-R012,state,P1,Final/amended report workflow unclear,Use status workflow and audit fields,clinical_ops_owner,open,
