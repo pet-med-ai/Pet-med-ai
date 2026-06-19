@@ -34,6 +34,7 @@ run_if_exists scripts/validate_commercial_v1_post_go_stabilization.py
 
 # Database / Alembic static gates. These must not connect to production DB.
 run_if_exists scripts/validate_commercial_v1_first_clinic_pilot_weekly_review.py
+run_if_exists scripts/validate_petmed_clinical_core_roadmap_refresh.py
 run_if_exists scripts/validate_alembic_setup.py
 run_if_exists scripts/validate_emr_import_execution_result_model.py
 
