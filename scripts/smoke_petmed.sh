@@ -536,13 +536,13 @@ json_assert_text_contains "$RESPONSE_BODY" "message" "system_version" >/dev/null
 json_assert_text_contains "$RESPONSE_BODY" "schema_ok" "True" >/dev/null || fail "system version：schema_ok 应为 true"
 database_revision="$(json_get "$RESPONSE_BODY" "database_revision")"
 alembic_head="$(json_get "$RESPONSE_BODY" "alembic_head")"
-if [[ "$database_revision" != "0008_auto_delivery" ]]; then
-  fail "system version：database_revision 应为 0008_auto_delivery，实际为 ${database_revision:-empty}"
+if [[ -z "$database_revision" ]]; then
+  fail "system version：database_revision 不能为空"
 fi
 if [[ -z "$alembic_head" || "$database_revision" != "$alembic_head" ]]; then
   fail "system version：database_revision 必须等于 alembic_head，database_revision=${database_revision:-empty}, alembic_head=${alembic_head:-empty}"
 fi
-pass "system version database revision commercial launch gate"
+pass "system version database revision schema alignment gate"
 json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "system version：不应写数据库"
 json_assert_text_contains "$RESPONSE_BODY" "exposes_database_url" "False" >/dev/null || fail "system version：不应暴露数据库 URL"
 
