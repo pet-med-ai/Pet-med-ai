@@ -1,0 +1,21 @@
+field_name,type_candidate,required,unique,indexed,purpose,notes
+id,int,true,true,true,primary key,implementation detail
+case_id,int,true,false,true,link imaging study to Case,must be owner-scoped through Case
+modality,string,true,false,true,XR/US/CT/MRI/Endoscopy/DentalXR,controlled vocabulary needed
+body_region,string,false,false,true,anatomic region,
+study_date,datetime,false,false,true,study date/time,
+accession_number,string,false,false,true,local accession identifier,
+study_uid,string,false,false,true,DICOM UID or safe external reference,privacy review required
+source_type,string,true,false,true,manual/imaging_gateway_dry_run,real gateway requires review
+source_system,string,false,false,false,source system name,no secrets
+report_text,text,false,false,false,imaging report text,clinician review required
+abnormal_flag,string,false,false,true,normal/abnormal/critical/unknown,
+ai_summary,text,false,false,false,AI imaging summary draft,not final without review
+ai_summary_status,string,true,false,true,not_generated/draft/reviewed/rejected,default not_generated
+review_status,string,true,false,true,draft/review_pending/reviewed/final/amended,
+reviewed_by,string,false,false,false,reviewing clinician,
+reviewed_at,datetime,false,false,true,review timestamp,
+attachment_ref,string,false,false,false,safe internal attachment reference,no direct external secret URL
+metadata_json,json,false,false,false,non-secret metadata only,
+created_at,datetime,true,false,true,audit timestamp,
+updated_at,datetime,true,false,true,audit timestamp,

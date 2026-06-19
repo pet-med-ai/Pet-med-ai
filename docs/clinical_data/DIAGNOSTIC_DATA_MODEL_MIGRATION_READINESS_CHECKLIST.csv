@@ -1,0 +1,11 @@
+check_id,area,item,required_state,actual_state,owner,status,notes
+DMR-001,design,DiagnosticReport schema reviewed,true,TBD,clinical_ops_owner,TBD,
+DMR-002,design,Observation schema reviewed,true,TBD,clinical_ops_owner,TBD,
+DMR-003,design,ImagingStudy schema reviewed,true,TBD,clinical_ops_owner,TBD,
+DMR-004,relationship,Case relationship reviewed,true,TBD,release_owner,TBD,
+DMR-005,security,owner scoping test plan exists,true,TBD,security_owner,TBD,
+DMR-006,safety,AI summary clinician review boundary locked,true,TBD,clinical_ops_owner,TBD,
+DMR-007,safety,no real ingest in migration stage,true,TBD,release_owner,TBD,
+DMR-008,migration,Alembic migration plan drafted,true,TBD,release_owner,TBD,next stage only
+DMR-009,rollback,rollback plan drafted,true,TBD,release_owner,TBD,next stage only
+DMR-010,smoke,smoke coverage plan drafted,true,TBD,release_owner,TBD,next stage only

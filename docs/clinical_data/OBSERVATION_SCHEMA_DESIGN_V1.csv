@@ -1,0 +1,23 @@
+field_name,type_candidate,required,unique,indexed,purpose,notes
+id,int,true,true,true,primary key,implementation detail
+case_id,int,true,false,true,link observation to Case,derived from report relation
+diagnostic_report_id,int,true,false,true,parent DiagnosticReport,required for report items
+code,string,false,false,true,test code or local item code,LOINC-style mapping can come later
+display_name,string,true,false,true,human-readable test or measurement name,
+value_text,string,false,false,false,text value,
+value_numeric,float,false,false,true,numeric value if applicable,
+value_type,string,true,false,true,numeric/text/boolean/ordinal,
+unit,string,false,false,true,measurement unit,unit normalization needed
+reference_low,float,false,false,false,lower reference range,
+reference_high,float,false,false,false,upper reference range,
+reference_text,string,false,false,false,text reference range,
+abnormal_flag,string,false,false,true,low/high/critical/abnormal/normal/unknown,
+interpretation,string,false,false,false,clinical interpretation draft,clinician review required
+specimen_type,string,false,false,false,blood/urine/feces/etc,
+collected_at,datetime,false,false,true,sample collection time,
+observed_at,datetime,false,false,true,observation time,
+source_type,string,true,false,true,manual/lab_device_dry_run/device_gateway_dry_run,
+review_status,string,true,false,true,draft/review_pending/reviewed/final,
+metadata_json,json,false,false,false,non-secret metadata only,
+created_at,datetime,true,false,true,audit timestamp,
+updated_at,datetime,true,false,true,audit timestamp,

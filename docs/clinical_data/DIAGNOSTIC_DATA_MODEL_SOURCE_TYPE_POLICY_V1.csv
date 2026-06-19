@@ -1,0 +1,12 @@
+source_type,allowed_in_design_v1,real_ingest,requires_risk_review,purpose,notes
+manual,true,false,false,doctor or staff manually entered diagnostic data,implementation later
+emr_dry_run,true,false,false,EMR dry-run preview only,no Case writes from real EMR
+emr_import,false,true,true,future real EMR import,blocked in Commercial V1
+lab_device_dry_run,true,false,false,offline lab parser preview,
+lab_device,false,true,true,future real lab equipment ingest,blocked until controlled pilot
+device_gateway_dry_run,true,false,false,local gateway mock or dry-run preview,
+device_gateway,false,true,true,future real device gateway ingest,blocked until controlled pilot
+imaging_gateway_dry_run,true,false,false,imaging metadata dry-run preview,
+imaging_gateway,false,true,true,future real imaging/PACS integration,blocked until controlled pilot
+dicom_dry_run,true,false,true,DICOM metadata sample parsing only,no PHI images in repo
+dicom,false,true,true,real DICOM ingest,blocked until storage privacy security review

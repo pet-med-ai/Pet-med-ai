@@ -1,0 +1,20 @@
+field_name,type_candidate,required,unique,indexed,purpose,notes
+id,int,true,true,true,primary key,implementation detail
+case_id,int,true,false,true,link report to Case,must be owner-scoped through Case
+report_type,string,true,false,true,lab/device/emr/manual/imaging_report,controlled vocabulary
+source_type,string,true,false,true,manual/emr_dry_run/lab_device_dry_run/device_gateway_dry_run,real source types require separate review
+source_system,string,false,false,false,source system display name,no secrets
+source_report_id,string,false,false,true,external report identifier,do not expose secret URLs
+status,string,true,false,true,draft/received/review_pending/reviewed/final/amended/voided,status workflow required
+title,string,false,false,false,display title,
+report_text,text,false,false,false,human-readable report text,may contain PHI
+abnormal_summary,text,false,false,false,clinician-reviewed abnormal summary,AI draft must be marked
+ai_summary,text,false,false,false,AI-generated draft summary,not final diagnosis
+ai_summary_status,string,true,false,true,not_generated/draft/reviewed/rejected,default not_generated
+ordering_clinician,string,false,false,false,ordering clinician identifier,
+reviewed_by,string,false,false,false,reviewing clinician identifier,
+reviewed_at,datetime,false,false,true,review timestamp,
+attachment_ref,string,false,false,false,safe internal attachment reference,no secret external URL
+metadata_json,json,false,false,false,non-secret metadata only,
+created_at,datetime,true,false,true,audit timestamp,
+updated_at,datetime,true,false,true,audit timestamp,
