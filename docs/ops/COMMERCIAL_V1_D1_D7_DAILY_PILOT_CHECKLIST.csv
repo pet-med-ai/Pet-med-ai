@@ -89,24 +89,24 @@ D5,2026-06-19,D5-015,workflow,opt-out handling check,OK,OK,D5 supervised de-iden
 D5,2026-06-19,D5-016,incident,open P0 count,0,0,D5 daily incident log,release_owner,GO_REQUIRED,PASS,D5 de-identified evidence; no PHI in repo
 D5,2026-06-19,D5-017,incident,open P1 count,0,0,D5 daily incident log,release_owner,GO_REQUIRED,PASS,D5 de-identified evidence; no PHI in repo
 D5,2026-06-19,D5-018,decision,daily decision,GO_CONTINUE_NEXT_DAY or GO_COMPLETE_D7,GO_CONTINUE_NEXT_DAY,D5 daily signoff,release_owner,GO_REQUIRED,PASS,D5 de-identified evidence; no PHI in repo
-D6,TBD,D6-001,health,Production healthz,OK,TBD,curl /healthz,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-002,version,database_revision,0008_auto_delivery,TBD,/api/system/version,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-003,version,alembic_head,0008_auto_delivery,TBD,/api/system/version,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-004,version,schema_ok,true,TBD,/api/system/version,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-005,flags,all dangerous flags disabled,true,TBD,/api/system/feature-flags,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-006,smoke,online smoke,PASS,TBD,scripts/smoke_petmed.sh,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-007,workflow,supervised AI consultation,OK,TBD,daily workflow evidence,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-008,workflow,supervised dynamic consultation,OK,TBD,daily workflow evidence,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-009,workflow,supervised case save,OK,TBD,daily workflow evidence,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-010,workflow,case detail open,OK,TBD,daily workflow evidence,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-011,workflow,case edit check,OK,TBD,daily workflow evidence,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-012,workflow,Word export check,OK,TBD,daily workflow evidence,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-013,workflow,preventive reminder review,OK,TBD,daily workflow evidence,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-014,workflow,manual queue check,OK,TBD,daily workflow evidence,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-015,workflow,opt-out handling check,OK,TBD,daily workflow evidence,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-016,incident,open P0 count,0,TBD,daily incident log,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-017,incident,open P1 count,0,TBD,daily incident log,TBD,GO_REQUIRED,TBD,
-D6,TBD,D6-018,decision,daily decision,GO_CONTINUE_NEXT_DAY or GO_COMPLETE_D7,TBD,daily signoff,TBD,GO_REQUIRED,TBD,
+D6,2026-06-19,D6-001,health,Production healthz,OK,OK,/healthz,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-002,version,database_revision,0008_auto_delivery,0008_auto_delivery,/api/system/version,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-003,version,alembic_head,0008_auto_delivery,0008_auto_delivery,/api/system/version,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-004,version,schema_ok,true,true,/api/system/version,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-005,flags,all dangerous flags disabled,true,true,/api/system/feature-flags,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-006,smoke,online smoke,PASS,PASS,scripts/smoke_petmed.sh,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-007,workflow,supervised AI consultation,OK,OK,D6 supervised de-identified workflow evidence,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-008,workflow,supervised dynamic consultation,OK,OK,D6 supervised de-identified workflow evidence,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-009,workflow,supervised case save,OK,OK,D6 supervised de-identified workflow evidence,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-010,workflow,case detail open,OK,OK,D6 supervised de-identified workflow evidence,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-011,workflow,case edit check,OK,OK,D6 supervised de-identified workflow evidence,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-012,workflow,Word export check,OK,OK,D6 supervised de-identified workflow evidence,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-013,workflow,preventive reminder review,OK,OK,D6 supervised de-identified workflow evidence,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-014,workflow,manual queue check,OK,OK,D6 supervised de-identified workflow evidence,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-015,workflow,opt-out handling check,OK,OK,D6 supervised de-identified workflow evidence,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-016,incident,open P0 count,0,0,D6 daily incident log,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-017,incident,open P1 count,0,0,D6 daily incident log,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
+D6,2026-06-19,D6-018,decision,daily decision,GO_CONTINUE_NEXT_DAY or GO_COMPLETE_D7,GO_CONTINUE_NEXT_DAY,D6 daily signoff,release_owner,GO_REQUIRED,PASS,D6 de-identified evidence; no PHI in repo
 D7,TBD,D7-001,health,Production healthz,OK,TBD,curl /healthz,TBD,GO_REQUIRED,TBD,
 D7,TBD,D7-002,version,database_revision,0008_auto_delivery,TBD,/api/system/version,TBD,GO_REQUIRED,TBD,
 D7,TBD,D7-003,version,alembic_head,0008_auto_delivery,TBD,/api/system/version,TBD,GO_REQUIRED,TBD,
