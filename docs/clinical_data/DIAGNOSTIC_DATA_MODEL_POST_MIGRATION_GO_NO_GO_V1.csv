@@ -1,0 +1,6 @@
+decision_id,criterion,required_state,decision_if_pass,decision_if_fail,next_action
+GO-001,production runtime health,PMV-001 through PMV-006 PASS,GO_TO_SCHEMA_EVIDENCE_REVIEW,NO_GO_HOLD_AND_FIX_0009_RUNTIME,fix production runtime or rollback using approved runbook
+GO-002,diagnostic schema evidence,PMV-007 through PMV-009 PASS,GO_TO_LEGACY_REGRESSION_REVIEW,NO_GO_HOLD_AND_FIX_0009_SCHEMA,investigate migration or schema drift before any API work
+GO-003,legacy regression evidence,PMV-010 through PMV-012 PASS,GO_TO_SAFETY_BOUNDARY_REVIEW,NO_GO_HOLD_AND_FIX_REGRESSION,fix KPI imaging case intake Word export or isolation regression
+GO-004,safety boundary evidence,PMV-013 through PMV-015 PASS,GO_TO_DIAGNOSTIC_DATA_READONLY_API_DRY_RUN_V1,NO_GO_DISABLE_FLAGS_AND_HOLD,keep all real integration and outbound capabilities disabled
+GO-FINAL,final decision,all blocking PMV gates PASS,GO_TO_DIAGNOSTIC_DATA_READONLY_API_DRY_RUN_V1,NO_GO_HOLD_IN_POST_MIGRATION_VERIFICATION,Diagnostic Data Read-only API / Dry-run Fixtures V1

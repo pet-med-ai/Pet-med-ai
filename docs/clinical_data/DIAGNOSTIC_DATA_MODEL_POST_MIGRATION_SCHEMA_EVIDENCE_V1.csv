@@ -1,0 +1,20 @@
+evidence_id,object_type,object_name,expected_state,evidence_command,required_result,notes
+SCHEMA-001,table,diagnostic_reports,exists,"inspect.get_table_names or psql to_regclass",present,0009 new diagnostic report table
+SCHEMA-002,table,observations,exists,"inspect.get_table_names or psql to_regclass",present,0009 new observation table
+SCHEMA-003,table,imaging_studies,pre-existing table still exists,"inspect.get_table_names or psql to_regclass",present,created before 0009 and must not be recreated
+SCHEMA-004,column,imaging_studies.study_uid,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-005,column,imaging_studies.accession_number,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-006,column,imaging_studies.source_type,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-007,column,imaging_studies.source_system,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-008,column,imaging_studies.report_text,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-009,column,imaging_studies.abnormal_flag,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-010,column,imaging_studies.ai_summary,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-011,column,imaging_studies.ai_summary_status,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-012,column,imaging_studies.review_status,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-013,column,imaging_studies.reviewed_by,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-014,column,imaging_studies.reviewed_at,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-015,column,imaging_studies.attachment_ref,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-016,column,imaging_studies.updated_at,exists,"inspect.get_columns('imaging_studies')",present,0009 additive nullable column
+SCHEMA-017,index,ix_diag_reports_case_id,exists,"inspect.get_indexes('diagnostic_reports')",present,short PostgreSQL-safe index
+SCHEMA-018,index,ix_observations_report_id,exists,"inspect.get_indexes('observations')",present,short PostgreSQL-safe index
+SCHEMA-019,index,ix_img_studies_source,exists,"inspect.get_indexes('imaging_studies')",present,short PostgreSQL-safe index

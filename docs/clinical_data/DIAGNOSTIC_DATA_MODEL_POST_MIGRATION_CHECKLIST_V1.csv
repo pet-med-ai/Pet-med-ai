@@ -1,0 +1,16 @@
+gate_id,category,requirement,evidence_source,expected_result,blocking,go_no_go
+PMV-001,production_runtime,healthz endpoint responds,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,HTTP 200 OK,true,NO_GO_IF_FAIL
+PMV-002,production_runtime,database_revision is 0009_diag_data,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,database_revision=0009_diag_data,true,NO_GO_IF_FAIL
+PMV-003,production_runtime,alembic_head is 0009_diag_data,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,alembic_head=0009_diag_data,true,NO_GO_IF_FAIL
+PMV-004,production_runtime,schema_ok is true,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,schema_ok=true,true,NO_GO_IF_FAIL
+PMV-005,safety_flags,dangerous feature flags remain disabled,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,MISSING=[] and NOT_FALSE=[] and FLAGS_EXIT=0,true,NO_GO_IF_FAIL
+PMV-006,online_smoke,full online smoke test passes,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,bash scripts/smoke_petmed.sh PASS,true,NO_GO_IF_FAIL
+PMV-007,schema,diagnostic_reports table exists,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SCHEMA_EVIDENCE_V1.csv,table present,true,NO_GO_IF_FAIL
+PMV-008,schema,observations table exists,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SCHEMA_EVIDENCE_V1.csv,table present,true,NO_GO_IF_FAIL
+PMV-009,schema,imaging_studies additive columns exist,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SCHEMA_EVIDENCE_V1.csv,all additive columns present,true,NO_GO_IF_FAIL
+PMV-010,legacy_regression,old KPI and imaging paths are not broken,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,KPI / imaging smoke PASS,true,NO_GO_IF_FAIL
+PMV-011,legacy_regression,old case intake and Word export paths are not broken,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,case / intake / clinical docs export smoke PASS,true,NO_GO_IF_FAIL
+PMV-012,security_regression,cross-user isolation still passes,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,cross-user isolation PASS,true,NO_GO_IF_FAIL
+PMV-013,safety_boundary,no automatic outbound delivery enabled,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,automatic outbound remains disabled,true,NO_GO_IF_FAIL
+PMV-014,safety_boundary,no real EMR write enabled,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,real EMR write remains disabled,true,NO_GO_IF_FAIL
+PMV-015,safety_boundary,no real lab DICOM or device ingest enabled,DIAGNOSTIC_DATA_MODEL_POST_MIGRATION_SMOKE_EVIDENCE_V1.csv,real lab / DICOM / device ingest remains disabled,true,NO_GO_IF_FAIL

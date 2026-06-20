@@ -1,0 +1,13 @@
+smoke_id,area,command,expected_result,pass_condition,notes
+SMOKE-001,healthz,"curl -sS ${BASE_URL}/healthz",HTTP 200,endpoint returns OK,production health check
+SMOKE-002,system_version,"curl -sS ${BASE_URL}/api/system/version",database_revision=0009_diag_data,database_revision exactly matches 0009 hard gate,production version check
+SMOKE-003,system_version,"curl -sS ${BASE_URL}/api/system/version",alembic_head=0009_diag_data,alembic_head exactly matches 0009 hard gate,production Alembic head check
+SMOKE-004,system_version,"curl -sS ${BASE_URL}/api/system/version",schema_ok=true,schema_ok is true,production schema alignment check
+SMOKE-005,feature_flags,"curl -sS ${BASE_URL}/api/system/feature-flags",MISSING=[] and NOT_FALSE=[] and FLAGS_EXIT=0,all dangerous flags are present and disabled,no dangerous capability opened
+SMOKE-006,online_smoke,"BASE_URL=https://pet-med-ai-backend.onrender.com FRONTEND_URL=https://pet-med-ai-frontend-static.onrender.com bash scripts/smoke_petmed.sh",PASS,smoke exits 0,full online smoke
+SMOKE-007,legacy_case_paths,"bash scripts/smoke_petmed.sh",PASS,case create / intake / history paths remain healthy,old clinical flow regression gate
+SMOKE-008,clinical_docs_export,"bash scripts/smoke_petmed.sh",PASS,Word export / clinical docs smoke remains healthy,old document export regression gate
+SMOKE-009,kpi_imaging,"bash scripts/smoke_petmed.sh",PASS,KPI / imaging paths remain healthy,old imaging path regression gate
+SMOKE-010,cross_user_isolation,"bash scripts/smoke_petmed.sh",PASS,user A cannot see user B protected data,security regression gate
+SMOKE-011,no_real_outbound,"curl -sS ${BASE_URL}/api/system/feature-flags",false,auto SMS / WeChat / email flags disabled,automatic delivery remains off
+SMOKE-012,no_real_ingest,"curl -sS ${BASE_URL}/api/system/feature-flags",false,EMR / lab / DICOM / device real ingest flags disabled,real external systems remain off
