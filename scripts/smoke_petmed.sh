@@ -378,7 +378,7 @@ expect_status() {
   local expected="$1"
   local label="$2"
   if [[ "$RESPONSE_STATUS" != "$expected" ]]; then
-    fail "$label：期望 HTTP $expected，实际 HTTP $RESPONSE_STATUS"
+    fail "${label}: expected HTTP ${expected}, actual HTTP ${RESPONSE_STATUS:-unknown}"
   fi
   pass "$label"
 }

@@ -18,6 +18,7 @@ try:
         PreventiveCareClientPreference,
         PreventiveCareEvent,
         PreventiveCareReminder,
+        PreventiveCareRuleSet,
     )
     from backend.preventive_care_rules import (
         compute_preventive_care_reminders,
@@ -31,6 +32,7 @@ except ModuleNotFoundError:
         PreventiveCareClientPreference,
         PreventiveCareEvent,
         PreventiveCareReminder,
+        PreventiveCareRuleSet,
     )
     from preventive_care_rules import (
         compute_preventive_care_reminders,
@@ -341,6 +343,13 @@ def create_preventive_care_reminder(
     due_window_start = _parse_dt(data.due_window_start) or (due_date - timedelta(days=7) if due_date else None)
     due_window_end = _parse_dt(data.due_window_end) or (due_date + timedelta(days=14) if due_date else None)
 
+    source_rule_id = data.source_rule_id or data.rule_id
+    linked_rule_id = None
+    if data.rule_id:
+        linked_rule = db.get(PreventiveCareRuleSet, data.rule_id)
+        if linked_rule is not None:
+            linked_rule_id = data.rule_id
+
     reminder = PreventiveCareReminder(
         reminder_id=f"pcr_{uuid4().hex}",
         owner_id=_user_id(user),
@@ -349,8 +358,8 @@ def create_preventive_care_reminder(
         pet_name=pet_name,
         species=species,
         category=data.category,
-        rule_id=data.rule_id,
-        source_rule_id=data.source_rule_id or data.rule_id,
+        rule_id=linked_rule_id,
+        source_rule_id=source_rule_id,
         status=data.status,
         due_date=due_date,
         due_window_start=due_window_start,
