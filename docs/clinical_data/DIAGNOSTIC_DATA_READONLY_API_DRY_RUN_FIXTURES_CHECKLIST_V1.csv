@@ -1,0 +1,11 @@
+gate_id,gate,required,status,evidence
+G01,Post-migration verification completed,yes,PENDING,Diagnostic Data Model Post-Migration Verification V1 decision must be GO_TO_DIAGNOSTIC_DATA_READONLY_API_DRY_RUN_V1
+G02,Read-only API routes added,yes,PENDING,backend/diagnostic_data_api.py
+G03,Routes are authenticated,yes,PENDING,get_current_user dependency required
+G04,Routes are owner-scoped,yes,PENDING,user B cannot read user A diagnostic data
+G05,Dry-run fixture JSON added,yes,PENDING,docs/clinical_data/fixtures/diagnostic_data_dry_run_fixture_v1.json
+G06,No diagnostic API database writes,yes,PENDING,no db.add/db.commit/db.delete in backend/diagnostic_data_api.py
+G07,No real lab/DICOM/device/EMR ingest,yes,PENDING,safety markers and validator checks
+G08,Smoke coverage added,yes,PENDING,scripts/smoke_petmed.sh diagnostic data checks
+G09,CI static gate added,yes,PENDING,scripts/ci_static_checks.sh runs validator
+G10,Production schema gate remains 0009,yes,PENDING,database_revision=0009_diag_data; alembic_head=0009_diag_data; schema_ok=true

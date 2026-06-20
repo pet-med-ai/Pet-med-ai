@@ -1400,6 +1400,11 @@ try:
 except ModuleNotFoundError:
     from automated_reminder_delivery_api import router as automated_reminder_delivery_api_router
 
+try:
+    from backend.diagnostic_data_api import router as diagnostic_data_api_router
+except ModuleNotFoundError:
+    from diagnostic_data_api import router as diagnostic_data_api_router
+
 # 将 /api 路由挂载到应用
 app.include_router(api)
 app.include_router(system_info_router)
@@ -1415,6 +1420,7 @@ app.include_router(preventive_care_notification_api_router)
 app.include_router(preventive_care_ops_api_router)
 app.include_router(automated_reminder_delivery_template_api_router)
 app.include_router(automated_reminder_delivery_api_router)
+app.include_router(diagnostic_data_api_router)
 app.include_router(legacy_import_mock_router)
 
 # 本地调试

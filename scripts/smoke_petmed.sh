@@ -1123,6 +1123,49 @@ repeat_case_id="$(json_get "$RESPONSE_BODY" "case_id")"
 [[ "$repeat_case_id" == "$case_id" ]] || fail "repeat save：case_id 不一致"
 pass "repeat save returns already_saved"
 
+# Diagnostic Data Read-only API / Dry-run Fixtures V1.
+http_json GET "/api/diagnostic-data/cases/${case_id}/summary" "" "$token_a"
+expect_status 200 "diagnostic data case summary"
+json_assert_text_contains "$RESPONSE_BODY" "message" "diagnostic_data_case_summary" >/dev/null || fail "diagnostic data summary：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "case.case_id" "$case_id" >/dev/null || fail "diagnostic data summary：case_id 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "counts.reports" "0" >/dev/null || fail "diagnostic data summary：新 smoke 病例不应已有 diagnostic reports"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "diagnostic data summary：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "diagnostic data summary：不应外发消息"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_import" "False" >/dev/null || fail "diagnostic data summary：不应执行真实导入"
+
+http_json GET "/api/diagnostic-data/cases/${case_id}/reports?page=1&page_size=10" "" "$token_a"
+expect_status 200 "diagnostic data reports read-only"
+json_assert_text_contains "$RESPONSE_BODY" "message" "diagnostic_reports" >/dev/null || fail "diagnostic reports：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "total" "0" >/dev/null || fail "diagnostic reports：新 smoke 病例不应已有报告"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "diagnostic reports：不应写数据库"
+
+http_json GET "/api/diagnostic-data/cases/${case_id}/observations?page=1&page_size=10" "" "$token_a"
+expect_status 200 "diagnostic data observations read-only"
+json_assert_text_contains "$RESPONSE_BODY" "message" "diagnostic_observations" >/dev/null || fail "diagnostic observations：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "diagnostic observations：不应写数据库"
+
+http_json GET "/api/diagnostic-data/cases/${case_id}/imaging-studies?page=1&page_size=10" "" "$token_a"
+expect_status 200 "diagnostic data imaging studies read-only"
+json_assert_text_contains "$RESPONSE_BODY" "message" "diagnostic_imaging_studies" >/dev/null || fail "diagnostic imaging studies：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "diagnostic imaging studies：不应写数据库"
+
+http_json GET "/api/diagnostic-data/dry-run/fixtures" "" "$token_a"
+expect_status 200 "diagnostic data dry-run fixture list"
+json_assert_text_contains "$RESPONSE_BODY" "fixture_ids" "diagnostic_data_dry_run_fixture_v1" >/dev/null || fail "diagnostic fixtures：缺少 dry-run fixture"
+json_assert_text_contains "$RESPONSE_BODY" "dry_run" "True" >/dev/null || fail "diagnostic fixtures：应为 dry_run"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "diagnostic fixtures：不应写数据库"
+
+http_json GET "/api/diagnostic-data/dry-run/fixtures/diagnostic_data_dry_run_fixture_v1" "" "$token_a"
+expect_status 200 "diagnostic data dry-run fixture get"
+json_assert_text_contains "$RESPONSE_BODY" "message" "diagnostic_data_dry_run_fixture" >/dev/null || fail "diagnostic fixture：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "fixture.diagnostic_reports" "CBC + Chemistry Dry-run Fixture" >/dev/null || fail "diagnostic fixture：报告 fixture 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "fixture.observations" "WBC" >/dev/null || fail "diagnostic fixture：observation fixture 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "fixture.imaging_studies" "DRYRUN-STUDY-0001" >/dev/null || fail "diagnostic fixture：imaging fixture 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_lab_ingest" "False" >/dev/null || fail "diagnostic fixture：不应执行真实检验接入"
+
+http_json GET "/api/diagnostic-data/dry-run/fixtures/diagnostic_data_dry_run_fixture_v1"
+expect_status 401 "diagnostic data fixture requires auth"
+
 
 # Clinical Docs Export Smoke Coverage V1: authenticated DOCX render checks.
 http_json GET "/api/clinical-docs/templates" "" "$token_a"
@@ -1358,6 +1401,10 @@ http_json GET "/api/ai/consult/sessions?page=1&page_size=20&saved=all" "" "$toke
 expect_status 200 "history list user B"
 json_assert_not_contains_session "$RESPONSE_BODY" "$session_id" >/dev/null || fail "user B history：看到了 user A session"
 pass "user B cannot see user A session"
+
+http_json GET "/api/diagnostic-data/cases/${case_id}/summary" "" "$token_b"
+expect_status 404 "user B cannot read user A diagnostic data"
+pass "diagnostic data read-only API checks"
 
 # Preventive Care Reminder API V1: in-app reminders only, no external messages.
 http_json GET "/api/preventive-care/rules" "" "$token_a"

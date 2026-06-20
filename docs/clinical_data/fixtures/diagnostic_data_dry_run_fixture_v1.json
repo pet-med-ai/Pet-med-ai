@@ -1,0 +1,93 @@
+{
+  "fixture_id": "diagnostic_data_dry_run_fixture_v1",
+  "mode": "diagnostic_data_readonly_api_dry_run_fixtures_v1",
+  "synthetic": true,
+  "dry_run": true,
+  "description": "Synthetic dog vomiting diagnostic data fixture. It is not real patient data and must never be submitted to a real lab, PACS, device gateway or EMR.",
+  "case_preview": {
+    "patient_name": "Smoke乐乐",
+    "species": "dog",
+    "chief_complaint": "急性呕吐、干呕、腹胀风险排查",
+    "owner_name": "Synthetic Owner"
+  },
+  "diagnostic_reports": [
+    {
+      "report_type": "lab_panel",
+      "source_type": "dry_run_fixture",
+      "source_system": "Pet-Med-AI fixture",
+      "source_report_id": "DRYRUN-LAB-0001",
+      "status": "final_preview",
+      "title": "CBC + Chemistry Dry-run Fixture",
+      "report_text": "Synthetic CBC/chemistry panel for dry-run parser and read-only API testing.",
+      "abnormal_summary": "Mild leukocytosis; mild ALT elevation. Synthetic values only.",
+      "ai_summary": null,
+      "ai_summary_status": "not_generated",
+      "ordering_clinician": "Smoke Clinician",
+      "reviewed_by": "Smoke Reviewer",
+      "reviewed_at": "2026-06-20T00:00:00Z",
+      "metadata": {
+        "fixture_note": "Do not use for diagnosis or treatment.",
+        "clinical_boundary": "no real lab ingest"
+      }
+    }
+  ],
+  "observations": [
+    {
+      "diagnostic_report_ref": "DRYRUN-LAB-0001",
+      "code": "WBC",
+      "display_name": "White blood cell count",
+      "value_numeric": 18.4,
+      "value_type": "numeric",
+      "unit": "10^9/L",
+      "reference_low": 6.0,
+      "reference_high": 17.0,
+      "abnormal_flag": "high",
+      "interpretation": "Mild leukocytosis; correlate with stress/inflammation.",
+      "specimen_type": "blood",
+      "source_type": "dry_run_fixture",
+      "review_status": "preview"
+    },
+    {
+      "diagnostic_report_ref": "DRYRUN-LAB-0001",
+      "code": "ALT",
+      "display_name": "Alanine aminotransferase",
+      "value_numeric": 156,
+      "value_type": "numeric",
+      "unit": "U/L",
+      "reference_low": 10,
+      "reference_high": 125,
+      "abnormal_flag": "high",
+      "interpretation": "Mild ALT elevation in a synthetic fixture.",
+      "specimen_type": "serum",
+      "source_type": "dry_run_fixture",
+      "review_status": "preview"
+    }
+  ],
+  "imaging_studies": [
+    {
+      "modality": "XR",
+      "body_part": "abdomen",
+      "study_uid": "DRYRUN-STUDY-0001",
+      "accession_number": "DRYRUN-ACC-0001",
+      "source_type": "dry_run_fixture",
+      "source_system": "Pet-Med-AI fixture",
+      "report_text": "Synthetic abdominal radiograph metadata only. No raw DICOM image is included.",
+      "abnormal_flag": "review",
+      "ai_summary": null,
+      "ai_summary_status": "not_generated",
+      "review_status": "preview",
+      "attachment_ref": "fixture://diagnostic-data/abdomen-xr"
+    }
+  ],
+  "safety": {
+    "writes_database": false,
+    "creates_case": false,
+    "updates_case": false,
+    "downloads_attachments": false,
+    "sends_external_message": false,
+    "executes_real_import": false,
+    "executes_real_lab_ingest": false,
+    "executes_real_dicom_ingest": false,
+    "executes_real_device_ingest": false
+  }
+}

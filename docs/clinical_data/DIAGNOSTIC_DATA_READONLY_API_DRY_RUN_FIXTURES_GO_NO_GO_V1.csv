@@ -1,0 +1,8 @@
+decision_id,gate,expected,status,notes
+D01,validator,python3 scripts/validate_diagnostic_data_readonly_api_dry_run_fixtures.py PASS,PENDING,
+D02,ci_static,bash scripts/ci_static_checks.sh PASS,PENDING,
+D03,online_smoke,bash scripts/smoke_petmed.sh PASS,PENDING,
+D04,production_schema,database_revision=0009_diag_data and alembic_head=0009_diag_data and schema_ok=true,PENDING,
+D05,no_real_ingest,no real EMR/lab/DICOM/device ingest enabled,PENDING,
+D06,no_outbound,no automatic SMS/WeChat/email enabled,PENDING,
+D07,decision,GO_TO_LAB_RESULT_DRY_RUN_FIXTURE_PARSER_V1,PENDING,
