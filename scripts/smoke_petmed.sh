@@ -1500,6 +1500,14 @@ json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_client_pre
 json_assert_text_contains "$RESPONSE_BODY" "preferences.opt_out_all" "True" >/dev/null || fail "preventive care preferences save：opt_out_all 未 true"
 json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care preferences save：不应外发消息"
 
+# Reset opt-out before notification queue approval-path smoke.
+# The opt-out save above validates the preference endpoint; queue review below tests
+# the normal manual-contact approval path and must not inherit opt_out_all=true.
+http_json PUT "/api/preventive-care/client-preferences" '{"allow_in_app":true,"allow_sms":false,"allow_wechat":false,"allow_email":false,"opt_out_all":false,"preferred_channel":"in_app","updated_by":"HS-SMOKE","note":"Smoke reset opt-out before notification queue tests."}' "$token_a"
+expect_status 200 "preventive care client preferences reset"
+json_assert_text_contains "$RESPONSE_BODY" "preferences.opt_out_all" "False" >/dev/null || fail "preventive care preferences reset：opt_out_all 未 false"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "preventive care preferences reset：不应外发消息"
+
 http_json GET "/api/preventive-care/reminders" "" "$token_b"
 expect_status 200 "preventive care user B reminder list"
 json_assert_text_contains "$RESPONSE_BODY" "items" "[]" >/dev/null || fail "preventive care user B：不应看到 user A reminders"
@@ -1598,8 +1606,8 @@ http_json GET "/api/preventive-care/ops/summary" "" "$token_a"
 expect_status 200 "preventive care ops summary"
 json_assert_text_contains "$RESPONSE_BODY" "message" "preventive_care_ops_summary" >/dev/null || fail "preventive care ops summary：message 不正确"
 json_assert_text_contains "$RESPONSE_BODY" "mode" "preventive_care_reminder_ops_dashboard_v1" >/dev/null || fail "preventive care ops summary：mode 不正确"
-json_assert_text_contains "$RESPONSE_BODY" "reminders.total" "1" >/dev/null || fail "preventive care ops summary：应包含 reminders.total"
-json_assert_text_contains "$RESPONSE_BODY" "notification_queue.total" "1" >/dev/null || fail "preventive care ops summary：应包含 notification_queue.total"
+json_assert_text_contains "$RESPONSE_BODY" "reminders.total" "3" >/dev/null || fail "preventive care ops summary：reminders.total 应为 3"
+json_assert_text_contains "$RESPONSE_BODY" "notification_queue.total" "2" >/dev/null || fail "preventive care ops summary：notification_queue.total 应为 2"
 json_assert_text_contains "$RESPONSE_BODY" "safety.read_only" "True" >/dev/null || fail "preventive care ops summary：read_only 应为 true"
 json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "preventive care ops summary：不应写数据库"
 json_assert_text_contains "$RESPONSE_BODY" "auto_send" "False" >/dev/null || fail "preventive care ops summary：不应自动发送"
