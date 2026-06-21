@@ -1,0 +1,10 @@
+gate_id,gate,expected,status,blocking,notes
+AIIMG-001,validator,python3 scripts/validate_ai_imaging_report_summary.py PASS,PENDING,true,Static validator must pass
+AIIMG-002,ci,bash scripts/ci_static_checks.sh PASS,PENDING,true,CI static checks must pass
+AIIMG-003,online_smoke,AI imaging report summary smoke markers PASS,PENDING,true,Online smoke must finish ALL PASS
+AIIMG-004,no_db_write,writes_database=false,PENDING,true,Summary endpoint must not write database
+AIIMG-005,no_imaging_create,creates_imaging_study=false,PENDING,true,No ImagingStudy creation
+AIIMG-006,no_pacs,queries_pacs=false and reads_raw_dicom=false,PENDING,true,No PACS query or raw DICOM read
+AIIMG-007,no_external_ai,calls_external_ai=false,PENDING,true,No external AI provider call
+AIIMG-008,no_clinical_action,not_a_diagnosis=true and not_a_treatment_plan=true,PENDING,true,Clinician review aid only
+AIIMG-009,human_review,requires_human_review=true,PENDING,true,Human review required

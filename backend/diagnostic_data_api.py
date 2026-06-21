@@ -48,6 +48,19 @@ except ModuleNotFoundError:
         build_ai_lab_abnormal_summary,
     )
 
+try:
+    from backend.ai_imaging_report_summary import (
+        AI_IMAGING_REPORT_SUMMARY_MODE,
+        ai_imaging_report_summary_safety_flags,
+        build_ai_imaging_report_summary,
+    )
+except ModuleNotFoundError:
+    from ai_imaging_report_summary import (
+        AI_IMAGING_REPORT_SUMMARY_MODE,
+        ai_imaging_report_summary_safety_flags,
+        build_ai_imaging_report_summary,
+    )
+
 
 
 router = APIRouter(prefix="/api/diagnostic-data", tags=["diagnostic-data"])
@@ -740,5 +753,63 @@ def parse_imaging_metadata_dry_run_fixture(
         **safety,
         "creates_imaging_study": False,
         "queries_pacs": False,
+    }
+
+@router.post("/dry-run/imaging-metadata/report-summary", response_model=dict)
+def summarize_imaging_metadata_dry_run_report(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    fixture_id = str(data.get("fixture_id") or "").strip()
+    fixture_payload = data.get("fixture") or data.get("payload")
+
+    if fixture_id:
+        if "/" in fixture_id or "\\" in fixture_id or ".." in fixture_id:
+            raise HTTPException(status_code=400, detail="invalid fixture_id")
+        fixture_path = FIXTURE_DIR / f"{fixture_id}.json"
+        if not fixture_path.exists():
+            raise HTTPException(status_code=404, detail="imaging metadata dry-run fixture not found")
+        try:
+            fixture_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"failed to load imaging metadata fixture: {exc}") from exc
+
+    if not isinstance(fixture_payload, dict):
+        raise HTTPException(status_code=422, detail="fixture_id or fixture payload is required")
+
+    case_payload = None
+    case_id = data.get("case_id") or fixture_payload.get("case_id")
+    parsed_case_id = None
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        parsed_case_id = int(case.id)
+        case_payload = _case_payload(case)
+
+    try:
+        parsed = parse_imaging_metadata_fixture(fixture_payload, case_id=parsed_case_id)
+        summary = build_ai_imaging_report_summary(
+            parsed,
+            case_id=parsed_case_id,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    summary_safety = ai_imaging_report_summary_safety_flags()
+    return {
+        "message": "ai_imaging_report_summary_dry_run",
+        "mode": AI_IMAGING_REPORT_SUMMARY_MODE,
+        "fixture_id": fixture_id or parsed.get("fixture_id"),
+        "case": case_payload,
+        "parsed_imaging_metadata": parsed,
+        **summary,
+        "safety": {**safety, **summary_safety},
+        **safety,
+        **summary_safety,
     }
 

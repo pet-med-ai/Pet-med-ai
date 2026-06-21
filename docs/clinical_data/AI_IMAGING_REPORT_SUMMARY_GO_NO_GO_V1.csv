@@ -1,0 +1,11 @@
+decision_item,required_value,observed_value,status,blocking,notes
+validator,PASS,PENDING,PENDING,true,Run validate_ai_imaging_report_summary.py
+ci_static_checks,PASS,PENDING,PENDING,true,Run ci_static_checks.sh
+online_smoke,ALL PASS,PENDING,PENDING,true,Run smoke_petmed.sh against production
+production_database_revision,0009_diag_data,PENDING,PENDING,true,Check /api/system/version
+production_alembic_head,0009_diag_data,PENDING,PENDING,true,Check /api/system/version
+production_schema_ok,true,PENDING,PENDING,true,Check /api/system/version
+no_real_dicom_ingest,true,PENDING,PENDING,true,executes_real_dicom_ingest=false
+no_pacs_query,true,PENDING,PENDING,true,queries_pacs=false
+no_external_ai,true,PENDING,PENDING,true,calls_external_ai=false
+final_decision,GO_TO_TREATMENT_RECOMMENDATION_BOUNDARY_V1,PENDING,PENDING,true,Only after all blocking gates pass

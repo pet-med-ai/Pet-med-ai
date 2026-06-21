@@ -1533,6 +1533,41 @@ expect_status 404 "user B cannot parse user A imaging metadata fixture"
 pass "imaging metadata dry-run fixture parser checks"
 
 
+# AI Imaging Report Summary V1: deterministic dry-run summary only; no PACS/DICOM/device/external AI.
+ai_imaging_summary_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+print(json.dumps({
+    "case_id": case_id,
+    "fixture_id": "imaging_metadata_dry_run_fixture_v1"
+}, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/diagnostic-data/dry-run/imaging-metadata/report-summary" "$ai_imaging_summary_body" "$token_a"
+expect_status 200 "AI imaging report summary dry-run"
+json_assert_text_contains "$RESPONSE_BODY" "message" "ai_imaging_report_summary_dry_run" >/dev/null || fail "AI imaging report summary: bad message"
+json_assert_text_contains "$RESPONSE_BODY" "summary.human_review_required" "True" >/dev/null || fail "AI imaging report summary: human review required"
+json_assert_text_contains "$RESPONSE_BODY" "summary.not_a_diagnosis" "True" >/dev/null || fail "AI imaging report summary: must not be diagnosis"
+json_assert_text_contains "$RESPONSE_BODY" "summary.not_a_treatment_plan" "True" >/dev/null || fail "AI imaging report summary: must not be treatment plan"
+json_assert_text_contains "$RESPONSE_BODY" "summary.not_a_radiologist_report" "True" >/dev/null || fail "AI imaging report summary: must not be radiologist report"
+json_assert_text_contains "$RESPONSE_BODY" "imaging_findings" "gastric" >/dev/null || fail "AI imaging report summary: missing gastric finding"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "AI imaging report summary: must not write database"
+json_assert_text_contains "$RESPONSE_BODY" "creates_imaging_study" "False" >/dev/null || fail "AI imaging report summary: must not create ImagingStudy"
+json_assert_text_contains "$RESPONSE_BODY" "queries_pacs" "False" >/dev/null || fail "AI imaging report summary: must not query PACS"
+json_assert_text_contains "$RESPONSE_BODY" "reads_raw_dicom" "False" >/dev/null || fail "AI imaging report summary: must not read raw DICOM"
+json_assert_text_contains "$RESPONSE_BODY" "calls_external_ai" "False" >/dev/null || fail "AI imaging report summary: must not call external AI"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_dicom_ingest" "False" >/dev/null || fail "AI imaging report summary: must not execute real DICOM ingest"
+json_assert_text_contains "$RESPONSE_BODY" "drug_dose_recommendation" "False" >/dev/null || fail "AI imaging report summary: must not give drug dose recommendation"
+
+http_json POST "/api/diagnostic-data/dry-run/imaging-metadata/report-summary" "$ai_imaging_summary_body"
+expect_status 401 "AI imaging report summary requires auth"
+
+http_json POST "/api/diagnostic-data/dry-run/imaging-metadata/report-summary" "$ai_imaging_summary_body" "$token_b"
+expect_status 404 "user B cannot summarize user A imaging report"
+pass "AI imaging report summary checks"
+
+
 
 # Preventive Care Reminder API V1: in-app reminders only, no external messages.
 http_json GET "/api/preventive-care/rules" "" "$token_a"
