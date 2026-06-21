@@ -1,0 +1,8 @@
+item,status,decision,notes
+AI Lab Abnormal Summary V1,PENDING,NO-GO until validator CI and online smoke pass,Dry-run summary only
+database_revision_0009,PENDING,REQUIRED,database_revision must remain 0009_diag_data
+alembic_head_0009,PENDING,REQUIRED,alembic_head must remain 0009_diag_data
+schema_ok_true,PENDING,REQUIRED,schema_ok must remain true
+no_real_lab_ingest,PENDING,REQUIRED,No LIS or lab equipment integration
+no_external_ai,PENDING,REQUIRED,No provider calls or credentials
+no_treatment_or_dose,PENDING,REQUIRED,No treatment or drug dose recommendations

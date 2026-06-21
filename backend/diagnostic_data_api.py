@@ -35,6 +35,20 @@ except ModuleNotFoundError:
         parse_imaging_metadata_fixture,
     )
 
+try:
+    from backend.ai_lab_abnormal_summary import (
+        AI_LAB_ABNORMAL_SUMMARY_MODE,
+        ai_lab_abnormal_summary_safety_flags,
+        build_ai_lab_abnormal_summary,
+    )
+except ModuleNotFoundError:
+    from ai_lab_abnormal_summary import (
+        AI_LAB_ABNORMAL_SUMMARY_MODE,
+        ai_lab_abnormal_summary_safety_flags,
+        build_ai_lab_abnormal_summary,
+    )
+
+
 
 router = APIRouter(prefix="/api/diagnostic-data", tags=["diagnostic-data"])
 
@@ -560,6 +574,74 @@ def parse_lab_result_dry_run(
         **safety,
         **parser_safety,
     }
+
+@router.post("/dry-run/lab-results/abnormal-summary", response_model=dict)
+def summarize_lab_result_abnormalities_dry_run(
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=422, detail="payload must be a JSON object")
+
+    case_payload = None
+    case_id = payload.get("case_id")
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        case_payload = _case_payload(case)
+        case_id = case.id
+    else:
+        case_id = None
+
+    fixture_id = payload.get("fixture_id")
+    fixture = payload.get("fixture")
+    parsed_lab_result = payload.get("parsed_lab_result") or payload.get("parsed")
+
+    if fixture_id:
+        fixture_path = _safe_fixture_path("lab_result_", str(fixture_id))
+        if not fixture_path.exists():
+            raise HTTPException(status_code=404, detail="lab result dry-run fixture not found")
+        try:
+            fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"failed to load lab result fixture: {exc}") from exc
+
+    if parsed_lab_result is None:
+        if not isinstance(fixture, dict):
+            raise HTTPException(status_code=422, detail="fixture_id, fixture object, or parsed_lab_result is required")
+        try:
+            parsed_lab_result = parse_lab_result_fixture(fixture, case_id=case_id)
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc)) from exc
+    elif not isinstance(parsed_lab_result, dict):
+        raise HTTPException(status_code=422, detail="parsed_lab_result must be a JSON object")
+
+    try:
+        summary = build_ai_lab_abnormal_summary(
+            parsed_lab_result,
+            case_id=case_id,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    summary_safety = ai_lab_abnormal_summary_safety_flags()
+    combined_safety = {**safety, **summary_safety}
+
+    return {
+        "message": "ai_lab_abnormal_summary_dry_run",
+        "mode": AI_LAB_ABNORMAL_SUMMARY_MODE,
+        "fixture_id": summary.get("fixture_id") or fixture_id,
+        "case": case_payload,
+        "summary": summary["summary"],
+        "abnormal_findings": summary["abnormal_findings"],
+        "review_recommendations": summary["review_recommendations"],
+        "quality_gate": summary["quality_gate"],
+        "safety": combined_safety,
+        **combined_safety,
+    }
+
 
 @router.get("/dry-run/imaging-metadata/fixtures", response_model=dict)
 def list_imaging_metadata_dry_run_fixtures(

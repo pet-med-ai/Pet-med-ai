@@ -1,0 +1,9 @@
+gate,expected,status,blocking,notes
+validator,python3 scripts/validate_ai_lab_abnormal_summary.py PASS,PENDING,true,Static guard for module API docs smoke and safety markers
+ci_static,bash scripts/ci_static_checks.sh PASS,PENDING,true,Must include validate_ai_lab_abnormal_summary.py
+online_smoke,AI lab abnormal summary smoke markers PASS,PENDING,true,Must run against deployed backend
+database_writes,writes_database=false,PENDING,true,Summary endpoint must not write DB
+external_ai,calls_external_ai=false,PENDING,true,No external AI provider call in this stage
+real_lab_ingest,executes_real_lab_ingest=false,PENDING,true,No real lab/LIS ingest
+treatment_boundary,treatment_recommendation=false and drug_dose_recommendation=false,PENDING,true,No treatment or dose advice
+human_review,requires_human_review=true,PENDING,true,Clinician review remains required

@@ -1456,6 +1456,38 @@ http_json POST "/api/diagnostic-data/dry-run/lab-results/parse" "$lab_result_par
 expect_status 404 "user B cannot parse user A lab dry-run fixture"
 pass "lab result dry-run fixture parser checks"
 
+lab_abnormal_summary_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "fixture_id": "lab_result_dry_run_fixture_v1",
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/diagnostic-data/dry-run/lab-results/abnormal-summary" "$lab_abnormal_summary_body" "$token_a"
+expect_status 200 "AI lab abnormal summary dry-run"
+json_assert_text_contains "$RESPONSE_BODY" "message" "ai_lab_abnormal_summary_dry_run" >/dev/null || fail "AI lab abnormal summary：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "summary.human_review_required" "True" >/dev/null || fail "AI lab abnormal summary：必须人工复核"
+json_assert_text_contains "$RESPONSE_BODY" "summary.not_a_diagnosis" "True" >/dev/null || fail "AI lab abnormal summary：不得作为诊断"
+json_assert_text_contains "$RESPONSE_BODY" "summary.not_a_treatment_plan" "True" >/dev/null || fail "AI lab abnormal summary：不得作为治疗方案"
+json_assert_text_contains "$RESPONSE_BODY" "abnormal_findings" "WBC" >/dev/null || fail "AI lab abnormal summary：缺少 WBC"
+json_assert_text_contains "$RESPONSE_BODY" "abnormal_findings" "ALT" >/dev/null || fail "AI lab abnormal summary：缺少 ALT"
+json_assert_text_contains "$RESPONSE_BODY" "abnormal_findings" "GLU" >/dev/null || fail "AI lab abnormal summary：缺少 GLU"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "AI lab abnormal summary：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "calls_external_ai" "False" >/dev/null || fail "AI lab abnormal summary：不应调用外部 AI"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_lab_ingest" "False" >/dev/null || fail "AI lab abnormal summary：不应接真实检验"
+json_assert_text_contains "$RESPONSE_BODY" "drug_dose_recommendation" "False" >/dev/null || fail "AI lab abnormal summary：不应给剂量建议"
+
+http_json POST "/api/diagnostic-data/dry-run/lab-results/abnormal-summary" "$lab_abnormal_summary_body"
+expect_status 401 "AI lab abnormal summary requires auth"
+
+http_json POST "/api/diagnostic-data/dry-run/lab-results/abnormal-summary" "$lab_abnormal_summary_body" "$token_b"
+expect_status 404 "user B cannot summarize user A lab abnormal summary"
+pass "AI lab abnormal summary checks"
+
 # Imaging Metadata Dry-run Fixture Parser V1: synthetic metadata only, no PACS/DICOM/device ingest.
 http_json GET "/api/diagnostic-data/dry-run/imaging-metadata/fixtures" "" "$token_a"
 expect_status 200 "imaging metadata dry-run fixture list"
