@@ -1,0 +1,9 @@
+gate,required,status,decision,notes
+validator_pass,true,PENDING,NO_GO,python3 scripts/validate_case_detail_diagnostic_data_display.py
+ci_static_checks_pass,true,PENDING,NO_GO,bash scripts/ci_static_checks.sh
+production_schema_ok,true,PENDING,NO_GO,database_revision=0009_diag_data and alembic_head=0009_diag_data and schema_ok=true
+online_smoke_all_pass,true,PENDING,NO_GO,bash scripts/smoke_petmed.sh
+no_real_lab_ingest,true,PENDING,NO_GO,No real LIS or lab equipment connection
+no_real_dicom_ingest,true,PENDING,NO_GO,No PACS or raw DICOM retrieval
+no_db_writes_from_panel,true,PENDING,NO_GO,UI panel uses read-only GET only
+final_decision,true,PENDING,NO_GO,Set GO_TO_AI_LAB_ABNORMAL_SUMMARY_V1 only after all gates pass

@@ -1,0 +1,12 @@
+item,required,status,evidence,notes
+case_detail_panel_present,true,PENDING,frontend/src/pages/CaseDetail.jsx contains DiagnosticDataPanel,Must display diagnostic summary on Case Detail
+read_only_endpoint_used,true,PENDING,GET /api/diagnostic-data/cases/{case_id}/summary,No write endpoint from UI
+report_count_visible,true,PENDING,Diagnostic Reports count,Display DiagnosticReport count
+observation_count_visible,true,PENDING,Observations count,Display Observation count
+imaging_count_visible,true,PENDING,Imaging Studies count,Display ImagingStudy count
+empty_state_visible,true,PENDING,No diagnostic data empty state,Smoke cases may have zero diagnostic rows
+safety_markers_visible,true,PENDING,read_only=true writes_database=false,UI must show read-only boundary
+no_db_write_from_ui,true,PENDING,no api.post/api.delete to /api/diagnostic-data,Case Detail diagnostic panel must not write
+owner_scope_preserved,true,PENDING,user B cannot read user A diagnostic data,Existing smoke gate remains required
+ci_static_check,true,PENDING,validate_case_detail_diagnostic_data_display.py PASS,Static gate
+online_smoke,true,PENDING,smoke_petmed.sh ALL PASS,Production gate

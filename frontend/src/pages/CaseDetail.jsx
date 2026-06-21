@@ -20,6 +20,9 @@ export default function CaseDetail() {
   const [preventiveCareStatus, setPreventiveCareStatus] = useState("");
   const [exportingDoc, setExportingDoc] = useState("");
   const [exportStatus, setExportStatus] = useState("");
+  const [diagnosticDataSummary, setDiagnosticDataSummary] = useState(null);
+  const [diagnosticDataLoading, setDiagnosticDataLoading] = useState(false);
+  const [diagnosticDataStatus, setDiagnosticDataStatus] = useState("");
 
   // 拉取详情
   useEffect(() => {
@@ -65,6 +68,29 @@ export default function CaseDetail() {
   };
 
   const doPrint = () => setTimeout(() => window.print(), 40);
+
+  // Case Detail Diagnostic Data Display V1: read-only diagnostic summary panel.
+  const fetchDiagnosticDataSummary = async () => {
+    if (!data?.id) return;
+
+    try {
+      setDiagnosticDataLoading(true);
+      const res = await api.get(`/api/diagnostic-data/cases/${data.id}/summary`);
+      const payload = res.data || {};
+      const counts = payload.counts || {};
+      setDiagnosticDataSummary(payload);
+      setDiagnosticDataStatus(
+        `已加载诊断数据：reports=${counts.reports || 0} · observations=${counts.observations || 0} · imaging=${counts.imaging_studies || 0} · read_only=true · writes_database=false`
+      );
+    } catch (e) {
+      console.error("Diagnostic data summary load failed:", e);
+      const detail = e?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
+      setDiagnosticDataStatus(`诊断数据加载失败：${msg}`);
+    } finally {
+      setDiagnosticDataLoading(false);
+    }
+  };
 
   // Preventive Care Reminder UI V1: in-app reminders only; sends_external_message=false.
   const fetchPreventiveCareReminders = async () => {
@@ -242,6 +268,11 @@ export default function CaseDetail() {
     fetchPreventiveCareReminders();
   }, [data?.id]);
 
+  useEffect(() => {
+    if (!data?.id) return;
+    fetchDiagnosticDataSummary();
+  }, [data?.id]);
+
   // Clinical Docs Export UI V1: read-only DOCX download from Case detail.
   const exportClinicalDoc = async (templateId, label) => {
     if (!data?.id) {
@@ -416,6 +447,15 @@ export default function CaseDetail() {
         />
       </Section>
 
+      <Section title="诊断数据 / Diagnostic Data">
+        <DiagnosticDataPanel
+          summary={diagnosticDataSummary}
+          loading={diagnosticDataLoading}
+          status={diagnosticDataStatus}
+          onRefresh={fetchDiagnosticDataSummary}
+        />
+      </Section>
+
       <Section title="八、预防保健提醒 / Preventive Care">
         <PreventiveCarePanel
           reminders={preventiveCareReminders}
@@ -547,6 +587,119 @@ function DynamicHistory({ value }) {
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function DiagnosticDataPanel({ summary, loading, status, onRefresh }) {
+  const counts = summary?.counts || {};
+  const reports = Array.isArray(summary?.reports) ? summary.reports : [];
+  const observations = Array.isArray(summary?.observations) ? summary.observations : [];
+  const imagingStudies = Array.isArray(summary?.imaging_studies) ? summary.imaging_studies : [];
+  const hasAny = reports.length > 0 || observations.length > 0 || imagingStudies.length > 0;
+
+  return (
+    <div className="diagnostic-data-panel">
+      <div className="diagnostic-data-actions screen-only">
+        <button type="button" style={btnSecondary} onClick={onRefresh} disabled={loading}>
+          {loading ? "加载中…" : "刷新诊断数据"}
+        </button>
+      </div>
+
+      <div className="diagnostic-data-status">
+        {status || "只读展示 DiagnosticReport / Observation / ImagingStudy，不写数据库。read_only=true · writes_database=false"}
+      </div>
+
+      <div className="diagnostic-data-counts">
+        <div className="diagnostic-data-count-card">
+          <div className="diagnostic-data-count-value">{counts.reports || 0}</div>
+          <div className="diagnostic-data-count-label">Diagnostic Reports</div>
+        </div>
+        <div className="diagnostic-data-count-card">
+          <div className="diagnostic-data-count-value">{counts.observations || 0}</div>
+          <div className="diagnostic-data-count-label">Observations</div>
+        </div>
+        <div className="diagnostic-data-count-card">
+          <div className="diagnostic-data-count-value">{counts.imaging_studies || 0}</div>
+          <div className="diagnostic-data-count-label">Imaging Studies</div>
+        </div>
+      </div>
+
+      {!hasAny ? (
+        <div className="diagnostic-data-empty">
+          暂无结构化检验/影像记录。可先通过 dry-run fixture parser 验证解析预览；本面板只读取已存在的 0009 诊断数据。
+        </div>
+      ) : (
+        <div className="diagnostic-data-grid">
+          <DiagnosticDataList
+            title="Reports"
+            empty="暂无 DiagnosticReport"
+            items={reports.slice(0, 5)}
+            renderItem={(item) => (
+              <>
+                <div className="diagnostic-data-item-title">{safeText(item.title || formatReportType(item.report_type))}</div>
+                <div className="diagnostic-data-item-meta">
+                  类型：{formatReportType(item.report_type)} · 状态：{safeText(item.status)} · 来源：{safeText(item.source_type)}
+                </div>
+                <div className="diagnostic-data-item-safe">ai_summary_status={safeText(item.ai_summary_status)}</div>
+              </>
+            )}
+          />
+          <DiagnosticDataList
+            title="Abnormal / Recent Observations"
+            empty="暂无 Observation"
+            items={observations.slice(0, 8)}
+            renderItem={(item) => (
+              <>
+                <div className="diagnostic-data-item-title">{safeText(item.display_name)}</div>
+                <div className="diagnostic-data-item-meta">
+                  {formatObservationValue(item)} · {formatAbnormalFlag(item.abnormal_flag)} · {safeText(item.unit)}
+                </div>
+                <div className="diagnostic-data-item-safe">code={safeText(item.code)} · review_status={safeText(item.review_status)}</div>
+              </>
+            )}
+          />
+          <DiagnosticDataList
+            title="Imaging Metadata"
+            empty="暂无 ImagingStudy"
+            items={imagingStudies.slice(0, 5)}
+            renderItem={(item) => (
+              <>
+                <div className="diagnostic-data-item-title">
+                  {safeText(item.modality)} · {safeText(item.body_part)}
+                </div>
+                <div className="diagnostic-data-item-meta">
+                  taken_at={formatDiagnosticDate(item.taken_at)} · abnormal={formatAbnormalFlag(item.abnormal_flag)}
+                </div>
+                <div className="diagnostic-data-item-safe">study_uid={safeText(item.study_uid)} · review_status={safeText(item.review_status)}</div>
+              </>
+            )}
+          />
+        </div>
+      )}
+
+      <div className="diagnostic-data-safety">
+        read_only=true · writes_database=false · creates_case=false · executes_real_lab_ingest=false · executes_real_dicom_ingest=false · executes_real_device_ingest=false
+      </div>
+    </div>
+  );
+}
+
+function DiagnosticDataList({ title, empty, items, renderItem }) {
+  return (
+    <div className="diagnostic-data-subblock">
+      <div className="diagnostic-data-subtitle">{title}</div>
+      {items.length === 0 ? (
+        <div className="diagnostic-data-empty-small">{empty}</div>
+      ) : (
+        <div className="diagnostic-data-list">
+          {items.map((item, index) => (
+            <div className="diagnostic-data-item" key={item.report_id || item.observation_id || item.imaging_study_id || index}>
+              {renderItem(item)}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -692,6 +845,43 @@ function isDynamicConsultCase(data) {
 function formatDateOnly(value) {
   if (!value) return "—";
   return String(value).slice(0, 10);
+}
+
+function formatDiagnosticDate(value) {
+  if (!value) return "—";
+  return String(value).replace("T", " ").slice(0, 16);
+}
+
+function formatReportType(value) {
+  const map = {
+    lab: "检验报告",
+    cbc: "CBC",
+    chemistry: "生化",
+    imaging: "影像报告",
+    device: "设备数据",
+    manual: "手工记录",
+  };
+  return map[value] || value || "诊断报告";
+}
+
+function formatAbnormalFlag(value) {
+  const text = String(value || "").trim();
+  if (!text) return "未标记";
+  const map = {
+    high: "升高",
+    low: "降低",
+    abnormal: "异常",
+    critical: "危急",
+    normal: "正常",
+  };
+  return map[text.toLowerCase()] || text;
+}
+
+function formatObservationValue(item) {
+  if (item?.value_numeric !== null && item?.value_numeric !== undefined && item?.value_numeric !== "") {
+    return String(item.value_numeric);
+  }
+  return safeText(item?.value_text);
 }
 
 function formatPreventiveCategory(value) {
@@ -861,6 +1051,101 @@ const css = `
     margin: 10px 0;
     font-size: 13px;
     font-weight: 700;
+  }
+
+  .diagnostic-data-panel {
+    display: grid;
+    gap: 12px;
+  }
+  .diagnostic-data-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .diagnostic-data-status {
+    border: 1px solid #bae6fd;
+    background: #f0f9ff;
+    color: #075985;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .diagnostic-data-counts {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .diagnostic-data-count-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    padding: 10px 12px;
+  }
+  .diagnostic-data-count-value {
+    font-size: 24px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  .diagnostic-data-count-label {
+    font-size: 12px;
+    color: #64748b;
+  }
+  .diagnostic-data-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .diagnostic-data-subblock {
+    display: grid;
+    gap: 8px;
+  }
+  .diagnostic-data-subtitle {
+    font-size: 14px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  .diagnostic-data-list {
+    display: grid;
+    gap: 8px;
+  }
+  .diagnostic-data-item {
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .diagnostic-data-item-title {
+    font-weight: 850;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .diagnostic-data-item-meta {
+    font-size: 12px;
+    color: #475569;
+    word-break: break-word;
+  }
+  .diagnostic-data-item-safe {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #166534;
+  }
+  .diagnostic-data-empty, .diagnostic-data-empty-small {
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: #64748b;
+    background: #fff;
+  }
+  .diagnostic-data-empty-small {
+    font-size: 12px;
+  }
+  .diagnostic-data-safety {
+    font-size: 11px;
+    color: #166534;
+  }
+  @media (max-width: 760px) {
+    .diagnostic-data-counts, .diagnostic-data-grid { grid-template-columns: 1fr; }
   }
 
   .preventive-care-panel {

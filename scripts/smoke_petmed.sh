@@ -224,6 +224,9 @@ pass "commercial v1 post-go stabilization validation"
 python3 scripts/validate_preventive_care_reminder_ui.py >/dev/null || fail "preventive care reminder UI validation failed"
 pass "preventive care reminder UI validation"
 
+python3 scripts/validate_case_detail_diagnostic_data_display.py >/dev/null || fail "case detail diagnostic data display validation failed"
+pass "case detail diagnostic data display validation"
+
 python3 scripts/validate_emr_import_pilot0_final_go_no_go.py >/dev/null || fail "emr real import pilot0 final go no-go validation failed"
 pass "emr real import pilot0 final go no-go validation"
 
