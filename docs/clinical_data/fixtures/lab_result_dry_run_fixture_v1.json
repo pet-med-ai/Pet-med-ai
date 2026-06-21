@@ -1,0 +1,62 @@
+{
+  "fixture_id": "lab_result_dry_run_fixture_v1",
+  "mode": "lab_result_dry_run_fixture_parser_v1",
+  "synthetic": true,
+  "source_type": "lab_fixture",
+  "source_system": "synthetic_lab_fixture",
+  "source_report_id": "LAB-DRY-RUN-2026-0001",
+  "report_type": "lab_panel",
+  "title": "Synthetic CBC + Chemistry Dry-run Panel",
+  "panel": "cbc_chemistry",
+  "species": "dog",
+  "patient": {
+    "pet_name": "Smoke乐乐",
+    "species": "dog"
+  },
+  "collected_at": "2026-06-20T09:00:00Z",
+  "observed_at": "2026-06-20T09:30:00Z",
+  "specimen_type": "blood",
+  "ordering_clinician": "Smoke Clinician",
+  "results": [
+    {
+      "code": "WBC",
+      "display_name": "White blood cells",
+      "value": 22.4,
+      "value_type": "numeric",
+      "unit": "10^9/L",
+      "reference_low": 6.0,
+      "reference_high": 17.0,
+      "specimen_type": "whole_blood"
+    },
+    {
+      "code": "ALT",
+      "display_name": "Alanine aminotransferase",
+      "value": 245,
+      "value_type": "numeric",
+      "unit": "U/L",
+      "reference_low": 10,
+      "reference_high": 125,
+      "specimen_type": "serum"
+    },
+    {
+      "code": "CREA",
+      "display_name": "Creatinine",
+      "value": 1.2,
+      "value_type": "numeric",
+      "unit": "mg/dL",
+      "reference_low": 0.5,
+      "reference_high": 1.8,
+      "specimen_type": "serum"
+    },
+    {
+      "code": "GLU",
+      "display_name": "Glucose",
+      "value": 60,
+      "value_type": "numeric",
+      "unit": "mg/dL",
+      "reference_low": 75,
+      "reference_high": 120,
+      "specimen_type": "serum"
+    }
+  ]
+}

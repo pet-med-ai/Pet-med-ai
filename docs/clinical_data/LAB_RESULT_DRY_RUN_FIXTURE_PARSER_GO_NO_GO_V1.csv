@@ -1,0 +1,8 @@
+item,decision,evidence,status
+validator,GO,python3 scripts/validate_lab_result_dry_run_fixture_parser.py,PENDING
+ci_static,GO,bash scripts/ci_static_checks.sh,PENDING
+online_smoke,GO,bash scripts/smoke_petmed.sh,PENDING
+production_schema,GO,database_revision=0009_diag_data; alembic_head=0009_diag_data; schema_ok=true,PENDING
+real_lab_ingest,NO-GO if enabled,executes_real_lab_ingest must be false,PENDING
+external_delivery,NO-GO if enabled,sends_external_message must be false,PENDING
+stage_decision,GO_TO_IMAGING_METADATA_DRY_RUN_FIXTURE_PARSER_V1,all blocking gates PASS,PENDING

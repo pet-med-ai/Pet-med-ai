@@ -1406,6 +1406,54 @@ http_json GET "/api/diagnostic-data/cases/${case_id}/summary" "" "$token_b"
 expect_status 404 "user B cannot read user A diagnostic data"
 pass "diagnostic data read-only API checks"
 
+
+# Lab Result Dry-run Fixture Parser V1: parses synthetic lab results into report/observation previews only.
+http_json GET "/api/diagnostic-data/dry-run/lab-results/fixtures" "" "$token_a"
+expect_status 200 "lab result dry-run fixture list"
+json_assert_text_contains "$RESPONSE_BODY" "message" "lab_result_dry_run_fixtures" >/dev/null || fail "lab result fixture list：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "fixture_ids" "lab_result_dry_run_fixture_v1" >/dev/null || fail "lab result fixture list：缺少 fixture"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "lab result fixture list：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_lab_ingest" "False" >/dev/null || fail "lab result fixture list：不应接真实检验"
+
+http_json GET "/api/diagnostic-data/dry-run/lab-results/fixtures/lab_result_dry_run_fixture_v1" "" "$token_a"
+expect_status 200 "lab result dry-run fixture get"
+json_assert_text_contains "$RESPONSE_BODY" "message" "lab_result_dry_run_fixture" >/dev/null || fail "lab result fixture get：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "fixture.results" "WBC" >/dev/null || fail "lab result fixture get：缺少 WBC"
+json_assert_text_contains "$RESPONSE_BODY" "fixture.results" "ALT" >/dev/null || fail "lab result fixture get：缺少 ALT"
+
+lab_result_parse_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "fixture_id": "lab_result_dry_run_fixture_v1",
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/diagnostic-data/dry-run/lab-results/parse" "$lab_result_parse_body" "$token_a"
+expect_status 200 "lab result dry-run fixture parse"
+json_assert_text_contains "$RESPONSE_BODY" "message" "lab_result_dry_run_parsed" >/dev/null || fail "lab result parser：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "quality_gate.status" "PASS" >/dev/null || fail "lab result parser：quality gate 未 PASS"
+json_assert_text_contains "$RESPONSE_BODY" "report_preview.report_type" "lab_panel" >/dev/null || fail "lab result parser：report_type 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "observations_preview" "WBC" >/dev/null || fail "lab result parser：缺少 WBC observation"
+json_assert_text_contains "$RESPONSE_BODY" "abnormal_observations" "ALT" >/dev/null || fail "lab result parser：缺少 ALT abnormal"
+json_assert_text_contains "$RESPONSE_BODY" "abnormal_observations" "GLU" >/dev/null || fail "lab result parser：缺少 GLU abnormal"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "lab result parser：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "creates_diagnostic_report" "False" >/dev/null || fail "lab result parser：不应创建 DiagnosticReport"
+json_assert_text_contains "$RESPONSE_BODY" "creates_observation" "False" >/dev/null || fail "lab result parser：不应创建 Observation"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_lab_ingest" "False" >/dev/null || fail "lab result parser：不应接真实检验"
+json_assert_text_contains "$RESPONSE_BODY" "sends_external_message" "False" >/dev/null || fail "lab result parser：不应外发消息"
+
+http_json POST "/api/diagnostic-data/dry-run/lab-results/parse" "$lab_result_parse_body"
+expect_status 401 "lab result dry-run parser requires auth"
+
+http_json POST "/api/diagnostic-data/dry-run/lab-results/parse" "$lab_result_parse_body" "$token_b"
+expect_status 404 "user B cannot parse user A lab dry-run fixture"
+pass "lab result dry-run fixture parser checks"
+
+
 # Preventive Care Reminder API V1: in-app reminders only, no external messages.
 http_json GET "/api/preventive-care/rules" "" "$token_a"
 expect_status 200 "preventive care rules"

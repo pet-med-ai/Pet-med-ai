@@ -1,0 +1,9 @@
+gate,requirement,expected,status,blocking
+stage_scope,dry-run fixture parser only,no real lab ingest,PENDING,true
+api_auth,all routes require auth,unauthenticated parse returns 401,PENDING,true
+owner_scope,case_id access is owner-scoped,user B cannot parse user A case fixture,PENDING,true
+parser_output,fixture maps to report and observations,quality_gate.status PASS,PENDING,true
+no_db_write,parser and routes do not write DB,writes_database false,PENDING,true
+no_real_ingest,no lab/LIS/provider calls,executes_real_lab_ingest false,PENDING,true
+ci,static validation passes,ci_static_checks PASS,PENDING,true
+smoke,online smoke passes,ALL PASS,PENDING,true

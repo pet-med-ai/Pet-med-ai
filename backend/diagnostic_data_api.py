@@ -19,6 +19,12 @@ except ModuleNotFoundError:
     from models import Case, DiagnosticReport, Observation, ImagingStudy
 
 
+try:
+    from backend.lab_result_parser import parse_lab_result_fixture, lab_parser_safety_flags
+except ModuleNotFoundError:
+    from lab_result_parser import parse_lab_result_fixture, lab_parser_safety_flags
+
+
 router = APIRouter(prefix="/api/diagnostic-data", tags=["diagnostic-data"])
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -433,3 +439,114 @@ def get_diagnostic_dry_run_fixture(
         "safety": safety,
         **safety,
     }
+
+
+def _safe_fixture_path(prefix: str, fixture_id: str) -> Path:
+    if "/" in fixture_id or "\\" in fixture_id or ".." in fixture_id:
+        raise HTTPException(status_code=400, detail="invalid fixture_id")
+    if not fixture_id.startswith(prefix):
+        raise HTTPException(status_code=400, detail=f"fixture_id must start with {prefix}")
+    return FIXTURE_DIR / f"{fixture_id}.json"
+
+
+@router.get("/dry-run/lab-results/fixtures", response_model=dict)
+def list_lab_result_dry_run_fixtures(
+    user=Depends(get_current_user),
+):
+    fixture_ids = []
+    if FIXTURE_DIR.exists():
+        fixture_ids = sorted(path.stem for path in FIXTURE_DIR.glob("lab_result_*.json"))
+
+    safety = _safety_flags(dry_run=True)
+    parser_safety = lab_parser_safety_flags()
+    return {
+        "message": "lab_result_dry_run_fixtures",
+        "mode": "lab_result_dry_run_fixture_parser_v1",
+        "fixture_ids": fixture_ids,
+        "total": len(fixture_ids),
+        "safety": {**safety, **parser_safety},
+        **safety,
+        **parser_safety,
+    }
+
+
+@router.get("/dry-run/lab-results/fixtures/{fixture_id}", response_model=dict)
+def get_lab_result_dry_run_fixture(
+    fixture_id: str,
+    user=Depends(get_current_user),
+):
+    fixture_path = _safe_fixture_path("lab_result_", fixture_id)
+    if not fixture_path.exists():
+        raise HTTPException(status_code=404, detail="lab result dry-run fixture not found")
+
+    try:
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"failed to load lab result fixture: {exc}") from exc
+
+    safety = _safety_flags(dry_run=True)
+    parser_safety = lab_parser_safety_flags()
+    return {
+        "message": "lab_result_dry_run_fixture",
+        "mode": "lab_result_dry_run_fixture_parser_v1",
+        "fixture_id": fixture_id,
+        "fixture": fixture,
+        "safety": {**safety, **parser_safety},
+        **safety,
+        **parser_safety,
+    }
+
+
+@router.post("/dry-run/lab-results/parse", response_model=dict)
+def parse_lab_result_dry_run(
+    payload: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if not isinstance(payload, dict):
+        raise HTTPException(status_code=422, detail="payload must be a JSON object")
+
+    case_payload = None
+    case_id = payload.get("case_id")
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        case_payload = _case_payload(case)
+        case_id = case.id
+    else:
+        case_id = None
+
+    fixture_id = payload.get("fixture_id")
+    fixture = payload.get("fixture")
+    if fixture_id:
+        fixture_path = _safe_fixture_path("lab_result_", str(fixture_id))
+        if not fixture_path.exists():
+            raise HTTPException(status_code=404, detail="lab result dry-run fixture not found")
+        try:
+            fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"failed to load lab result fixture: {exc}") from exc
+
+    if not isinstance(fixture, dict):
+        raise HTTPException(status_code=422, detail="fixture_id or fixture object is required")
+
+    try:
+        parsed = parse_lab_result_fixture(fixture, case_id=case_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    parser_safety = lab_parser_safety_flags()
+    return {
+        "message": "lab_result_dry_run_parsed",
+        "mode": "lab_result_dry_run_fixture_parser_v1",
+        "fixture_id": parsed.get("fixture_id") or fixture_id,
+        "case": case_payload,
+        "report_preview": parsed["report_preview"],
+        "observations_preview": parsed["observations_preview"],
+        "abnormal_observations": parsed["abnormal_observations"],
+        "quality_gate": parsed["quality_gate"],
+        "safety": {**safety, **parser_safety},
+        **safety,
+        **parser_safety,
+    }
+
