@@ -24,6 +24,17 @@ try:
 except ModuleNotFoundError:
     from lab_result_parser import parse_lab_result_fixture, lab_parser_safety_flags
 
+try:
+    from backend.imaging_metadata_parser import (
+        IMAGING_METADATA_DRY_RUN_MODE,
+        parse_imaging_metadata_fixture,
+    )
+except ModuleNotFoundError:
+    from imaging_metadata_parser import (
+        IMAGING_METADATA_DRY_RUN_MODE,
+        parse_imaging_metadata_fixture,
+    )
+
 
 router = APIRouter(prefix="/api/diagnostic-data", tags=["diagnostic-data"])
 
@@ -548,5 +559,104 @@ def parse_lab_result_dry_run(
         "safety": {**safety, **parser_safety},
         **safety,
         **parser_safety,
+    }
+
+@router.get("/dry-run/imaging-metadata/fixtures", response_model=dict)
+def list_imaging_metadata_dry_run_fixtures(
+    user=Depends(get_current_user),
+):
+    fixture_ids = []
+    if FIXTURE_DIR.exists():
+        fixture_ids = sorted(path.stem for path in FIXTURE_DIR.glob("imaging_metadata_*.json"))
+
+    safety = _safety_flags(dry_run=True)
+    return {
+        "message": "imaging_metadata_dry_run_fixtures",
+        "mode": IMAGING_METADATA_DRY_RUN_MODE,
+        "fixture_ids": fixture_ids,
+        "total": len(fixture_ids),
+        "safety": safety,
+        **safety,
+    }
+
+
+@router.get("/dry-run/imaging-metadata/fixtures/{fixture_id}", response_model=dict)
+def get_imaging_metadata_dry_run_fixture(
+    fixture_id: str,
+    user=Depends(get_current_user),
+):
+    if "/" in fixture_id or "\\" in fixture_id or ".." in fixture_id:
+        raise HTTPException(status_code=400, detail="invalid fixture_id")
+
+    fixture_path = FIXTURE_DIR / f"{fixture_id}.json"
+    if not fixture_path.exists():
+        raise HTTPException(status_code=404, detail="imaging metadata dry-run fixture not found")
+
+    try:
+        fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"failed to load imaging metadata fixture: {exc}") from exc
+
+    safety = _safety_flags(dry_run=True)
+    return {
+        "message": "imaging_metadata_dry_run_fixture",
+        "mode": IMAGING_METADATA_DRY_RUN_MODE,
+        "fixture_id": fixture_id,
+        "fixture": fixture,
+        "safety": safety,
+        **safety,
+    }
+
+
+@router.post("/dry-run/imaging-metadata/parse", response_model=dict)
+def parse_imaging_metadata_dry_run_fixture(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    fixture_id = str(data.get("fixture_id") or "").strip()
+    fixture_payload = data.get("fixture") or data.get("payload")
+
+    if fixture_id:
+        if "/" in fixture_id or "\\" in fixture_id or ".." in fixture_id:
+            raise HTTPException(status_code=400, detail="invalid fixture_id")
+        fixture_path = FIXTURE_DIR / f"{fixture_id}.json"
+        if not fixture_path.exists():
+            raise HTTPException(status_code=404, detail="imaging metadata dry-run fixture not found")
+        try:
+            fixture_payload = json.loads(fixture_path.read_text(encoding="utf-8"))
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=f"failed to load imaging metadata fixture: {exc}") from exc
+
+    if not isinstance(fixture_payload, dict):
+        raise HTTPException(status_code=422, detail="fixture_id or fixture payload is required")
+
+    case_payload = None
+    case_id = data.get("case_id") or fixture_payload.get("case_id")
+    parsed_case_id = None
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        parsed_case_id = int(case.id)
+        case_payload = _case_payload(case)
+
+    try:
+        parsed = parse_imaging_metadata_fixture(fixture_payload, case_id=parsed_case_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    return {
+        "message": "imaging_metadata_dry_run_parse",
+        "mode": IMAGING_METADATA_DRY_RUN_MODE,
+        "fixture_id": fixture_id or parsed.get("fixture_id"),
+        "case": case_payload,
+        **parsed,
+        "safety": {**parsed.get("safety", {}), **safety},
+        **safety,
+        "creates_imaging_study": False,
+        "queries_pacs": False,
     }
 

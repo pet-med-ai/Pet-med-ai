@@ -1,0 +1,12 @@
+gate,expected,blocking,status,evidence
+parser_module_present,backend/imaging_metadata_parser.py exists,true,PENDING,
+fixture_present,imaging_metadata_dry_run_fixture_v1.json exists,true,PENDING,
+fixture_list_endpoint,GET /api/diagnostic-data/dry-run/imaging-metadata/fixtures,true,PENDING,
+fixture_get_endpoint,GET /api/diagnostic-data/dry-run/imaging-metadata/fixtures/{fixture_id},true,PENDING,
+parse_endpoint,POST /api/diagnostic-data/dry-run/imaging-metadata/parse,true,PENDING,
+auth_required,unauthenticated requests rejected,true,PENDING,
+owner_scope,user B cannot parse user A case fixture,true,PENDING,
+no_db_write,writes_database=false and creates_imaging_study=false,true,PENDING,
+no_real_dicom,executes_real_dicom_ingest=false,true,PENDING,
+no_pacs,queries_pacs=false,true,PENDING,
+online_smoke,ALL PASS,true,PENDING,

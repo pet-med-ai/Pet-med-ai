@@ -1,0 +1,8 @@
+decision_gate,required_result,blocking,status,evidence
+validator,python3 scripts/validate_imaging_metadata_dry_run_fixture_parser.py PASS,true,PENDING,
+ci_static,bash scripts/ci_static_checks.sh PASS,true,PENDING,
+online_smoke,ALL PASS,true,PENDING,
+schema_gate,database_revision=0009_diag_data and alembic_head=0009_diag_data and schema_ok=true,true,PENDING,
+dry_run_only,no database writes and no ImagingStudy creation,true,PENDING,
+no_real_dicom,no PACS query and no DICOM ingest,true,PENDING,
+decision,GO_TO_CASE_DETAIL_DIAGNOSTIC_DATA_DISPLAY_V1,true,PENDING,

@@ -1,0 +1,64 @@
+{
+  "fixture_id": "imaging_metadata_dry_run_fixture_v1",
+  "fixture_type": "synthetic_imaging_metadata",
+  "version": "v1",
+  "dry_run": true,
+  "source": {
+    "source_type": "dry_run_fixture",
+    "source_system": "synthetic_imaging_fixture",
+    "real_pacs": false,
+    "real_dicom": false,
+    "real_device": false
+  },
+  "imaging_study": {
+    "modality": "XR",
+    "body_part": "abdomen",
+    "taken_at": "2026-06-20T09:30:00Z",
+    "study_uid": "1.2.826.0.1.3680043.10.999.20260620.0001",
+    "accession_number": "SYN-XR-ABD-0001",
+    "source_system": "synthetic_imaging_fixture",
+    "is_planned_review": false,
+    "tag": "diagnostic_preview",
+    "image_count": 3,
+    "series": [
+      {
+        "series_uid": "1.2.826.0.1.3680043.10.999.20260620.0001.1",
+        "view": "right_lateral",
+        "image_count": 1
+      },
+      {
+        "series_uid": "1.2.826.0.1.3680043.10.999.20260620.0001.2",
+        "view": "ventrodorsal",
+        "image_count": 1
+      },
+      {
+        "series_uid": "1.2.826.0.1.3680043.10.999.20260620.0001.3",
+        "view": "left_lateral",
+        "image_count": 1
+      }
+    ],
+    "findings": [
+      "Moderate gastric gas distension.",
+      "Segmental small intestinal gas pattern; synthetic fixture only.",
+      "No raw DICOM pixels are included."
+    ],
+    "abnormal_findings": [
+      "gastric_distension",
+      "segmental_intestinal_gas_pattern"
+    ],
+    "impression": "Synthetic abdominal radiograph metadata suggests abnormal gas pattern requiring clinician review.",
+    "abnormal_flag": "abnormal",
+    "report_text": "Synthetic abdominal radiograph metadata preview. Moderate gastric gas distension and segmental intestinal gas pattern are present. This is not a diagnostic report and must be reviewed by a veterinarian.",
+    "attachment_ref": "fixture://imaging_metadata_dry_run_fixture_v1"
+  },
+  "safety": {
+    "contains_raw_dicom": false,
+    "downloads_attachments": false,
+    "queries_pacs": false,
+    "executes_real_dicom_ingest": false,
+    "executes_real_device_ingest": false,
+    "writes_database": false,
+    "creates_imaging_study": false,
+    "sends_external_message": false
+  }
+}

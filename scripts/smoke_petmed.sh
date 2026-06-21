@@ -1453,6 +1453,51 @@ http_json POST "/api/diagnostic-data/dry-run/lab-results/parse" "$lab_result_par
 expect_status 404 "user B cannot parse user A lab dry-run fixture"
 pass "lab result dry-run fixture parser checks"
 
+# Imaging Metadata Dry-run Fixture Parser V1: synthetic metadata only, no PACS/DICOM/device ingest.
+http_json GET "/api/diagnostic-data/dry-run/imaging-metadata/fixtures" "" "$token_a"
+expect_status 200 "imaging metadata dry-run fixture list"
+json_assert_text_contains "$RESPONSE_BODY" "message" "imaging_metadata_dry_run_fixtures" >/dev/null || fail "imaging metadata fixture list：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "fixture_ids" "imaging_metadata_dry_run_fixture_v1" >/dev/null || fail "imaging metadata fixture list：缺少 fixture"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "imaging metadata fixture list：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_dicom_ingest" "False" >/dev/null || fail "imaging metadata fixture list：不应真实 DICOM ingest"
+
+http_json GET "/api/diagnostic-data/dry-run/imaging-metadata/fixtures/imaging_metadata_dry_run_fixture_v1" "" "$token_a"
+expect_status 200 "imaging metadata dry-run fixture get"
+json_assert_text_contains "$RESPONSE_BODY" "message" "imaging_metadata_dry_run_fixture" >/dev/null || fail "imaging metadata fixture get：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "fixture.imaging_study.modality" "XR" >/dev/null || fail "imaging metadata fixture get：modality 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "fixture.safety.writes_database" "False" >/dev/null || fail "imaging metadata fixture get：不应写数据库"
+
+imaging_parse_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+print(json.dumps({
+    "case_id": case_id,
+    "fixture_id": "imaging_metadata_dry_run_fixture_v1"
+}, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/diagnostic-data/dry-run/imaging-metadata/parse" "$imaging_parse_body" "$token_a"
+expect_status 200 "imaging metadata dry-run fixture parse"
+json_assert_text_contains "$RESPONSE_BODY" "message" "imaging_metadata_dry_run_parse" >/dev/null || fail "imaging metadata parse：message 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "quality_gate.status" "PASS" >/dev/null || fail "imaging metadata parse：quality_gate 未 PASS"
+json_assert_text_contains "$RESPONSE_BODY" "study_preview.modality" "XR" >/dev/null || fail "imaging metadata parse：modality 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "study_preview.body_part" "abdomen" >/dev/null || fail "imaging metadata parse：body_part 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "study_preview.abnormal_flag" "abnormal" >/dev/null || fail "imaging metadata parse：abnormal_flag 不正确"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "imaging metadata parse：不应写数据库"
+json_assert_text_contains "$RESPONSE_BODY" "creates_imaging_study" "False" >/dev/null || fail "imaging metadata parse：不应创建 imaging study"
+json_assert_text_contains "$RESPONSE_BODY" "queries_pacs" "False" >/dev/null || fail "imaging metadata parse：不应查询 PACS"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_dicom_ingest" "False" >/dev/null || fail "imaging metadata parse：不应真实 DICOM ingest"
+json_assert_text_contains "$RESPONSE_BODY" "executes_real_device_ingest" "False" >/dev/null || fail "imaging metadata parse：不应真实设备 ingest"
+
+http_json GET "/api/diagnostic-data/dry-run/imaging-metadata/fixtures"
+expect_status 401 "imaging metadata dry-run parser requires auth"
+
+http_json POST "/api/diagnostic-data/dry-run/imaging-metadata/parse" "$imaging_parse_body" "$token_b"
+expect_status 404 "user B cannot parse user A imaging metadata fixture"
+pass "imaging metadata dry-run fixture parser checks"
+
+
 
 # Preventive Care Reminder API V1: in-app reminders only, no external messages.
 http_json GET "/api/preventive-care/rules" "" "$token_a"
