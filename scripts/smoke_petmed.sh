@@ -2523,3 +2523,55 @@ echo "  user A: $email_a"
 echo "  user B: $email_b"
 echo "  session_id: $session_id"
 echo "  case_id: $case_id"
+# --- Diagnostic Assistance Problem List V1 smoke: start ---
+if [ -f scripts/validate_diagnostic_assistance_problem_list.py ]; then
+  echo "[smoke] Diagnostic Assistance Problem List V1 validator"
+  python3 scripts/validate_diagnostic_assistance_problem_list.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_problem_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_problem_auth_header="${AUTH_HEADER}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_problem_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_problem_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_problem_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  if [ -n "${_petmed_problem_auth_header}" ]; then
+    _petmed_problem_json="$(mktemp)"
+    curl -sS -X POST "${BASE_URL%/}/api/diagnostic-data/dry-run/problem-list/build" \
+      -H "${_petmed_problem_auth_header}" \
+      -H "Content-Type: application/json" \
+      --data '{"chief_complaint":"dry-run vomiting preview","history":{"duration":"2 days"},"lab_summary":{"abnormal_findings":[{"display_name":"ALT","abnormal_flag":"high","interpretation":"review required"}]},"clinician_review_workflow":{"review_workflow":{"status":"pending_clinician_review"}}}' \
+      > "${_petmed_problem_json}"
+    python3 - "${_petmed_problem_json}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+assert data.get("message") == "diagnostic_assistance_problem_list_built"
+assert data.get("mode") == "diagnostic_assistance_problem_list_v1"
+assert data.get("writes_database") is False
+assert data.get("requires_human_review") is True
+assert data.get("not_a_diagnosis") is True
+assert data.get("not_a_treatment_plan") is True
+assert data.get("not_a_prescription") is True
+assert data.get("not_client_facing") is True
+assert isinstance(data.get("problem_list_preview"), list)
+assert data.get("quality_gate", {}).get("status") == "PASS"
+print("[smoke] Diagnostic Assistance Problem List V1 endpoint PASS")
+PY
+    rm -f "${_petmed_problem_json}"
+  else
+    echo "[smoke] Diagnostic Assistance Problem List V1 endpoint skipped: no auth token exported"
+  fi
+fi
+# --- Diagnostic Assistance Problem List V1 smoke: end ---
+

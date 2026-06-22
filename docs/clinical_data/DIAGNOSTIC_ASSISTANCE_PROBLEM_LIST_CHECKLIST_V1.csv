@@ -1,0 +1,13 @@
+area,item,required,evidence,pass_condition,status
+scope,problem list preview only,true,backend/diagnostic_problem_list.py,problem_list_preview returned without final diagnosis,PENDING
+scope,clinician review required,true,backend/diagnostic_problem_list.py,requires_human_review true and clinician_signoff_required true,PENDING
+safety,no database write,true,backend/diagnostic_problem_list.py and backend/diagnostic_data_api.py,writes_database false and no add/commit in builder,PENDING
+safety,no final diagnosis,true,backend/diagnostic_problem_list.py,generates_final_diagnosis false and no final diagnosis output key,PENDING
+safety,no treatment plan,true,backend/diagnostic_problem_list.py,creates_treatment_plan false and writes_treatment_plan false,PENDING
+safety,no prescription,true,backend/diagnostic_problem_list.py,creates_prescription false and writes_prescription false,PENDING
+safety,no drug dose,true,backend/diagnostic_problem_list.py,drug dose/route/frequency outputs blocked and redacted,PENDING
+safety,no external AI/provider,true,backend/diagnostic_problem_list.py,calls_external_ai false and no provider imports,PENDING
+api,dry-run endpoint,true,backend/diagnostic_data_api.py,POST /api/diagnostic-data/dry-run/problem-list/build present,PENDING
+docs,stage doc,true,docs/clinical_data/DIAGNOSTIC_ASSISTANCE_PROBLEM_LIST_V1.md,allowed and forbidden boundaries documented,PENDING
+validation,validator,true,scripts/validate_diagnostic_assistance_problem_list.py,validator returns PASS,PENDING
+smoke,smoke integration,true,scripts/smoke_petmed.sh,smoke invokes validator and endpoint when auth token exists,PENDING

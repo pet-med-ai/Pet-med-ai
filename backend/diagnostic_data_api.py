@@ -1065,3 +1065,55 @@ def check_clinician_review_workflow_for_diagnostic_summaries(
         **workflow_safety,
     }
 
+# --- Diagnostic Assistance Problem List V1 endpoint: start ---
+@router.post("/dry-run/problem-list/build", response_model=dict)
+def build_diagnostic_assistance_problem_list_dry_run(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.diagnostic_problem_list import (
+            DIAGNOSTIC_ASSISTANCE_PROBLEM_LIST_MODE,
+            build_diagnostic_assistance_problem_list,
+            diagnostic_problem_list_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from diagnostic_problem_list import (
+            DIAGNOSTIC_ASSISTANCE_PROBLEM_LIST_MODE,
+            build_diagnostic_assistance_problem_list,
+            diagnostic_problem_list_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    case_payload = None
+    parsed_case_id = None
+    case_id = data.get("case_id")
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        parsed_case_id = int(case.id)
+        case_payload = _case_payload(case)
+
+    try:
+        problem_list = build_diagnostic_assistance_problem_list(
+            data,
+            case_id=parsed_case_id,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    problem_safety = diagnostic_problem_list_safety_flags()
+    return {
+        "message": "diagnostic_assistance_problem_list_built",
+        "mode": DIAGNOSTIC_ASSISTANCE_PROBLEM_LIST_MODE,
+        "case": case_payload,
+        **problem_list,
+        "safety": {**safety, **problem_safety},
+        **safety,
+        **problem_safety,
+    }
+# --- Diagnostic Assistance Problem List V1 endpoint: end ---

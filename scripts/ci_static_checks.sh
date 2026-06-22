@@ -157,3 +157,8 @@ print(f"Compiled {len(set(targets))} git-tracked Python files")
 PY
 
 echo "CI static checks PASS"
+# --- Diagnostic Assistance Problem List V1 static checks: start ---
+echo "[ci_static_checks] Diagnostic Assistance Problem List V1 validator"
+python3 scripts/validate_diagnostic_assistance_problem_list.py
+# --- Diagnostic Assistance Problem List V1 static checks: end ---
+
