@@ -2574,4 +2574,60 @@ PY
   fi
 fi
 # --- Diagnostic Assistance Problem List V1 smoke: end ---
+# --- Differential Diagnosis Candidates V1 smoke: start ---
+if [ -f scripts/validate_differential_diagnosis_candidates.py ]; then
+  echo "[smoke] Differential Diagnosis Candidates V1 validator"
+  python3 scripts/validate_differential_diagnosis_candidates.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_ddx_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_ddx_auth_header="${AUTH_HEADER}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_ddx_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_ddx_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_ddx_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  if [ -n "${_petmed_ddx_auth_header}" ]; then
+    _petmed_ddx_json="$(mktemp)"
+    curl -sS -X POST "${BASE_URL%/}/api/diagnostic-data/dry-run/differential-diagnosis/candidates/build" \
+      -H "${_petmed_ddx_auth_header}" \
+      -H "Content-Type: application/json" \
+      --data '{"problem_list_preview":[{"problem_id":"problem-001","category":"presenting_complaint","title":"Vomiting requires clinician review","severity_hint":"medium","evidence_sources":[{"source_type":"case","field":"chief_complaint","snippet":"Vomiting for 2 days"}]},{"problem_id":"problem-002","category":"lab_abnormality","title":"Laboratory abnormality requires clinician review: ALT","severity_hint":"medium","evidence_sources":[{"source_type":"lab_abnormal_summary","field":"interpretation","snippet":"ALT high; liver enzyme pattern requires review"}]}]}' \
+      > "${_petmed_ddx_json}"
+    python3 - "${_petmed_ddx_json}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+assert data.get("message") == "differential_diagnosis_candidates_built"
+assert data.get("mode") == "differential_diagnosis_candidates_v1"
+assert data.get("writes_database") is False
+assert data.get("requires_human_review") is True
+assert data.get("clinician_signoff_required") is True
+assert data.get("not_a_diagnosis") is True
+assert data.get("not_a_treatment_plan") is True
+assert data.get("not_a_prescription") is True
+assert data.get("not_client_facing") is True
+assert data.get("returns_drug_dose") is False
+assert data.get("returns_drug_route") is False
+assert data.get("returns_drug_frequency") is False
+assert data.get("returns_probability") is False
+assert isinstance(data.get("differential_diagnosis_candidates_preview"), list)
+assert data.get("quality_gate", {}).get("status") == "PASS"
+print("[smoke] Differential Diagnosis Candidates V1 endpoint PASS")
+PY
+    rm -f "${_petmed_ddx_json}"
+  else
+    echo "[smoke] Differential Diagnosis Candidates V1 endpoint skipped: no auth token exported"
+  fi
+fi
+# --- Differential Diagnosis Candidates V1 smoke: end ---
 

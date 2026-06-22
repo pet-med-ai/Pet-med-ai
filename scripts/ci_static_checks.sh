@@ -161,4 +161,8 @@ echo "CI static checks PASS"
 echo "[ci_static_checks] Diagnostic Assistance Problem List V1 validator"
 python3 scripts/validate_diagnostic_assistance_problem_list.py
 # --- Diagnostic Assistance Problem List V1 static checks: end ---
+# --- Differential Diagnosis Candidates V1 static checks: start ---
+echo "[ci_static_checks] Differential Diagnosis Candidates V1 validator"
+python3 scripts/validate_differential_diagnosis_candidates.py
+# --- Differential Diagnosis Candidates V1 static checks: end ---
 

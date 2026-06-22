@@ -1,0 +1,16 @@
+area,item,required,evidence,pass_condition,status
+scope,differential candidates preview only,true,backend/differential_diagnosis_candidates.py,differential_diagnosis_candidates_preview returned without final diagnosis,PENDING
+scope,clinician review required,true,backend/differential_diagnosis_candidates.py,requires_human_review true and clinician_signoff_required true,PENDING
+scope,uses problem list input,true,backend/differential_diagnosis_candidates.py,problem_list_preview accepted as primary input,PENDING
+safety,no database write,true,backend/differential_diagnosis_candidates.py and backend/diagnostic_data_api.py,writes_database false and no add/commit in builder,PENDING
+safety,no final diagnosis,true,backend/differential_diagnosis_candidates.py,generates_final_diagnosis false and no final diagnosis output key,PENDING
+safety,no diagnostic conclusion,true,backend/differential_diagnosis_candidates.py,generates_diagnostic_conclusion false and qualitative preview only,PENDING
+safety,no probability or numeric confidence,true,backend/differential_diagnosis_candidates.py,returns_probability false and returns_numeric_confidence false,PENDING
+safety,no treatment plan,true,backend/differential_diagnosis_candidates.py,creates_treatment_plan false and writes_treatment_plan false,PENDING
+safety,no prescription,true,backend/differential_diagnosis_candidates.py,creates_prescription false and writes_prescription false,PENDING
+safety,no drug dose,true,backend/differential_diagnosis_candidates.py,drug dose/route/frequency outputs blocked and redacted,PENDING
+safety,no external AI/provider,true,backend/differential_diagnosis_candidates.py,calls_external_ai false and no provider imports,PENDING
+api,dry-run endpoint,true,backend/diagnostic_data_api.py,POST /api/diagnostic-data/dry-run/differential-diagnosis/candidates/build present,PENDING
+docs,stage doc,true,docs/clinical_data/DIFFERENTIAL_DIAGNOSIS_CANDIDATES_V1.md,allowed and forbidden boundaries documented,PENDING
+validation,validator,true,scripts/validate_differential_diagnosis_candidates.py,validator returns PASS,PENDING
+smoke,smoke integration,true,scripts/smoke_petmed.sh,smoke invokes validator and endpoint when auth token exists,PENDING

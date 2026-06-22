@@ -1117,3 +1117,56 @@ def build_diagnostic_assistance_problem_list_dry_run(
         **problem_safety,
     }
 # --- Diagnostic Assistance Problem List V1 endpoint: end ---
+
+# --- Differential Diagnosis Candidates V1 endpoint: start ---
+@router.post("/dry-run/differential-diagnosis/candidates/build", response_model=dict)
+def build_differential_diagnosis_candidates_dry_run(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.differential_diagnosis_candidates import (
+            DIFFERENTIAL_DIAGNOSIS_CANDIDATES_MODE,
+            build_differential_diagnosis_candidates,
+            differential_diagnosis_candidates_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from differential_diagnosis_candidates import (
+            DIFFERENTIAL_DIAGNOSIS_CANDIDATES_MODE,
+            build_differential_diagnosis_candidates,
+            differential_diagnosis_candidates_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    case_payload = None
+    parsed_case_id = None
+    case_id = data.get("case_id")
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        parsed_case_id = int(case.id)
+        case_payload = _case_payload(case)
+
+    try:
+        candidates = build_differential_diagnosis_candidates(
+            data,
+            case_id=parsed_case_id,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    candidate_safety = differential_diagnosis_candidates_safety_flags()
+    return {
+        "message": "differential_diagnosis_candidates_built",
+        "mode": DIFFERENTIAL_DIAGNOSIS_CANDIDATES_MODE,
+        "case": case_payload,
+        **candidates,
+        "safety": {**safety, **candidate_safety},
+        **safety,
+        **candidate_safety,
+    }
+# --- Differential Diagnosis Candidates V1 endpoint: end ---

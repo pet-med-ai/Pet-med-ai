@@ -1,0 +1,15 @@
+gate,go_condition,no_go_condition,evidence,status
+validator,python3 scripts/validate_differential_diagnosis_candidates.py PASS,validator fails or missing,scripts/validate_differential_diagnosis_candidates.py,PENDING
+ci_static_checks,bash scripts/ci_static_checks.sh PASS,static checks fail,scripts/ci_static_checks.sh,PENDING
+online_smoke,KEEP_TMP=1 BASE_URL=https://pet-med-ai-backend.onrender.com FRONTEND_URL=https://pet-med-ai-frontend-static.onrender.com bash scripts/smoke_petmed.sh PASS,smoke fails,scripts/smoke_petmed.sh,PENDING
+production_revision,database_revision=0009_diag_data,database_revision not 0009_diag_data,/api/system/version,PENDING
+production_head,alembic_head=0009_diag_data,alembic_head not 0009_diag_data,/api/system/version,PENDING
+schema,schema_ok=true,schema_ok false,/api/system/version,PENDING
+migration_errors,migration_errors empty,migration_errors not empty,/api/system/version,PENDING
+database_safety,writes_database=false,writes_database true,endpoint response,PENDING
+diagnosis_boundary,no final/confirmed/definitive diagnosis,diagnosis conclusion generated,endpoint response,PENDING
+ranking_boundary,no probability or final diagnosis ranking,no-go if numeric probability/confidence or final ranking generated,endpoint response,PENDING
+treatment_boundary,no treatment plan,no-go if treatment plan generated,endpoint response,PENDING
+prescription_boundary,no prescription and no drug dose,no-go if prescription/dose/route/frequency generated,endpoint response,PENDING
+human_review,requires_human_review=true,requires_human_review false,endpoint response,PENDING
+decision,GO_TO_DIAGNOSTIC_REASONING_EVIDENCE_TRACE_V1,NO_GO if any safety gate fails,stage review,PENDING
