@@ -1013,3 +1013,55 @@ def review_drug_dose_knowledge_base_endpoint(
         **kb_safety,
     }
 
+
+@router.post("/dry-run/clinician-review/diagnostic-summaries/check", response_model=dict)
+def check_clinician_review_workflow_for_diagnostic_summaries(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.clinician_review_workflow import (
+            CLINICIAN_REVIEW_WORKFLOW_MODE,
+            build_clinician_review_workflow,
+            clinician_review_workflow_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from clinician_review_workflow import (
+            CLINICIAN_REVIEW_WORKFLOW_MODE,
+            build_clinician_review_workflow,
+            clinician_review_workflow_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    case_payload = None
+    parsed_case_id = None
+    case_id = data.get("case_id")
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        parsed_case_id = int(case.id)
+        case_payload = _case_payload(case)
+
+    try:
+        workflow = build_clinician_review_workflow(
+            data,
+            case_id=parsed_case_id,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    workflow_safety = clinician_review_workflow_safety_flags()
+    return {
+        "message": "clinician_review_workflow_checked",
+        "mode": CLINICIAN_REVIEW_WORKFLOW_MODE,
+        "case": case_payload,
+        **workflow,
+        "safety": {**safety, **workflow_safety},
+        **safety,
+        **workflow_safety,
+    }
+

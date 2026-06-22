@@ -1,0 +1,15 @@
+gate,expected,blocking,status
+mode,clinician_review_workflow_for_diagnostic_summaries_v1,true,PENDING
+api_endpoint,POST /api/diagnostic-data/dry-run/clinician-review/diagnostic-summaries/check,true,PENDING
+owner_scope,user B cannot check user A case,true,PENDING
+read_only,writes_database=false,true,PENDING
+no_report_write,writes_ai_summary=false and writes_diagnostic_report=false,true,PENDING
+no_audit_write,creates_audit_log=false and writes_audit_log=false,true,PENDING
+no_final_signoff,signs_report=false,true,PENDING
+no_client_release,releases_to_client=false,true,PENDING
+no_prescription,writes_prescription=false,true,PENDING
+human_review,requires_human_review=true,true,PENDING
+clinician_signoff,clinician_signoff_required=true,true,PENDING
+validator,validate_clinician_review_workflow_for_diagnostic_summaries.py PASS,true,PENDING
+ci,bash scripts/ci_static_checks.sh PASS,true,PENDING
+online_smoke,ALL PASS,true,PENDING

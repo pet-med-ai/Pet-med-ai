@@ -1711,6 +1711,67 @@ expect_status 404 "user B cannot review user A drug dose knowledge base"
 pass "Drug dose knowledge base checks"
 
 
+# Clinician Review Workflow for Diagnostic Summaries V1: review workflow preview only; no persistence or signoff.
+clinician_review_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+print(json.dumps({
+    "case_id": case_id,
+    "requested_action": "review_and_signoff_preview",
+    "lab_summary": {
+        "headline": "Dry-run abnormal lab summary: WBC high, ALT high, GLU low",
+        "human_review_required": True
+    },
+    "imaging_summary": {
+        "headline": "Dry-run imaging summary: gastric abnormality requires clinician review",
+        "human_review_required": True
+    },
+    "treatment_boundary": {
+        "boundary": {
+            "decision": "review_only",
+            "not_a_treatment_plan": True
+        }
+    },
+    "drug_dose_safety": {
+        "framework": {
+            "decision": "blocked_dose_calculation_disabled",
+            "returns_numeric_dose": False
+        }
+    },
+    "drug_dose_kb_review": {
+        "knowledge_base_review": {
+            "decision": "kb_review_only_no_dose_output",
+            "numeric_dose_values_redacted": True
+        }
+    }
+}, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/diagnostic-data/dry-run/clinician-review/diagnostic-summaries/check" "$clinician_review_body" "$token_a"
+expect_status 200 "Clinician review diagnostic summaries dry-run"
+json_assert_text_contains "$RESPONSE_BODY" "message" "clinician_review_workflow_checked" >/dev/null || fail "Clinician review workflow: bad message"
+json_assert_text_contains "$RESPONSE_BODY" "review_workflow.decision" "clinician_review_required" >/dev/null || fail "Clinician review workflow: expected clinician_review_required"
+json_assert_text_contains "$RESPONSE_BODY" "review_workflow.human_review_required" "True" >/dev/null || fail "Clinician review workflow: human review required"
+json_assert_text_contains "$RESPONSE_BODY" "review_workflow.final_signoff_persisted" "False" >/dev/null || fail "Clinician review workflow: final signoff must not persist"
+json_assert_text_contains "$RESPONSE_BODY" "review_items" "ai_lab_abnormal_summary" >/dev/null || fail "Clinician review workflow: missing lab review item"
+json_assert_text_contains "$RESPONSE_BODY" "review_items" "ai_imaging_report_summary" >/dev/null || fail "Clinician review workflow: missing imaging review item"
+json_assert_text_contains "$RESPONSE_BODY" "blocked_actions" "write_ai_summary_to_diagnostic_report" >/dev/null || fail "Clinician review workflow: missing blocked write"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "Clinician review workflow: must not write database"
+json_assert_text_contains "$RESPONSE_BODY" "writes_ai_summary" "False" >/dev/null || fail "Clinician review workflow: must not write AI summary"
+json_assert_text_contains "$RESPONSE_BODY" "creates_audit_log" "False" >/dev/null || fail "Clinician review workflow: must not create audit log"
+json_assert_text_contains "$RESPONSE_BODY" "signs_report" "False" >/dev/null || fail "Clinician review workflow: must not sign report"
+json_assert_text_contains "$RESPONSE_BODY" "releases_to_client" "False" >/dev/null || fail "Clinician review workflow: must not release to client"
+json_assert_text_contains "$RESPONSE_BODY" "writes_prescription" "False" >/dev/null || fail "Clinician review workflow: must not write prescription"
+
+http_json POST "/api/diagnostic-data/dry-run/clinician-review/diagnostic-summaries/check" "$clinician_review_body"
+expect_status 401 "Clinician review workflow requires auth"
+
+http_json POST "/api/diagnostic-data/dry-run/clinician-review/diagnostic-summaries/check" "$clinician_review_body" "$token_b"
+expect_status 404 "user B cannot check user A clinician review workflow"
+pass "Clinician review diagnostic summaries checks"
+
+
 
 # Preventive Care Reminder API V1: in-app reminders only, no external messages.
 http_json GET "/api/preventive-care/rules" "" "$token_a"

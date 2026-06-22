@@ -1,0 +1,7 @@
+item,decision,evidence
+validator,PENDING,python3 scripts/validate_clinician_review_workflow_for_diagnostic_summaries.py
+ci_static_checks,PENDING,bash scripts/ci_static_checks.sh
+online_smoke,PENDING,bash scripts/smoke_petmed.sh
+production_schema_gate,PENDING,database_revision=0009_diag_data alembic_head=0009_diag_data schema_ok=true
+dangerous_capabilities,PENDING,no DB write no report write no audit write no prescription no client release
+final_decision,PENDING,GO_TO_DIAGNOSTIC_ASSISTANCE_PROBLEM_LIST_V1 only after all gates PASS
