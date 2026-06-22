@@ -1,0 +1,9 @@
+item,decision,status,notes
+production_schema_gate,GO_IF_0009_0009_SCHEMA_OK,PENDING,database_revision=0009_diag_data and alembic_head=0009_diag_data and schema_ok=true
+boundary_endpoint,GO_IF_PRESENT_AND_AUTHENTICATED,PENDING,owner-scoped case_id check
+safe_candidate,GO_IF_REVIEW_ONLY,PENDING,boundary decision review_only
+drug_dose_candidate,GO_IF_BLOCKED,PENDING,boundary decision blocked_drug_or_dose
+no_database_write,GO_IF_FALSE,PENDING,writes_database=false
+no_external_ai,GO_IF_FALSE,PENDING,calls_external_ai=false
+no_treatment_or_dose,GO_IF_FALSE,PENDING,treatment_recommendation=false and drug_dose_recommendation=false
+final_decision,GO_TO_DRUG_DOSE_SAFETY_FRAMEWORK_V1,PENDING,requires all gates PASS

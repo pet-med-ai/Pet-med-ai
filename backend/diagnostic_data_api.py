@@ -813,3 +813,55 @@ def summarize_imaging_metadata_dry_run_report(
         **summary_safety,
     }
 
+try:
+    from backend.treatment_recommendation_boundary import (
+        TREATMENT_RECOMMENDATION_BOUNDARY_MODE,
+        build_treatment_recommendation_boundary,
+        treatment_boundary_safety_flags,
+    )
+except ModuleNotFoundError:
+    from treatment_recommendation_boundary import (
+        TREATMENT_RECOMMENDATION_BOUNDARY_MODE,
+        build_treatment_recommendation_boundary,
+        treatment_boundary_safety_flags,
+    )
+
+
+@router.post("/dry-run/treatment-boundary/check", response_model=dict)
+def check_treatment_recommendation_boundary(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    case_payload = None
+    parsed_case_id = None
+    case_id = data.get("case_id")
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        parsed_case_id = int(case.id)
+        case_payload = _case_payload(case)
+
+    try:
+        boundary = build_treatment_recommendation_boundary(
+            data,
+            case_id=parsed_case_id,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    boundary_safety = treatment_boundary_safety_flags()
+    return {
+        "message": "treatment_recommendation_boundary_checked",
+        "mode": TREATMENT_RECOMMENDATION_BOUNDARY_MODE,
+        "case": case_payload,
+        **boundary,
+        "safety": {**safety, **boundary_safety},
+        **safety,
+        **boundary_safety,
+    }
+

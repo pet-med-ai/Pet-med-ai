@@ -1568,6 +1568,55 @@ expect_status 404 "user B cannot summarize user A imaging report"
 pass "AI imaging report summary checks"
 
 
+# Treatment Recommendation Boundary V1: boundary-only review guard; no treatment plan or drug dose.
+treatment_boundary_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+print(json.dumps({
+    "case_id": case_id,
+    "source_summary": "Dry-run lab and imaging summaries require clinician review before any treatment decision.",
+    "candidate_recommendation": "Clinician should review hydration status, abdominal imaging, and lab abnormalities before deciding any treatment."
+}, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/diagnostic-data/dry-run/treatment-boundary/check" "$treatment_boundary_body" "$token_a"
+expect_status 200 "Treatment recommendation boundary dry-run"
+json_assert_text_contains "$RESPONSE_BODY" "message" "treatment_recommendation_boundary_checked" >/dev/null || fail "Treatment boundary: bad message"
+json_assert_text_contains "$RESPONSE_BODY" "boundary.decision" "review_only" >/dev/null || fail "Treatment boundary: expected review_only"
+json_assert_text_contains "$RESPONSE_BODY" "boundary.human_review_required" "True" >/dev/null || fail "Treatment boundary: human review required"
+json_assert_text_contains "$RESPONSE_BODY" "boundary.not_a_treatment_plan" "True" >/dev/null || fail "Treatment boundary: must not be treatment plan"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "Treatment boundary: must not write database"
+json_assert_text_contains "$RESPONSE_BODY" "creates_treatment_plan" "False" >/dev/null || fail "Treatment boundary: must not create treatment plan"
+json_assert_text_contains "$RESPONSE_BODY" "treatment_recommendation" "False" >/dev/null || fail "Treatment boundary: treatment recommendation disabled"
+json_assert_text_contains "$RESPONSE_BODY" "drug_dose_recommendation" "False" >/dev/null || fail "Treatment boundary: drug dose recommendation disabled"
+json_assert_text_contains "$RESPONSE_BODY" "calls_external_ai" "False" >/dev/null || fail "Treatment boundary: must not call external AI"
+
+treatment_boundary_blocked_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+print(json.dumps({
+    "case_id": case_id,
+    "candidate_recommendation": "Give maropitant 1 mg/kg PO q24h."
+}, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/diagnostic-data/dry-run/treatment-boundary/check" "$treatment_boundary_blocked_body" "$token_a"
+expect_status 200 "Treatment recommendation boundary blocks dose"
+json_assert_text_contains "$RESPONSE_BODY" "boundary.decision" "blocked_drug_or_dose" >/dev/null || fail "Treatment boundary: expected blocked drug/dose"
+json_assert_text_contains "$RESPONSE_BODY" "prohibited_items" "mg/kg" >/dev/null || fail "Treatment boundary: missing dose blocker"
+json_assert_text_contains "$RESPONSE_BODY" "prohibited_items" "maropitant" >/dev/null || fail "Treatment boundary: missing drug blocker"
+json_assert_text_contains "$RESPONSE_BODY" "drug_dose_recommendation" "False" >/dev/null || fail "Treatment boundary: still must not recommend dose"
+
+http_json POST "/api/diagnostic-data/dry-run/treatment-boundary/check" "$treatment_boundary_body"
+expect_status 401 "Treatment recommendation boundary requires auth"
+
+http_json POST "/api/diagnostic-data/dry-run/treatment-boundary/check" "$treatment_boundary_body" "$token_b"
+expect_status 404 "user B cannot check user A treatment boundary"
+pass "Treatment recommendation boundary checks"
+
+
 
 # Preventive Care Reminder API V1: in-app reminders only, no external messages.
 http_json GET "/api/preventive-care/rules" "" "$token_a"

@@ -1,0 +1,11 @@
+gate,required_result,status,evidence
+validator,python3 scripts/validate_treatment_recommendation_boundary.py PASS,PENDING,
+ci_static_checks,bash scripts/ci_static_checks.sh PASS,PENDING,
+endpoint_present,POST /api/diagnostic-data/dry-run/treatment-boundary/check present,PENDING,
+read_only,writes_database=false,PENDING,
+no_treatment_plan,creates_treatment_plan=false and treatment_recommendation=false,PENDING,
+no_drug_dose,drug_dose_recommendation=false,PENDING,
+no_prescription,creates_prescription=false and writes_prescription=false,PENDING,
+no_external_ai,calls_external_ai=false,PENDING,
+human_review,requires_human_review=true,PENDING,
+online_smoke,ALL PASS,PENDING,
