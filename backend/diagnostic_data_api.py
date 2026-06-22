@@ -63,6 +63,19 @@ except ModuleNotFoundError:
 
 
 
+try:
+    from backend.drug_dose_safety_framework import (
+        DRUG_DOSE_SAFETY_FRAMEWORK_MODE,
+        build_drug_dose_safety_framework,
+        drug_dose_safety_framework_flags,
+    )
+except ModuleNotFoundError:
+    from drug_dose_safety_framework import (
+        DRUG_DOSE_SAFETY_FRAMEWORK_MODE,
+        build_drug_dose_safety_framework,
+        drug_dose_safety_framework_flags,
+    )
+
 router = APIRouter(prefix="/api/diagnostic-data", tags=["diagnostic-data"])
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -863,5 +876,43 @@ def check_treatment_recommendation_boundary(
         "safety": {**safety, **boundary_safety},
         **safety,
         **boundary_safety,
+    }
+
+@router.post("/dry-run/drug-dose-safety/check", response_model=dict)
+def check_drug_dose_safety_framework(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    case_payload = None
+    parsed_case_id = None
+    case_id = data.get("case_id")
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        parsed_case_id = int(case.id)
+        case_payload = _case_payload(case)
+
+    try:
+        framework = build_drug_dose_safety_framework(
+            data,
+            case_id=parsed_case_id,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    framework_safety = drug_dose_safety_framework_flags()
+    return {
+        "message": "drug_dose_safety_framework_checked",
+        "mode": DRUG_DOSE_SAFETY_FRAMEWORK_MODE,
+        "case": case_payload,
+        **framework,
+        "safety": {**safety, **framework_safety},
+        **safety,
+        **framework_safety,
     }
 

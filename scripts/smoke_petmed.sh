@@ -1617,6 +1617,45 @@ expect_status 404 "user B cannot check user A treatment boundary"
 pass "Treatment recommendation boundary checks"
 
 
+# Drug Dose Safety Framework V1: safety boundary only; no dose calculation or prescription output.
+drug_dose_safety_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+print(json.dumps({
+    "case_id": case_id,
+    "species": "dog",
+    "weight_kg": 5.2,
+    "drug_name": "maropitant",
+    "dose_expression": "mg/kg PO q24h",
+    "clinical_context": "Dry-run safety boundary test only. Do not calculate or return a dose."
+}, ensure_ascii=False))
+PY
+)"
+http_json POST "/api/diagnostic-data/dry-run/drug-dose-safety/check" "$drug_dose_safety_body" "$token_a"
+expect_status 200 "Drug dose safety framework dry-run"
+json_assert_text_contains "$RESPONSE_BODY" "message" "drug_dose_safety_framework_checked" >/dev/null || fail "Drug dose safety framework: bad message"
+json_assert_text_contains "$RESPONSE_BODY" "framework.decision" "blocked_dose_calculation_disabled" >/dev/null || fail "Drug dose safety framework: must block dose calculation"
+json_assert_text_contains "$RESPONSE_BODY" "framework.dose_calculation_enabled" "False" >/dev/null || fail "Drug dose safety framework: dose calculation must be disabled"
+json_assert_text_contains "$RESPONSE_BODY" "framework.returns_numeric_dose" "False" >/dev/null || fail "Drug dose safety framework: must not return numeric dose"
+json_assert_text_contains "$RESPONSE_BODY" "framework.human_review_required" "True" >/dev/null || fail "Drug dose safety framework: human review required"
+json_assert_text_contains "$RESPONSE_BODY" "prohibited_items" "maropitant" >/dev/null || fail "Drug dose safety framework: should identify drug name"
+json_assert_text_contains "$RESPONSE_BODY" "prohibited_items" "q24h" >/dev/null || fail "Drug dose safety framework: should identify frequency token"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "Drug dose safety framework: must not write database"
+json_assert_text_contains "$RESPONSE_BODY" "creates_prescription" "False" >/dev/null || fail "Drug dose safety framework: must not create prescription"
+json_assert_text_contains "$RESPONSE_BODY" "writes_prescription" "False" >/dev/null || fail "Drug dose safety framework: must not write prescription"
+json_assert_text_contains "$RESPONSE_BODY" "drug_dose_recommendation" "False" >/dev/null || fail "Drug dose safety framework: must not recommend dose"
+json_assert_text_contains "$RESPONSE_BODY" "calls_external_ai" "False" >/dev/null || fail "Drug dose safety framework: must not call external AI"
+pass "Drug dose safety framework blocks dose"
+
+http_json POST "/api/diagnostic-data/dry-run/drug-dose-safety/check" "$drug_dose_safety_body"
+expect_status 401 "Drug dose safety framework requires auth"
+
+http_json POST "/api/diagnostic-data/dry-run/drug-dose-safety/check" "$drug_dose_safety_body" "$token_b"
+expect_status 404 "user B cannot check user A drug dose safety"
+pass "Drug dose safety framework checks"
+
+
 
 # Preventive Care Reminder API V1: in-app reminders only, no external messages.
 http_json GET "/api/preventive-care/rules" "" "$token_a"

@@ -1,0 +1,8 @@
+gate_id,decision_gate,required_result,status
+DDSF-GNG-001,validator,python3 scripts/validate_drug_dose_safety_framework.py PASS,PENDING
+DDSF-GNG-002,ci_static,bash scripts/ci_static_checks.sh PASS,PENDING
+DDSF-GNG-003,production_schema,database_revision=0009_diag_data and alembic_head=0009_diag_data and schema_ok=true,PENDING
+DDSF-GNG-004,online_smoke,bash scripts/smoke_petmed.sh ALL PASS,PENDING
+DDSF-GNG-005,no_dose_output,returns_numeric_dose=false and drug_dose_recommendation=false,PENDING
+DDSF-GNG-006,no_prescription_write,creates_prescription=false and writes_prescription=false,PENDING
+DDSF-GNG-007,final_decision,GO_TO_DRUG_DOSE_KNOWLEDGE_BASE_V1 only after all gates PASS,PENDING

@@ -1,0 +1,10 @@
+gate_id,gate,expected,status,evidence
+DDSF-001,framework module exists,backend/drug_dose_safety_framework.py exists,PENDING,
+DDSF-002,no dose calculation,dose_calculation_enabled=false,PENDING,
+DDSF-003,no numeric dose output,returns_numeric_dose=false,PENDING,
+DDSF-004,no prescription write,creates_prescription=false and writes_prescription=false,PENDING,
+DDSF-005,human review required,requires_human_review=true,PENDING,
+DDSF-006,API endpoint exists,POST /api/diagnostic-data/dry-run/drug-dose-safety/check,PENDING,
+DDSF-007,smoke coverage present,Drug dose safety framework checks,PENDING,
+DDSF-008,CI validator present,validate_drug_dose_safety_framework.py runs in ci_static_checks.sh,PENDING,
+DDSF-009,online smoke passes,ALL PASS,PENDING,
