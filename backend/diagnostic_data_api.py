@@ -76,6 +76,24 @@ except ModuleNotFoundError:
         drug_dose_safety_framework_flags,
     )
 
+
+try:
+    from backend.drug_dose_knowledge_base import (
+        DRUG_DOSE_KNOWLEDGE_BASE_MODE,
+        drug_dose_knowledge_base_flags,
+        get_drug_dose_monograph,
+        list_drug_dose_monographs,
+        review_drug_dose_knowledge_base,
+    )
+except ModuleNotFoundError:
+    from drug_dose_knowledge_base import (
+        DRUG_DOSE_KNOWLEDGE_BASE_MODE,
+        drug_dose_knowledge_base_flags,
+        get_drug_dose_monograph,
+        list_drug_dose_monographs,
+        review_drug_dose_knowledge_base,
+    )
+
 router = APIRouter(prefix="/api/diagnostic-data", tags=["diagnostic-data"])
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -914,5 +932,84 @@ def check_drug_dose_safety_framework(
         "safety": {**safety, **framework_safety},
         **safety,
         **framework_safety,
+    }
+
+
+@router.get("/dry-run/drug-dose-kb/monographs", response_model=dict)
+def list_drug_dose_knowledge_base_monographs(
+    user=Depends(get_current_user),
+):
+    safety = _safety_flags(dry_run=True)
+    kb_safety = drug_dose_knowledge_base_flags()
+    items = list_drug_dose_monographs()
+    return {
+        "message": "drug_dose_knowledge_base_monographs",
+        "mode": DRUG_DOSE_KNOWLEDGE_BASE_MODE,
+        "items": items,
+        "total": len(items),
+        "safety": {**safety, **kb_safety},
+        **safety,
+        **kb_safety,
+    }
+
+
+@router.get("/dry-run/drug-dose-kb/monographs/{drug_key}", response_model=dict)
+def get_drug_dose_knowledge_base_monograph(
+    drug_key: str,
+    user=Depends(get_current_user),
+):
+    monograph = get_drug_dose_monograph(drug_key)
+    if monograph is None:
+        raise HTTPException(status_code=404, detail="drug dose monograph not found")
+
+    safety = _safety_flags(dry_run=True)
+    kb_safety = drug_dose_knowledge_base_flags()
+    return {
+        "message": "drug_dose_knowledge_base_monograph",
+        "mode": DRUG_DOSE_KNOWLEDGE_BASE_MODE,
+        "drug_key": drug_key,
+        "monograph": monograph,
+        "safety": {**safety, **kb_safety},
+        **safety,
+        **kb_safety,
+    }
+
+
+@router.post("/dry-run/drug-dose-kb/review", response_model=dict)
+def review_drug_dose_knowledge_base_endpoint(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    case_payload = None
+    parsed_case_id = None
+    case_id = data.get("case_id")
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        parsed_case_id = int(case.id)
+        case_payload = _case_payload(case)
+
+    try:
+        review = review_drug_dose_knowledge_base(
+            data,
+            case_id=parsed_case_id,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    kb_safety = drug_dose_knowledge_base_flags()
+    return {
+        "message": "drug_dose_knowledge_base_reviewed",
+        "mode": DRUG_DOSE_KNOWLEDGE_BASE_MODE,
+        "case": case_payload,
+        **review,
+        "safety": {**safety, **kb_safety},
+        **safety,
+        **kb_safety,
     }
 

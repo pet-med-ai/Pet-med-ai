@@ -1,0 +1,158 @@
+{
+  "mode": "drug_dose_knowledge_base_v1",
+  "version": "v1",
+  "release_status": "schema_shell_only_no_numeric_dose_output",
+  "numeric_dose_values_redacted": true,
+  "monographs": [
+    {
+      "drug_key": "maropitant",
+      "display_name": "Maropitant",
+      "drug_class": "antiemetic",
+      "allowed_species": [
+        "dog",
+        "cat"
+      ],
+      "review_status": "template_only_not_clinically_approved",
+      "minimum_inputs": [
+        "species",
+        "weight_kg",
+        "age_info",
+        "current_medications",
+        "renal_risk",
+        "hepatic_risk",
+        "pregnant_or_lactating",
+        "known_allergies"
+      ],
+      "warning_flags": [
+        "review_species_label_status",
+        "review_age_and_body_weight",
+        "review_hepatic_context",
+        "review_concurrent_medications",
+        "confirm_no_manual_dose_is_auto_generated"
+      ],
+      "contraindication_screen": [
+        "known_hypersensitivity",
+        "severe_hepatic_disease_context",
+        "unreviewed_polypharmacy",
+        "pregnancy_lactation_status_unknown"
+      ],
+      "clinician_review_notes": [
+        "Use this monograph only as a safety checklist shell.",
+        "Numeric dose values are intentionally redacted in V1.",
+        "Clinician must consult approved local references and product labeling before any medication decision."
+      ],
+      "source_review": {
+        "source_type": "placeholder",
+        "source_status": "not_yet_clinically_reviewed",
+        "review_required_before_numeric_dose_release": true
+      },
+      "dose_policy": {
+        "dose_fields_present": true,
+        "numeric_dose_values_redacted": true,
+        "dose_calculation_enabled": false,
+        "dose_lookup_enabled": false,
+        "returns_numeric_dose": false,
+        "returns_route_frequency": false,
+        "requires_clinician_source_review": true
+      }
+    },
+    {
+      "drug_key": "ondansetron",
+      "display_name": "Ondansetron",
+      "drug_class": "antiemetic",
+      "allowed_species": [
+        "dog",
+        "cat"
+      ],
+      "review_status": "template_only_not_clinically_approved",
+      "minimum_inputs": [
+        "species",
+        "weight_kg",
+        "age_info",
+        "current_medications",
+        "cardiac_risk",
+        "hepatic_risk",
+        "known_allergies"
+      ],
+      "warning_flags": [
+        "review_qt_or_cardiac_context",
+        "review_hepatic_context",
+        "review_serotonergic_or_interacting_drugs",
+        "confirm_no_manual_dose_is_auto_generated"
+      ],
+      "contraindication_screen": [
+        "known_hypersensitivity",
+        "unreviewed_cardiac_arrhythmia_context",
+        "unreviewed_polypharmacy"
+      ],
+      "clinician_review_notes": [
+        "Use this monograph only as a safety checklist shell.",
+        "Numeric dose values are intentionally redacted in V1.",
+        "Clinician must consult approved local references and product labeling before any medication decision."
+      ],
+      "source_review": {
+        "source_type": "placeholder",
+        "source_status": "not_yet_clinically_reviewed",
+        "review_required_before_numeric_dose_release": true
+      },
+      "dose_policy": {
+        "dose_fields_present": true,
+        "numeric_dose_values_redacted": true,
+        "dose_calculation_enabled": false,
+        "dose_lookup_enabled": false,
+        "returns_numeric_dose": false,
+        "returns_route_frequency": false,
+        "requires_clinician_source_review": true
+      }
+    },
+    {
+      "drug_key": "gabapentin",
+      "display_name": "Gabapentin",
+      "drug_class": "analgesic_adjunct",
+      "allowed_species": [
+        "dog",
+        "cat"
+      ],
+      "review_status": "template_only_not_clinically_approved",
+      "minimum_inputs": [
+        "species",
+        "weight_kg",
+        "age_info",
+        "renal_risk",
+        "sedation_risk",
+        "current_medications",
+        "known_allergies"
+      ],
+      "warning_flags": [
+        "review_renal_context",
+        "review_sedation_or_neurologic_status",
+        "review_concurrent_cns_depressants",
+        "confirm_no_manual_dose_is_auto_generated"
+      ],
+      "contraindication_screen": [
+        "severe_sedation_or_instability",
+        "unreviewed_renal_impairment_context",
+        "unreviewed_polypharmacy"
+      ],
+      "clinician_review_notes": [
+        "Use this monograph only as a safety checklist shell.",
+        "Numeric dose values are intentionally redacted in V1.",
+        "Clinician must consult approved local references and product labeling before any medication decision."
+      ],
+      "source_review": {
+        "source_type": "placeholder",
+        "source_status": "not_yet_clinically_reviewed",
+        "review_required_before_numeric_dose_release": true
+      },
+      "dose_policy": {
+        "dose_fields_present": true,
+        "numeric_dose_values_redacted": true,
+        "dose_calculation_enabled": false,
+        "dose_lookup_enabled": false,
+        "returns_numeric_dose": false,
+        "returns_route_frequency": false,
+        "requires_clinician_source_review": true
+      }
+    }
+  ]
+}

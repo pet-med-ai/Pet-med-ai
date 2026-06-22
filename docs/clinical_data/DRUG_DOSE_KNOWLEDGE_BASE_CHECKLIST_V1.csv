@@ -1,0 +1,10 @@
+item,status,blocking,notes
+drug_dose_knowledge_base_module_present,PASS,true,backend/drug_dose_knowledge_base.py exists
+drug_monograph_kb_json_present,PASS,true,drug_dose_kb_v1.json exists
+numeric_dose_values_redacted,PASS,true,No numeric dose values are exposed by V1
+dose_calculation_disabled,PASS,true,dose_calculation_enabled=false
+dose_lookup_disabled,PASS,true,dose_lookup_enabled=false
+prescription_write_disabled,PASS,true,writes_prescription=false
+treatment_recommendation_disabled,PASS,true,treatment_recommendation=false
+external_ai_disabled,PASS,true,calls_external_ai=false
+requires_human_review,PASS,true,requires_human_review=true

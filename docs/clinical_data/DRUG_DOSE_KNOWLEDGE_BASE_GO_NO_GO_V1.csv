@@ -1,0 +1,8 @@
+gate,status,decision,notes
+validator,PASS,GO,validate_drug_dose_knowledge_base.py must pass
+ci_static_checks,PASS,GO,ci_static_checks.sh must pass
+online_smoke,PENDING,NO_GO_UNTIL_PASS,smoke must show ALL PASS
+production_schema_gate,PENDING,NO_GO_UNTIL_PASS,database_revision and alembic_head must remain 0009_diag_data
+numeric_dose_output_blocked,PASS,GO,returns_numeric_dose=false
+prescription_write_blocked,PASS,GO,writes_prescription=false
+final_decision,PENDING,GO_TO_CLINICIAN_REVIEW_WORKFLOW_FOR_DIAGNOSTIC_SUMMARIES_V1_AFTER_SMOKE_PASS,Complete after production smoke

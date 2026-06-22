@@ -1656,6 +1656,61 @@ expect_status 404 "user B cannot check user A drug dose safety"
 pass "Drug dose safety framework checks"
 
 
+# Drug Dose Knowledge Base V1: gated monograph shell only; no numeric dose output or prescription.
+drug_dose_kb_review_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+print(json.dumps({
+    "case_id": case_id,
+    "drug_key": "maropitant",
+    "species": "dog",
+    "weight_kg": 5.2,
+    "age_info": "adult",
+    "current_medications": [],
+    "renal_risk": False,
+    "hepatic_risk": False,
+    "pregnant_or_lactating": False,
+    "known_allergies": []
+}, ensure_ascii=False))
+PY
+)"
+http_json GET "/api/diagnostic-data/dry-run/drug-dose-kb/monographs" "" "$token_a"
+expect_status 200 "Drug dose knowledge base list"
+json_assert_text_contains "$RESPONSE_BODY" "message" "drug_dose_knowledge_base_monographs" >/dev/null || fail "Drug dose KB list: bad message"
+json_assert_text_contains "$RESPONSE_BODY" "items" "maropitant" >/dev/null || fail "Drug dose KB list: missing maropitant"
+json_assert_text_contains "$RESPONSE_BODY" "numeric_dose_values_redacted" "True" >/dev/null || fail "Drug dose KB list: numeric dose values must be redacted"
+json_assert_text_contains "$RESPONSE_BODY" "returns_numeric_dose" "False" >/dev/null || fail "Drug dose KB list: must not return numeric dose"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "Drug dose KB list: must not write database"
+
+http_json GET "/api/diagnostic-data/dry-run/drug-dose-kb/monographs/maropitant" "" "$token_a"
+expect_status 200 "Drug dose knowledge base monograph get"
+json_assert_text_contains "$RESPONSE_BODY" "message" "drug_dose_knowledge_base_monograph" >/dev/null || fail "Drug dose KB get: bad message"
+json_assert_text_contains "$RESPONSE_BODY" "monograph.drug_key" "maropitant" >/dev/null || fail "Drug dose KB get: wrong drug"
+json_assert_text_contains "$RESPONSE_BODY" "monograph.dose_policy.numeric_dose_values_redacted" "True" >/dev/null || fail "Drug dose KB get: dose values must be redacted"
+json_assert_text_contains "$RESPONSE_BODY" "monograph.dose_policy.dose_calculation_enabled" "False" >/dev/null || fail "Drug dose KB get: dose calculation must be disabled"
+json_assert_text_contains "$RESPONSE_BODY" "drug_dose_recommendation" "False" >/dev/null || fail "Drug dose KB get: must not recommend dose"
+
+http_json POST "/api/diagnostic-data/dry-run/drug-dose-kb/review" "$drug_dose_kb_review_body" "$token_a"
+expect_status 200 "Drug dose knowledge base review"
+json_assert_text_contains "$RESPONSE_BODY" "message" "drug_dose_knowledge_base_reviewed" >/dev/null || fail "Drug dose KB review: bad message"
+json_assert_text_contains "$RESPONSE_BODY" "knowledge_base_review.decision" "kb_review_only_no_dose_output" >/dev/null || fail "Drug dose KB review: expected review-only decision"
+json_assert_text_contains "$RESPONSE_BODY" "knowledge_base_review.numeric_dose_values_redacted" "True" >/dev/null || fail "Drug dose KB review: dose values must be redacted"
+json_assert_text_contains "$RESPONSE_BODY" "knowledge_base_review.returns_numeric_dose" "False" >/dev/null || fail "Drug dose KB review: must not return numeric dose"
+json_assert_text_contains "$RESPONSE_BODY" "knowledge_base_review.human_review_required" "True" >/dev/null || fail "Drug dose KB review: human review required"
+json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "Drug dose KB review: must not write database"
+json_assert_text_contains "$RESPONSE_BODY" "writes_prescription" "False" >/dev/null || fail "Drug dose KB review: must not write prescription"
+json_assert_text_contains "$RESPONSE_BODY" "dose_calculation_enabled" "False" >/dev/null || fail "Drug dose KB review: dose calculation disabled"
+json_assert_text_contains "$RESPONSE_BODY" "calls_external_ai" "False" >/dev/null || fail "Drug dose KB review: must not call external AI"
+
+http_json POST "/api/diagnostic-data/dry-run/drug-dose-kb/review" "$drug_dose_kb_review_body"
+expect_status 401 "Drug dose knowledge base requires auth"
+
+http_json POST "/api/diagnostic-data/dry-run/drug-dose-kb/review" "$drug_dose_kb_review_body" "$token_b"
+expect_status 404 "user B cannot review user A drug dose knowledge base"
+pass "Drug dose knowledge base checks"
+
+
 
 # Preventive Care Reminder API V1: in-app reminders only, no external messages.
 http_json GET "/api/preventive-care/rules" "" "$token_a"
