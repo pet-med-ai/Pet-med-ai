@@ -1224,6 +1224,7 @@ def build_diagnostic_reasoning_evidence_trace_dry_run(
     }
 # --- Diagnostic Reasoning Evidence Trace V1 endpoint: end ---
 
+
 # --- Clinician Review Persistence V1 endpoint: start ---
 @router.post("/clinician-review/persistence/apply", response_model=dict)
 def apply_clinician_review_persistence(
@@ -1267,71 +1268,39 @@ def apply_clinician_review_persistence(
     reviewed_by = str(plan.get("persistence", {}).get("reviewed_by") or "").strip()
     review_items = list(plan.get("review_items") or [])
 
-    model_map = {
-        "diagnostic_report": DiagnosticReport,
-        "observation": Observation,
-        "imaging_study": ImagingStudy,
-    }
-
-    def snapshot(target: Any, target_type: str) -> Dict[str, Any]:
-        base = {
-            "target_type": target_type,
-            "target_id": int(getattr(target, "id")),
-            "case_id": int(getattr(target, "case_id")),
+    def snapshot_report(target: DiagnosticReport) -> Dict[str, Any]:
+        return {
+            "target_type": "diagnostic_report",
+            "target_id": int(target.id),
+            "case_id": int(target.case_id),
+            "status": target.status,
+            "reviewed_by": target.reviewed_by,
+            "reviewed_at": _iso(target.reviewed_at),
+            "ai_summary_status": target.ai_summary_status,
         }
-        if target_type == "diagnostic_report":
-            base.update({
-                "status": getattr(target, "status", None),
-                "reviewed_by": getattr(target, "reviewed_by", None),
-                "reviewed_at": _iso(getattr(target, "reviewed_at", None)),
-                "ai_summary_status": getattr(target, "ai_summary_status", None),
-            })
-        elif target_type == "observation":
-            base.update({
-                "review_status": getattr(target, "review_status", None),
-                "abnormal_flag": getattr(target, "abnormal_flag", None),
-                "display_name": getattr(target, "display_name", None),
-            })
-        elif target_type == "imaging_study":
-            base.update({
-                "review_status": getattr(target, "review_status", None),
-                "reviewed_by": getattr(target, "reviewed_by", None),
-                "reviewed_at": _iso(getattr(target, "reviewed_at", None)),
-                "abnormal_flag": getattr(target, "abnormal_flag", None),
-                "modality": getattr(target, "modality", None),
-            })
-        return base
 
     targets = []
     for item in review_items:
-        target_type = item.get("target_type")
+        if item.get("target_type") != "diagnostic_report":
+            raise HTTPException(
+                status_code=422,
+                detail="Clinician Review Persistence V1 only supports diagnostic_report targets",
+            )
         target_id = int(item.get("target_id"))
-        model = model_map.get(target_type)
-        if model is None:
-            raise HTTPException(status_code=422, detail="unsupported target_type: %s" % target_type)
-        target = db.get(model, target_id)
-        if target is None or int(getattr(target, "case_id", -1)) != int(case.id):
+        target = db.get(DiagnosticReport, target_id)
+        if target is None or int(target.case_id) != int(case.id):
             raise HTTPException(status_code=404, detail="review target not found")
-        targets.append((item, target, snapshot(target, target_type)))
+        targets.append((item, target, snapshot_report(target)))
 
     now = datetime.utcnow()
     persisted_count = 0
     item_results: List[Dict[str, Any]] = []
 
     if not dry_run:
-        for item, target, before in targets:
-            target_type = item["target_type"]
-            review_status = item["review_status"]
-            if target_type == "diagnostic_report":
-                target.status = review_status
-                target.reviewed_by = reviewed_by
-                target.reviewed_at = now
-            elif target_type == "observation":
-                target.review_status = review_status
-            elif target_type == "imaging_study":
-                target.review_status = review_status
-                target.reviewed_by = reviewed_by
-                target.reviewed_at = now
+        for item, target, _before in targets:
+            target.status = item["review_status"]
+            target.reviewed_by = reviewed_by
+            target.reviewed_at = now
             persisted_count += 1
 
         if persisted_count:
@@ -1340,18 +1309,17 @@ def apply_clinician_review_persistence(
                 db.refresh(target)
 
     for item, target, before in targets:
-        after = snapshot(target, item["target_type"])
+        after = snapshot_report(target)
         if dry_run:
             after = dict(before)
-            if item["target_type"] == "diagnostic_report":
-                after.update({"status": item["review_status"], "reviewed_by": reviewed_by, "reviewed_at": "DRY_RUN_PREVIEW"})
-            elif item["target_type"] == "observation":
-                after.update({"review_status": item["review_status"]})
-            elif item["target_type"] == "imaging_study":
-                after.update({"review_status": item["review_status"], "reviewed_by": reviewed_by, "reviewed_at": "DRY_RUN_PREVIEW"})
+            after.update({
+                "status": item["review_status"],
+                "reviewed_by": reviewed_by,
+                "reviewed_at": "DRY_RUN_PREVIEW",
+            })
 
         item_results.append({
-            "target_type": item["target_type"],
+            "target_type": "diagnostic_report",
             "target_id": item["target_id"],
             "review_status": item["review_status"],
             "note_present": bool(item.get("note")),
@@ -1367,11 +1335,11 @@ def apply_clinician_review_persistence(
         writes_database=(not dry_run and persisted_count > 0),
         item_count=persisted_count if not dry_run else len(review_items),
     )
-    written_types = {item.get("target_type") for item, _, _ in targets} if (not dry_run and persisted_count) else set()
+    wrote_report_status = bool(not dry_run and persisted_count > 0)
     api_safety.update({
-        "updates_diagnostic_report": "diagnostic_report" in written_types,
-        "writes_diagnostic_report": "diagnostic_report" in written_types,
-        "writes_diagnostic_report_status_only": "diagnostic_report" in written_types,
+        "updates_diagnostic_report": wrote_report_status,
+        "writes_diagnostic_report": wrote_report_status,
+        "writes_diagnostic_report_status_only": wrote_report_status,
         "updates_observation": False,
         "writes_observation_review_status_only": False,
         "updates_imaging_study": False,
@@ -1400,6 +1368,8 @@ def apply_clinician_review_persistence(
         "writes_database": bool(api_safety.get("writes_database")),
         "writes_audit_log": False,
         "persists_reasoning_trace": False,
+        "updates_observation": False,
+        "updates_imaging_study": False,
     })
 
     return {
@@ -1415,3 +1385,4 @@ def apply_clinician_review_persistence(
         **api_safety,
     }
 # --- Clinician Review Persistence V1 endpoint: end ---
+

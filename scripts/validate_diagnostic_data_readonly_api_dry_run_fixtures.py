@@ -43,6 +43,26 @@ def require_text(path: Path, needles: tuple[str, ...], label: str) -> int:
     return 0
 
 
+def _strip_later_controlled_write_blocks(text: str) -> str:
+    """Keep this legacy validator scoped to the original read-only API stage.
+
+    Later stages may add explicitly bounded, separately validated persistence
+    endpoints to the same diagnostic-data router. Those endpoints are not part
+    of Diagnostic Data Read-only API / Dry-run Fixtures V1 and must be checked
+    by their own validators.
+    """
+    controlled_blocks = (
+        ("# --- Clinician Review Persistence V1 endpoint: start ---", "# --- Clinician Review Persistence V1 endpoint: end ---"),
+    )
+    scoped = text
+    for start, end in controlled_blocks:
+        if start in scoped and end in scoped.split(start, 1)[1]:
+            before, rest = scoped.split(start, 1)
+            _block, after = rest.split(end, 1)
+            scoped = before + "\n# controlled write endpoint excluded from legacy read-only validator\n" + after
+    return scoped
+
+
 def main() -> int:
     for path in (API, MAIN, DOC, CHECKLIST, GO_NO_GO, FIXTURE, SMOKE, CI_STATIC):
         rc = require_file(path)
@@ -84,6 +104,7 @@ def main() -> int:
         return rc
 
     api_text = API.read_text(encoding="utf-8")
+    readonly_api_text = _strip_later_controlled_write_blocks(api_text)
     forbidden = (
         "db.add(",
         "db.commit(",
@@ -99,7 +120,7 @@ def main() -> int:
         "ENABLE_DEVICE_REAL_INGEST=true",
     )
     for needle in forbidden:
-        if needle in api_text:
+        if needle in readonly_api_text:
             return fail(f"diagnostic data read-only API must not write DB or enable real integrations: {needle}")
 
     rc = require_text(

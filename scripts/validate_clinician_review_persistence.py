@@ -15,6 +15,7 @@ REQUIRED_FILES = [
     "docs/clinical_data/CLINICIAN_REVIEW_PERSISTENCE_CHECKLIST_V1.csv",
     "docs/clinical_data/CLINICIAN_REVIEW_PERSISTENCE_GO_NO_GO_V1.csv",
     "scripts/validate_clinician_review_persistence.py",
+    "scripts/validate_diagnostic_data_readonly_api_dry_run_fixtures.py",
 ]
 
 REQUIRED_SNIPPETS = {
@@ -39,6 +40,7 @@ REQUIRED_SNIPPETS = {
         "@router.post(\"/clinician-review/persistence/apply\"",
         "build_clinician_review_persistence_plan",
         "db.commit()",
+        "db.get(DiagnosticReport",
         "\"message\": \"clinician_review_persistence_applied\"",
         "\"writes_audit_log\": False",
         "\"persists_reasoning_trace\": False",
@@ -105,6 +107,19 @@ def assert_snippets() -> None:
     for snippet in PROHIBITED_API_SNIPPETS:
         if snippet in endpoint_block:
             fail("prohibited API snippet in endpoint block: %s" % snippet)
+    for snippet in (
+        "model_map",
+        "db.get(Observation",
+        "db.get(ImagingStudy",
+        "target.review_status =",
+        'target_type == "observation"',
+        'target_type == "imaging_study"',
+    ):
+        if snippet in endpoint_block:
+            fail("Clinician Review Persistence V1 endpoint must not write Observation or ImagingStudy: %s" % snippet)
+    readonly_validator = read("scripts/validate_diagnostic_data_readonly_api_dry_run_fixtures.py")
+    if "_strip_later_controlled_write_blocks" not in readonly_validator:
+        fail("read-only diagnostic-data validator must exclude later controlled persistence blocks")
 
 
 def assert_module_behavior() -> None:
