@@ -1,0 +1,16 @@
+gate,go,no_go,evidence
+validator,validator PASS,validator FAIL,python3 scripts/validate_diagnostic_summary_audit_log.py
+ci_static_checks,ci_static_checks PASS,ci_static_checks FAIL,bash scripts/ci_static_checks.sh
+online_smoke,online_smoke ALL_PASS,online_smoke FAIL,bash scripts/smoke_petmed.sh
+schema_gate,database_revision=0009_diag_data and schema_ok=true,schema mismatch,/api/system/version
+feature_flags,dangerous_feature_flags_disabled=true,any dangerous flag enabled,/api/system/feature-flags
+dry_run_endpoint,diagnostic_summary_audit_log dry-run endpoint PASS,endpoint missing or writes DB by default,smoke output
+controlled_append,controlled AuditLog append PASS,append writes non-AuditLog data,controlled smoke/curl
+write_scope,only AuditLog row is written,Case/DiagnosticReport/Observation/ImagingStudy write detected,response safety
+ai_summary_boundary,writes_ai_summary=false,ai_summary write detected,response safety
+reasoning_trace_boundary,persists_reasoning_trace=false,reasoning trace persisted,response safety
+diagnosis_boundary,no final/confirmed/definitive diagnosis,diagnosis generated,response safety
+treatment_boundary,no treatment plan or prescription,treatment/prescription generated,response safety
+dose_boundary,no drug dose/route/frequency,dose/route/frequency returned,response safety
+client_boundary,not_client_facing=true,client-facing release,response safety
+decision,GO_TO_DIAGNOSTICREPORT_AI_SUMMARY_PERSISTENCE_V1,NO_GO,stage completion record

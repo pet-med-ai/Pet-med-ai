@@ -1,0 +1,24 @@
+item,requirement,status,evidence
+scope,Append-only diagnostic summary audit log V1,required,backend/diagnostic_summary_audit_log.py
+api,POST /api/diagnostic-data/diagnostic-summary/audit-log/append,required,backend/audit_log_api.py
+dry_run,Dry-run validates without DB write,required,writes_database=false
+controlled_write,Controlled append requires confirmation,required,I_UNDERSTAND_THIS_APPENDS_DIAGNOSTIC_SUMMARY_AUDIT_LOG_ONLY
+audit_only,Only AuditLog row may be written,required,updates_case=false and updates_diagnostic_report=false
+append_only,No audit update/delete semantics,required,append_only_audit_log=true
+no_case_write,Case writes remain blocked,required,updates_case=false
+no_diagnostic_report_write,DiagnosticReport writes remain blocked,required,updates_diagnostic_report=false
+no_observation_write,Observation writes remain blocked,required,updates_observation=false
+no_imaging_write,ImagingStudy writes remain blocked,required,updates_imaging_study=false
+no_ai_summary_write,DiagnosticReport.ai_summary write remains blocked,required,writes_ai_summary=false
+no_reasoning_trace_persistence,Reasoning trace persistence remains blocked,required,persists_reasoning_trace=false
+no_diagnosis,Final/confirmed/definitive diagnosis blocked,required,generates_final_diagnosis=false
+no_treatment,Treatment plan blocked,required,creates_treatment_plan=false
+no_prescription,Prescription write blocked,required,writes_prescription=false
+no_drug_dose,Drug dose/route/frequency blocked,required,returns_drug_dose=false
+no_probability,Probability/numeric confidence blocked,required,returns_probability=false
+human_review,Human review required,required,requires_human_review=true
+clinician_signoff,Clinician signoff required,required,clinician_signoff_required=true
+not_client_facing,Not client-facing,required,not_client_facing=true
+validator,Static validator passes,required,scripts/validate_diagnostic_summary_audit_log.py
+ci,CI static checks pass,required,scripts/ci_static_checks.sh
+smoke,Online smoke passes,required,scripts/smoke_petmed.sh

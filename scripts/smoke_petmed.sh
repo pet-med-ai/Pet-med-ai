@@ -2757,3 +2757,92 @@ PY
 fi
 # --- Clinician Review Persistence V1 smoke: end ---
 
+# --- Diagnostic Summary Audit Log V1 smoke: start ---
+if [ -f scripts/validate_diagnostic_summary_audit_log.py ]; then
+  echo "[smoke] Diagnostic Summary Audit Log V1 validator"
+  python3 scripts/validate_diagnostic_summary_audit_log.py
+fi
+
+if [ -n "${token_a:-}" ] && [ -n "${case_id:-}" ]; then
+  diagnostic_summary_audit_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "dry_run": True,
+    "clinician_id": "SMOKE-CLINICIAN",
+    "action_taken": "summary_reviewed",
+    "review_status": "reviewed",
+    "target_type": "case_diagnostic_assistance",
+    "source_modes": [
+        "diagnostic_assistance_problem_list_v1",
+        "differential_diagnosis_candidates_v1",
+        "diagnostic_reasoning_evidence_trace_v1",
+        "clinician_review_persistence_v1"
+    ],
+    "source_preview_ids": ["smoke-problem-list", "smoke-ddx", "smoke-trace"],
+    "note": "Smoke dry-run audit event only; no clinical conclusion, no treatment plan, no prescription.",
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+  http_json POST "/api/diagnostic-data/diagnostic-summary/audit-log/append" "$diagnostic_summary_audit_body" "$token_a"
+  expect_status 200 "diagnostic summary audit log dry-run"
+  json_assert_text_contains "$RESPONSE_BODY" "message" "diagnostic_summary_audit_log_appended" >/dev/null || fail "diagnostic summary audit log：message 不正确"
+  json_assert_text_contains "$RESPONSE_BODY" "mode" "diagnostic_summary_audit_log_v1" >/dev/null || fail "diagnostic summary audit log：mode 不正确"
+  json_assert_text_contains "$RESPONSE_BODY" "dry_run" "True" >/dev/null || fail "diagnostic summary audit log：dry_run 应为 true"
+  json_assert_text_contains "$RESPONSE_BODY" "writes_database" "False" >/dev/null || fail "diagnostic summary audit log dry-run：不应写数据库"
+  json_assert_text_contains "$RESPONSE_BODY" "writes_audit_log" "False" >/dev/null || fail "diagnostic summary audit log dry-run：不应写 audit log"
+  json_assert_text_contains "$RESPONSE_BODY" "creates_audit_log" "False" >/dev/null || fail "diagnostic summary audit log dry-run：不应创建 audit log"
+  json_assert_text_contains "$RESPONSE_BODY" "updates_case" "False" >/dev/null || fail "diagnostic summary audit log：不应更新 Case"
+  json_assert_text_contains "$RESPONSE_BODY" "updates_diagnostic_report" "False" >/dev/null || fail "diagnostic summary audit log：不应更新 DiagnosticReport"
+  json_assert_text_contains "$RESPONSE_BODY" "writes_ai_summary" "False" >/dev/null || fail "diagnostic summary audit log：不应写 ai_summary"
+  json_assert_text_contains "$RESPONSE_BODY" "persists_reasoning_trace" "False" >/dev/null || fail "diagnostic summary audit log：不应持久化 reasoning trace"
+  json_assert_text_contains "$RESPONSE_BODY" "generates_final_diagnosis" "False" >/dev/null || fail "diagnostic summary audit log：不应生成 final diagnosis"
+  json_assert_text_contains "$RESPONSE_BODY" "creates_treatment_plan" "False" >/dev/null || fail "diagnostic summary audit log：不应生成 treatment plan"
+  json_assert_text_contains "$RESPONSE_BODY" "writes_prescription" "False" >/dev/null || fail "diagnostic summary audit log：不应写 prescription"
+  json_assert_text_contains "$RESPONSE_BODY" "returns_drug_dose" "False" >/dev/null || fail "diagnostic summary audit log：不应返回 drug dose"
+  json_assert_text_contains "$RESPONSE_BODY" "returns_probability" "False" >/dev/null || fail "diagnostic summary audit log：不应返回 probability"
+  json_assert_text_contains "$RESPONSE_BODY" "requires_human_review" "True" >/dev/null || fail "diagnostic summary audit log：必须人工复核"
+  json_assert_text_contains "$RESPONSE_BODY" "clinician_signoff_required" "True" >/dev/null || fail "diagnostic summary audit log：必须 clinician signoff"
+  json_assert_text_contains "$RESPONSE_BODY" "not_client_facing" "True" >/dev/null || fail "diagnostic summary audit log：不应 client-facing"
+
+  http_json POST "/api/diagnostic-data/diagnostic-summary/audit-log/append" "$diagnostic_summary_audit_body"
+  expect_status 401 "diagnostic summary audit log requires auth"
+
+  if [ -n "${token_b:-}" ]; then
+    http_json POST "/api/diagnostic-data/diagnostic-summary/audit-log/append" "$diagnostic_summary_audit_body" "$token_b"
+    expect_status 404 "user B cannot append user A diagnostic summary audit log"
+  fi
+
+  if [ "${PETMED_DIAGNOSTIC_SUMMARY_AUDIT_WRITE_SMOKE:-0}" = "1" ]; then
+    diagnostic_summary_audit_write_body="$(python3 - "$case_id" <<'PY'
+import json
+import sys
+case_id = int(sys.argv[1])
+body = {
+    "case_id": case_id,
+    "dry_run": False,
+    "clinician_id": "SMOKE-CLINICIAN",
+    "action_taken": "summary_reviewed",
+    "review_status": "reviewed",
+    "target_type": "case_diagnostic_assistance",
+    "source_preview_ids": ["smoke-controlled-audit-write"],
+    "note": "Controlled smoke audit append only; no diagnosis, no treatment plan, no prescription.",
+    "audit_log_confirmation": "I_UNDERSTAND_THIS_APPENDS_DIAGNOSTIC_SUMMARY_AUDIT_LOG_ONLY"
+}
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+    http_json POST "/api/diagnostic-data/diagnostic-summary/audit-log/append" "$diagnostic_summary_audit_write_body" "$token_a"
+    expect_status 200 "diagnostic summary audit log controlled append"
+    json_assert_text_contains "$RESPONSE_BODY" "writes_audit_log" "True" >/dev/null || fail "diagnostic summary audit controlled append：应写 audit log"
+    json_assert_text_contains "$RESPONSE_BODY" "audit_log_result.persisted" "True" >/dev/null || fail "diagnostic summary audit controlled append：persisted 应为 true"
+  fi
+
+  pass "Diagnostic Summary Audit Log V1 checks"
+else
+  echo "[smoke] Diagnostic Summary Audit Log V1 endpoint skipped: smoke token_a/case_id unavailable"
+fi
+# --- Diagnostic Summary Audit Log V1 smoke: end ---

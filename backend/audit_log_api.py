@@ -11,11 +11,11 @@ from sqlalchemy.orm import Session
 try:
     from backend.auth_jwt import get_current_user
     from backend.db import get_db
-    from backend.models import AuditLog, Case
+    from backend.models import AuditLog, Case, DiagnosticReport
 except ModuleNotFoundError:
     from auth_jwt import get_current_user
     from db import get_db
-    from models import AuditLog, Case
+    from models import AuditLog, Case, DiagnosticReport
 
 
 router = APIRouter(prefix="/api", tags=["audit"])
@@ -125,3 +125,163 @@ def create_audit_log(
         "can_update": False,
         "can_delete": False,
     }
+
+# --- Diagnostic Summary Audit Log V1 endpoint: start ---
+@router.post("/diagnostic-data/diagnostic-summary/audit-log/append", response_model=dict)
+def append_diagnostic_summary_audit_log(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.diagnostic_summary_audit_log import (
+            DIAGNOSTIC_SUMMARY_AUDIT_LOG_MODE,
+            build_diagnostic_summary_audit_log_event,
+            diagnostic_summary_audit_log_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from diagnostic_summary_audit_log import (
+            DIAGNOSTIC_SUMMARY_AUDIT_LOG_MODE,
+            build_diagnostic_summary_audit_log_event,
+            diagnostic_summary_audit_log_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    raw_case_id = data.get("case_id")
+    if raw_case_id in (None, ""):
+        raise HTTPException(status_code=422, detail="case_id is required")
+
+    try:
+        case_id = int(raw_case_id)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="case_id must be an integer") from exc
+
+    _assert_owned_case_if_present(db, user, case_id)
+    case = db.get(Case, case_id)
+    if case is None or getattr(case, "deleted_at", None) is not None:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    normalized_payload = dict(data)
+    raw_target_type = str(
+        normalized_payload.get("target_type")
+        or normalized_payload.get("target")
+        or ""
+    ).strip().lower().replace("-", "_").replace(" ", "_")
+    raw_target_id = (
+        normalized_payload.get("diagnostic_report_id")
+        or normalized_payload.get("target_id")
+        or normalized_payload.get("report_id")
+    )
+
+    if raw_target_type in {"diagnostic_report", "diagnostic_reports", "report"} or raw_target_id not in (None, ""):
+        if raw_target_id in (None, ""):
+            raise HTTPException(status_code=422, detail="diagnostic_report target_id is required")
+        try:
+            target_id = int(raw_target_id)
+        except Exception as exc:
+            raise HTTPException(status_code=422, detail="diagnostic_report target_id must be an integer") from exc
+        report = db.get(DiagnosticReport, target_id)
+        if report is None or int(getattr(report, "case_id", -1)) != int(case.id):
+            raise HTTPException(status_code=404, detail="diagnostic report target not found")
+        normalized_payload["target_type"] = "diagnostic_report"
+        normalized_payload["target_id"] = target_id
+
+    case_payload = {
+        "case_id": int(case.id),
+        "patient_name": getattr(case, "patient_name", None),
+        "species": getattr(case, "species", None),
+    }
+
+    try:
+        plan = build_diagnostic_summary_audit_log_event(
+            normalized_payload,
+            case_id=int(case.id),
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    dry_run = bool(plan.get("dry_run"))
+    persisted = False
+    log_id = None
+    created_at = None
+
+    if not dry_run:
+        event = plan.get("audit_event") or {}
+        metadata = event.get("metadata") if isinstance(event.get("metadata"), dict) else {}
+        metadata = dict(metadata)
+        metadata.update({
+            "case_context": case_payload,
+            "api_endpoint": "/api/diagnostic-data/diagnostic-summary/audit-log/append",
+            "writes_case_database": False,
+            "writes_diagnostic_report": False,
+            "writes_observation": False,
+            "writes_imaging_study": False,
+            "writes_ai_summary": False,
+            "writes_audit_log": True,
+        })
+
+        obj = AuditLog(
+            request_id=event["request_id"],
+            patient_token=event.get("patient_token"),
+            clinician_id=event["clinician_id"],
+            model_version=event.get("model_version"),
+            confidence=None,
+            suggested_action=event.get("suggested_action"),
+            action_taken=event["action_taken"],
+            override_reason=event.get("override_reason"),
+            note=event.get("note"),
+            case_id=int(case.id),
+            session_uid=event.get("session_uid"),
+            event_type=event.get("event_type") or "diagnostic_summary_review",
+            source=event.get("source") or DIAGNOSTIC_SUMMARY_AUDIT_LOG_MODE,
+            extra_data=metadata,
+        )
+        db.add(obj)
+        db.commit()
+        db.refresh(obj)
+        persisted = True
+        log_id = obj.log_id
+        created_at = obj.created_at.isoformat() if isinstance(obj.created_at, datetime) else None
+
+    api_safety = diagnostic_summary_audit_log_safety_flags(
+        dry_run=dry_run,
+        writes_audit_log=persisted,
+    )
+
+    audit_log_result = dict(plan.get("audit_log_result") or {})
+    audit_log_result.update({
+        "persisted": persisted,
+        "audit_log_id": log_id,
+        "created_at": created_at,
+        "append_only": True,
+        "can_update": False,
+        "can_delete": False,
+    })
+
+    quality_gate = dict(plan.get("quality_gate") or {})
+    quality_gate.update({
+        "status": "PASS",
+        "writes_database": bool(api_safety.get("writes_database")),
+        "writes_audit_log": bool(api_safety.get("writes_audit_log")),
+        "updates_case": False,
+        "updates_diagnostic_report": False,
+        "updates_observation": False,
+        "updates_imaging_study": False,
+        "writes_ai_summary": False,
+        "persists_reasoning_trace": False,
+    })
+
+    return {
+        "message": "diagnostic_summary_audit_log_appended",
+        "mode": DIAGNOSTIC_SUMMARY_AUDIT_LOG_MODE,
+        "case": case_payload,
+        "audit_event": plan.get("audit_event"),
+        "audit_log_result": audit_log_result,
+        "quality_gate": quality_gate,
+        "safety": api_safety,
+        **api_safety,
+    }
+# --- Diagnostic Summary Audit Log V1 endpoint: end ---

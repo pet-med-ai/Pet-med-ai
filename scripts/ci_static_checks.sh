@@ -178,3 +178,7 @@ echo "[ci_static_checks] Clinician Review Persistence V1 validator"
 python3 scripts/validate_clinician_review_persistence.py
 # --- Clinician Review Persistence V1 static checks: end ---
 
+# --- Diagnostic Summary Audit Log V1 static checks: start ---
+echo "[ci_static_checks] Diagnostic Summary Audit Log V1 validator"
+python3 scripts/validate_diagnostic_summary_audit_log.py
+# --- Diagnostic Summary Audit Log V1 static checks: end ---
