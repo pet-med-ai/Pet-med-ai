@@ -3282,3 +3282,60 @@ PY
   fi
 fi
 # --- Clinical QA Dashboard V2 smoke: end ---
+# --- Ops Dashboard Clinical Core V2 smoke: start ---
+if [ -f scripts/validate_ops_dashboard_clinical_core_v2.py ]; then
+  echo "[smoke] Ops Dashboard Clinical Core V2 validator"
+  python3 scripts/validate_ops_dashboard_clinical_core_v2.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_ops_clinical_core_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_ops_clinical_core_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_ops_clinical_core_auth_header="Authorization: Bearer ${token_a}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_ops_clinical_core_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_ops_clinical_core_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_ops_clinical_core_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  if [ -n "${_petmed_ops_clinical_core_auth_header}" ]; then
+    _petmed_ops_clinical_core_json="$(mktemp)"
+    curl -sS "${BASE_URL%/}/api/diagnostic-data/clinical-qa-dashboard/v2/summary" \
+      -H "${_petmed_ops_clinical_core_auth_header}" \
+      > "${_petmed_ops_clinical_core_json}"
+    python3 - "${_petmed_ops_clinical_core_json}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+if data.get("message") != "clinical_qa_dashboard_v2_summary":
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+    raise SystemExit("Ops Dashboard Clinical Core V2 smoke: unexpected response message")
+assert data.get("mode") == "clinical_qa_dashboard_v2"
+assert data.get("writes_database") is False
+assert data.get("requires_human_review") is True
+assert data.get("clinician_signoff_required") is True
+assert data.get("not_client_facing") is True
+assert data.get("generates_final_diagnosis") is False
+assert data.get("creates_treatment_plan") is False
+assert data.get("writes_prescription") is False
+assert data.get("returns_drug_dose") is False
+assert isinstance(data.get("cards"), list)
+assert isinstance(data.get("metrics"), dict)
+assert isinstance(data.get("qa_queue"), list)
+assert data.get("quality_gate", {}).get("status") == "PASS"
+print("[smoke] Ops Dashboard Clinical Core V2 endpoint PASS")
+PY
+    rm -f "${_petmed_ops_clinical_core_json}"
+  else
+    echo "[smoke] Ops Dashboard Clinical Core V2 endpoint skipped: no auth token available"
+  fi
+fi
+# --- Ops Dashboard Clinical Core V2 smoke: end ---

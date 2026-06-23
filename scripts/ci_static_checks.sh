@@ -204,3 +204,8 @@ python3 scripts/validate_clinical_docs_diagnostic_data_merge.py
 echo "[ci_static_checks] Clinical QA Dashboard V2 static checks"
 python3 scripts/validate_clinical_qa_dashboard_v2.py
 # --- Clinical QA Dashboard V2 static checks: end ---
+# --- Ops Dashboard Clinical Core V2 static checks: start ---
+echo "[ci_static_checks] Ops Dashboard Clinical Core V2 static checks"
+python3 scripts/validate_ops_dashboard_clinical_core_v2.py
+# --- Ops Dashboard Clinical Core V2 static checks: end ---
+

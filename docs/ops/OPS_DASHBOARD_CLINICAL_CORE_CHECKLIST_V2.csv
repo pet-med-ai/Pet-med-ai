@@ -1,0 +1,12 @@
+item,requirement,status,evidence
+frontend_section,OpsDashboard renders Ops Dashboard Clinical Core V2,TBD,frontend/src/pages/OpsDashboard.jsx
+clinical_qa_api,Calls GET /api/diagnostic-data/clinical-qa-dashboard/v2/summary,TBD,OpsDashboard.jsx
+read_only,Dashboard remains read-only,TBD,writes_database=false
+human_review,Requires clinician review and signoff,TBD,requires_human_review=true; clinician_signoff_required=true
+no_diagnosis,Does not show final diagnosis or diagnostic conclusion,TBD,generates_final_diagnosis=false
+no_treatment,Does not generate treatment plan or prescription,TBD,creates_treatment_plan=false; writes_prescription=false
+no_dose,Does not return drug dose route or frequency,TBD,returns_drug_dose=false
+no_external_integrations,No PACS query attachment download or external AI/provider call,TBD,queries_pacs=false; calls_external_ai=false
+validator,Static validator passes,TBD,python3 scripts/validate_ops_dashboard_clinical_core_v2.py
+ci_static_checks,CI static checks pass,TBD,bash scripts/ci_static_checks.sh
+online_smoke,Online smoke passes,TBD,bash scripts/smoke_petmed.sh

@@ -64,6 +64,10 @@ export default function OpsDashboard() {
   const [errMsg, setErrMsg] = useState("");
   const [preventiveCareOps, setPreventiveCareOps] = useState(null);
   const [preventiveCareOpsError, setPreventiveCareOpsError] = useState("");
+  // --- Ops Dashboard Clinical Core V2 state: start ---
+  const [clinicalCoreOps, setClinicalCoreOps] = useState(null);
+  const [clinicalCoreOpsError, setClinicalCoreOpsError] = useState("");
+  // --- Ops Dashboard Clinical Core V2 state: end ---
 
   const loadOpsStatus = async () => {
     try {
@@ -87,6 +91,18 @@ export default function OpsDashboard() {
         setPreventiveCareOps(null);
         setPreventiveCareOpsError(typeof detail === "string" ? detail : JSON.stringify(detail || opsErr.message));
       }
+      // --- Ops Dashboard Clinical Core V2 fetch: start ---
+      try {
+        const clinicalCoreRes = await api.get("/api/diagnostic-data/clinical-qa-dashboard/v2/summary");
+        setClinicalCoreOps(clinicalCoreRes.data || {});
+        setClinicalCoreOpsError("");
+      } catch (clinicalCoreErr) {
+        console.warn("Load clinical core QA dashboard summary failed:", clinicalCoreErr);
+        const detail = clinicalCoreErr?.response?.data?.detail;
+        setClinicalCoreOps(null);
+        setClinicalCoreOpsError(typeof detail === "string" ? detail : JSON.stringify(detail || clinicalCoreErr.message));
+      }
+      // --- Ops Dashboard Clinical Core V2 fetch: end ---
       setLastLoadedAt(new Date().toLocaleString());
     } catch (err) {
       console.error("Load ops dashboard failed:", err);
@@ -122,6 +138,22 @@ export default function OpsDashboard() {
   const pcOpsAvailable = !!preventiveCareOps && !preventiveCareOpsError;
   const pcReadOnlyOk = pcSafety?.read_only === true && pcSafety?.writes_database === false;
   const pcNoExternalSendOk = pcSafety?.auto_send === false && pcSafety?.sends_external_message === false;
+  // --- Ops Dashboard Clinical Core V2 derived values: start ---
+  const clinicalCoreMetrics = clinicalCoreOps?.metrics || {};
+  const clinicalCoreCards = Array.isArray(clinicalCoreOps?.cards) ? clinicalCoreOps.cards : [];
+  const clinicalCoreQueue = Array.isArray(clinicalCoreOps?.qa_queue) ? clinicalCoreOps.qa_queue : [];
+  const clinicalCoreSafety = clinicalCoreOps?.safety || {};
+  const clinicalCoreAvailable = !!clinicalCoreOps && !clinicalCoreOpsError;
+  const clinicalCoreReadOnlyOk = clinicalCoreSafety?.read_only === true && clinicalCoreSafety?.writes_database === false;
+  const clinicalCoreNoDxOk = clinicalCoreSafety?.generates_final_diagnosis === false && clinicalCoreSafety?.creates_treatment_plan === false && clinicalCoreSafety?.writes_prescription === false && clinicalCoreSafety?.returns_drug_dose === false;
+  const clinicalCoreReviewRequiredOk = clinicalCoreSafety?.requires_human_review === true && clinicalCoreSafety?.clinician_signoff_required === true;
+  const clinicalCoreCardValue = (key, fallback = "—") => {
+    const item = clinicalCoreCards.find((card) => card?.key === key);
+    if (!item) return fallback;
+    const suffix = item.unit === "percent" ? "%" : "";
+    return `${fmt(item.value)}${suffix}`;
+  };
+  // --- Ops Dashboard Clinical Core V2 derived values: end ---
 
   return (
     <div style={pageStyle}>
@@ -222,6 +254,88 @@ export default function OpsDashboard() {
           </tbody>
         </table>
       </section>
+
+      {/* --- Ops Dashboard Clinical Core V2 section: start --- */}
+      <section style={sectionStyle}>
+        <h2 style={sectionTitleStyle}>Ops Dashboard Clinical Core V2</h2>
+        <div style={{ opacity: 0.72, fontSize: 13, marginBottom: 10 }}>
+          临床核心运营摘要：读取 Clinical QA Dashboard V2，只展示医生端诊断数据复核覆盖、异常复核缺口、影像复核缺口和诊断摘要审计证据。read_only=true；writes_database=false；not_client_facing=true。
+        </div>
+        {clinicalCoreOpsError && (
+          <div style={{ ...noticeStyle, borderColor: "#fed7aa", background: "#fff7ed", color: "#9a3412" }}>
+            Clinical Core Ops 读取失败：{clinicalCoreOpsError}
+          </div>
+        )}
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10 }}>
+          <Card title="Clinical QA status" value={clinicalCoreAvailable ? "loaded" : "unavailable"} ok={clinicalCoreAvailable} hint="GET /api/diagnostic-data/clinical-qa-dashboard/v2/summary" />
+          <Card title="QA queue items" value={fmt(clinicalCoreMetrics?.qa_queue_item_count)} ok={clinicalCoreAvailable && Number(clinicalCoreMetrics?.qa_queue_item_count || 0) === 0} hint="review gaps only; no final diagnosis" />
+          <Card title="Review completion" value={clinicalCoreCardValue("overall_clinical_review_completion")} ok={clinicalCoreAvailable} hint="DiagnosticReport + abnormal Observation + ImagingStudy" />
+          <Card title="Report coverage" value={clinicalCoreCardValue("diagnostic_report_review_coverage")} ok={clinicalCoreAvailable} hint="DiagnosticReport.status reviewed coverage" />
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, minmax(0, 1fr))", gap: 10, marginTop: 10 }}>
+          <Card title="AI summaries" value={fmt(clinicalCoreMetrics?.diagnostic_reports_with_ai_summary)} ok={clinicalCoreAvailable} hint="persisted summaries still require clinician review" />
+          <Card title="Observation gaps" value={fmt(clinicalCoreMetrics?.observation_abnormal_flag_review_gap_count)} ok={clinicalCoreAvailable && Number(clinicalCoreMetrics?.observation_abnormal_flag_review_gap_count || 0) === 0} hint="abnormal Observation review gap" />
+          <Card title="Imaging gaps" value={fmt(clinicalCoreMetrics?.imagingstudy_review_gap_count)} ok={clinicalCoreAvailable && Number(clinicalCoreMetrics?.imagingstudy_review_gap_count || 0) === 0} hint="no PACS query; no attachment download" />
+          <Card title="Audit logs" value={fmt(clinicalCoreMetrics?.diagnostic_summary_audit_log_count)} ok={clinicalCoreAvailable} hint="Diagnostic Summary Audit Log V1 evidence" />
+        </div>
+
+        <table style={{ ...tableStyle, marginTop: 10 }}>
+          <thead>
+            <tr>
+              <th style={thStyle}>Clinical core safety gate</th>
+              <th style={thStyle}>Status</th>
+              <th style={thStyle}>Expected</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style={tdStyle}>read_only / writes_database</td>
+              <td style={tdStyle}><span style={badgeStyle(clinicalCoreReadOnlyOk)}>{statusLabel(clinicalCoreReadOnlyOk)}</span></td>
+              <td style={tdStyle}>read_only=true；writes_database=false</td>
+            </tr>
+            <tr>
+              <td style={tdStyle}>diagnosis / treatment / prescription / dose</td>
+              <td style={tdStyle}><span style={badgeStyle(clinicalCoreNoDxOk)}>{statusLabel(clinicalCoreNoDxOk)}</span></td>
+              <td style={tdStyle}>no final diagnosis；no treatment plan；no prescription；no drug dose</td>
+            </tr>
+            <tr>
+              <td style={tdStyle}>human review</td>
+              <td style={tdStyle}><span style={badgeStyle(clinicalCoreReviewRequiredOk)}>{statusLabel(clinicalCoreReviewRequiredOk)}</span></td>
+              <td style={tdStyle}>requires_human_review=true；clinician_signoff_required=true</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 10, marginTop: 10 }}>
+          <div style={cardStyle}>
+            <div style={{ fontSize: 13, opacity: 0.72, marginBottom: 6 }}>Clinical QA metrics</div>
+            <pre style={{ ...preStyle, maxHeight: 260 }}>{prettyJson(clinicalCoreMetrics)}</pre>
+          </div>
+          <div style={cardStyle}>
+            <div style={{ fontSize: 13, opacity: 0.72, marginBottom: 6 }}>Clinical QA queue preview</div>
+            {clinicalCoreQueue.length === 0 ? (
+              <div style={{ fontSize: 13, opacity: 0.72 }}>暂无临床核心复核缺口。</div>
+            ) : (
+              <div style={{ display: "grid", gap: 8 }}>
+                {clinicalCoreQueue.slice(0, 8).map((item, index) => (
+                  <div key={`${item.key || "qa"}-${index}`} style={{ border: "1px solid #e5e7eb", borderRadius: 10, padding: 10, background: "#f8fafc" }}>
+                    <div style={{ fontWeight: 900 }}>{fmt(item.label || item.key)}</div>
+                    <div style={{ fontSize: 12, opacity: 0.72, marginTop: 4 }}>
+                      count={fmt(item.count)} · severity={fmt(item.severity_hint)} · action={fmt(item.recommended_action)}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#166534", marginTop: 4 }}>
+                      requires_human_review=true · not_a_diagnosis=true · not_client_facing=true
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+      {/* --- Ops Dashboard Clinical Core V2 section: end --- */}
 
       <section style={sectionStyle}>
         <h2 style={sectionTitleStyle}>Release Gate Summary</h2>
