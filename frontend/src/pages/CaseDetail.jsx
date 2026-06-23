@@ -23,6 +23,12 @@ export default function CaseDetail() {
   const [diagnosticDataSummary, setDiagnosticDataSummary] = useState(null);
   const [diagnosticDataLoading, setDiagnosticDataLoading] = useState(false);
   const [diagnosticDataStatus, setDiagnosticDataStatus] = useState("");
+  // --- Diagnostic Assistance Case Detail UI V1 state: start ---
+  const [diagnosticAssistancePreview, setDiagnosticAssistancePreview] = useState(null);
+  const [diagnosticAssistanceLoading, setDiagnosticAssistanceLoading] = useState(false);
+  const [diagnosticAssistanceStatus, setDiagnosticAssistanceStatus] = useState("");
+  // --- Diagnostic Assistance Case Detail UI V1 state: end ---
+
 
   // 拉取详情
   useEffect(() => {
@@ -91,6 +97,132 @@ export default function CaseDetail() {
       setDiagnosticDataLoading(false);
     }
   };
+
+  // --- Diagnostic Assistance Case Detail UI V1 actions: start ---
+  const buildDiagnosticAssistancePreview = async () => {
+    if (!data?.id) return;
+
+    const caseContext = buildDiagnosticAssistanceCaseContext(data);
+    const labSummary = buildDiagnosticAssistanceLabSummary(diagnosticDataSummary);
+    const imagingSummary = buildDiagnosticAssistanceImagingSummary(diagnosticDataSummary);
+
+    const basePayload = {
+      case_id: Number(data.id),
+      chief_complaint: data.chief_complaint || "",
+      history: data.history || "",
+      dynamic_intake: data.history || "",
+      exam_findings: data.exam_findings || "",
+      case_context: caseContext,
+      lab_summary: labSummary,
+      lab_abnormal_summary: labSummary,
+      imaging_summary: imagingSummary,
+      imaging_report_summary: imagingSummary,
+      clinician_review_workflow: {
+        decision: "case_detail_ui_preview_requires_clinician_review",
+        status: "pending_clinician_review",
+        human_review_required: true,
+        clinician_signoff_required: true,
+        final_signoff_persisted: false,
+        review_status_persisted: false,
+        client_release_allowed: false,
+        not_a_diagnosis: true,
+        not_a_treatment_plan: true,
+        not_a_prescription: true,
+      },
+      treatment_boundary: {
+        decision: "review_only",
+        blocked: false,
+        human_review_required: true,
+        not_a_diagnosis: true,
+        not_a_treatment_plan: true,
+        not_a_prescription: true,
+        not_a_drug_dose_recommendation: true,
+        boundary_only: true,
+      },
+      drug_dose_safety: {
+        decision: "dose_output_blocked_in_case_detail_ui",
+        returns_drug_dose: false,
+        returns_drug_route: false,
+        returns_drug_frequency: false,
+        requires_human_review: true,
+      },
+    };
+
+    try {
+      setDiagnosticAssistanceLoading(true);
+      setDiagnosticAssistanceStatus("正在生成诊断辅助预览：problem list → differential candidates → evidence trace；dry_run=true · writes_database=false");
+
+      const problemRes = await api.post(
+        "/api/diagnostic-data/dry-run/problem-list/build",
+        basePayload
+      );
+      const problemPayload = problemRes.data || {};
+      const problemList = Array.isArray(problemPayload.problem_list_preview)
+        ? problemPayload.problem_list_preview
+        : [];
+
+      const differentialRes = await api.post(
+        "/api/diagnostic-data/dry-run/differential-diagnosis/candidates/build",
+        {
+          ...basePayload,
+          problem_list_preview: problemList,
+          problem_list: problemList,
+          upstream_problem_list_preview: problemPayload,
+        }
+      );
+      const differentialPayload = differentialRes.data || {};
+      const candidateList = Array.isArray(differentialPayload.differential_diagnosis_candidates_preview)
+        ? differentialPayload.differential_diagnosis_candidates_preview
+        : [];
+
+      const traceRes = await api.post(
+        "/api/diagnostic-data/dry-run/diagnostic-reasoning/evidence-trace/build",
+        {
+          ...basePayload,
+          problem_list_preview: problemList,
+          differential_diagnosis_candidates_preview: candidateList,
+          differential_candidates_preview: candidateList,
+          upstream_problem_list_preview: problemPayload,
+          upstream_differential_candidates_preview: differentialPayload,
+        }
+      );
+      const tracePayload = traceRes.data || {};
+
+      const preview = {
+        problem_list: problemPayload,
+        differential_candidates: differentialPayload,
+        evidence_trace: tracePayload,
+        built_at: new Date().toISOString(),
+        safety_summary: {
+          dry_run: true,
+          writes_database: false,
+          writes_audit_log: false,
+          persists_reasoning_trace: false,
+          no_final_diagnosis: true,
+          no_treatment_plan: true,
+          no_prescription: true,
+          no_drug_dose: true,
+          not_client_facing: true,
+          requires_human_review: true,
+          clinician_signoff_required: true,
+        },
+      };
+
+      setDiagnosticAssistancePreview(preview);
+      setDiagnosticAssistanceStatus(
+        `已生成诊断辅助预览：problem_list=${problemList.length} · differential_candidates=${candidateList.length} · evidence_trace=${Array.isArray(tracePayload.diagnostic_reasoning_evidence_trace_preview) ? tracePayload.diagnostic_reasoning_evidence_trace_preview.length : 0} · dry_run=true · writes_database=false`
+      );
+    } catch (e) {
+      console.error("Diagnostic assistance preview failed:", e);
+      const detail = e?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
+      setDiagnosticAssistanceStatus(`诊断辅助预览失败：${msg}`);
+      alert(`诊断辅助预览失败：${msg}`);
+    } finally {
+      setDiagnosticAssistanceLoading(false);
+    }
+  };
+  // --- Diagnostic Assistance Case Detail UI V1 actions: end ---
 
   // Preventive Care Reminder UI V1: in-app reminders only; sends_external_message=false.
   const fetchPreventiveCareReminders = async () => {
@@ -456,6 +588,17 @@ export default function CaseDetail() {
         />
       </Section>
 
+      {/* --- Diagnostic Assistance Case Detail UI V1 section: start --- */}
+      <Section title="诊断辅助预览 / Diagnostic Assistance Preview">
+        <DiagnosticAssistancePanel
+          preview={diagnosticAssistancePreview}
+          loading={diagnosticAssistanceLoading}
+          status={diagnosticAssistanceStatus}
+          onBuild={buildDiagnosticAssistancePreview}
+        />
+      </Section>
+      {/* --- Diagnostic Assistance Case Detail UI V1 section: end --- */}
+
       <Section title="八、预防保健提醒 / Preventive Care">
         <PreventiveCarePanel
           reminders={preventiveCareReminders}
@@ -704,6 +847,181 @@ function DiagnosticDataList({ title, empty, items, renderItem }) {
   );
 }
 
+// --- Diagnostic Assistance Case Detail UI V1 components: start ---
+function DiagnosticAssistancePanel({ preview, loading, status, onBuild }) {
+  const problemPayload = preview?.problem_list || {};
+  const differentialPayload = preview?.differential_candidates || {};
+  const tracePayload = preview?.evidence_trace || {};
+  const problemItems = Array.isArray(problemPayload.problem_list_preview) ? problemPayload.problem_list_preview : [];
+  const candidateItems = Array.isArray(differentialPayload.differential_diagnosis_candidates_preview)
+    ? differentialPayload.differential_diagnosis_candidates_preview
+    : [];
+  const traceItems = Array.isArray(tracePayload.diagnostic_reasoning_evidence_trace_preview)
+    ? tracePayload.diagnostic_reasoning_evidence_trace_preview
+    : [];
+  const evidenceIndex = Array.isArray(tracePayload.evidence_source_index) ? tracePayload.evidence_source_index : [];
+
+  return (
+    <div className="diagnostic-assistance-panel">
+      <div className="diagnostic-assistance-actions screen-only">
+        <button type="button" style={btnDoc} onClick={onBuild} disabled={loading}>
+          {loading ? "生成中…" : "生成诊断辅助预览"}
+        </button>
+      </div>
+
+      <div className="diagnostic-assistance-status">
+        {status || "医生复核用 dry-run 预览；不写数据库、不生成最终诊断、不生成治疗方案、不写处方、不输出药物剂量。"}
+      </div>
+
+      <div className="diagnostic-assistance-boundary">
+        dry_run=true · writes_database=false · writes_audit_log=false · persists_reasoning_trace=false · not_a_diagnosis=true · not_a_treatment_plan=true · not_a_prescription=true · not_client_facing=true · requires_human_review=true
+      </div>
+
+      {!preview ? (
+        <div className="diagnostic-assistance-empty">
+          尚未生成诊断辅助预览。点击按钮后会依次调用 Problem List、Differential Candidates、Evidence Trace 三个 dry-run endpoint；不会保存到 Case、DiagnosticReport、Observation、ImagingStudy 或 audit log。
+        </div>
+      ) : (
+        <>
+          <div className="diagnostic-assistance-counts">
+            <DiagnosticAssistanceCount label="Problem List" value={problemItems.length} />
+            <DiagnosticAssistanceCount label="Differential Candidates" value={candidateItems.length} />
+            <DiagnosticAssistanceCount label="Evidence Trace" value={traceItems.length} />
+            <DiagnosticAssistanceCount label="Evidence Sources" value={evidenceIndex.length} />
+          </div>
+
+          <div className="diagnostic-assistance-grid">
+            <DiagnosticAssistanceList title="Problem List Preview" empty="暂无 problem list preview" items={problemItems.slice(0, 8)} renderItem={(item, index) => (
+              <>
+                <div className="diagnostic-assistance-item-title">{safeText(item.title || item.problem_title || `Problem ${index + 1}`)}</div>
+                <div className="diagnostic-assistance-item-meta">
+                  category={safeText(item.category)} · severity_hint={safeText(item.severity_hint)} · requires_clinician_review={String(item.requires_clinician_review !== false)}
+                </div>
+                <EvidenceSnippetList items={item.evidence_sources} />
+              </>
+            )} />
+
+            <DiagnosticAssistanceList title="Differential Candidates Preview" empty="暂无 differential candidates preview" items={candidateItems.slice(0, 8)} renderItem={(item, index) => (
+              <>
+                <div className="diagnostic-assistance-item-title">{safeText(item.candidate_label || item.candidate_key || `Candidate ${index + 1}`)}</div>
+                <div className="diagnostic-assistance-item-meta">
+                  system={safeText(item.system_category)} · severity_hint={safeText(item.severity_hint)} · evidence_fit_hint={safeText(item.evidence_fit_hint)}
+                </div>
+                <EvidenceSnippetList items={item.supporting_evidence_sources || item.evidence_sources} />
+              </>
+            )} />
+
+            <DiagnosticAssistanceList title="Evidence Trace Preview" empty="暂无 evidence trace preview" items={traceItems.slice(0, 8)} renderItem={(item, index) => (
+              <>
+                <div className="diagnostic-assistance-item-title">{safeText(item.candidate_label || item.candidate_key || `Trace ${index + 1}`)}</div>
+                <div className="diagnostic-assistance-item-meta">
+                  trace_id={safeText(item.trace_id)} · fit={safeText(item.evidence_fit_hint)} · severity_hint={safeText(item.severity_hint)}
+                </div>
+                <TraceStepList items={item.reasoning_trace_steps} />
+                <ReviewQuestionList items={item.review_questions} />
+              </>
+            )} />
+          </div>
+
+          <DiagnosticAssistanceQualityGates
+            problemGate={problemPayload.quality_gate}
+            candidateGate={differentialPayload.quality_gate}
+            traceGate={tracePayload.quality_gate}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
+function DiagnosticAssistanceCount({ label, value }) {
+  return (
+    <div className="diagnostic-assistance-count-card">
+      <div className="diagnostic-assistance-count-value">{value || 0}</div>
+      <div className="diagnostic-assistance-count-label">{label}</div>
+    </div>
+  );
+}
+
+function DiagnosticAssistanceList({ title, empty, items, renderItem }) {
+  return (
+    <div className="diagnostic-assistance-subblock">
+      <div className="diagnostic-assistance-subtitle">{title}</div>
+      {items.length === 0 ? (
+        <div className="diagnostic-assistance-empty-small">{empty}</div>
+      ) : (
+        <div className="diagnostic-assistance-list">
+          {items.map((item, index) => (
+            <div className="diagnostic-assistance-item" key={item.problem_id || item.candidate_key || item.trace_id || index}>
+              {renderItem(item, index)}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function EvidenceSnippetList({ items }) {
+  const evidenceItems = Array.isArray(items) ? items.slice(0, 3) : [];
+  if (!evidenceItems.length) return null;
+  return (
+    <ul className="diagnostic-assistance-evidence-list">
+      {evidenceItems.map((item, index) => (
+        <li key={`${item.source_type || "source"}-${index}`}>
+          {safeText(item.source_type)}.{safeText(item.field)}：{safeText(item.snippet)}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function TraceStepList({ items }) {
+  const steps = Array.isArray(items) ? items.slice(0, 4) : [];
+  if (!steps.length) return null;
+  return (
+    <ol className="diagnostic-assistance-trace-list">
+      {steps.map((item, index) => (
+        <li key={index}>{safeText(item.step || item.text || item)}</li>
+      ))}
+    </ol>
+  );
+}
+
+function ReviewQuestionList({ items }) {
+  const questions = Array.isArray(items) ? items.slice(0, 3) : [];
+  if (!questions.length) return null;
+  return (
+    <div className="diagnostic-assistance-review-questions">
+      <div className="diagnostic-assistance-mini-title">复核问题</div>
+      {questions.map((item, index) => (
+        <div key={index}>• {safeText(item.question || item)}</div>
+      ))}
+    </div>
+  );
+}
+
+function DiagnosticAssistanceQualityGates({ problemGate, candidateGate, traceGate }) {
+  const gates = [
+    ["Problem List", problemGate],
+    ["Differential Candidates", candidateGate],
+    ["Evidence Trace", traceGate],
+  ];
+  return (
+    <div className="diagnostic-assistance-quality-gates">
+      {gates.map(([label, gate]) => (
+        <div className="diagnostic-assistance-quality-card" key={label}>
+          <div className="diagnostic-assistance-quality-title">{label}</div>
+          <div>status={safeText(gate?.status)}</div>
+          <div>decision={safeText(gate?.decision)}</div>
+          <div>requires_human_review={String(gate?.requires_human_review !== false && gate?.requires_clinician_review !== false)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+// --- Diagnostic Assistance Case Detail UI V1 components: end ---
+
 function PreventiveCarePanel({
   reminders,
   preview,
@@ -915,6 +1233,100 @@ function formatPreventiveStatus(value) {
   return map[value] || value || "未记录";
 }
 
+
+// --- Diagnostic Assistance Case Detail UI V1 helpers: start ---
+function buildDiagnosticAssistanceCaseContext(data) {
+  return {
+    case_id: data?.id ? Number(data.id) : undefined,
+    patient_name: data?.patient_name || data?.patient?.name || "",
+    species: data?.species || data?.patient?.species || "",
+    sex: data?.sex || "",
+    age_info: data?.age_info || "",
+    breed: data?.breed || "",
+    weight: data?.weight || "",
+    chief_complaint: data?.chief_complaint || "",
+    history: data?.history || "",
+    exam_findings: data?.exam_findings || "",
+    source: "diagnostic_assistance_case_detail_ui_v1",
+    dry_run_only: true,
+    writes_database: false,
+    not_client_facing: true,
+  };
+}
+
+function buildDiagnosticAssistanceLabSummary(summary) {
+  const reports = Array.isArray(summary?.reports) ? summary.reports : [];
+  const observations = Array.isArray(summary?.observations) ? summary.observations : [];
+  const labReports = reports.filter((item) => /lab|cbc|chem|blood|urine|diagnostic/i.test(String(item?.report_type || item?.title || "")));
+  const abnormalObservations = observations.filter((item) => {
+    const flag = String(item?.abnormal_flag || "").toLowerCase();
+    return flag && flag !== "normal";
+  }).slice(0, 12);
+
+  return {
+    headline: labReports.length || abnormalObservations.length
+      ? "Structured diagnostic data present for clinician review"
+      : "No structured lab abnormality loaded in Case Detail UI",
+    summary: [
+      `reports=${reports.length}`,
+      `observations=${observations.length}`,
+      `abnormal_observations=${abnormalObservations.length}`,
+    ].join(" · "),
+    abnormal_findings: abnormalObservations.map((item) => ({
+      name: item.display_name || item.code || "observation",
+      code: item.code || "",
+      value: item.value_numeric ?? item.value_text ?? "",
+      unit: item.unit || "",
+      abnormal_flag: item.abnormal_flag || "",
+      interpretation: item.interpretation || "",
+    })),
+    review_recommendations: [
+      "Clinician must verify lab source, units, reference intervals, and sample timing.",
+    ],
+    quality_gate: {
+      status: "PASS",
+      source: "case_detail_ui_preview",
+      writes_database: false,
+      requires_human_review: true,
+    },
+    dry_run_only: true,
+    writes_database: false,
+  };
+}
+
+function buildDiagnosticAssistanceImagingSummary(summary) {
+  const imagingStudies = Array.isArray(summary?.imaging_studies) ? summary.imaging_studies : [];
+  const abnormalStudies = imagingStudies.filter((item) => {
+    const flag = String(item?.abnormal_flag || "").toLowerCase();
+    return flag && flag !== "normal";
+  }).slice(0, 8);
+
+  return {
+    headline: imagingStudies.length
+      ? "Structured imaging metadata present for clinician review"
+      : "No structured imaging metadata loaded in Case Detail UI",
+    summary: `imaging_studies=${imagingStudies.length} · abnormal_imaging=${abnormalStudies.length}`,
+    imaging_findings: abnormalStudies.map((item) => ({
+      modality: item.modality || "",
+      body_part: item.body_part || "",
+      abnormal_flag: item.abnormal_flag || "",
+      report_text: item.report_text || item.ai_summary || "",
+      review_status: item.review_status || "",
+    })),
+    review_recommendations: [
+      "Clinician must verify imaging report text, modality, body part, and review status.",
+    ],
+    quality_gate: {
+      status: "PASS",
+      source: "case_detail_ui_preview",
+      writes_database: false,
+      requires_human_review: true,
+    },
+    dry_run_only: true,
+    writes_database: false,
+  };
+}
+// --- Diagnostic Assistance Case Detail UI V1 helpers: end ---
 
 function parseDynamicHistory(value) {
   const lines = String(value || "").split(/\r?\n/);
@@ -1147,6 +1559,145 @@ const css = `
   @media (max-width: 760px) {
     .diagnostic-data-counts, .diagnostic-data-grid { grid-template-columns: 1fr; }
   }
+
+  /* --- Diagnostic Assistance Case Detail UI V1 styles: start --- */
+  .diagnostic-assistance-panel {
+    display: grid;
+    gap: 12px;
+  }
+  .diagnostic-assistance-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .diagnostic-assistance-status {
+    border: 1px solid #c7d2fe;
+    background: #eef2ff;
+    color: #3730a3;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .diagnostic-assistance-boundary {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+    border-radius: 12px;
+    padding: 9px 11px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+  .diagnostic-assistance-counts {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .diagnostic-assistance-count-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    padding: 10px 12px;
+  }
+  .diagnostic-assistance-count-value {
+    font-size: 24px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  .diagnostic-assistance-count-label {
+    font-size: 12px;
+    color: #64748b;
+  }
+  .diagnostic-assistance-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .diagnostic-assistance-subblock {
+    display: grid;
+    gap: 8px;
+  }
+  .diagnostic-assistance-subtitle {
+    font-size: 14px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  .diagnostic-assistance-list {
+    display: grid;
+    gap: 8px;
+  }
+  .diagnostic-assistance-item {
+    border: 1px solid #e5e7eb;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 10px 12px;
+  }
+  .diagnostic-assistance-item-title {
+    font-weight: 850;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .diagnostic-assistance-item-meta {
+    font-size: 12px;
+    color: #475569;
+    word-break: break-word;
+  }
+  .diagnostic-assistance-evidence-list,
+  .diagnostic-assistance-trace-list {
+    margin: 8px 0 0;
+    padding-left: 18px;
+    font-size: 12px;
+    color: #334155;
+  }
+  .diagnostic-assistance-review-questions {
+    margin-top: 8px;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 8px;
+    font-size: 12px;
+    color: #334155;
+  }
+  .diagnostic-assistance-mini-title {
+    font-weight: 800;
+    color: #0f172a;
+    margin-bottom: 4px;
+  }
+  .diagnostic-assistance-empty,
+  .diagnostic-assistance-empty-small {
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: #64748b;
+    background: #fff;
+  }
+  .diagnostic-assistance-empty-small {
+    font-size: 12px;
+  }
+  .diagnostic-assistance-quality-gates {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .diagnostic-assistance-quality-card {
+    border: 1px solid #e5e7eb;
+    background: #fff;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: #475569;
+    word-break: break-word;
+  }
+  .diagnostic-assistance-quality-title {
+    color: #0f172a;
+    font-weight: 900;
+    margin-bottom: 4px;
+  }
+  @media (max-width: 900px) {
+    .diagnostic-assistance-counts,
+    .diagnostic-assistance-grid,
+    .diagnostic-assistance-quality-gates { grid-template-columns: 1fr; }
+  }
+  /* --- Diagnostic Assistance Case Detail UI V1 styles: end --- */
 
   .preventive-care-panel {
     display: grid;

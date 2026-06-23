@@ -2691,4 +2691,9 @@ PY
   fi
 fi
 # --- Diagnostic Reasoning Evidence Trace V1 smoke: end ---
+# --- Diagnostic Assistance Case Detail UI V1 smoke: start ---
+echo "[smoke] Diagnostic Assistance Case Detail UI V1 validator"
+python3 scripts/validate_diagnostic_assistance_case_detail_ui.py >/dev/null || fail "diagnostic assistance case detail UI validation failed"
+pass "diagnostic assistance case detail UI validator"
+# --- Diagnostic Assistance Case Detail UI V1 smoke: end ---
 

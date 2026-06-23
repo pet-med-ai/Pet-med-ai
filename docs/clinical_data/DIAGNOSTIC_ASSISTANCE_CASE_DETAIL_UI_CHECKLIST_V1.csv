@@ -1,0 +1,13 @@
+item,status,evidence
+Case detail UI panel added,PENDING,frontend/src/pages/CaseDetail.jsx contains DiagnosticAssistancePanel
+Uses approved dry-run endpoints only,PENDING,problem-list differential-candidates evidence-trace endpoints are called with api.post
+No database writes,PENDING,writes_database=false displayed and validator checked
+No audit log write,PENDING,writes_audit_log=false displayed and validator checked
+No persisted reasoning trace,PENDING,persists_reasoning_trace=false displayed and validator checked
+No final diagnosis,PENDING,not_a_diagnosis=true displayed and validator checked
+No treatment plan,PENDING,not_a_treatment_plan=true displayed and validator checked
+No prescription,PENDING,not_a_prescription=true displayed and validator checked
+No drug dose route frequency,PENDING,no_drug_dose safety summary and no route/frequency output
+Clinician review required,PENDING,requires_human_review=true displayed and validator checked
+Not client facing,PENDING,not_client_facing=true displayed and validator checked
+No frontend components directory changes,PENDING,stage modifies CaseDetail only under frontend/src/pages
