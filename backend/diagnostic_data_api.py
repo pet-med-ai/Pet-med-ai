@@ -1526,3 +1526,77 @@ def apply_observation_abnormal_flag_review_endpoint(
         **api_safety,
     }
 # --- Observation Abnormal Flag Review V1 endpoint: end ---
+
+# --- ImagingStudy Review Workflow V1 endpoint: start ---
+@router.post("/imaging-studies/{imaging_study_id}/review-workflow/apply", response_model=dict)
+def apply_imagingstudy_review_workflow_endpoint(
+    imaging_study_id: int,
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.imagingstudy_review_workflow import (
+            IMAGINGSTUDY_REVIEW_WORKFLOW_MODE,
+            apply_imagingstudy_review_workflow,
+            imagingstudy_review_workflow_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from imagingstudy_review_workflow import (
+            IMAGINGSTUDY_REVIEW_WORKFLOW_MODE,
+            apply_imagingstudy_review_workflow,
+            imagingstudy_review_workflow_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    imaging_study = db.get(ImagingStudy, int(imaging_study_id))
+    if imaging_study is None:
+        raise HTTPException(status_code=404, detail="Imaging study not found")
+
+    case = _owned_case_or_404(db, int(imaging_study.case_id), user)
+    raw_case_id = data.get("case_id")
+    if raw_case_id not in (None, "") and int(raw_case_id) != int(case.id):
+        raise HTTPException(status_code=422, detail="case_id does not match imaging study")
+
+    imaging_context = {
+        "imaging_study_id": int(imaging_study.id),
+        "case_id": int(imaging_study.case_id),
+        "modality": getattr(imaging_study, "modality", None),
+        "body_part": getattr(imaging_study, "body_part", None),
+        "study_uid": getattr(imaging_study, "study_uid", None),
+        "accession_number": getattr(imaging_study, "accession_number", None),
+        "abnormal_flag": getattr(imaging_study, "abnormal_flag", None),
+        "review_status": getattr(imaging_study, "review_status", None),
+        "reviewed_by": getattr(imaging_study, "reviewed_by", None),
+        "ai_summary_status": getattr(imaging_study, "ai_summary_status", None),
+    }
+
+    try:
+        review = apply_imagingstudy_review_workflow(
+            db=db,
+            imaging_study=imaging_study,
+            payload=data,
+            imaging_context=imaging_context,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    api_safety = imagingstudy_review_workflow_safety_flags(
+        dry_run=bool(review.get("dry_run")),
+        writes_database=bool(review.get("writes_database")),
+    )
+    api_safety.update(review.get("safety") or {})
+
+    return {
+        "message": "imagingstudy_review_workflow_applied",
+        "mode": IMAGINGSTUDY_REVIEW_WORKFLOW_MODE,
+        "case": _case_payload(case),
+        "imaging_study": imaging_context,
+        **review,
+        "safety": api_safety,
+        **api_safety,
+    }
+# --- ImagingStudy Review Workflow V1 endpoint: end ---
+

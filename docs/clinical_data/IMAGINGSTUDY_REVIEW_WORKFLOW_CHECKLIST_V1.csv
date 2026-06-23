@@ -1,0 +1,30 @@
+item,required,status,evidence
+stage_name,yes,PENDING,ImagingStudy Review Workflow V1
+endpoint_present,yes,PENDING,POST /api/diagnostic-data/imaging-studies/{imaging_study_id}/review-workflow/apply
+dry_run_default_safe,yes,PENDING,writes_database=false
+requires_existing_imaging_study,yes,PENDING,owner-scoped case access
+requires_reviewed_by,yes,PENDING,clinician identity required
+requires_audit_log_for_write,yes,PENDING,audit_log_id required for non-dry-run
+requires_confirmation_for_write,yes,PENDING,I_UNDERSTAND_THIS_WRITES_IMAGINGSTUDY_REVIEW_WORKFLOW_ONLY
+allowed_imaging_review_status_write,yes,PENDING,ImagingStudy.review_status only
+allowed_imaging_reviewed_by_write,yes,PENDING,ImagingStudy.reviewed_by only
+allowed_imaging_reviewed_at_write,yes,PENDING,ImagingStudy.reviewed_at only
+allowed_imaging_abnormal_flag_write,yes,PENDING,ImagingStudy.abnormal_flag only
+blocks_case_write,yes,PENDING,no Case write
+blocks_diagnostic_report_write,yes,PENDING,no DiagnosticReport write
+blocks_observation_write,yes,PENDING,no Observation write
+blocks_new_imaging_study,yes,PENDING,no new ImagingStudy
+blocks_report_text_write,yes,PENDING,no ImagingStudy.report_text write
+blocks_ai_summary_write,yes,PENDING,no ImagingStudy.ai_summary write
+blocks_audit_log_write,yes,PENDING,no AuditLog write
+blocks_reasoning_trace_persistence,yes,PENDING,no persisted reasoning trace
+blocks_final_diagnosis,yes,PENDING,no final diagnosis
+blocks_treatment_plan,yes,PENDING,no treatment plan
+blocks_prescription,yes,PENDING,no prescription
+blocks_drug_dose,yes,PENDING,no drug dose route frequency
+requires_human_review,yes,PENDING,requires_human_review=true
+clinician_signoff_required,yes,PENDING,clinician_signoff_required=true
+validator,yes,PENDING,python3 scripts/validate_imagingstudy_review_workflow.py
+ci_static_checks,yes,PENDING,bash scripts/ci_static_checks.sh
+online_smoke,yes,PENDING,bash scripts/smoke_petmed.sh
+production_schema_gate,yes,PENDING,database_revision=0009_diag_data

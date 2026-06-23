@@ -3053,3 +3053,99 @@ PY
   fi
 fi
 # --- Observation Abnormal Flag Review V1 smoke: end ---
+# --- ImagingStudy Review Workflow V1 smoke: start ---
+if [ -f scripts/validate_imagingstudy_review_workflow.py ]; then
+  echo "[smoke] ImagingStudy Review Workflow V1 validator"
+  python3 scripts/validate_imagingstudy_review_workflow.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_imaging_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_imaging_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_imaging_auth_header="Authorization: Bearer ${token_a}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_imaging_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_imaging_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_imaging_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  if [ -n "${_petmed_imaging_auth_header}" ] && [ -n "${PETMED_IMAGING_STUDY_ID:-}" ]; then
+    _petmed_imaging_json="$(mktemp)"
+    _petmed_imaging_status_file="$(mktemp)"
+    _petmed_imaging_dry_run="true"
+    if [ "${PETMED_IMAGINGSTUDY_REVIEW_WRITE_SMOKE:-0}" = "1" ]; then
+      _petmed_imaging_dry_run="false"
+    fi
+    _petmed_imaging_body="$(python3 - "${_petmed_imaging_dry_run}" "${PETMED_DIAGNOSTIC_SUMMARY_AUDIT_LOG_ID:-}" <<'PY'
+import json
+import sys
+
+dry_run = sys.argv[1].lower() == "true"
+audit_log_id = sys.argv[2]
+body = {
+    "dry_run": dry_run,
+    "reviewed_by": "SMOKE-CLINICIAN",
+    "review_status": "reviewed",
+    "abnormal_flag": "abnormal",
+    "note": "ImagingStudy Review Workflow V1 smoke; not a diagnosis, not a treatment plan, not a prescription.",
+}
+if not dry_run:
+    body["audit_log_id"] = audit_log_id
+    body["imagingstudy_review_confirmation"] = "I_UNDERSTAND_THIS_WRITES_IMAGINGSTUDY_REVIEW_WORKFLOW_ONLY"
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+    _petmed_imaging_http_status="$(curl -sS -X POST "${BASE_URL%/}/api/diagnostic-data/imaging-studies/${PETMED_IMAGING_STUDY_ID}/review-workflow/apply" \
+      -H "${_petmed_imaging_auth_header}" \
+      -H "Content-Type: application/json" \
+      --data "${_petmed_imaging_body}" \
+      -o "${_petmed_imaging_json}" \
+      -w "%{http_code}")"
+    printf "%s" "${_petmed_imaging_http_status}" > "${_petmed_imaging_status_file}"
+    python3 - "${_petmed_imaging_json}" "${_petmed_imaging_status_file}" <<'PY'
+import json
+import sys
+
+body_path, status_path = sys.argv[1], sys.argv[2]
+status = open(status_path, "r", encoding="utf-8").read().strip()
+with open(body_path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+if status != "200":
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+    raise SystemExit("ImagingStudy Review Workflow V1 endpoint returned HTTP %s" % status)
+
+assert data.get("message") == "imagingstudy_review_workflow_applied"
+assert data.get("mode") == "imagingstudy_review_workflow_v1"
+assert data.get("requires_human_review") is True
+assert data.get("clinician_signoff_required") is True
+assert data.get("not_client_facing") is True
+assert data.get("generates_final_diagnosis") is False
+assert data.get("creates_treatment_plan") is False
+assert data.get("writes_prescription") is False
+assert data.get("returns_drug_dose") is False
+assert data.get("writes_audit_log") is False
+assert data.get("updates_observation") is False
+assert data.get("updates_diagnostic_report") is False
+assert data.get("writes_ai_summary") is False
+assert data.get("quality_gate", {}).get("status") == "PASS"
+if data.get("dry_run") is True:
+    assert data.get("writes_database") is False
+    assert data.get("updates_imaging_study") is False
+else:
+    assert data.get("writes_database") is True
+    assert data.get("updates_imaging_study") is True
+    assert data.get("writes_imaging_study_review_status") is True
+    assert data.get("writes_imaging_study_reviewed_by") is True
+    assert data.get("writes_imaging_study_reviewed_at") is True
+print("[smoke] ImagingStudy Review Workflow V1 endpoint PASS")
+PY
+    rm -f "${_petmed_imaging_json}" "${_petmed_imaging_status_file}"
+  else
+    echo "[smoke] ImagingStudy Review Workflow V1 endpoint skipped: set PETMED_IMAGING_STUDY_ID for live endpoint smoke"
+  fi
+fi
+# --- ImagingStudy Review Workflow V1 smoke: end ---

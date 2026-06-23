@@ -1,0 +1,23 @@
+gate,go_criteria,no_go_criteria,status
+validator,validate_imagingstudy_review_workflow.py PASS,validator FAIL,PENDING
+ci_static_checks,bash scripts/ci_static_checks.sh PASS,CI static checks FAIL,PENDING
+online_smoke,smoke ALL PASS,online smoke FAIL,PENDING
+production_schema,database_revision=0009_diag_data and schema_ok=true,schema drift or migration errors,PENDING
+dangerous_flags,all dangerous feature flags false,any dangerous feature flag enabled,PENDING
+dry_run_endpoint,dry-run endpoint returns writes_database=false,dry-run writes database,PENDING
+controlled_write,only ImagingStudy.review_status/reviewed_by/reviewed_at/abnormal_flag change,any other table/field changes,PENDING
+audit_log_requirement,non-dry-run requires existing audit_log_id,write allowed without audit log,PENDING
+confirmation_requirement,non-dry-run requires explicit confirmation,write allowed without confirmation,PENDING
+no_case_write,Case unchanged,Case write observed,PENDING
+no_diagnostic_report_write,DiagnosticReport unchanged,DiagnosticReport write observed,PENDING
+no_observation_write,Observation unchanged,Observation write observed,PENDING
+no_new_imaging_study,no new ImagingStudy created,new ImagingStudy created,PENDING
+no_report_text_write,ImagingStudy.report_text unchanged,report_text write observed,PENDING
+no_ai_summary_write,ImagingStudy.ai_summary unchanged,ai_summary write observed,PENDING
+no_audit_log_write,no AuditLog row appended in this stage,AuditLog write observed,PENDING
+no_reasoning_trace,no persisted reasoning trace,reasoning trace persisted,PENDING
+no_final_diagnosis,no final diagnosis output,final diagnosis output,PENDING
+no_treatment_plan,no treatment plan output,treatment plan output,PENDING
+no_prescription,no prescription output,prescription output,PENDING
+no_drug_dose,no drug dose route frequency output,dose route frequency output,PENDING
+decision,GO_TO_CLINICAL_DOCS_DIAGNOSTIC_DATA_MERGE_V1,NO_GO,PENDING

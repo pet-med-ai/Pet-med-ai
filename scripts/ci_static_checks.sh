@@ -190,3 +190,7 @@ python3 scripts/validate_diagnosticreport_ai_summary_persistence.py
 echo "[ci_static_checks] Observation Abnormal Flag Review V1 static checks"
 python3 scripts/validate_observation_abnormal_flag_review.py
 # --- Observation Abnormal Flag Review V1 static checks: end ---
+# --- ImagingStudy Review Workflow V1 static checks: start ---
+echo "[ci_static_checks] ImagingStudy Review Workflow V1 static checks"
+python3 scripts/validate_imagingstudy_review_workflow.py
+# --- ImagingStudy Review Workflow V1 static checks: end ---
