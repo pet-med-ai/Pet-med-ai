@@ -1,0 +1,11 @@
+gate,go_criteria,no_go_criteria,status
+validator,python3 scripts/validate_clinician_review_persistence.py PASS,validator fails,PENDING
+ci_static_checks,bash scripts/ci_static_checks.sh PASS,CI static checks fail,PENDING
+smoke,bash scripts/smoke_petmed.sh ALL PASS,smoke fails,PENDING
+production_version,database_revision=0009_diag_data and alembic_head=0009_diag_data and schema_ok=true,revision mismatch or schema_ok=false,PENDING
+feature_flags,dangerous feature flags disabled,any dangerous flag enabled or missing,PENDING
+persistence_boundary,only review-status fields may be written,Case or summary or reasoning or audit or prescription fields written,PENDING
+confirmation_boundary,real write requires exact confirmation,write succeeds without confirmation,PENDING
+clinical_boundary,no final diagnosis no treatment plan no prescription no drug dose,any prohibited clinical output returned,PENDING
+audit_boundary,writes_audit_log=false until next stage,audit log written in this stage,PENDING
+next_decision,GO_TO_DIAGNOSTIC_SUMMARY_AUDIT_LOG_V1,remain blocked,PENDING

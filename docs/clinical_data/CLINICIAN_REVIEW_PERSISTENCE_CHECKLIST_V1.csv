@@ -1,0 +1,21 @@
+item,required,status,evidence
+mode_is_clinician_review_persistence_v1,true,PASS,backend module constant
+endpoint_exists,true,PASS,POST /api/diagnostic-data/clinician-review/persistence/apply
+dry_run_supported,true,PASS,dry_run=true returns writes_database=false
+real_persistence_requires_confirmation,true,PASS,I_UNDERSTAND_THIS_WRITES_REVIEW_STATUS_ONLY
+only_existing_owned_targets,true,PASS,API loads target and checks case ownership
+updates_review_status_only,true,PASS,allowed persisted fields are DiagnosticReport.status reviewed_by reviewed_at
+no_case_write,true,PASS,updates_case=false
+no_new_diagnostic_report,true,PASS,creates_diagnostic_report=false
+no_observation_write,true,PASS,updates_observation=false creates_observation=false
+no_imaging_study_write,true,PASS,updates_imaging_study=false creates_imaging_study=false
+no_ai_summary_write,true,PASS,writes_ai_summary=false
+no_reasoning_trace_persistence,true,PASS,persists_reasoning_trace=false
+no_audit_log_write,true,PASS,writes_audit_log=false
+no_final_diagnosis,true,PASS,generates_final_diagnosis=false
+no_treatment_plan,true,PASS,creates_treatment_plan=false
+no_prescription,true,PASS,writes_prescription=false
+no_drug_dose,true,PASS,returns_drug_dose=false
+requires_human_review,true,PASS,requires_human_review=true
+clinician_signoff_required,true,PASS,clinician_signoff_required=true
+not_client_facing,true,PASS,not_client_facing=true

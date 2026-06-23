@@ -2696,4 +2696,64 @@ echo "[smoke] Diagnostic Assistance Case Detail UI V1 validator"
 python3 scripts/validate_diagnostic_assistance_case_detail_ui.py >/dev/null || fail "diagnostic assistance case detail UI validation failed"
 pass "diagnostic assistance case detail UI validator"
 # --- Diagnostic Assistance Case Detail UI V1 smoke: end ---
+# --- Clinician Review Persistence V1 smoke: start ---
+if [ -f scripts/validate_clinician_review_persistence.py ]; then
+  echo "[smoke] Clinician Review Persistence V1 validator"
+  python3 scripts/validate_clinician_review_persistence.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_review_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_review_auth_header="${AUTH_HEADER}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_review_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_review_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_review_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  _petmed_review_case_id="${PETMED_REVIEW_CASE_ID:-}"
+  if [ -z "${_petmed_review_case_id}" ] && [ -n "${case_id:-}" ]; then
+    _petmed_review_case_id="${case_id}"
+  fi
+
+  if [ -n "${_petmed_review_auth_header}" ] && [ -n "${_petmed_review_case_id}" ]; then
+    _petmed_review_json="$(mktemp)"
+    curl -sS -X POST "${BASE_URL%/}/api/diagnostic-data/clinician-review/persistence/apply" \
+      -H "${_petmed_review_auth_header}" \
+      -H "Content-Type: application/json" \
+      --data "{\"case_id\":${_petmed_review_case_id},\"dry_run\":true,\"reviewed_by\":\"SMOKE-CLINICIAN\",\"review_items\":[]}" \
+      > "${_petmed_review_json}"
+    python3 - "${_petmed_review_json}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+assert data.get("message") == "clinician_review_persistence_applied"
+assert data.get("mode") == "clinician_review_persistence_v1"
+assert data.get("writes_database") is False
+assert data.get("writes_audit_log") is False
+assert data.get("persists_reasoning_trace") is False
+assert data.get("generates_final_diagnosis") is False
+assert data.get("creates_treatment_plan") is False
+assert data.get("writes_prescription") is False
+assert data.get("returns_drug_dose") is False
+assert data.get("requires_human_review") is True
+assert data.get("clinician_signoff_required") is True
+assert data.get("not_client_facing") is True
+assert data.get("quality_gate", {}).get("status") == "PASS"
+assert data.get("persistence_result", {}).get("review_status_persistence_only") is True
+print("[smoke] Clinician Review Persistence V1 endpoint PASS")
+PY
+    rm -f "${_petmed_review_json}"
+  else
+    echo "[smoke] Clinician Review Persistence V1 endpoint skipped: export PETMED_AUTH_TOKEN; PETMED_REVIEW_CASE_ID is optional when smoke creates case_id"
+  fi
+fi
+# --- Clinician Review Persistence V1 smoke: end ---
 

@@ -1223,3 +1223,195 @@ def build_diagnostic_reasoning_evidence_trace_dry_run(
         **trace_safety,
     }
 # --- Diagnostic Reasoning Evidence Trace V1 endpoint: end ---
+
+# --- Clinician Review Persistence V1 endpoint: start ---
+@router.post("/clinician-review/persistence/apply", response_model=dict)
+def apply_clinician_review_persistence(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.clinician_review_persistence import (
+            CLINICIAN_REVIEW_PERSISTENCE_MODE,
+            build_clinician_review_persistence_plan,
+            clinician_review_persistence_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from clinician_review_persistence import (
+            CLINICIAN_REVIEW_PERSISTENCE_MODE,
+            build_clinician_review_persistence_plan,
+            clinician_review_persistence_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    case_id = data.get("case_id")
+    if case_id in (None, ""):
+        raise HTTPException(status_code=422, detail="case_id is required")
+
+    case = _owned_case_or_404(db, int(case_id), user)
+    case_payload = _case_payload(case)
+
+    try:
+        plan = build_clinician_review_persistence_plan(
+            data,
+            case_id=int(case.id),
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    dry_run = bool(plan.get("dry_run"))
+    reviewed_by = str(plan.get("persistence", {}).get("reviewed_by") or "").strip()
+    review_items = list(plan.get("review_items") or [])
+
+    model_map = {
+        "diagnostic_report": DiagnosticReport,
+        "observation": Observation,
+        "imaging_study": ImagingStudy,
+    }
+
+    def snapshot(target: Any, target_type: str) -> Dict[str, Any]:
+        base = {
+            "target_type": target_type,
+            "target_id": int(getattr(target, "id")),
+            "case_id": int(getattr(target, "case_id")),
+        }
+        if target_type == "diagnostic_report":
+            base.update({
+                "status": getattr(target, "status", None),
+                "reviewed_by": getattr(target, "reviewed_by", None),
+                "reviewed_at": _iso(getattr(target, "reviewed_at", None)),
+                "ai_summary_status": getattr(target, "ai_summary_status", None),
+            })
+        elif target_type == "observation":
+            base.update({
+                "review_status": getattr(target, "review_status", None),
+                "abnormal_flag": getattr(target, "abnormal_flag", None),
+                "display_name": getattr(target, "display_name", None),
+            })
+        elif target_type == "imaging_study":
+            base.update({
+                "review_status": getattr(target, "review_status", None),
+                "reviewed_by": getattr(target, "reviewed_by", None),
+                "reviewed_at": _iso(getattr(target, "reviewed_at", None)),
+                "abnormal_flag": getattr(target, "abnormal_flag", None),
+                "modality": getattr(target, "modality", None),
+            })
+        return base
+
+    targets = []
+    for item in review_items:
+        target_type = item.get("target_type")
+        target_id = int(item.get("target_id"))
+        model = model_map.get(target_type)
+        if model is None:
+            raise HTTPException(status_code=422, detail="unsupported target_type: %s" % target_type)
+        target = db.get(model, target_id)
+        if target is None or int(getattr(target, "case_id", -1)) != int(case.id):
+            raise HTTPException(status_code=404, detail="review target not found")
+        targets.append((item, target, snapshot(target, target_type)))
+
+    now = datetime.utcnow()
+    persisted_count = 0
+    item_results: List[Dict[str, Any]] = []
+
+    if not dry_run:
+        for item, target, before in targets:
+            target_type = item["target_type"]
+            review_status = item["review_status"]
+            if target_type == "diagnostic_report":
+                target.status = review_status
+                target.reviewed_by = reviewed_by
+                target.reviewed_at = now
+            elif target_type == "observation":
+                target.review_status = review_status
+            elif target_type == "imaging_study":
+                target.review_status = review_status
+                target.reviewed_by = reviewed_by
+                target.reviewed_at = now
+            persisted_count += 1
+
+        if persisted_count:
+            db.commit()
+            for _, target, _ in targets:
+                db.refresh(target)
+
+    for item, target, before in targets:
+        after = snapshot(target, item["target_type"])
+        if dry_run:
+            after = dict(before)
+            if item["target_type"] == "diagnostic_report":
+                after.update({"status": item["review_status"], "reviewed_by": reviewed_by, "reviewed_at": "DRY_RUN_PREVIEW"})
+            elif item["target_type"] == "observation":
+                after.update({"review_status": item["review_status"]})
+            elif item["target_type"] == "imaging_study":
+                after.update({"review_status": item["review_status"], "reviewed_by": reviewed_by, "reviewed_at": "DRY_RUN_PREVIEW"})
+
+        item_results.append({
+            "target_type": item["target_type"],
+            "target_id": item["target_id"],
+            "review_status": item["review_status"],
+            "note_present": bool(item.get("note")),
+            "source_preview_id": item.get("source_preview_id"),
+            "persisted": bool(not dry_run),
+            "before": before,
+            "after": after,
+            "allowed_persisted_fields": item.get("allowed_persisted_fields") or [],
+        })
+
+    api_safety = clinician_review_persistence_safety_flags(
+        dry_run=dry_run,
+        writes_database=(not dry_run and persisted_count > 0),
+        item_count=persisted_count if not dry_run else len(review_items),
+    )
+    written_types = {item.get("target_type") for item, _, _ in targets} if (not dry_run and persisted_count) else set()
+    api_safety.update({
+        "updates_diagnostic_report": "diagnostic_report" in written_types,
+        "writes_diagnostic_report": "diagnostic_report" in written_types,
+        "writes_diagnostic_report_status_only": "diagnostic_report" in written_types,
+        "updates_observation": False,
+        "writes_observation_review_status_only": False,
+        "updates_imaging_study": False,
+        "writes_imaging_study_review_status_only": False,
+    })
+
+    persistence_result = {
+        "decision": "review_status_persisted" if persisted_count else plan.get("persistence", {}).get("decision"),
+        "dry_run": dry_run,
+        "reviewed_by": reviewed_by,
+        "reviewed_at": _iso(now) if (not dry_run and persisted_count) else None,
+        "requested_item_count": len(review_items),
+        "persisted_item_count": persisted_count,
+        "items": item_results,
+        "review_status_persistence_only": True,
+        "not_a_diagnosis": True,
+        "not_a_treatment_plan": True,
+        "not_a_prescription": True,
+        "not_client_facing": True,
+    }
+
+    quality_gate = dict(plan.get("quality_gate") or {})
+    quality_gate.update({
+        "status": "PASS",
+        "persisted_item_count": persisted_count,
+        "writes_database": bool(api_safety.get("writes_database")),
+        "writes_audit_log": False,
+        "persists_reasoning_trace": False,
+    })
+
+    return {
+        "message": "clinician_review_persistence_applied",
+        "mode": CLINICIAN_REVIEW_PERSISTENCE_MODE,
+        "case": case_payload,
+        "persistence": plan.get("persistence"),
+        "persistence_result": persistence_result,
+        "review_items": review_items,
+        "blocked_actions": plan.get("blocked_actions") or [],
+        "quality_gate": quality_gate,
+        "safety": api_safety,
+        **api_safety,
+    }
+# --- Clinician Review Persistence V1 endpoint: end ---
