@@ -18,12 +18,24 @@ from sqlalchemy.orm import Session
 try:
     from backend.auth_jwt import get_current_user
     from backend.db import get_db
-    from backend.models import Case
+    from backend.models import Case, DiagnosticReport, Observation, ImagingStudy
 except ModuleNotFoundError:
     from auth_jwt import get_current_user
     from db import get_db
-    from models import Case
+    from models import Case, DiagnosticReport, Observation, ImagingStudy
 
+try:
+    from backend.clinical_docs_diagnostic_data_merge import (
+        CLINICAL_DOCS_DIAGNOSTIC_DATA_MERGE_MODE,
+        build_clinical_docs_diagnostic_data_merge,
+        clinical_docs_diagnostic_data_merge_safety_flags,
+    )
+except ModuleNotFoundError:
+    from clinical_docs_diagnostic_data_merge import (
+        CLINICAL_DOCS_DIAGNOSTIC_DATA_MERGE_MODE,
+        build_clinical_docs_diagnostic_data_merge,
+        clinical_docs_diagnostic_data_merge_safety_flags,
+    )
 
 router = APIRouter(prefix="/api/clinical-docs", tags=["clinical-docs"])
 
@@ -76,6 +88,7 @@ class ClinicalDocRenderIn(BaseModel):
     clinician_id: Optional[str] = Field(default=None, max_length=120)
     generator: Optional[str] = Field(default=None, max_length=120)
     include_preview_context: bool = Field(default=False)
+    include_diagnostic_data: bool = Field(default=False)
 
 
 def _text(value: Any, fallback: str = "") -> str:
@@ -122,6 +135,88 @@ def _canonical_hash(context: Dict[str, Any]) -> str:
     canonical = json.dumps(context, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:12]
 
+
+
+# --- Clinical Docs Diagnostic Data Merge V1 helpers: start ---
+def _clinical_docs_diagnostic_data_merge_for_case(db: Session, case: Case, *, include: bool) -> Dict[str, Any]:
+    case_context = {
+        "case_id": int(getattr(case, "id")),
+        "patient_name": getattr(case, "patient_name", None),
+        "species": getattr(case, "species", None),
+    }
+    if not include:
+        safety = clinical_docs_diagnostic_data_merge_safety_flags()
+        return {
+            "mode": CLINICAL_DOCS_DIAGNOSTIC_DATA_MERGE_MODE,
+            "case_id": int(getattr(case, "id")),
+            "case_context": case_context,
+            "diagnostic_data_merge": {
+                "reports": [],
+                "observations": [],
+                "imaging_studies": [],
+                "section_text": "",
+                "not_a_diagnosis": True,
+                "not_a_treatment_plan": True,
+                "not_a_prescription": True,
+                "not_client_facing": True,
+            },
+            "document_context": {
+                "diagnostic.reports.summary": "Diagnostic data merge not requested.",
+                "diagnostic.observations.summary": "Diagnostic data merge not requested.",
+                "diagnostic.imaging.summary": "Diagnostic data merge not requested.",
+                "diagnostic.data.safety": "read_only=true; writes_database=false; merge_not_requested=true",
+                "__diagnostic_data_section": "",
+            },
+            "quality_gate": {
+                "status": "PASS",
+                "decision": "diagnostic_data_merge_not_requested",
+                "writes_database": False,
+                "requires_human_review": True,
+                "clinician_signoff_required": True,
+            },
+            "safety": safety,
+            **safety,
+        }
+
+    reports = (
+        db.query(DiagnosticReport)
+        .filter(DiagnosticReport.case_id == int(getattr(case, "id")))
+        .order_by(DiagnosticReport.created_at.desc(), DiagnosticReport.id.desc())
+        .limit(20)
+        .all()
+    )
+    observations = (
+        db.query(Observation)
+        .filter(Observation.case_id == int(getattr(case, "id")))
+        .order_by(Observation.created_at.desc(), Observation.id.desc())
+        .limit(50)
+        .all()
+    )
+    imaging_studies = (
+        db.query(ImagingStudy)
+        .filter(ImagingStudy.case_id == int(getattr(case, "id")))
+        .order_by(ImagingStudy.created_at.desc(), ImagingStudy.id.desc())
+        .limit(20)
+        .all()
+    )
+    return build_clinical_docs_diagnostic_data_merge(
+        reports,
+        observations,
+        imaging_studies,
+        case_id=int(getattr(case, "id")),
+        case_context=case_context,
+    )
+
+
+def _apply_diagnostic_data_context_to_clinical_doc_context(context: Dict[str, str], merge: Dict[str, Any]) -> Dict[str, str]:
+    document_context = merge.get("document_context") if isinstance(merge, dict) else None
+    if isinstance(document_context, dict):
+        for key, value in document_context.items():
+            context[str(key)] = str(value if value is not None else "")
+    context["diagnostic.data.merge.mode"] = CLINICAL_DOCS_DIAGNOSTIC_DATA_MERGE_MODE
+    context["diagnostic.data.merge.enabled"] = "true" if context.get("__diagnostic_data_section") else "false"
+    return context
+# --- Clinical Docs Diagnostic Data Merge V1 helpers: end ---
 
 def _build_context(case: Case, *, data: ClinicalDocRenderIn, user, template_id: str) -> Dict[str, str]:
     timestamp = _utc_timestamp()
@@ -206,12 +301,61 @@ def _replace_placeholders_in_xml(xml_bytes: bytes, context: Dict[str, str]) -> b
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 
 
+
+# --- Clinical Docs Diagnostic Data Merge V1 DOCX append: start ---
+def _append_diagnostic_data_section_to_document_xml(xml_bytes: bytes, context: Dict[str, str]) -> bytes:
+    section_text = str(context.get("__diagnostic_data_section") or "").strip()
+    if not section_text:
+        return xml_bytes
+    try:
+        ET.register_namespace("w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
+        root = ET.fromstring(xml_bytes)
+    except ET.ParseError:
+        return xml_bytes
+
+    w = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+    body = root.find(w + "body")
+    if body is None:
+        return xml_bytes
+
+    existing_text = "".join(node.text or "" for node in root.iter() if node.tag.endswith("}t"))
+    if "Diagnostic data merge / 诊断数据合并" in existing_text:
+        return xml_bytes
+
+    def paragraph(text: str, *, bold: bool = False):
+        p = ET.Element(w + "p")
+        r = ET.SubElement(p, w + "r")
+        if bold:
+            rpr = ET.SubElement(r, w + "rPr")
+            ET.SubElement(rpr, w + "b")
+        t = ET.SubElement(r, w + "t")
+        t.text = text
+        return p
+
+    insert_at = len(body)
+    if len(body) and body[-1].tag == w + "sectPr":
+        insert_at -= 1
+
+    body.insert(insert_at, paragraph("Diagnostic data merge / 诊断数据合并（医生复核）", bold=True))
+    insert_at += 1
+    for raw_line in section_text.splitlines()[:90]:
+        line = raw_line.strip()
+        if not line:
+            continue
+        body.insert(insert_at, paragraph(line))
+        insert_at += 1
+
+    return ET.tostring(root, encoding="utf-8", xml_declaration=True)
+# --- Clinical Docs Diagnostic Data Merge V1 DOCX append: end ---
+
 def _render_docx(template_path: Path, context: Dict[str, str]) -> bytes:
     out = io.BytesIO()
     with zipfile.ZipFile(template_path, "r") as zin:
         with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as zout:
             for item in zin.infolist():
                 raw = zin.read(item.filename)
+                if item.filename == "word/document.xml":
+                    raw = _append_diagnostic_data_section_to_document_xml(raw, context)
                 if item.filename.startswith("word/") and item.filename.endswith(".xml"):
                     raw = _replace_placeholders_in_xml(raw, context)
                 zout.writestr(item, raw)
@@ -266,6 +410,12 @@ def preview_clinical_doc_context(
     meta = _template_meta(data.template_id)
     case = _case_or_404(db, data.case_id, user)
     context = _build_context(case, data=data, user=user, template_id=str(meta["template_id"]))
+    diagnostic_data_merge = _clinical_docs_diagnostic_data_merge_for_case(
+        db,
+        case,
+        include=bool(data.include_diagnostic_data),
+    )
+    context = _apply_diagnostic_data_context_to_clinical_doc_context(context, diagnostic_data_merge)
 
     missing_required = [
         key for key in meta["required_keys"]
@@ -280,6 +430,7 @@ def preview_clinical_doc_context(
         "document_hash": context["hash"],
         "missing_required_keys": missing_required,
         "context": context,
+        "diagnostic_data_merge": diagnostic_data_merge,
         "writes_database": False,
         "creates_case": False,
         "updates_case": False,
@@ -300,6 +451,12 @@ def render_clinical_doc(
     meta = _template_meta(data.template_id)
     case = _case_or_404(db, data.case_id, user)
     context = _build_context(case, data=data, user=user, template_id=str(meta["template_id"]))
+    diagnostic_data_merge = _clinical_docs_diagnostic_data_merge_for_case(
+        db,
+        case,
+        include=bool(data.include_diagnostic_data),
+    )
+    context = _apply_diagnostic_data_context_to_clinical_doc_context(context, diagnostic_data_merge)
 
     missing_required = [
         key for key in meta["required_keys"]
@@ -332,6 +489,8 @@ def render_clinical_doc(
         "X-PMAI-Template-Id": str(meta["template_id"]),
         "X-PMAI-Writes-Database": "false",
         "X-PMAI-Creates-Case": "false",
+        "X-PMAI-Diagnostic-Data-Merge": "true" if data.include_diagnostic_data else "false",
+        "X-PMAI-Diagnostic-Data-Mode": CLINICAL_DOCS_DIAGNOSTIC_DATA_MERGE_MODE if data.include_diagnostic_data else "not_requested",
     }
 
     return StreamingResponse(

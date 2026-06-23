@@ -194,3 +194,8 @@ python3 scripts/validate_observation_abnormal_flag_review.py
 echo "[ci_static_checks] ImagingStudy Review Workflow V1 static checks"
 python3 scripts/validate_imagingstudy_review_workflow.py
 # --- ImagingStudy Review Workflow V1 static checks: end ---
+
+# --- Clinical Docs Diagnostic Data Merge V1 static checks: start ---
+echo "[ci_static_checks] Clinical Docs Diagnostic Data Merge V1 static checks"
+python3 scripts/validate_clinical_docs_diagnostic_data_merge.py
+# --- Clinical Docs Diagnostic Data Merge V1 static checks: end ---

@@ -1,0 +1,12 @@
+item,required,evidence,status
+clinical_docs_api_extends_render_preview,true,include_diagnostic_data field,PENDING
+clinical_docs_api_extends_render,true,diagnostic data section appended to DOCX,PENDING
+read_only_queries_only,true,no db.add/db.commit/db.delete in clinical_docs_api,PENDING
+diagnostic_reports_merged,true,DiagnosticReport context included when reviewed,PENDING
+observations_merged,true,abnormal Observation context included,PENDING
+imaging_studies_merged,true,reviewed ImagingStudy metadata included,PENDING
+no_final_diagnosis,true,generates_final_diagnosis=false,PENDING
+no_treatment_plan,true,creates_treatment_plan=false,PENDING
+no_prescription,true,writes_prescription=false,PENDING
+no_drug_dose,true,returns_drug_dose=false,PENDING
+clinician_review_required,true,requires_human_review=true,PENDING

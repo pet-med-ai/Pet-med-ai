@@ -3149,3 +3149,69 @@ PY
   fi
 fi
 # --- ImagingStudy Review Workflow V1 smoke: end ---
+
+# --- Clinical Docs Diagnostic Data Merge V1 smoke: start ---
+if [ -f scripts/validate_clinical_docs_diagnostic_data_merge.py ]; then
+  echo "[smoke] Clinical Docs Diagnostic Data Merge V1 validator"
+  python3 scripts/validate_clinical_docs_diagnostic_data_merge.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_clinical_docs_diag_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_clinical_docs_diag_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_clinical_docs_diag_auth_header="Authorization: Bearer ${token_a}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_clinical_docs_diag_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_clinical_docs_diag_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_clinical_docs_diag_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  _petmed_clinical_docs_diag_case_id="${PETMED_CASE_ID:-${case_id:-}}"
+  if [ -n "${_petmed_clinical_docs_diag_auth_header}" ] && [ -n "${_petmed_clinical_docs_diag_case_id}" ]; then
+    _petmed_clinical_docs_diag_json="$(mktemp)"
+    curl -sS -X POST "${BASE_URL%/}/api/clinical-docs/render-preview" \
+      -H "${_petmed_clinical_docs_diag_auth_header}" \
+      -H "Content-Type: application/json" \
+      --data "{\"case_id\":${_petmed_clinical_docs_diag_case_id},\"template_id\":\"admission_hospitalization_record_bilingual\",\"include_diagnostic_data\":true}" \
+      > "${_petmed_clinical_docs_diag_json}"
+    python3 - "${_petmed_clinical_docs_diag_json}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+try:
+    assert data.get("message") == "clinical_doc_render_preview"
+    merge = data.get("diagnostic_data_merge") or {}
+    assert merge.get("mode") == "clinical_docs_diagnostic_data_merge_v1"
+    assert merge.get("writes_database") is False
+    assert merge.get("updates_diagnostic_report") is False
+    assert merge.get("updates_observation") is False
+    assert merge.get("updates_imaging_study") is False
+    assert merge.get("writes_ai_summary") is False
+    assert merge.get("writes_audit_log") is False
+    assert merge.get("generates_final_diagnosis") is False
+    assert merge.get("creates_treatment_plan") is False
+    assert merge.get("writes_prescription") is False
+    assert merge.get("returns_drug_dose") is False
+    assert merge.get("requires_human_review") is True
+    assert merge.get("clinician_signoff_required") is True
+    assert (merge.get("quality_gate") or {}).get("status") == "PASS"
+except AssertionError:
+    print(json.dumps(data, ensure_ascii=False, indent=2))
+    raise
+
+print("[smoke] Clinical Docs Diagnostic Data Merge V1 endpoint PASS")
+PY
+    rm -f "${_petmed_clinical_docs_diag_json}"
+  else
+    echo "[smoke] Clinical Docs Diagnostic Data Merge V1 endpoint skipped: no auth token or case_id available"
+  fi
+fi
+# --- Clinical Docs Diagnostic Data Merge V1 smoke: end ---
