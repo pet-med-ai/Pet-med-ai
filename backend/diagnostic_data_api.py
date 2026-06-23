@@ -1456,3 +1456,73 @@ def apply_diagnosticreport_ai_summary_persistence_endpoint(
         **api_safety,
     }
 # --- DiagnosticReport AI Summary Persistence V1 endpoint: end ---
+
+# --- Observation Abnormal Flag Review V1 endpoint: start ---
+@router.post("/observations/{observation_id}/abnormal-flag/review/apply", response_model=dict)
+def apply_observation_abnormal_flag_review_endpoint(
+    observation_id: int,
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.observation_abnormal_flag_review import (
+            OBSERVATION_ABNORMAL_FLAG_REVIEW_MODE,
+            apply_observation_abnormal_flag_review,
+            observation_abnormal_flag_review_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from observation_abnormal_flag_review import (
+            OBSERVATION_ABNORMAL_FLAG_REVIEW_MODE,
+            apply_observation_abnormal_flag_review,
+            observation_abnormal_flag_review_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    observation = db.get(Observation, int(observation_id))
+    if observation is None:
+        raise HTTPException(status_code=404, detail="Observation not found")
+
+    case = _owned_case_or_404(db, int(observation.case_id), user)
+    raw_case_id = data.get("case_id")
+    if raw_case_id not in (None, "") and int(raw_case_id) != int(case.id):
+        raise HTTPException(status_code=422, detail="case_id does not match observation")
+
+    observation_context = {
+        "observation_id": int(observation.id),
+        "case_id": int(observation.case_id),
+        "diagnostic_report_id": getattr(observation, "diagnostic_report_id", None),
+        "code": getattr(observation, "code", None),
+        "display_name": getattr(observation, "display_name", None),
+        "abnormal_flag": getattr(observation, "abnormal_flag", None),
+        "review_status": getattr(observation, "review_status", None),
+    }
+
+    try:
+        review = apply_observation_abnormal_flag_review(
+            db=db,
+            observation=observation,
+            payload=data,
+            observation_context=observation_context,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    api_safety = observation_abnormal_flag_review_safety_flags(
+        dry_run=bool(review.get("dry_run")),
+        writes_database=bool(review.get("writes_database")),
+    )
+    api_safety.update(review.get("safety") or {})
+
+    return {
+        "message": "observation_abnormal_flag_review_applied",
+        "mode": OBSERVATION_ABNORMAL_FLAG_REVIEW_MODE,
+        "case": _case_payload(case),
+        "observation": observation_context,
+        **review,
+        "safety": api_safety,
+        **api_safety,
+    }
+# --- Observation Abnormal Flag Review V1 endpoint: end ---

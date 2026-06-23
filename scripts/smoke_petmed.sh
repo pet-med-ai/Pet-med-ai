@@ -2958,3 +2958,98 @@ PY
   fi
 fi
 # --- DiagnosticReport AI Summary Persistence V1 smoke: end ---
+# --- Observation Abnormal Flag Review V1 smoke: start ---
+if [ -f scripts/validate_observation_abnormal_flag_review.py ]; then
+  echo "[smoke] Observation Abnormal Flag Review V1 validator"
+  python3 scripts/validate_observation_abnormal_flag_review.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_obs_flag_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_obs_flag_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_obs_flag_auth_header="Authorization: Bearer ${token_a}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_obs_flag_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_obs_flag_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_obs_flag_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  if [ -n "${_petmed_obs_flag_auth_header}" ] && [ -n "${PETMED_OBSERVATION_ID:-}" ]; then
+    _petmed_obs_flag_json="$(mktemp)"
+    _petmed_obs_flag_payload="$(python3 - <<'PY'
+import json
+import os
+
+write_smoke = os.environ.get("PETMED_OBSERVATION_ABNORMAL_FLAG_WRITE_SMOKE") == "1"
+body = {
+    "dry_run": not write_smoke,
+    "reviewed_by": "SMOKE-CLINICIAN",
+    "abnormal_flag": os.environ.get("PETMED_OBSERVATION_ABNORMAL_FLAG", "abnormal"),
+    "review_status": "reviewed",
+    "note": "Observation Abnormal Flag Review V1 smoke; not a diagnosis, not a treatment plan, not a prescription.",
+}
+case_id = os.environ.get("PETMED_OBSERVATION_CASE_ID")
+if case_id:
+    body["case_id"] = int(case_id)
+if write_smoke:
+    body["audit_log_id"] = os.environ.get("PETMED_DIAGNOSTIC_SUMMARY_AUDIT_LOG_ID", "")
+    body["abnormal_flag_review_confirmation"] = "I_UNDERSTAND_THIS_WRITES_OBSERVATION_ABNORMAL_FLAG_REVIEW_ONLY"
+print(json.dumps(body, ensure_ascii=False))
+PY
+)"
+    _petmed_obs_flag_status="$(curl -sS -X POST "${BASE_URL%/}/api/diagnostic-data/observations/${PETMED_OBSERVATION_ID}/abnormal-flag/review/apply" \
+      -H "${_petmed_obs_flag_auth_header}" \
+      -H "Content-Type: application/json" \
+      --data "${_petmed_obs_flag_payload}" \
+      -o "${_petmed_obs_flag_json}" \
+      -w "%{http_code}")"
+    python3 - "${_petmed_obs_flag_json}" "${_petmed_obs_flag_status}" <<'PY'
+import json
+import sys
+
+path, status = sys.argv[1], sys.argv[2]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+if status != "200":
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+    raise SystemExit("Observation Abnormal Flag Review V1 endpoint returned HTTP %s" % status)
+
+assert data.get("message") == "observation_abnormal_flag_review_applied"
+assert data.get("mode") == "observation_abnormal_flag_review_v1"
+assert data.get("requires_human_review") is True
+assert data.get("clinician_signoff_required") is True
+assert data.get("not_a_diagnosis") is True
+assert data.get("not_a_treatment_plan") is True
+assert data.get("not_a_prescription") is True
+assert data.get("not_client_facing") is True
+assert data.get("updates_case") is False
+assert data.get("updates_diagnostic_report") is False
+assert data.get("updates_imaging_study") is False
+assert data.get("writes_ai_summary") is False
+assert data.get("writes_audit_log") is False
+assert data.get("persists_reasoning_trace") is False
+assert data.get("generates_final_diagnosis") is False
+assert data.get("creates_treatment_plan") is False
+assert data.get("writes_prescription") is False
+assert data.get("returns_drug_dose") is False
+assert data.get("quality_gate", {}).get("status") == "PASS"
+if data.get("dry_run") is True:
+    assert data.get("writes_database") is False
+    assert data.get("updates_observation") is False
+else:
+    assert data.get("writes_database") is True
+    assert data.get("updates_observation") is True
+    assert data.get("writes_observation_abnormal_flag_only") is True
+print("[smoke] Observation Abnormal Flag Review V1 endpoint PASS")
+PY
+    rm -f "${_petmed_obs_flag_json}"
+  else
+    echo "[smoke] Observation Abnormal Flag Review V1 endpoint skipped: set PETMED_OBSERVATION_ID for live endpoint smoke"
+  fi
+fi
+# --- Observation Abnormal Flag Review V1 smoke: end ---
