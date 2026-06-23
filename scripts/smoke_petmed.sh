@@ -3346,3 +3346,9 @@ if [ -f scripts/validate_exotics_knowledge_coverage_gap_review.py ]; then
   python3 scripts/validate_exotics_knowledge_coverage_gap_review.py
 fi
 # --- Exotics Knowledge Coverage Gap Review V1 smoke: end ---
+# --- Exotics Rabbit Deepening V1 smoke: start ---
+if [ -f scripts/validate_exotics_rabbit_deepening.py ]; then
+  echo "[smoke] Exotics Rabbit Deepening V1 smoke"
+  python3 scripts/validate_exotics_rabbit_deepening.py
+fi
+# --- Exotics Rabbit Deepening V1 smoke: end ---

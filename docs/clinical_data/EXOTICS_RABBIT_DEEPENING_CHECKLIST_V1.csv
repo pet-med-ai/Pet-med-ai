@@ -1,0 +1,11 @@
+item,status,evidence,notes
+rabbit_json_present,required,knowledge-base/exotics/rabbit.json,Rabbit KB file exists
+rabbit_intake_present,required,knowledge-base/exotics/intake/rabbit.json,Rabbit intake template exists
+gi_obstruction_coverage,required,coverage_domains,GI stasis / obstruction coverage present
+dental_oral_coverage,required,coverage_domains,Dental / oral pain coverage present
+respiratory_coverage,required,coverage_domains,Respiratory red flags present
+urinary_reproductive_coverage,required,coverage_domains,Urinary / reproductive prompts present
+neuro_head_tilt_coverage,required,coverage_domains,Neurologic / head tilt prompts present
+husbandry_skin_coverage,required,coverage_domains,Husbandry / pododermatitis prompts present
+no_drug_dose,required,drug_dose_status=not_reviewed_not_enabled,No dose route frequency output
+human_review,required,requires_human_review=true,Clinician review required

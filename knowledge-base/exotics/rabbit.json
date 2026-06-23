@@ -1,36 +1,110 @@
 {
   "key": "rabbit",
   "label": "兔科/兔形目",
-  "summary": "兔停食、少粪、腹胀、牙科疼痛和呼吸困难的异宠分诊规则。",
+  "summary": "兔停食、少粪/无粪、腹胀、牙科疼痛、呼吸异常、泌尿生殖、头斜/神经和饲养环境的异宠分诊规则。仅用于医生复核前的结构化分诊、红旗提示、鉴别方向和检查方向，不输出诊断结论、治疗计划或药物剂量。",
+  "coverage_version": "rabbit-deepening-v1",
+  "coverage_level": "triage_plus_deepened_rabbit_scaffold_not_comprehensive_clinical_kb",
+  "source_review_status": "required_not_started",
+  "drug_dose_status": "not_reviewed_not_enabled",
+  "not_a_diagnosis": true,
+  "not_a_treatment_plan": true,
+  "not_a_prescription": true,
+  "not_client_facing": true,
+  "requires_human_review": true,
+  "clinician_signoff_required": true,
+  "coverage_domains": [
+    "胃肠淤滞/梗阻",
+    "牙科/口腔疼痛",
+    "呼吸系统",
+    "泌尿/肾脏/生殖",
+    "神经/头斜",
+    "足底皮炎/皮肤",
+    "饲养/饮食/环境",
+    "急症/全身状态"
+  ],
+  "known_gaps": [
+    "尚未建立兔专属检验参考区间与 Observation 异常解释层。",
+    "尚未建立兔颅骨/牙科影像、腹部影像和泌尿影像异常模式库。",
+    "尚未完成来源审查包；本阶段内容仅作为覆盖缺口修补和医生复核提示。",
+    "尚未开放任何兔用药剂量、给药途径或频率输出。"
+  ],
   "system_hints": [
     {
-      "label": "消化系统/采食排泄异常",
+      "label": "胃肠系统/停食少粪/梗阻风险",
       "features": [
         "anorexia",
+        "appetite_down",
         "feces_down",
         "no_feces",
         "abd_distension",
-        "dental_signs"
+        "low_energy",
+        "pain_signs"
       ]
     },
     {
-      "label": "呼吸系统异常",
+      "label": "牙科/口腔疼痛/采食选择性改变",
       "features": [
-        "respiratory_distress"
+        "dental_signs",
+        "drooling",
+        "selective_appetite",
+        "weight_loss",
+        "facial_swelling"
       ]
     },
     {
-      "label": "神经系统/头斜异常",
+      "label": "呼吸系统/上呼吸道或下呼吸道异常",
       "features": [
-        "neurologic_signs",
-        "head_tilt"
+        "respiratory_distress",
+        "nasal_ocular_discharge",
+        "sneezing",
+        "voice_change"
       ]
     },
     {
-      "label": "泌尿生殖异常",
+      "label": "泌尿/肾脏/生殖异常",
       "features": [
         "urinary_issue",
-        "reproductive_issue"
+        "sludge_stone_risk",
+        "reproductive_issue",
+        "intact_female"
+      ]
+    },
+    {
+      "label": "神经系统/头斜/前庭样异常",
+      "features": [
+        "neurologic_signs",
+        "head_tilt",
+        "vestibular_signs",
+        "eye_movement_abnormal"
+      ]
+    },
+    {
+      "label": "皮肤/足底皮炎/外伤",
+      "features": [
+        "skin_shell_issue",
+        "pododermatitis",
+        "fur_loss",
+        "trauma"
+      ]
+    },
+    {
+      "label": "饲养/饮食/环境诱因",
+      "features": [
+        "low_fiber_diet",
+        "diet_change",
+        "stress_event",
+        "heat_stress",
+        "poor_hay_intake"
+      ]
+    },
+    {
+      "label": "急症/全身状态恶化",
+      "features": [
+        "collapse",
+        "hypothermia_signs",
+        "severe_dehydration",
+        "low_energy",
+        "not_moving"
       ]
     }
   ],
@@ -41,7 +115,7 @@
         "anorexia",
         "no_feces"
       ],
-      "reason": "停食合并无粪/粪便显著减少，警惕胃肠淤滞或梗阻。"
+      "reason": "停食合并无粪/粪便显著减少，警惕胃肠淤滞、积气或梗阻；需要尽快由医生评估。"
     },
     {
       "level": "高",
@@ -49,44 +123,211 @@
         "abd_distension",
         "low_energy"
       ],
-      "reason": "腹胀合并精神差，需优先排查疼痛、积气、脱水和梗阻。"
+      "reason": "腹胀合并精神差，需优先排查疼痛、脱水、积气和梗阻风险。"
     },
     {
       "level": "高",
       "features": [
         "respiratory_distress"
       ],
-      "reason": "张口/明显用力呼吸属于兔急症红旗。"
+      "reason": "张口呼吸、明显用力呼吸、紫绀或不能安静休息属于兔急症红旗。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "collapse"
+      ],
+      "reason": "虚脱、不能站立或反应显著下降为高风险全身状态异常。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "hypothermia_signs",
+        "low_energy"
+      ],
+      "reason": "耳端/四肢冰凉、体温偏低并精神差提示休克样或严重疼痛/脱水风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "urinary_issue",
+        "low_energy"
+      ],
+      "reason": "排尿困难、血尿、尿少/无尿合并精神差时需优先评估泌尿道阻塞、疼痛或肾前性问题。"
     },
     {
       "level": "中",
       "features": [
         "dental_signs"
       ],
-      "reason": "流涎、磨牙、挑食草提示牙科或疼痛相关采食下降。"
+      "reason": "流涎、下巴湿、挑食草、磨牙、面部肿胀提示牙科或口腔疼痛相关采食下降。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "head_tilt"
+      ],
+      "reason": "头斜、转圈、眼震或平衡异常需要区分耳源性、神经性和全身性病因。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "reproductive_issue",
+        "intact_female"
+      ],
+      "reason": "未绝育母兔出现腹部膨大、阴道分泌物、出血或采食下降，应关注生殖系统疾病风险。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "pododermatitis"
+      ],
+      "reason": "足底红肿、破溃、跛行或长期潮湿硬底环境提示足底皮炎和疼痛风险。"
+    }
+  ],
+  "differential_categories": [
+    {
+      "category": "gastrointestinal",
+      "examples": [
+        "胃肠淤滞",
+        "胃肠积气",
+        "胃肠梗阻/异物",
+        "低纤维或饮食改变相关胃肠功能异常"
+      ],
+      "evidence_focus": [
+        "停食时间",
+        "粪便量和形态",
+        "腹胀/腹痛",
+        "影像和血糖/电解质"
+      ]
+    },
+    {
+      "category": "dental_oral",
+      "examples": [
+        "臼齿尖/牙科疼痛",
+        "门齿异常",
+        "面部/颌骨脓肿",
+        "口腔软组织疼痛"
+      ],
+      "evidence_focus": [
+        "流涎",
+        "挑食草",
+        "磨牙",
+        "面部肿胀",
+        "口腔/影像检查"
+      ]
+    },
+    {
+      "category": "respiratory",
+      "examples": [
+        "鼻炎/上呼吸道疾病",
+        "肺部或胸腔疾病",
+        "疼痛/应激相关呼吸异常"
+      ],
+      "evidence_focus": [
+        "张口呼吸",
+        "鼻眼分泌物",
+        "呼吸音",
+        "胸部影像"
+      ]
+    },
+    {
+      "category": "urinary_reproductive",
+      "examples": [
+        "尿泥/尿砂相关问题",
+        "尿石",
+        "肾前性脱水相关改变",
+        "未绝育母兔生殖系统疾病风险"
+      ],
+      "evidence_focus": [
+        "排尿量",
+        "尿色",
+        "腹部触诊/影像",
+        "是否未绝育母兔"
+      ]
+    },
+    {
+      "category": "neurologic_vestibular",
+      "examples": [
+        "耳源性前庭样问题",
+        "寄生虫/炎症相关神经方向",
+        "外伤或中枢性问题"
+      ],
+      "evidence_focus": [
+        "头斜",
+        "眼震",
+        "转圈",
+        "平衡异常",
+        "耳部检查/神经检查"
+      ]
+    },
+    {
+      "category": "dermatology_pain_husbandry",
+      "examples": [
+        "足底皮炎",
+        "外伤",
+        "毛发/皮肤问题",
+        "饲养环境或垫材相关刺激"
+      ],
+      "evidence_focus": [
+        "垫材",
+        "笼底",
+        "潮湿污染",
+        "跛行/疼痛",
+        "皮肤检查"
+      ]
     }
   ],
   "diseases": [
     "兔胃肠淤滞",
-    "胃肠梗阻/积气",
+    "胃肠积气",
+    "胃肠梗阻/异物方向",
     "牙科疾病相关采食下降",
-    "疼痛/脱水相关精神沉郁"
+    "臼齿尖/口腔疼痛方向",
+    "面部/颌骨脓肿方向",
+    "疼痛/脱水相关精神沉郁",
+    "上呼吸道/鼻炎方向",
+    "下呼吸道或胸腔疾病方向",
+    "尿泥/尿砂/尿石方向",
+    "未绝育母兔生殖系统疾病风险",
+    "头斜/前庭样综合征方向",
+    "足底皮炎/皮肤疼痛方向",
+    "热应激或环境应激方向"
   ],
   "checks": [
-    "体重和脱水评估",
-    "腹部触诊",
-    "腹部影像评估胃肠积气/梗阻",
-    "口腔及臼齿检查",
-    "血糖、电解质和肾功能按需评估"
+    "体重、体况、脱水和黏膜评估",
+    "体温、心率、呼吸频率和疼痛评分",
+    "腹部触诊评估腹胀、疼痛和胃肠内容物",
+    "腹部影像评估胃肠积气、胃内容物、梗阻和泌尿影像线索",
+    "口腔、门齿、臼齿和面部肿胀检查；必要时镇静下口腔/颅骨影像评估",
+    "血糖、电解质、肾功能和酸碱/脱水相关指标按医生判断评估",
+    "尿液颜色、沉渣、尿泥/尿石和排尿困难评估",
+    "胸部听诊、鼻眼分泌物检查和胸部影像按需评估",
+    "耳部、神经定位、眼震和头斜方向检查",
+    "足底、皮肤、垫材接触面和外伤检查",
+    "饮食结构、干草摄入、兔粮/零食比例和近期换粮记录",
+    "未绝育母兔的腹部/生殖系统风险按需影像或进一步检查",
+    "同住动物、应激、搬家、手术、疼痛或环境温度变化记录"
   ],
   "actions": [
-    "兔子停食、无粪、腹胀或精神差时按异宠急诊优先处理，先评估疼痛、脱水和梗阻风险。",
-    "记录最近一次进食、排便、排尿、饮水和体重变化。"
+    "兔停食、无粪、腹胀、呼吸困难、虚脱或低体温信号时，应按异宠急诊优先由医生评估。",
+    "未排除梗阻、严重积气或休克样状态前，系统不得输出强饲、促动力药或任何给药指令。",
+    "采集最近一次主动采食、排便、排尿、饮水、体重变化和疼痛行为，并标记是否需要影像/血检复核。",
+    "把饮食结构、干草摄入、换粮、零食、垫材、笼底、温度和近期应激纳入病史。",
+    "所有输出均为医生复核问题和鉴别方向，不是最终诊断、治疗方案或处方。"
   ],
   "questions": [
-    "兔子停食持续多久？粪便是减少、变小，还是完全没有？",
-    "是否腹胀、磨牙、弓背、拒绝活动或触腹疼痛？",
-    "最近饮水和排尿是否减少？是否有流口水、挑食草或牙齿问题？",
-    "最近是否换粮、减少干草、摄入过多零食，或有应激/疼痛/外伤？"
+    "最后一次主动吃干草、兔粮或蔬菜是什么时候？停食持续多久？",
+    "粪便是变少、变小、变软，还是完全没有？最后一次排便时间？",
+    "是否腹胀、弓背、磨牙、拒绝活动、触碰腹部疼痛或突然安静不动？",
+    "饮水和排尿是否减少？尿色是否变深、血尿、尿泥、尿少或疑似排尿困难？",
+    "是否流口水、下巴湿、挑食草、磨牙、面部肿胀、眼鼻分泌物或口腔异味？",
+    "是否张口呼吸、鼻翼用力、呼吸声异常、鼻/眼分泌物或不能平卧休息？",
+    "是否头斜、转圈、眼震、站立不稳、抽搐或突然不能正常跳跃？",
+    "年龄、性别、是否绝育？未绝育母兔是否有阴道分泌物、出血、腹部膨大或近期繁殖史？",
+    "日常干草、兔粮、蔬菜、零食比例如何？最近是否换粮、减少干草或摄入异常食物？",
+    "笼舍垫材、笼底、清洁频率、温度、潮湿情况和是否长期站在硬/湿表面？",
+    "近期是否搬家、洗澡、惊吓、同伴变化、手术、外伤或明显疼痛事件？",
+    "最近体重变化、精神、活动量、耳朵/四肢温度和是否有虚弱/虚脱？"
   ]
 }

@@ -4,23 +4,43 @@
   "species_scope": [
     "rabbit"
   ],
-  "summary": "围绕兔停食、少粪、腹胀、牙科疼痛和饲养饮食采集病史。",
+  "summary": "围绕兔停食、少粪/无粪、腹胀、牙科疼痛、呼吸、泌尿生殖、头斜神经和饲养饮食采集病史。",
+  "version": "rabbit-deepening-v1",
   "feature_flags": [
     "anorexia",
+    "appetite_down",
     "feces_down",
     "no_feces",
     "abd_distension",
     "dental_signs",
-    "respiratory_distress"
+    "drooling",
+    "selective_appetite",
+    "weight_loss",
+    "respiratory_distress",
+    "nasal_ocular_discharge",
+    "urinary_issue",
+    "reproductive_issue",
+    "intact_female",
+    "head_tilt",
+    "neurologic_signs",
+    "pododermatitis",
+    "skin_shell_issue",
+    "low_energy",
+    "collapse",
+    "hypothermia_signs",
+    "stress_event",
+    "diet_change",
+    "low_fiber_diet"
   ],
   "red_flag_prompts": [
-    "停食超过 8-12 小时、无粪/粪便显著减少、腹胀、精神差或体温异常时，按异宠急诊优先处理。",
-    "未排除梗阻前，不要把模板结果当作强饲或用药指令。"
+    "停食超过 8-12 小时、无粪/粪便显著减少、腹胀、精神差、低体温或呼吸困难时，按异宠急诊优先处理。",
+    "未排除梗阻、严重积气或休克样状态前，不要把模板结果当作强饲、促动力药或用药指令。",
+    "本模板只采集病史和红旗信息，不输出最终诊断、治疗方案、处方或药物剂量。"
   ],
   "sections": [
     {
       "key": "signalment",
-      "title": "基础信息",
+      "title": "基础信息 / 体况",
       "priority": "core",
       "questions": [
         {
@@ -28,39 +48,43 @@
           "label": "具体品种/体型，如侏儒兔、垂耳兔、肉兔等",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "不同体型和年龄影响体重、采食量和急症判断。"
+          "clinical_reason": "不同体型、年龄和基础体况影响采食量、脱水和急症判断。"
         },
         {
           "key": "body_weight",
-          "label": "当前体重和近期体重变化",
+          "label": "当前体重、最近一次称重和近期体重变化",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "兔少食时体重变化对脱水和营养风险判断重要。"
+          "clinical_reason": "兔少食时体重变化对脱水、营养和牙科风险判断重要。"
         },
         {
           "key": "age_sex_neuter",
-          "label": "年龄、性别、是否绝育",
+          "label": "年龄、性别、是否绝育；母兔是否有繁殖史",
           "answer_type": "text",
-          "required": false,
-          "clinical_reason": "成年母兔需关注生殖系统问题，老年兔牙科和慢性病风险更高。"
+          "required": true,
+          "trigger_features": [
+            "reproductive_issue",
+            "intact_female"
+          ],
+          "clinical_reason": "成年未绝育母兔需关注生殖系统疾病风险；老年兔牙科和慢性病风险更高。"
         }
       ]
     },
     {
       "key": "food_feces_urine",
-      "title": "采食 / 粪便 / 排尿",
+      "title": "采食 / 粪便 / 排尿红旗",
       "priority": "red_flag",
       "questions": [
         {
           "key": "last_eating_time",
-          "label": "最后一次主动吃草/粮/蔬菜是什么时候？",
+          "label": "最后一次主动吃干草/兔粮/蔬菜是什么时候？停食持续多久？",
           "answer_type": "datetime_text",
           "required": true,
           "trigger_features": [
             "anorexia",
             "appetite_down"
           ],
-          "clinical_reason": "兔停食时间是胃肠淤滞和梗阻分诊核心。"
+          "clinical_reason": "停食时间是兔胃肠淤滞、疼痛和梗阻分诊核心。"
         },
         {
           "key": "feces_change",
@@ -71,20 +95,23 @@
             "feces_down",
             "no_feces"
           ],
-          "clinical_reason": "少粪/无粪提示胃肠动力或梗阻风险。"
+          "clinical_reason": "少粪/无粪提示胃肠动力、疼痛、脱水或梗阻风险。"
         },
         {
           "key": "urine_water",
-          "label": "饮水和排尿是否减少？尿色是否异常？",
+          "label": "饮水和排尿是否减少？尿色、尿泥、血尿或排尿困难？",
           "answer_type": "text",
-          "required": false,
-          "clinical_reason": "脱水和泌尿问题会加重风险。"
+          "required": true,
+          "trigger_features": [
+            "urinary_issue"
+          ],
+          "clinical_reason": "脱水、尿泥/尿石和排尿困难会显著改变分诊优先级。"
         }
       ]
     },
     {
       "key": "pain_abdomen",
-      "title": "腹痛 / 胃肠淤滞红旗",
+      "title": "腹痛 / 胃肠淤滞与梗阻风险",
       "priority": "red_flag",
       "questions": [
         {
@@ -96,45 +123,176 @@
             "abd_distension",
             "low_energy"
           ],
-          "clinical_reason": "腹痛和腹胀可提示积气、疼痛或梗阻。"
+          "clinical_reason": "腹痛和腹胀可提示积气、疼痛、淤滞或梗阻。"
         },
         {
-          "key": "temperature",
-          "label": "是否测过体温？四肢/耳朵是否冰凉？",
+          "key": "temperature_and_collapse",
+          "label": "是否测过体温？耳朵/四肢是否冰凉、虚弱、不能站立或反应差？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "hypothermia_signs",
+            "collapse",
+            "low_energy"
+          ],
+          "clinical_reason": "低体温、虚脱和反应差是兔急症恶化信号。"
+        },
+        {
+          "key": "vomit_or_choking_like",
+          "label": "是否有异常伸颈、流涎、吞咽困难、疑似误食异物或啃咬异常物？",
           "answer_type": "text",
           "required": false,
-          "clinical_reason": "低体温是兔急症恶化信号。"
+          "clinical_reason": "疑似异物、吞咽异常或口腔疼痛会影响是否优先影像和口腔检查。"
         }
       ]
     },
     {
-      "key": "dental_diet_husbandry",
-      "title": "牙科 / 饮食 / 饲养",
+      "key": "dental_oral",
+      "title": "牙科 / 口腔疼痛",
       "priority": "core",
       "questions": [
         {
           "key": "dental_signs",
-          "label": "是否流口水、下巴湿、挑食草、磨牙、脸部肿胀？",
+          "label": "是否流口水、下巴湿、挑食草、磨牙、脸部肿胀或眼鼻分泌物？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "dental_signs",
+            "drooling",
+            "selective_appetite"
+          ],
+          "clinical_reason": "牙科疼痛和颌面问题常导致兔采食下降或只吃软食/零食。"
+        },
+        {
+          "key": "diet_texture_preference",
+          "label": "最近是否只吃兔粮/蔬菜/零食，不吃干草？是否掉食或咀嚼异常？",
           "answer_type": "text",
           "required": false,
           "trigger_features": [
-            "dental_signs"
+            "selective_appetite"
           ],
-          "clinical_reason": "牙科疼痛常导致兔采食下降。"
+          "clinical_reason": "选择性采食改变是牙科疼痛的重要线索。"
+        }
+      ]
+    },
+    {
+      "key": "respiratory",
+      "title": "呼吸 / 鼻眼分泌物",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "breathing_effort",
+          "label": "是否张口呼吸、明显用力呼吸、喘鸣、鼻翼用力或不能安静休息？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "respiratory_distress"
+          ],
+          "clinical_reason": "兔呼吸困难需要低应激优先处理。"
         },
+        {
+          "key": "nasal_eye_discharge",
+          "label": "是否打喷嚏、流鼻涕、眼分泌物、前肢内侧脏湿或声音改变？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "nasal_ocular_discharge"
+          ],
+          "clinical_reason": "鼻眼分泌物和前肢脏湿支持上呼吸道或牙科相关方向。"
+        }
+      ]
+    },
+    {
+      "key": "urinary_reproductive",
+      "title": "泌尿 / 肾脏 / 生殖",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "urinary_detail",
+          "label": "尿量、尿色、尿泥、血尿、排尿姿势或排尿困难是否异常？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "urinary_issue"
+          ],
+          "clinical_reason": "尿泥、尿石、疼痛和脱水都可能导致采食下降或精神差。"
+        },
+        {
+          "key": "reproductive_detail",
+          "label": "母兔是否未绝育？是否有阴道分泌物、出血、腹部膨大或乳腺/生殖相关异常？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "reproductive_issue",
+            "intact_female"
+          ],
+          "clinical_reason": "未绝育成年母兔需要纳入生殖系统风险审查。"
+        }
+      ]
+    },
+    {
+      "key": "neuro_eye_ear",
+      "title": "头斜 / 神经 / 眼耳",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "head_tilt_balance",
+          "label": "是否头斜、转圈、眼震、站立不稳、翻滚、抽搐或突然不能正常跳跃？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "head_tilt",
+            "neurologic_signs"
+          ],
+          "clinical_reason": "头斜和前庭样异常需要区分耳源性、神经性、感染/炎症或外伤方向。"
+        },
+        {
+          "key": "eye_ear_detail",
+          "label": "眼睛是否流泪、突出、红肿？耳朵是否分泌物、抓耳或疼痛？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "眼耳异常可与牙科、耳源性或颅面问题相关。"
+        }
+      ]
+    },
+    {
+      "key": "husbandry_diet_environment",
+      "title": "饮食 / 饲养 / 环境",
+      "priority": "core",
+      "questions": [
         {
           "key": "diet",
           "label": "日常干草、兔粮、蔬菜、零食比例和近期是否换粮？",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "低纤维或突然换粮可诱发胃肠问题。"
+          "trigger_features": [
+            "diet_change",
+            "low_fiber_diet"
+          ],
+          "clinical_reason": "低纤维、突然换粮或零食过多会影响胃肠风险。"
         },
         {
-          "key": "stress",
-          "label": "近期是否搬家、洗澡、惊吓、同伴变化、手术或疼痛事件？",
+          "key": "housing_flooring",
+          "label": "笼底/垫材/清洁频率/潮湿情况？是否长期站在硬底或湿垫材上？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "pododermatitis",
+            "skin_shell_issue"
+          ],
+          "clinical_reason": "足底皮炎、皮肤问题和疼痛常与垫材、潮湿和肥胖相关。"
+        },
+        {
+          "key": "stress_heat",
+          "label": "近期是否搬家、洗澡、惊吓、同伴变化、手术、疼痛、外伤或高温暴露？",
           "answer_type": "text",
           "required": false,
-          "clinical_reason": "应激和疼痛会诱发停食。"
+          "trigger_features": [
+            "stress_event",
+            "heat_stress",
+            "trauma"
+          ],
+          "clinical_reason": "应激、疼痛、外伤和高温可诱发停食或全身状态恶化。"
         }
       ]
     }
