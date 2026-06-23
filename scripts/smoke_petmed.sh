@@ -2533,6 +2533,8 @@ if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
   _petmed_problem_auth_header=""
   if [ -n "${AUTH_HEADER:-}" ]; then
     _petmed_problem_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_problem_auth_header="Authorization: Bearer ${token_a}"
   elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
     _petmed_problem_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
   elif [ -n "${AUTH_TOKEN:-}" ]; then
@@ -2556,7 +2558,10 @@ path = sys.argv[1]
 with open(path, "r", encoding="utf-8") as handle:
     data = json.load(handle)
 
-assert data.get("message") == "diagnostic_assistance_problem_list_built"
+if data.get("message") != "diagnostic_assistance_problem_list_built":
+    print("[smoke] Diagnostic Assistance Problem List V1 unexpected response:")
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+    raise AssertionError("unexpected diagnostic assistance problem-list endpoint response")
 assert data.get("mode") == "diagnostic_assistance_problem_list_v1"
 assert data.get("writes_database") is False
 assert data.get("requires_human_review") is True
@@ -2584,6 +2589,8 @@ if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
   _petmed_ddx_auth_header=""
   if [ -n "${AUTH_HEADER:-}" ]; then
     _petmed_ddx_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_ddx_auth_header="Authorization: Bearer ${token_a}"
   elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
     _petmed_ddx_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
   elif [ -n "${AUTH_TOKEN:-}" ]; then
@@ -2640,6 +2647,8 @@ if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
   _petmed_trace_auth_header=""
   if [ -n "${AUTH_HEADER:-}" ]; then
     _petmed_trace_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_trace_auth_header="Authorization: Bearer ${token_a}"
   elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
     _petmed_trace_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
   elif [ -n "${AUTH_TOKEN:-}" ]; then
@@ -2706,6 +2715,8 @@ if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
   _petmed_review_auth_header=""
   if [ -n "${AUTH_HEADER:-}" ]; then
     _petmed_review_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_review_auth_header="Authorization: Bearer ${token_a}"
   elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
     _petmed_review_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
   elif [ -n "${AUTH_TOKEN:-}" ]; then
@@ -2856,6 +2867,8 @@ if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
   _petmed_ai_summary_auth_header=""
   if [ -n "${AUTH_HEADER:-}" ]; then
     _petmed_ai_summary_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_ai_summary_auth_header="Authorization: Bearer ${token_a}"
   elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
     _petmed_ai_summary_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
   elif [ -n "${AUTH_TOKEN:-}" ]; then
