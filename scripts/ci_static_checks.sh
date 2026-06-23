@@ -209,3 +209,8 @@ echo "[ci_static_checks] Ops Dashboard Clinical Core V2 static checks"
 python3 scripts/validate_ops_dashboard_clinical_core_v2.py
 # --- Ops Dashboard Clinical Core V2 static checks: end ---
 
+
+# --- Exotics Knowledge Coverage Gap Review V1 static checks: start ---
+echo "[ci_static_checks] Exotics Knowledge Coverage Gap Review V1 static checks"
+python3 scripts/validate_exotics_knowledge_coverage_gap_review.py
+# --- Exotics Knowledge Coverage Gap Review V1 static checks: end ---

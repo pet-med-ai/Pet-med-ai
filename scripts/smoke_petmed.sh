@@ -3339,3 +3339,10 @@ PY
   fi
 fi
 # --- Ops Dashboard Clinical Core V2 smoke: end ---
+
+# --- Exotics Knowledge Coverage Gap Review V1 smoke: start ---
+if [ -f scripts/validate_exotics_knowledge_coverage_gap_review.py ]; then
+  echo "[smoke] Exotics Knowledge Coverage Gap Review V1 validator"
+  python3 scripts/validate_exotics_knowledge_coverage_gap_review.py
+fi
+# --- Exotics Knowledge Coverage Gap Review V1 smoke: end ---

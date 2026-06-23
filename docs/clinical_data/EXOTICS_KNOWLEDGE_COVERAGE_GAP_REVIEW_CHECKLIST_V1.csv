@@ -1,0 +1,10 @@
+item,requirement,status
+kb_index_loaded,knowledge-base/exotics/index.json is present and readable,required
+rule_files_loaded,rabbit/bird/reptile/ferret/rodent JSON rules are present,required
+intake_templates_validated,existing exotic intake templates remain valid,required
+coverage_matrix_created,EXOTICS_KNOWLEDGE_COVERAGE_MATRIX_V1.csv is present with priority and gap columns,required
+source_review_marked,source_review_status is explicit and not falsely marked reviewed,required
+drug_dose_disabled,drug_dose_status remains not_reviewed_not_enabled,required
+no_db_write,stage performs no database writes,required
+no_final_diagnosis,stage generates no final diagnosis,required
+next_decision,decision=GO_TO_EXOTICS_RABBIT_DEEPENING_V1,required

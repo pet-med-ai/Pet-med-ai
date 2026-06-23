@@ -1,0 +1,8 @@
+gate,go_condition,no_go_condition,evidence
+validator,validate_exotics_knowledge_coverage_gap_review.py PASS,validator FAIL,local and CI logs
+existing_kb_validators,validate_exotic_kb.py and validate_exotic_intake_templates.py PASS,existing KB validator failure,local and CI logs
+coverage_matrix,matrix includes rabbit/bird/reptile/ferret/small-mammal rows and gaps,missing matrix or missing gap columns,EXOTICS_KNOWLEDGE_COVERAGE_MATRIX_V1.csv
+drug_dose_boundary,all rows mark not_reviewed_not_enabled,any dose enabled or numeric dose output,matrix and validator
+source_review_boundary,source review marked required_not_started,unreviewed content falsely marked reviewed,matrix and validator
+clinical_boundary,"no final diagnosis, no treatment plan, no prescription",diagnostic/treatment output introduced,validator
+decision,GO_TO_EXOTICS_RABBIT_DEEPENING_V1,next stage unclear,doc and validator
