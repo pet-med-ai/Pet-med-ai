@@ -1387,6 +1387,165 @@ def apply_clinician_review_persistence(
 # --- Clinician Review Persistence V1 endpoint: end ---
 
 
+# --- Clinical QA Dashboard V2 endpoint: start ---
+@router.get("/clinical-qa-dashboard/v2/summary", response_model=dict)
+def get_clinical_qa_dashboard_v2_summary(
+    case_id: Optional[int] = None,
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.clinical_qa_dashboard import (
+            CLINICAL_QA_DASHBOARD_MODE,
+            build_clinical_qa_dashboard,
+            clinical_qa_dashboard_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from clinical_qa_dashboard import (
+            CLINICAL_QA_DASHBOARD_MODE,
+            build_clinical_qa_dashboard,
+            clinical_qa_dashboard_safety_flags,
+        )
+
+    try:
+        from backend.models import AuditLog
+    except ModuleNotFoundError:
+        from models import AuditLog
+
+    owner_id = _user_id(user)
+    case_context = None
+
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        case_rows = [case]
+        case_context = _case_payload(case)
+    else:
+        case_rows = (
+            db.query(Case)
+            .filter(Case.owner_id == owner_id, Case.deleted_at.is_(None))
+            .order_by(Case.updated_at.desc(), Case.id.desc())
+            .limit(int(limit))
+            .all()
+        )
+
+    case_ids = [int(item.id) for item in case_rows]
+    reports = []
+    observations = []
+    imaging_studies = []
+    audit_logs = []
+
+    if case_ids:
+        reports = (
+            db.query(DiagnosticReport)
+            .filter(DiagnosticReport.case_id.in_(case_ids))
+            .order_by(DiagnosticReport.updated_at.desc(), DiagnosticReport.id.desc())
+            .limit(1000)
+            .all()
+        )
+        observations = (
+            db.query(Observation)
+            .filter(Observation.case_id.in_(case_ids))
+            .order_by(Observation.updated_at.desc(), Observation.id.desc())
+            .limit(2000)
+            .all()
+        )
+        imaging_studies = (
+            db.query(ImagingStudy)
+            .filter(ImagingStudy.case_id.in_(case_ids))
+            .order_by(ImagingStudy.updated_at.desc(), ImagingStudy.id.desc())
+            .limit(1000)
+            .all()
+        )
+        audit_logs = (
+            db.query(AuditLog)
+            .filter(AuditLog.case_id.in_(case_ids))
+            .order_by(AuditLog.created_at.desc())
+            .limit(1000)
+            .all()
+        )
+
+    dashboard_payload = {
+        "cases": [_case_payload(item) for item in case_rows],
+        "diagnostic_reports": [
+            {
+                "report_id": int(item.id),
+                "case_id": int(item.case_id),
+                "report_type": item.report_type,
+                "source_type": item.source_type,
+                "status": item.status,
+                "title": item.title,
+                "ai_summary_status": item.ai_summary_status,
+                "has_ai_summary": bool(item.ai_summary),
+                "reviewed_by": item.reviewed_by,
+                "reviewed_at": _iso(item.reviewed_at),
+                "updated_at": _iso(item.updated_at),
+            }
+            for item in reports
+        ],
+        "observations": [
+            {
+                "observation_id": int(item.id),
+                "case_id": int(item.case_id),
+                "diagnostic_report_id": int(item.diagnostic_report_id),
+                "code": item.code,
+                "display_name": item.display_name,
+                "abnormal_flag": item.abnormal_flag,
+                "review_status": item.review_status,
+                "updated_at": _iso(item.updated_at),
+            }
+            for item in observations
+        ],
+        "imaging_studies": [
+            {
+                "imaging_study_id": int(item.id),
+                "case_id": int(item.case_id),
+                "modality": item.modality,
+                "body_part": item.body_part,
+                "abnormal_flag": item.abnormal_flag,
+                "review_status": item.review_status,
+                "reviewed_by": item.reviewed_by,
+                "reviewed_at": _iso(item.reviewed_at),
+                "updated_at": _iso(item.updated_at),
+            }
+            for item in imaging_studies
+        ],
+        "audit_logs": [
+            {
+                "log_id": item.log_id,
+                "case_id": item.case_id,
+                "event_type": item.event_type,
+                "source": item.source,
+                "created_at": _iso(item.created_at),
+            }
+            for item in audit_logs
+        ],
+    }
+
+    try:
+        dashboard = build_clinical_qa_dashboard(dashboard_payload, case_context=case_context)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=False)
+    qa_safety = clinical_qa_dashboard_safety_flags()
+    combined_safety = {**safety, **qa_safety}
+    return {
+        "message": "clinical_qa_dashboard_v2_summary",
+        "mode": CLINICAL_QA_DASHBOARD_MODE,
+        "case": case_context,
+        "scope": {
+            "case_id": int(case_id) if case_id not in (None, "") else None,
+            "case_count": len(case_rows),
+            "limit": int(limit),
+            "owner_scoped": True,
+        },
+        **dashboard,
+        "safety": combined_safety,
+        **combined_safety,
+    }
+# --- Clinical QA Dashboard V2 endpoint: end ---
+
 # --- DiagnosticReport AI Summary Persistence V1 endpoint: start ---
 @router.post("/diagnostic-reports/{report_id}/ai-summary/persistence/apply", response_model=dict)
 def apply_diagnosticreport_ai_summary_persistence_endpoint(

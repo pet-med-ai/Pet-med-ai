@@ -1,0 +1,18 @@
+item,required,evidence,status
+module_exists,true,backend/clinical_qa_dashboard.py,required
+api_endpoint_exists,true,GET /api/diagnostic-data/clinical-qa-dashboard/v2/summary,required
+owner_scoped,true,_user_id and _owned_case_or_404 / Case.owner_id filtering,required
+read_only,true,writes_database=false,required
+no_case_write,true,creates_case=false updates_case=false,required
+no_diagnostic_report_write,true,updates_diagnostic_report=false writes_ai_summary=false,required
+no_observation_write,true,updates_observation=false,required
+no_imaging_write,true,updates_imaging_study=false,required
+no_audit_write,true,writes_audit_log=false,required
+no_final_diagnosis,true,generates_final_diagnosis=false,required
+no_treatment_plan,true,creates_treatment_plan=false,required
+no_prescription,true,writes_prescription=false,required
+no_drug_dose,true,returns_drug_dose=false,required
+not_client_facing,true,not_client_facing=true,required
+validator,true,scripts/validate_clinical_qa_dashboard_v2.py,required
+ci_static_checks,true,scripts/ci_static_checks.sh,required
+smoke,true,scripts/smoke_petmed.sh,required

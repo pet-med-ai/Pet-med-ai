@@ -3215,3 +3215,70 @@ PY
   fi
 fi
 # --- Clinical Docs Diagnostic Data Merge V1 smoke: end ---
+
+# --- Clinical QA Dashboard V2 smoke: start ---
+if [ -f scripts/validate_clinical_qa_dashboard_v2.py ]; then
+  echo "[smoke] Clinical QA Dashboard V2 validator"
+  python3 scripts/validate_clinical_qa_dashboard_v2.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_clinical_qa_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_clinical_qa_auth_header="${AUTH_HEADER}"
+  elif [ -n "${token_a:-}" ]; then
+    _petmed_clinical_qa_auth_header="Authorization: Bearer ${token_a}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_clinical_qa_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_clinical_qa_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_clinical_qa_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  if [ -n "${_petmed_clinical_qa_auth_header}" ]; then
+    _petmed_clinical_qa_json="$(mktemp)"
+    _petmed_clinical_qa_case_param=""
+    if [ -n "${case_id:-}" ]; then
+      _petmed_clinical_qa_case_param="?case_id=${case_id}"
+    fi
+    curl -sS -X GET "${BASE_URL%/}/api/diagnostic-data/clinical-qa-dashboard/v2/summary${_petmed_clinical_qa_case_param}" \
+      -H "${_petmed_clinical_qa_auth_header}" \
+      > "${_petmed_clinical_qa_json}"
+    python3 - "${_petmed_clinical_qa_json}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+assert data.get("message") == "clinical_qa_dashboard_v2_summary", data
+assert data.get("mode") == "clinical_qa_dashboard_v2", data
+assert data.get("writes_database") is False, data
+assert data.get("creates_case") is False, data
+assert data.get("updates_diagnostic_report") is False, data
+assert data.get("updates_observation") is False, data
+assert data.get("updates_imaging_study") is False, data
+assert data.get("writes_ai_summary") is False, data
+assert data.get("writes_audit_log") is False, data
+assert data.get("persists_reasoning_trace") is False, data
+assert data.get("generates_final_diagnosis") is False, data
+assert data.get("creates_treatment_plan") is False, data
+assert data.get("writes_prescription") is False, data
+assert data.get("returns_drug_dose") is False, data
+assert data.get("requires_human_review") is True, data
+assert data.get("clinician_signoff_required") is True, data
+assert data.get("not_client_facing") is True, data
+assert isinstance(data.get("cards"), list), data
+assert isinstance(data.get("metrics"), dict), data
+assert isinstance(data.get("qa_queue"), list), data
+assert data.get("quality_gate", {}).get("status") == "PASS", data
+print("[smoke] Clinical QA Dashboard V2 endpoint PASS")
+PY
+    rm -f "${_petmed_clinical_qa_json}"
+  else
+    echo "[smoke] Clinical QA Dashboard V2 endpoint skipped: no auth token available"
+  fi
+fi
+# --- Clinical QA Dashboard V2 smoke: end ---
