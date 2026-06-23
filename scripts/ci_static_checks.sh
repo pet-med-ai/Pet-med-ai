@@ -165,4 +165,8 @@ python3 scripts/validate_diagnostic_assistance_problem_list.py
 echo "[ci_static_checks] Differential Diagnosis Candidates V1 validator"
 python3 scripts/validate_differential_diagnosis_candidates.py
 # --- Differential Diagnosis Candidates V1 static checks: end ---
+# --- Diagnostic Reasoning Evidence Trace V1 static checks: start ---
+echo "[ci_static_checks] Diagnostic Reasoning Evidence Trace V1 validator"
+python3 scripts/validate_diagnostic_reasoning_evidence_trace.py
+# --- Diagnostic Reasoning Evidence Trace V1 static checks: end ---
 

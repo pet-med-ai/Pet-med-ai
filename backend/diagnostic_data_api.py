@@ -1170,3 +1170,56 @@ def build_differential_diagnosis_candidates_dry_run(
         **candidate_safety,
     }
 # --- Differential Diagnosis Candidates V1 endpoint: end ---
+
+# --- Diagnostic Reasoning Evidence Trace V1 endpoint: start ---
+@router.post("/dry-run/diagnostic-reasoning/evidence-trace/build", response_model=dict)
+def build_diagnostic_reasoning_evidence_trace_dry_run(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.diagnostic_reasoning_evidence_trace import (
+            DIAGNOSTIC_REASONING_EVIDENCE_TRACE_MODE,
+            build_diagnostic_reasoning_evidence_trace,
+            diagnostic_reasoning_evidence_trace_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from diagnostic_reasoning_evidence_trace import (
+            DIAGNOSTIC_REASONING_EVIDENCE_TRACE_MODE,
+            build_diagnostic_reasoning_evidence_trace,
+            diagnostic_reasoning_evidence_trace_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    case_payload = None
+    parsed_case_id = None
+    case_id = data.get("case_id")
+    if case_id not in (None, ""):
+        case = _owned_case_or_404(db, int(case_id), user)
+        parsed_case_id = int(case.id)
+        case_payload = _case_payload(case)
+
+    try:
+        trace = build_diagnostic_reasoning_evidence_trace(
+            data,
+            case_id=parsed_case_id,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    safety = _safety_flags(dry_run=True)
+    trace_safety = diagnostic_reasoning_evidence_trace_safety_flags()
+    return {
+        "message": "diagnostic_reasoning_evidence_trace_built",
+        "mode": DIAGNOSTIC_REASONING_EVIDENCE_TRACE_MODE,
+        "case": case_payload,
+        **trace,
+        "safety": {**safety, **trace_safety},
+        **safety,
+        **trace_safety,
+    }
+# --- Diagnostic Reasoning Evidence Trace V1 endpoint: end ---

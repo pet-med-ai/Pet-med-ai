@@ -1,0 +1,23 @@
+gate,go_condition,no_go_condition,evidence,status
+validator,validate_diagnostic_reasoning_evidence_trace.py PASS,validator fails,local command output,PENDING
+ci_static_checks,bash scripts/ci_static_checks.sh PASS,ci fails,local command output,PENDING
+smoke,smoke_petmed.sh ALL_PASS,smoke fails,local or online smoke output,PENDING
+auth_endpoint_smoke,authenticated endpoint smoke PASS,endpoint skipped or fails with token,smoke output,PENDING
+production_revision,database_revision equals 0009_diag_data,revision mismatch,/api/system/version,PENDING
+production_head,alembic_head equals 0009_diag_data,head mismatch,/api/system/version,PENDING
+production_schema,schema_ok true,schema_ok false,/api/system/version,PENDING
+persistence,writes_database false,any DB write detected,response safety and static scan,PENDING
+audit_log,writes_audit_log false,audit log write detected,response safety and static scan,PENDING
+final_diagnosis,generates_final_diagnosis false,final diagnosis produced,response safety and output scan,PENDING
+confirmed_diagnosis,generates_confirmed_diagnosis false,confirmed diagnosis produced,response safety and output scan,PENDING
+definitive_diagnosis,generates_definitive_diagnosis false,definitive diagnosis produced,response safety and output scan,PENDING
+diagnostic_conclusion,generates_diagnostic_conclusion false,diagnostic conclusion produced,response safety and output scan,PENDING
+probability,returns_probability false,probability output appears,response safety and output scan,PENDING
+numeric_confidence,returns_numeric_confidence false,numeric confidence output appears,response safety and output scan,PENDING
+treatment_plan,creates_treatment_plan false and writes_treatment_plan false,treatment plan produced,response safety and output scan,PENDING
+prescription,creates_prescription false and writes_prescription false,prescription produced,response safety and output scan,PENDING
+drug_dose,returns_drug_dose false and returns_drug_route false and returns_drug_frequency false,dose route or frequency returned,response safety and output scan,PENDING
+client_facing,not_client_facing true and client_facing false,client-facing conclusion produced,response safety and output scan,PENDING
+human_review,requires_human_review true and clinician_signoff_required true,human review not required,response safety,PENDING
+provider_boundary,calls_external_ai false and calls_external_provider false,external provider call detected,response safety and static scan,PENDING
+next_stage,decision GO_TO_DIAGNOSTIC_ASSISTANCE_CASE_DETAIL_UI_V1,decision points elsewhere,stage record,PENDING

@@ -2630,4 +2630,65 @@ PY
   fi
 fi
 # --- Differential Diagnosis Candidates V1 smoke: end ---
+# --- Diagnostic Reasoning Evidence Trace V1 smoke: start ---
+if [ -f scripts/validate_diagnostic_reasoning_evidence_trace.py ]; then
+  echo "[smoke] Diagnostic Reasoning Evidence Trace V1 validator"
+  python3 scripts/validate_diagnostic_reasoning_evidence_trace.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_trace_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_trace_auth_header="${AUTH_HEADER}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_trace_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_trace_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_trace_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  if [ -n "${_petmed_trace_auth_header}" ]; then
+    _petmed_trace_json="$(mktemp)"
+    curl -sS -X POST "${BASE_URL%/}/api/diagnostic-data/dry-run/diagnostic-reasoning/evidence-trace/build" \
+      -H "${_petmed_trace_auth_header}" \
+      -H "Content-Type: application/json" \
+      --data '{"problem_list_preview":[{"problem_id":"problem-001","category":"presenting_complaint","title":"Vomiting requires clinician review","severity_hint":"medium","evidence_sources":[{"source_type":"case","field":"chief_complaint","snippet":"Vomiting for 2 days"}]},{"problem_id":"problem-002","category":"lab_abnormality","title":"ALT abnormality requires clinician review","severity_hint":"medium","evidence_sources":[{"source_type":"lab_abnormal_summary","field":"ALT","snippet":"ALT high; hepatobiliary involvement requires review"}]}],"differential_diagnosis_candidates_preview":[{"candidate_key":"gastrointestinal_process_candidate","candidate_label":"Gastrointestinal process candidate","system_category":"gastrointestinal","severity_hint":"medium","supporting_evidence_sources":[{"source_type":"problem_list_preview","field":"chief_complaint","snippet":"Vomiting and appetite change"}],"contradicting_or_missing_evidence":["hydration status not supplied"],"evidence_fit_hint":"moderate_signal_for_review"}]}' \
+      > "${_petmed_trace_json}"
+    python3 - "${_petmed_trace_json}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+assert data.get("message") == "diagnostic_reasoning_evidence_trace_built"
+assert data.get("mode") == "diagnostic_reasoning_evidence_trace_v1"
+assert data.get("writes_database") is False
+assert data.get("persists_reasoning_trace") is False
+assert data.get("writes_audit_log") is False
+assert data.get("requires_human_review") is True
+assert data.get("clinician_signoff_required") is True
+assert data.get("not_a_diagnosis") is True
+assert data.get("not_a_treatment_plan") is True
+assert data.get("not_a_prescription") is True
+assert data.get("not_client_facing") is True
+assert data.get("returns_probability") is False
+assert data.get("returns_numeric_confidence") is False
+assert data.get("returns_drug_dose") is False
+assert data.get("returns_drug_route") is False
+assert data.get("returns_drug_frequency") is False
+assert isinstance(data.get("diagnostic_reasoning_evidence_trace_preview"), list)
+assert data.get("diagnostic_reasoning_evidence_trace_preview")
+assert isinstance(data.get("evidence_source_index"), list)
+assert data.get("quality_gate", {}).get("status") == "PASS"
+print("[smoke] Diagnostic Reasoning Evidence Trace V1 endpoint PASS")
+PY
+    rm -f "${_petmed_trace_json}"
+  else
+    echo "[smoke] Diagnostic Reasoning Evidence Trace V1 endpoint skipped: no auth token exported"
+  fi
+fi
+# --- Diagnostic Reasoning Evidence Trace V1 smoke: end ---
 

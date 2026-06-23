@@ -1,0 +1,25 @@
+area,item,required,evidence,pass_condition,status
+scope,Stage is dry-run only,yes,builder and endpoint,dry_run true and writes_database false,PENDING
+scope,Output is evidence trace preview only,yes,builder contract,diagnostic_reasoning_evidence_trace_preview present,PENDING
+scope,Uses problem list preview inputs,yes,runtime validator,problem_list_preview accepted,PENDING
+scope,Uses differential candidate preview inputs,yes,runtime validator,differential_diagnosis_candidates_preview accepted,PENDING
+evidence,Evidence source index generated,yes,runtime validator,evidence_source_index list present,PENDING
+evidence,Supporting evidence mapped qualitatively,yes,runtime validator,supporting_evidence_sources present,PENDING
+evidence,Missing or contradicting evidence listed,yes,runtime validator,contradicting_or_missing_evidence present,PENDING
+evidence,Reasoning trace steps generated,yes,runtime validator,reasoning_trace_steps present,PENDING
+safety,Requires clinician review,yes,builder flags,requires_human_review true,PENDING
+safety,Clinician signoff required,yes,builder flags,clinician_signoff_required true,PENDING
+boundary,No final diagnosis,yes,validator,generates_final_diagnosis false,PENDING
+boundary,No confirmed diagnosis,yes,validator,generates_confirmed_diagnosis false,PENDING
+boundary,No definitive diagnosis,yes,validator,generates_definitive_diagnosis false,PENDING
+boundary,No diagnostic conclusion,yes,validator,generates_diagnostic_conclusion false,PENDING
+boundary,No treatment plan,yes,validator,creates_treatment_plan false and writes_treatment_plan false,PENDING
+boundary,No prescription,yes,validator,creates_prescription false and writes_prescription false,PENDING
+boundary,No drug dose route frequency,yes,validator,returns_drug_dose false and returns_drug_route false and returns_drug_frequency false,PENDING
+boundary,No probability or numeric confidence,yes,validator,returns_probability false and returns_numeric_confidence false,PENDING
+boundary,Not client-facing,yes,validator,not_client_facing true and client_facing false,PENDING
+provider,No external AI or provider call,yes,static validator,no provider call tokens,PENDING
+api,Endpoint registered under diagnostic-data router,yes,diagnostic_data_api.py,POST dry-run endpoint present,PENDING
+ci,Validator included in CI static checks,yes,scripts/ci_static_checks.sh,validator command present,PENDING
+smoke,Validator included in smoke,yes,scripts/smoke_petmed.sh,validator command present,PENDING
+smoke,Authenticated endpoint smoke supported,yes,scripts/smoke_petmed.sh,POST smoke supports auth token,PENDING
