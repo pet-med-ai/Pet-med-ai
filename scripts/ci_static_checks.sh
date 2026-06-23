@@ -218,3 +218,8 @@ python3 scripts/validate_exotics_knowledge_coverage_gap_review.py
 echo "[ci_static_checks] Exotics Rabbit Deepening V1 static checks"
 python3 scripts/validate_exotics_rabbit_deepening.py
 # --- Exotics Rabbit Deepening V1 static checks: end ---
+
+# --- Exotics Avian Deepening V1 static checks: start ---
+echo "[ci_static_checks] Exotics Avian Deepening V1 static checks"
+python3 scripts/validate_exotics_avian_deepening.py
+# --- Exotics Avian Deepening V1 static checks: end ---

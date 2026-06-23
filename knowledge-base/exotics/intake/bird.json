@@ -4,145 +4,301 @@
   "species_scope": [
     "bird"
   ],
-  "summary": "围绕鸟类呼吸、精神、粪便三联、体重、环境暴露和繁殖风险采集病史。",
+  "summary": "围绕鸟类呼吸、精神、体重、粪便三联、嗉囊、繁殖、创伤/中毒和饲养环境采集病史。",
+  "coverage_level": "avian_deepened_triage_scaffold_not_comprehensive_clinical_kb",
+  "source_review_status": "required_not_started",
+  "drug_dose_status": "not_reviewed_not_enabled",
   "feature_flags": [
     "respiratory_distress",
     "ruffled_feathers",
     "egg_binding",
+    "reproductive_issue",
     "regurgitation",
+    "crop_issue",
     "nasal_ocular_discharge",
-    "weight_loss"
+    "voice_change",
+    "weight_loss",
+    "appetite_down",
+    "diarrhea",
+    "droppings_change",
+    "low_energy",
+    "collapse",
+    "neurologic_signs",
+    "trauma",
+    "bleeding",
+    "toxic_exposure",
+    "husbandry_problem"
   ],
   "red_flag_prompts": [
-    "张口呼吸、尾部上下摆、伸颈呼吸、发绀、不能站杆或疑似卡蛋时，先按鸟类急症处理。",
-    "呼吸困难鸟类应低应激稳定，避免反复抓取造成恶化。"
+    "张口呼吸、尾部上下摆、伸颈呼吸、发绀、不能站杆、虚脱、出血或疑似蛋滞留时，先按鸟类急症处理。",
+    "呼吸困难鸟类应低应激稳定，避免反复抓取造成恶化。",
+    "PTFE/不粘锅高温气体、烟雾、香薰和喷雾暴露合并呼吸异常属于高风险。",
+    "本模板只采集病史和红旗，不输出最终诊断、治疗计划、处方或药物剂量。"
   ],
   "sections": [
     {
       "key": "signalment",
-      "title": "基础信息",
+      "title": "基础信息 / 物种体重",
       "priority": "core",
       "questions": [
         {
           "key": "exact_species",
-          "label": "具体鸟种，如虎皮、玄凤、牡丹、鹦鹉、鸽等",
+          "label": "具体鸟种，如虎皮、玄凤、牡丹、和尚、金刚、灰鹦、文鸟、金丝雀、鸽等",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "不同鸟种体型、饮食和常见病差异明显。"
+          "clinical_reason": "不同鸟种体型、饮食、应激耐受和常见病差异明显。"
         },
         {
-          "key": "body_weight",
-          "label": "当前体重、近期体重变化和是否定期称重",
+          "key": "body_weight_trend",
+          "label": "当前体重、近期体重变化、是否每天/每周称重",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "鸟类体重下降常早于明显症状。"
+          "clinical_reason": "鸟类体重下降常早于明显症状，是分诊核心。"
         },
         {
-          "key": "flock",
-          "label": "单只饲养还是同笼？同笼鸟是否有类似症状？",
+          "key": "age_sex_reproductive",
+          "label": "年龄、性别、是否近期产蛋或有繁殖行为",
           "answer_type": "text",
           "required": false,
-          "clinical_reason": "传染病和环境暴露需看群体信息。"
+          "clinical_reason": "母鸟繁殖史影响蛋滞留、钙代谢和腹部异常判断。"
+        },
+        {
+          "key": "flock_status",
+          "label": "单只饲养还是同笼？同笼鸟是否有类似症状？是否有新鸟加入？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "传染病、环境暴露和检疫缺口需看群体信息。"
         }
       ]
     },
     {
-      "key": "respiration",
-      "title": "呼吸红旗",
+      "key": "respiration_emergency",
+      "title": "呼吸急症红旗",
       "priority": "red_flag",
       "questions": [
         {
           "key": "breathing_pattern",
-          "label": "是否张口呼吸、尾部上下摆、伸颈呼吸、呼吸有声音或发绀？",
+          "label": "是否张口呼吸、尾部上下摆、伸颈呼吸、喘鸣、发绀或呼吸用力？",
           "answer_type": "text",
           "required": true,
           "trigger_features": [
             "respiratory_distress"
           ],
-          "clinical_reason": "鸟类呼吸异常是高风险红旗。"
+          "clinical_reason": "鸟类呼吸异常是高风险红旗，需低应激稳定。"
         },
         {
           "key": "discharge_voice",
-          "label": "鼻孔/眼睛是否有分泌物？叫声是否改变？",
+          "label": "鼻孔/眼睛是否有分泌物？叫声是否改变、沙哑或失声？",
           "answer_type": "text",
           "required": false,
           "trigger_features": [
             "nasal_ocular_discharge",
             "voice_change"
           ],
-          "clinical_reason": "分泌物和声音变化提示呼吸道或气囊疾病。"
+          "clinical_reason": "分泌物和声音变化提示上呼吸道、气囊或全身性疾病方向。"
         },
         {
-          "key": "exposure",
-          "label": "近期是否接触油烟、香薰、消毒剂、烟雾、喷雾、PTFE/不粘锅高温气体？",
+          "key": "handling_tolerance",
+          "label": "抓取、运动或惊吓后是否明显喘、张口或恢复很慢？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "应激耐受差可提示隐匿呼吸或循环风险。"
+        },
+        {
+          "key": "inhaled_exposure",
+          "label": "近期是否有油烟、香薰、消毒剂、烟雾、喷雾、PTFE/不粘锅高温气体暴露？",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "鸟类对吸入性刺激和毒性暴露敏感。"
+          "trigger_features": [
+            "toxic_exposure"
+          ],
+          "clinical_reason": "鸟类对吸入性刺激和毒性暴露高度敏感。"
         }
       ]
     },
     {
-      "key": "droppings_appetite",
-      "title": "采食 / 饮水 / 粪便三联",
+      "key": "systemic_status",
+      "title": "精神 / 采食 / 体重",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "mentation_posture",
+          "label": "是否蓬毛闭眼、蹲底、不能站杆、虚脱、侧躺或反应变差？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "ruffled_feathers",
+            "collapse",
+            "low_energy"
+          ],
+          "clinical_reason": "鸟类会掩饰疾病，姿势和站杆能力是重要红旗。"
+        },
+        {
+          "key": "appetite_observed",
+          "label": "实际摄入是否下降？是否只剥壳不吃、食物剩余变多或挑食？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "appetite_down",
+            "weight_loss"
+          ],
+          "clinical_reason": "采食变化常被误判，需要区分剥壳和真正进食。"
+        },
+        {
+          "key": "water_hydration",
+          "label": "饮水量、皮肤弹性、眼窝、脚部温度或脱水迹象是否异常？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "脱水会影响鸟类全身状态和检验解释。"
+        }
+      ]
+    },
+    {
+      "key": "droppings_crop_gi",
+      "title": "粪便三联 / 嗉囊 / 消化道",
       "priority": "core",
       "questions": [
         {
-          "key": "appetite",
-          "label": "采食量是否下降？是否只剥壳不吃或食物剩余变多？",
+          "key": "droppings_triad",
+          "label": "粪便、尿酸、尿液三部分颜色和量是否改变？请描述或拍照。",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "鸟类会掩饰疾病，采食变化常被低估。"
+          "trigger_features": [
+            "droppings_change",
+            "diarrhea"
+          ],
+          "clinical_reason": "粪便三联可提示消化、肝胆、肾脏、脱水和食物摄入变化。"
         },
         {
-          "key": "droppings",
-          "label": "粪便、尿酸、尿液三部分颜色和量是否改变？",
-          "answer_type": "text",
-          "required": true,
-          "clinical_reason": "粪便三联可提示消化、肝胆、肾脏和脱水问题。"
-        },
-        {
-          "key": "vomit_regurgitation",
-          "label": "是否甩食、返流、呕吐、嗉囊胀或口腔异味？",
+          "key": "regurgitation_crop",
+          "label": "是否甩食、返流、呕吐、嗉囊胀、排空变慢或口腔异味？",
           "answer_type": "text",
           "required": false,
           "trigger_features": [
-            "regurgitation"
+            "regurgitation",
+            "crop_issue"
           ],
-          "clinical_reason": "返流和嗉囊问题需区分行为性返食与疾病。"
+          "clinical_reason": "返流和嗉囊异常需区分行为性返食、嗉囊炎和全身性疾病。"
+        },
+        {
+          "key": "diet_details",
+          "label": "主食是种子、颗粒粮/滋养丸、蔬果、手养奶还是混合？近期是否换粮？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "diet_seed_heavy"
+          ],
+          "clinical_reason": "长期种子饮食和突然换粮会影响营养、肝脏和胃肠风险。"
         }
       ]
     },
     {
-      "key": "reproduction_environment",
-      "title": "繁殖 / 环境 / 饮食",
-      "priority": "context",
+      "key": "reproduction",
+      "title": "繁殖 / 蛋滞留风险",
+      "priority": "red_flag",
       "questions": [
         {
-          "key": "egg_laying",
-          "label": "母鸟近期是否产蛋、频繁蹲伏、腹部膨大或疑似卡蛋？",
+          "key": "egg_laying_status",
+          "label": "母鸟近期是否产蛋、频繁蹲伏、腹部膨大、用力、站姿异常或疑似卡蛋？",
           "answer_type": "text",
           "required": false,
           "trigger_features": [
             "egg_binding",
             "reproductive_issue"
           ],
-          "clinical_reason": "卡蛋是鸟类急症。"
+          "clinical_reason": "蛋滞留是鸟类急症，需结合精神和呼吸状态复核。"
         },
         {
-          "key": "diet",
-          "label": "主食是种子、颗粒粮、滋养丸、蔬果还是人工喂养？",
-          "answer_type": "text",
-          "required": true,
-          "clinical_reason": "长期种子饮食可引发营养和肝脏问题。"
-        },
-        {
-          "key": "cage",
-          "label": "笼舍温度、通风、光照、活动量和近期环境变化？",
+          "key": "nesting_light_calcium",
+          "label": "是否提供巢箱/窝材？光照时长、补钙、墨鱼骨和产蛋频率如何？",
           "answer_type": "text",
           "required": false,
-          "clinical_reason": "环境应激和通风影响呼吸与免疫。"
+          "clinical_reason": "繁殖刺激、钙代谢和光照会影响产蛋和繁殖疾病风险。"
+        }
+      ]
+    },
+    {
+      "key": "neuro_trauma_toxin",
+      "title": "神经 / 创伤 / 中毒暴露",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "neurologic_signs",
+          "label": "是否抽搐、头颈异常、翻滚、不能站杆、偏头、眼震或突然行为异常？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "neurologic_signs"
+          ],
+          "clinical_reason": "神经症状需复核创伤、中毒、代谢和感染方向。"
+        },
+        {
+          "key": "trauma_bleeding",
+          "label": "是否撞窗、坠落、被猫狗接触、翅膀下垂、跛行、血羽损伤或出血？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "trauma",
+            "bleeding"
+          ],
+          "clinical_reason": "鸟类外伤和出血需要优先稳定并评估骨折/软组织损伤。"
+        },
+        {
+          "key": "toxin_heavy_metal",
+          "label": "是否可能接触铅锌金属、油漆、植物、药物、人用食物、清洁剂或杀虫剂？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "toxic_exposure"
+          ],
+          "clinical_reason": "鸟类中毒表现可为胃肠、神经或全身性症状。"
+        }
+      ]
+    },
+    {
+      "key": "husbandry_quarantine",
+      "title": "笼舍 / 环境 / 检疫",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "cage_environment",
+          "label": "笼舍大小、通风、温度、光照、活动量、站杆材质和清洁频率如何？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "husbandry_problem",
+            "temperature_issue"
+          ],
+          "clinical_reason": "环境和活动不足会影响呼吸、足部、羽毛和免疫状态。"
+        },
+        {
+          "key": "feather_skin_feet",
+          "label": "羽毛、皮肤、脚底、喙爪是否有脱毛、啄羽、红肿、结痂、压疮或异常磨损？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "feather_loss",
+            "skin_issue",
+            "pododermatitis_risk"
+          ],
+          "clinical_reason": "羽毛皮肤和足底问题可提示疼痛、寄生虫、营养、环境或行为问题。"
+        },
+        {
+          "key": "quarantine_new_birds",
+          "label": "是否近期购入新鸟、寄养、外出、比赛、接触野鸟或检疫不足？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "新鸟和接触史影响传染病风险评估。"
+        },
+        {
+          "key": "photos_videos_samples",
+          "label": "是否有呼吸视频、粪便照片、体重记录、笼舍/饮食照片或新鲜粪便样本？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "远程预览和现场复核需要客观资料。"
         }
       ]
     }
-  ]
+  ],
+  "disclaimer": "鸟类结构化问诊模板用于采集关键病史、红旗、环境和暴露信息，不替代兽医临床检查。"
 }

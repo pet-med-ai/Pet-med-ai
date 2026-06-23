@@ -3352,3 +3352,10 @@ if [ -f scripts/validate_exotics_rabbit_deepening.py ]; then
   python3 scripts/validate_exotics_rabbit_deepening.py
 fi
 # --- Exotics Rabbit Deepening V1 smoke: end ---
+
+# --- Exotics Avian Deepening V1 smoke: start ---
+if [ -f scripts/validate_exotics_avian_deepening.py ]; then
+  echo "[smoke] Exotics Avian Deepening V1 validator"
+  python3 scripts/validate_exotics_avian_deepening.py
+fi
+# --- Exotics Avian Deepening V1 smoke: end ---

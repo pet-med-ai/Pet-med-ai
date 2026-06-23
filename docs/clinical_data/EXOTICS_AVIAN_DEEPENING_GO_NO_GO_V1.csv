@@ -1,0 +1,13 @@
+gate,required,go_criteria,status
+validator,true,python3 scripts/validate_exotics_avian_deepening.py PASS,pending
+exotic_kb_validator,true,python3 scripts/validate_exotic_kb.py PASS,pending
+exotic_intake_templates_validator,true,python3 scripts/validate_exotic_intake_templates.py PASS,pending
+ci_static_checks,true,bash scripts/ci_static_checks.sh PASS,pending
+online_smoke,true,bash scripts/smoke_petmed.sh ALL PASS,pending
+read_only,true,writes_database=false,pending
+no_final_diagnosis,true,generates_final_diagnosis=false,pending
+no_treatment_plan,true,creates_treatment_plan=false,pending
+no_prescription,true,writes_prescription=false,pending
+no_drug_dose,true,returns_drug_dose=false,pending
+human_review,true,requires_human_review=true,pending
+decision,true,GO_TO_EXOTICS_REPTILE_SPLIT_V1,pending

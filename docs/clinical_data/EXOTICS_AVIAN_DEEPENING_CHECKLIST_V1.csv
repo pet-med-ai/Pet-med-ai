@@ -1,0 +1,12 @@
+item,required,status,evidence
+bird_kb_deepened,true,pending,knowledge-base/exotics/bird.json
+bird_intake_deepened,true,pending,knowledge-base/exotics/intake/bird.json
+respiratory_low_stress_review,true,pending,respiratory_distress red flags and questions
+droppings_triad_review,true,pending,droppings_triad question and checks
+crop_regurgitation_review,true,pending,crop_issue and regurgitation prompts
+egg_binding_review,true,pending,egg_binding red flag and reproduction section
+toxin_exposure_review,true,pending,PTFE/smoke/aerosol exposure prompts
+trauma_bleeding_review,true,pending,trauma and bleeding prompts
+no_drug_dose,true,pending,drug_dose_status=not_reviewed_not_enabled
+read_only,true,pending,writes_database=false
+validator_added,true,pending,scripts/validate_exotics_avian_deepening.py
