@@ -1,0 +1,20 @@
+item,required,status,evidence
+feature module present,true,pending,backend/diagnostic_report_ai_summary_persistence.py
+endpoint present,true,pending,POST /api/diagnostic-data/diagnostic-reports/{report_id}/ai-summary/persistence/apply
+dry-run default no DB write,true,pending,writes_database=false
+controlled write confirmation required,true,pending,I_UNDERSTAND_THIS_WRITES_DIAGNOSTICREPORT_AI_SUMMARY_ONLY
+existing audit log required for write,true,pending,audit_log_id required and verified
+DiagnosticReport status must be reviewed,true,pending,status reviewed precondition
+allowed writes limited,true,pending,ai_summary ai_summary_status reviewed_by reviewed_at
+Case write blocked,true,pending,updates_case=false
+Observation write blocked,true,pending,updates_observation=false
+ImagingStudy write blocked,true,pending,updates_imaging_study=false
+audit log write blocked,true,pending,writes_audit_log=false
+reasoning trace persistence blocked,true,pending,persists_reasoning_trace=false
+final diagnosis blocked,true,pending,generates_final_diagnosis=false
+treatment plan blocked,true,pending,creates_treatment_plan=false
+prescription blocked,true,pending,writes_prescription=false
+drug dose blocked,true,pending,returns_drug_dose=false
+external AI blocked,true,pending,calls_external_ai=false
+validator hooked into CI,true,pending,ci_static_checks.sh
+smoke hook present,true,pending,smoke_petmed.sh

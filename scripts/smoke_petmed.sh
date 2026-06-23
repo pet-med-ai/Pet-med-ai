@@ -2846,3 +2846,102 @@ else
   echo "[smoke] Diagnostic Summary Audit Log V1 endpoint skipped: smoke token_a/case_id unavailable"
 fi
 # --- Diagnostic Summary Audit Log V1 smoke: end ---
+# --- DiagnosticReport AI Summary Persistence V1 smoke: start ---
+if [ -f scripts/validate_diagnosticreport_ai_summary_persistence.py ]; then
+  echo "[smoke] DiagnosticReport AI Summary Persistence V1 validator"
+  python3 scripts/validate_diagnosticreport_ai_summary_persistence.py
+fi
+
+if [ -n "${BASE_URL:-}" ] && command -v curl >/dev/null 2>&1; then
+  _petmed_ai_summary_auth_header=""
+  if [ -n "${AUTH_HEADER:-}" ]; then
+    _petmed_ai_summary_auth_header="${AUTH_HEADER}"
+  elif [ -n "${PETMED_AUTH_TOKEN:-}" ]; then
+    _petmed_ai_summary_auth_header="Authorization: Bearer ${PETMED_AUTH_TOKEN}"
+  elif [ -n "${AUTH_TOKEN:-}" ]; then
+    _petmed_ai_summary_auth_header="Authorization: Bearer ${AUTH_TOKEN}"
+  elif [ -n "${TOKEN:-}" ]; then
+    _petmed_ai_summary_auth_header="Authorization: Bearer ${TOKEN}"
+  fi
+
+  if [ -n "${_petmed_ai_summary_auth_header}" ] && [ -n "${PETMED_DIAGNOSTIC_REPORT_ID:-}" ]; then
+    _petmed_ai_summary_json="$(mktemp)"
+    curl -sS -X POST "${BASE_URL%/}/api/diagnostic-data/diagnostic-reports/${PETMED_DIAGNOSTIC_REPORT_ID}/ai-summary/persistence/apply" \
+      -H "${_petmed_ai_summary_auth_header}" \
+      -H "Content-Type: application/json" \
+      --data '{"dry_run":true,"reviewed_by":"SMOKE-CLINICIAN","ai_summary":"Clinician-reviewed summary: diagnostic abnormalities require continued professional review and are not client-facing conclusions.","source_preview_ids":["smoke-diagnostic-assistance-case-detail-ui-v1"]}' \
+      > "${_petmed_ai_summary_json}"
+    python3 - "${_petmed_ai_summary_json}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+assert data.get("message") == "diagnosticreport_ai_summary_persistence_applied"
+assert data.get("mode") == "diagnosticreport_ai_summary_persistence_v1"
+assert data.get("dry_run") is True
+assert data.get("writes_database") is False
+assert data.get("writes_ai_summary") is False
+assert data.get("writes_audit_log") is False
+assert data.get("persists_reasoning_trace") is False
+assert data.get("generates_final_diagnosis") is False
+assert data.get("creates_treatment_plan") is False
+assert data.get("writes_prescription") is False
+assert data.get("returns_drug_dose") is False
+assert data.get("requires_human_review") is True
+assert data.get("clinician_signoff_required") is True
+assert data.get("not_client_facing") is True
+assert data.get("quality_gate", {}).get("status") == "PASS"
+print("[smoke] DiagnosticReport AI Summary Persistence V1 dry-run endpoint PASS")
+PY
+    rm -f "${_petmed_ai_summary_json}"
+
+    if [ "${PETMED_AI_SUMMARY_WRITE_SMOKE:-0}" = "1" ]; then
+      if [ -z "${PETMED_DIAGNOSTIC_SUMMARY_AUDIT_LOG_ID:-}" ]; then
+        echo "[smoke] DiagnosticReport AI Summary Persistence V1 controlled write skipped: missing PETMED_DIAGNOSTIC_SUMMARY_AUDIT_LOG_ID"
+      else
+        _petmed_ai_summary_write_json="$(mktemp)"
+        curl -sS -X POST "${BASE_URL%/}/api/diagnostic-data/diagnostic-reports/${PETMED_DIAGNOSTIC_REPORT_ID}/ai-summary/persistence/apply" \
+          -H "${_petmed_ai_summary_auth_header}" \
+          -H "Content-Type: application/json" \
+          --data "{\"dry_run\":false,\"reviewed_by\":\"SMOKE-CLINICIAN\",\"audit_log_id\":\"${PETMED_DIAGNOSTIC_SUMMARY_AUDIT_LOG_ID}\",\"persistence_confirmation\":\"I_UNDERSTAND_THIS_WRITES_DIAGNOSTICREPORT_AI_SUMMARY_ONLY\",\"ai_summary\":\"Clinician-reviewed summary: diagnostic abnormalities require continued professional review and are not client-facing conclusions.\"}" \
+          > "${_petmed_ai_summary_write_json}"
+        python3 - "${_petmed_ai_summary_write_json}" <<'PY'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+
+assert data.get("message") == "diagnosticreport_ai_summary_persistence_applied"
+assert data.get("mode") == "diagnosticreport_ai_summary_persistence_v1"
+assert data.get("dry_run") is False
+assert data.get("writes_database") is True
+assert data.get("updates_diagnostic_report") is True
+assert data.get("writes_ai_summary") is True
+assert data.get("writes_ai_summary_status") is True
+assert data.get("writes_audit_log") is False
+assert data.get("updates_case") is False
+assert data.get("updates_observation") is False
+assert data.get("updates_imaging_study") is False
+assert data.get("persists_reasoning_trace") is False
+assert data.get("generates_final_diagnosis") is False
+assert data.get("creates_treatment_plan") is False
+assert data.get("writes_prescription") is False
+assert data.get("returns_drug_dose") is False
+assert data.get("persistence_result", {}).get("persisted") is True
+assert data.get("persistence_result", {}).get("audit_log_verified") is True
+assert data.get("quality_gate", {}).get("status") == "PASS"
+print("[smoke] DiagnosticReport AI Summary Persistence V1 controlled write PASS")
+PY
+        rm -f "${_petmed_ai_summary_write_json}"
+      fi
+    fi
+  else
+    echo "[smoke] DiagnosticReport AI Summary Persistence V1 endpoint skipped: requires auth token and PETMED_DIAGNOSTIC_REPORT_ID"
+  fi
+fi
+# --- DiagnosticReport AI Summary Persistence V1 smoke: end ---

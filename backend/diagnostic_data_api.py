@@ -1386,3 +1386,73 @@ def apply_clinician_review_persistence(
     }
 # --- Clinician Review Persistence V1 endpoint: end ---
 
+
+# --- DiagnosticReport AI Summary Persistence V1 endpoint: start ---
+@router.post("/diagnostic-reports/{report_id}/ai-summary/persistence/apply", response_model=dict)
+def apply_diagnosticreport_ai_summary_persistence_endpoint(
+    report_id: int,
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.diagnostic_report_ai_summary_persistence import (
+            DIAGNOSTICREPORT_AI_SUMMARY_PERSISTENCE_MODE,
+            apply_diagnosticreport_ai_summary_persistence,
+            diagnosticreport_ai_summary_persistence_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from diagnostic_report_ai_summary_persistence import (
+            DIAGNOSTICREPORT_AI_SUMMARY_PERSISTENCE_MODE,
+            apply_diagnosticreport_ai_summary_persistence,
+            diagnosticreport_ai_summary_persistence_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    report = db.get(DiagnosticReport, int(report_id))
+    if report is None:
+        raise HTTPException(status_code=404, detail="Diagnostic report not found")
+
+    case = _owned_case_or_404(db, int(report.case_id), user)
+    raw_case_id = data.get("case_id")
+    if raw_case_id not in (None, "") and int(raw_case_id) != int(case.id):
+        raise HTTPException(status_code=422, detail="case_id does not match diagnostic report")
+
+    case_payload = _case_payload(case)
+    report_context = {
+        "report_id": int(report.id),
+        "case_id": int(report.case_id),
+        "report_type": getattr(report, "report_type", None),
+        "source_type": getattr(report, "source_type", None),
+        "status": getattr(report, "status", None),
+        "ai_summary_status": getattr(report, "ai_summary_status", None),
+    }
+
+    try:
+        persistence = apply_diagnosticreport_ai_summary_persistence(
+            db=db,
+            report=report,
+            payload=data,
+            report_context=report_context,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    api_safety = diagnosticreport_ai_summary_persistence_safety_flags(
+        dry_run=bool(persistence.get("dry_run")),
+        writes_database=bool(persistence.get("writes_database")),
+    )
+    api_safety.update(persistence.get("safety") or {})
+
+    return {
+        "message": "diagnosticreport_ai_summary_persistence_applied",
+        "mode": DIAGNOSTICREPORT_AI_SUMMARY_PERSISTENCE_MODE,
+        "case": case_payload,
+        "report": report_context,
+        **persistence,
+        "safety": api_safety,
+        **api_safety,
+    }
+# --- DiagnosticReport AI Summary Persistence V1 endpoint: end ---
