@@ -1,0 +1,7 @@
+gate,go_requirement,no_go_condition,status
+validator,VALIDATOR=PASS,validator fails,pending
+ci_static_checks,PASS,ci fails,pending
+dose_output,dose_output_enabled=false,any dose value / route / frequency present,pending
+prescription,prescription_enabled=false,prescription text or write enabled,pending
+source_review,controlled research protocol ready only,claims source review complete,pending
+next_stage,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_EVIDENCE_ABSTRACTION_V1,opens dose engine,pending

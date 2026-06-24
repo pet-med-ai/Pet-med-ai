@@ -1,0 +1,9 @@
+item,required,status,evidence
+source_review_matrix_present,true,pending,EXOTICS_DRUG_DOSE_SOURCE_REVIEW_CONTROLLED_RESEARCH_MATRIX_V1.csv
+no_dose_values,true,pending,validator checks dose-like patterns
+no_route_or_frequency,true,pending,validator checks route/frequency-like tokens
+species_groups_covered,14,pending,matrix species_group column
+review_domains_covered,6,pending,matrix review_domain column
+dose_output_enabled,false,pending,backend helper safety flags
+prescription_enabled,false,pending,backend helper safety flags
+human_review_required,true,pending,quality gate
