@@ -1,0 +1,132 @@
+{
+  "key": "fish",
+  "label": "观赏鱼/水族结构化问诊模板",
+  "species_scope": [
+    "fish",
+    "goldfish",
+    "koi",
+    "betta"
+  ],
+  "summary": "围绕观赏鱼水质、缺氧、群体发病、体表/鳍/鳃、浮沉和采食行为采集病史。",
+  "feature_flags": [
+    "water_quality_issue",
+    "temperature_issue",
+    "chemical_exposure",
+    "respiratory_distress",
+    "surface_gasping",
+    "buoyancy_problem",
+    "skin_shell_issue",
+    "group_morbidity"
+  ],
+  "red_flag_prompts": [
+    "多鱼快速死亡、集体浮头、药物/清洁剂暴露或水质急变时，按水族高风险处理。",
+    "模板不输出药物、盐浴或剂量。"
+  ],
+  "sections": [
+    {
+      "key": "tank_water",
+      "title": "鱼种 / 缸体 / 水质",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "species_tank",
+          "label": "鱼种、数量、缸体体积、过滤、打氧、开缸时间和近期加鱼",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "缸体和群体信息是水族分诊基础。"
+        },
+        {
+          "key": "water_parameters",
+          "label": "水温、pH、氨氮、亚硝酸盐、硝酸盐、余氯和换水频率",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "water_quality_issue",
+            "temperature_issue"
+          ],
+          "clinical_reason": "水质异常常是观赏鱼急性问题核心。"
+        },
+        {
+          "key": "recent_changes",
+          "label": "近期是否换水、清洗滤材、下药、新造景、新鱼入缸或停电缺氧？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "近期操作变化可解释群体发病。"
+        }
+      ]
+    },
+    {
+      "key": "resp_group_skin",
+      "title": "呼吸 / 群体 / 体表红旗",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "group_morbidity",
+          "label": "是单鱼还是多鱼发病？死亡数量和时间线？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "group_morbidity"
+          ],
+          "clinical_reason": "群体快速发病优先考虑水质、缺氧和暴露。"
+        },
+        {
+          "key": "respiration",
+          "label": "是否浮头、靠近出水口、急促鳃动、张口喘、鳃色异常？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "surface_gasping",
+            "respiratory_distress"
+          ],
+          "clinical_reason": "呼吸/鳃异常是缺氧和水质急症线索。"
+        },
+        {
+          "key": "skin_fins",
+          "label": "体表是否白点、白膜、出血、溃烂、烂鳍、擦缸或霉样附着？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "skin_shell_issue"
+          ],
+          "clinical_reason": "体表和鳍病变可提示寄生虫、感染或水质问题。"
+        }
+      ]
+    },
+    {
+      "key": "behavior_buoyancy_exposure",
+      "title": "行为 / 浮沉 / 暴露",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "buoyancy",
+          "label": "是否侧翻、沉底、浮沉异常、转圈、失衡或游姿异常？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "buoyancy_problem",
+            "neurologic_signs"
+          ],
+          "clinical_reason": "浮沉和游姿异常需结合水质和体况。"
+        },
+        {
+          "key": "appetite",
+          "label": "采食、体型、腹胀、粪便和活动量变化",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "采食和腹胀可辅助判断消化和系统性问题。"
+        },
+        {
+          "key": "chemical_exposure",
+          "label": "是否可能接触清洁剂、喷雾、金属、药物过量或未经处理自来水？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "chemical_exposure"
+          ],
+          "clinical_reason": "化学暴露可引发集体急性死亡。"
+        }
+      ]
+    }
+  ]
+}

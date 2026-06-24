@@ -1,0 +1,8 @@
+check_id,item,expected,status
+RSP-001,index rules include turtle/lizard/snake/amphibian/fish,present,required
+RSP-002,species_to_rule maps turtle/tortoise/lizard/snake/amphibian/fish to split rules,present,required
+RSP-003,group_to_rule maps split groups,present,required
+RSP-004,each split KB has system_hints/red_flags/diseases/checks/actions/questions,present,required
+RSP-005,each split intake template has at least three sections,present,required
+RSP-006,no drug dose/route/frequency text,blocked,required
+RSP-007,validator and smoke hooks present,present,required

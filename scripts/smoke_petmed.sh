@@ -3359,3 +3359,9 @@ if [ -f scripts/validate_exotics_avian_deepening.py ]; then
   python3 scripts/validate_exotics_avian_deepening.py
 fi
 # --- Exotics Avian Deepening V1 smoke: end ---
+# --- Exotics Reptile Split V1 smoke: start ---
+if [ -f scripts/validate_exotics_reptile_split.py ]; then
+  echo "[smoke] Exotics Reptile Split V1 smoke"
+  python3 scripts/validate_exotics_reptile_split.py
+fi
+# --- Exotics Reptile Split V1 smoke: end ---

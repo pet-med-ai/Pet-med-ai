@@ -1,0 +1,98 @@
+{
+  "key": "lizard",
+  "label": "蜥蜴类",
+  "summary": "鬃狮蜥、豹纹守宫、壁虎、鬣蜥、变色龙等蜥蜴的温度、UVB、营养代谢、蜕皮、消化、呼吸和繁殖分诊规则。",
+  "system_hints": [
+    {
+      "label": "温度/UVB/营养代谢",
+      "features": [
+        "temperature_issue",
+        "uvb_issue",
+        "mbd_signs",
+        "weakness"
+      ]
+    },
+    {
+      "label": "消化/拒食/便秘",
+      "features": [
+        "appetite_down",
+        "feces_down",
+        "abd_distension",
+        "foreign_body_risk"
+      ]
+    },
+    {
+      "label": "蜕皮/皮肤/眼部",
+      "features": [
+        "dysecdysis",
+        "skin_shell_issue",
+        "ocular_swelling"
+      ]
+    },
+    {
+      "label": "呼吸/繁殖/神经",
+      "features": [
+        "respiratory_distress",
+        "egg_binding",
+        "reproductive_issue",
+        "neurologic_signs"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "neurologic_signs"
+      ],
+      "reason": "抽搐、翻正困难、严重无力或星望属于高风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "mbd_signs",
+        "weakness"
+      ],
+      "reason": "骨骼变形、下颌软、腿软或抽搐合并无力提示代谢/营养急需复核。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "张口呼吸、伸颈或明显呼吸困难需优先处理。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "dysecdysis"
+      ],
+      "reason": "蜕皮不全可导致指趾、尾尖或眼部继发损伤。"
+    }
+  ],
+  "diseases": [
+    "饲养环境相关疾病",
+    "营养性继发性甲旁亢/代谢性骨病",
+    "消化道阻塞/便秘/异物风险",
+    "蜕皮不全和皮肤感染",
+    "呼吸道疾病",
+    "繁殖相关疾病"
+  ],
+  "checks": [
+    "具体蜥蜴种类、体重、年龄、性别和繁殖史",
+    "热点、冷区、夜温、湿度、UVB 指数/距离和更换时间",
+    "饮食结构、钙粉/维生素补充方式和摄食频率",
+    "口腔、眼部、皮肤、四肢骨骼和泄殖腔检查",
+    "必要时粪检、影像、血钙磷/尿酸和病原检测"
+  ],
+  "actions": [
+    "蜥蜴类先按物种核对温度梯度、UVB、饮食和补钙，再解释拒食、软骨和蜕皮问题。",
+    "神经症状、呼吸困难、严重脱水、疑似蛋滞留或外伤按高风险分诊。"
+  ],
+  "questions": [
+    "具体品种是什么？热点、冷区、夜温、湿度和 UVB 条件分别是多少？",
+    "日常吃昆虫、蔬菜、果实还是商品粮？钙粉和维生素如何补充？",
+    "是否拒食、便秘、腹胀、误食垫材、呕吐/返流或体重下降？",
+    "是否腿软、下颌软、抽搐、蜕皮不全、眼肿、张口呼吸或疑似产蛋困难？"
+  ]
+}

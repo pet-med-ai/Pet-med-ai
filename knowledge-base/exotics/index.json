@@ -7,7 +7,12 @@
     "bird",
     "reptile",
     "ferret",
-    "rodent"
+    "rodent",
+    "turtle",
+    "lizard",
+    "snake",
+    "amphibian",
+    "fish"
   ],
   "species_to_rule": {
     "rabbit": "rabbit",
@@ -20,21 +25,58 @@
     "hedgehog": "rodent",
     "sugar_glider": "rodent",
     "reptile": "reptile",
-    "turtle": "reptile",
-    "snake": "reptile",
-    "lizard": "reptile",
-    "amphibian": "reptile",
-    "fish": "reptile"
+    "turtle": "turtle",
+    "snake": "snake",
+    "lizard": "lizard",
+    "amphibian": "amphibian",
+    "fish": "fish",
+    "tortoise": "turtle",
+    "terrapin": "turtle",
+    "bearded_dragon": "lizard",
+    "leopard_gecko": "lizard",
+    "gecko": "lizard",
+    "iguana": "lizard",
+    "chameleon": "lizard",
+    "ball_python": "snake",
+    "corn_snake": "snake",
+    "boa": "snake",
+    "frog": "amphibian",
+    "toad": "amphibian",
+    "salamander": "amphibian",
+    "newt": "amphibian",
+    "axolotl": "amphibian",
+    "goldfish": "fish",
+    "koi": "fish",
+    "betta": "fish"
   },
   "group_to_rule": {
     "lagomorph": "rabbit",
     "avian": "bird",
     "reptile": "reptile",
-    "amphibian": "reptile",
-    "fish": "reptile",
+    "amphibian": "amphibian",
+    "fish": "fish",
     "mustelid": "ferret",
     "rodent": "rodent",
     "insectivore": "rodent",
-    "marsupial": "rodent"
+    "marsupial": "rodent",
+    "turtle": "turtle",
+    "chelonian": "turtle",
+    "lizard": "lizard",
+    "snake": "snake"
+  },
+  "reptile_split_v1": {
+    "mode": "exotics_reptile_split_v1",
+    "status": "split_scaffold",
+    "keeps_generic_reptile_fallback": true,
+    "new_rule_keys": [
+      "turtle",
+      "lizard",
+      "snake",
+      "amphibian",
+      "fish"
+    ],
+    "not_comprehensive_clinical_kb": true,
+    "drug_dose_status": "not_reviewed_not_enabled",
+    "source_review_status": "required_not_started"
   }
 }

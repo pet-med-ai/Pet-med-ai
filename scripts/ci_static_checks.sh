@@ -223,3 +223,7 @@ python3 scripts/validate_exotics_rabbit_deepening.py
 echo "[ci_static_checks] Exotics Avian Deepening V1 static checks"
 python3 scripts/validate_exotics_avian_deepening.py
 # --- Exotics Avian Deepening V1 static checks: end ---
+# --- Exotics Reptile Split V1 static checks: start ---
+echo "[ci_static_checks] Exotics Reptile Split V1 static checks"
+python3 scripts/validate_exotics_reptile_split.py
+# --- Exotics Reptile Split V1 static checks: end ---

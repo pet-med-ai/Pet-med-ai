@@ -1,0 +1,99 @@
+{
+  "key": "turtle",
+  "label": "龟鳖/陆龟/水龟",
+  "summary": "龟鳖、陆龟和水龟的水质/温度/UVB、甲壳、浮水、呼吸、眼部、消化和繁殖相关分诊规则。",
+  "system_hints": [
+    {
+      "label": "环境/水质/UVB",
+      "features": [
+        "husbandry_problem",
+        "water_quality_issue",
+        "temperature_issue",
+        "uvb_issue"
+      ]
+    },
+    {
+      "label": "甲壳/皮肤/外伤",
+      "features": [
+        "shell_issue",
+        "skin_shell_issue",
+        "trauma"
+      ]
+    },
+    {
+      "label": "呼吸/浮水异常",
+      "features": [
+        "respiratory_distress",
+        "buoyancy_problem",
+        "nasal_ocular_discharge"
+      ]
+    },
+    {
+      "label": "消化/排泄/繁殖",
+      "features": [
+        "appetite_down",
+        "feces_down",
+        "reproductive_issue",
+        "egg_binding",
+        "vent_prolapse"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "张口呼吸、伸颈呼吸、明显鼻泡或严重浮水异常需优先分诊。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "vent_prolapse"
+      ],
+      "reason": "泄殖腔或组织脱出需要尽快保护组织并查找原发原因。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "shell_issue",
+        "low_energy"
+      ],
+      "reason": "甲壳软化、腐甲或创伤合并精神差提示感染、营养或环境问题。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "water_quality_issue",
+        "appetite_down"
+      ],
+      "reason": "水质、温度或晒背条件异常合并拒食，需优先核对饲养参数。"
+    }
+  ],
+  "diseases": [
+    "水质/温度/UVB 相关饲养问题",
+    "甲壳感染/腐甲/外伤",
+    "呼吸道疾病或肺炎样问题",
+    "营养代谢相关甲壳/骨骼异常",
+    "繁殖相关疾病/疑似蛋滞留",
+    "消化道功能异常或寄生虫相关问题"
+  ],
+  "checks": [
+    "具体龟种、体重、饲养年限和水陆环境",
+    "水温、晒背点温度、冷区/夜温、UVB 类型和更换时间",
+    "水质记录：氨氮、亚硝酸盐、硝酸盐、pH、过滤和换水频率",
+    "甲壳、皮肤、眼部、口腔和泄殖腔检查",
+    "必要时影像、粪检、血液生化和病原检测"
+  ],
+  "actions": [
+    "先校正水质、晒背、温度、UVB 和饮食信息，再解释采食、甲壳和呼吸问题。",
+    "呼吸困难、泄殖腔脱出、严重腐甲、外伤或持续侧浮/不能下潜时按急症分诊。"
+  ],
+  "questions": [
+    "请补充具体龟种、体重、饲养年限、水深、晒台、过滤和换水频率。",
+    "水温、晒背点温度、冷区/夜温、UVB 灯型号、距离和更换时间是多少？",
+    "是否浮水、侧浮、张口呼吸、鼻泡、眼肿、拒食、腐甲或外伤？",
+    "最近排便、排尿酸、产蛋、泄殖腔状态和同池动物状态是否异常？"
+  ]
+}

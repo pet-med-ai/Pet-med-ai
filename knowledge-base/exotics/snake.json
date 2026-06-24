@@ -1,0 +1,96 @@
+{
+  "key": "snake",
+  "label": "蛇类",
+  "summary": "球蟒、玉米蛇、蟒/蚺等蛇类的温度梯度、拒食、返流、呼吸、口腔、蜕皮、体表寄生虫和外伤分诊规则。",
+  "system_hints": [
+    {
+      "label": "温度/饲养/拒食",
+      "features": [
+        "temperature_issue",
+        "humidity_issue",
+        "appetite_down",
+        "weight_loss"
+      ]
+    },
+    {
+      "label": "返流/消化异常",
+      "features": [
+        "regurgitation",
+        "abd_distension",
+        "foreign_body_risk"
+      ]
+    },
+    {
+      "label": "呼吸/口腔问题",
+      "features": [
+        "respiratory_distress",
+        "oral_lesions",
+        "nasal_ocular_discharge"
+      ]
+    },
+    {
+      "label": "蜕皮/体表/外伤",
+      "features": [
+        "dysecdysis",
+        "skin_shell_issue",
+        "trauma"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "张口呼吸、泡沫样分泌物、明显喘鸣或持续抬头呼吸需优先分诊。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "regurgitation",
+        "low_energy"
+      ],
+      "reason": "返流合并精神差或脱水提示消化、温度或系统性疾病风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "trauma"
+      ],
+      "reason": "烧伤、咬伤、严重擦伤或挤压损伤需要尽快评估。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "dysecdysis"
+      ],
+      "reason": "蜕皮不全尤其眼罩残留或尾尖残皮需复核湿度和局部损伤风险。"
+    }
+  ],
+  "diseases": [
+    "温度/湿度相关拒食或消化异常",
+    "返流综合征/消化道疾病",
+    "呼吸道疾病",
+    "口腔炎或口腔损伤",
+    "蜕皮不全和体表寄生虫",
+    "外伤/烧伤"
+  ],
+  "checks": [
+    "具体蛇种、体重、饲养年限、上次进食和蜕皮时间",
+    "热点、冷区、夜温、湿度、躲避和垫材信息",
+    "猎物类型、大小、解冻/投喂方式和返流时间线",
+    "口腔、鼻孔、眼罩、皮肤、腹鳞和泄殖腔检查",
+    "必要时粪检、影像和病原检测"
+  ],
+  "actions": [
+    "蛇类拒食或返流先核对温度梯度、湿度、猎物大小和抓取应激。",
+    "呼吸困难、反复返流、明显脱水、外伤或烧伤按高风险分诊。"
+  ],
+  "questions": [
+    "具体蛇种、体重、上次进食、上次蜕皮和近期待产/繁殖情况？",
+    "热点、冷区、夜温、湿度、躲避盒和垫材是什么？",
+    "猎物大小和投喂方式如何？是否返流，返流发生在进食后多久？",
+    "是否张口呼吸、鼻口分泌物、口腔红肿、眼罩残留、皮肤损伤或螨虫？"
+  ]
+}

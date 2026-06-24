@@ -1,0 +1,135 @@
+{
+  "key": "snake",
+  "label": "蛇类结构化问诊模板",
+  "species_scope": [
+    "snake",
+    "ball_python",
+    "corn_snake",
+    "boa"
+  ],
+  "summary": "围绕蛇类温湿度、拒食、返流、蜕皮、呼吸、口腔、外伤和体表寄生虫采集病史。",
+  "feature_flags": [
+    "temperature_issue",
+    "humidity_issue",
+    "appetite_down",
+    "regurgitation",
+    "dysecdysis",
+    "respiratory_distress",
+    "oral_lesions",
+    "trauma"
+  ],
+  "red_flag_prompts": [
+    "张口呼吸、泡沫样分泌物、反复返流、明显脱水、烧伤、外伤或严重口腔病变时，按蛇类高风险处理。",
+    "模板只做问诊结构化，不输出治疗方案或药物剂量。"
+  ],
+  "sections": [
+    {
+      "key": "signalment_habitat",
+      "title": "基础信息 / 环境",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "exact_species",
+          "label": "具体蛇种、体重、年龄、性别和饲养年限",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "蛇种和体型影响温湿度、喂食和繁殖判断。"
+        },
+        {
+          "key": "temperature_humidity",
+          "label": "热点、冷区、夜温、湿度、躲避盒和垫材信息",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "temperature_issue",
+            "humidity_issue"
+          ],
+          "clinical_reason": "温湿度和躲避直接影响采食、消化和蜕皮。"
+        },
+        {
+          "key": "last_shed",
+          "label": "上次蜕皮时间、是否完整蜕皮、有无眼罩残留或尾尖残皮",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "dysecdysis"
+          ],
+          "clinical_reason": "蜕皮质量是湿度和健康状态指标。"
+        }
+      ]
+    },
+    {
+      "key": "feeding_regurgitation",
+      "title": "投喂 / 拒食 / 返流",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "feeding_history",
+          "label": "上次进食时间、猎物种类/大小、解冻和投喂方式",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "猎物大小和投喂方式影响返流和拒食判断。"
+        },
+        {
+          "key": "regurgitation",
+          "label": "是否返流？发生在进食后多久？之前是否抓取、降温或应激？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "regurgitation"
+          ],
+          "clinical_reason": "返流时间线有助于判断温度、应激和消化问题。"
+        },
+        {
+          "key": "weight_appetite",
+          "label": "拒食持续多久？体重是否下降？是否处于繁殖、换皮或冬化相关阶段？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "appetite_down",
+            "weight_loss"
+          ],
+          "clinical_reason": "拒食需结合体重和生理状态评估。"
+        }
+      ]
+    },
+    {
+      "key": "resp_oral_skin",
+      "title": "呼吸 / 口腔 / 体表",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "respiration",
+          "label": "是否张口呼吸、鼻泡、口鼻分泌物、喘鸣或持续抬头呼吸？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "respiratory_distress"
+          ],
+          "clinical_reason": "呼吸异常是蛇类高风险线索。"
+        },
+        {
+          "key": "oral",
+          "label": "口腔是否红肿、出血、分泌物、异味或进食困难？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "oral_lesions"
+          ],
+          "clinical_reason": "口腔病变可导致拒食和系统性风险。"
+        },
+        {
+          "key": "skin_trauma_mites",
+          "label": "是否烧伤、擦伤、咬伤、腹鳞异常、螨虫或皮肤肿块？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "trauma",
+            "skin_shell_issue"
+          ],
+          "clinical_reason": "体表和外伤问题需要评估环境和感染风险。"
+        }
+      ]
+    }
+  ]
+}

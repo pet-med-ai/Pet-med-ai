@@ -1,0 +1,93 @@
+{
+  "key": "fish",
+  "label": "观赏鱼/水族",
+  "summary": "观赏鱼和水族动物的水质、呼吸/鳃、浮沉、体表病变、采食、行为和群体死亡分诊规则。",
+  "system_hints": [
+    {
+      "label": "水质/缸体环境",
+      "features": [
+        "water_quality_issue",
+        "temperature_issue",
+        "chemical_exposure"
+      ]
+    },
+    {
+      "label": "呼吸/鳃/缺氧",
+      "features": [
+        "respiratory_distress",
+        "gill_issue",
+        "surface_gasping"
+      ]
+    },
+    {
+      "label": "浮沉/游姿/神经",
+      "features": [
+        "buoyancy_problem",
+        "neurologic_signs",
+        "weakness"
+      ]
+    },
+    {
+      "label": "体表/鳍/群体异常",
+      "features": [
+        "skin_shell_issue",
+        "fin_damage",
+        "group_morbidity"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "group_morbidity"
+      ],
+      "reason": "同缸多鱼快速发病或死亡，需优先排查水质、缺氧和毒物暴露。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "surface_gasping"
+      ],
+      "reason": "集体浮头、急促鳃动或靠近出水口提示缺氧/水质急症。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "chemical_exposure"
+      ],
+      "reason": "清洁剂、药物过量、金属或污染水暴露可造成快速死亡。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "buoyancy_problem"
+      ],
+      "reason": "侧翻、沉底或浮沉异常需结合水质、体况和感染/器官问题评估。"
+    }
+  ],
+  "diseases": [
+    "水质/缺氧/毒物暴露相关问题",
+    "鳃部疾病或呼吸障碍",
+    "体表寄生虫/细菌/真菌样病变",
+    "浮沉异常相关问题",
+    "营养和缸体管理相关疾病"
+  ],
+  "checks": [
+    "鱼种、数量、缸体体积、过滤、打氧、开缸时间和近期加鱼",
+    "水温、pH、氨氮、亚硝酸盐、硝酸盐、余氯和换水频率",
+    "群体发病比例、死亡数量和时间线",
+    "鳃动、浮头、游姿、体表白点/溃烂/烂鳍和采食状态",
+    "必要时水质复测、刮片/镜检和病原评估"
+  ],
+  "actions": [
+    "水族病例先确认水质和群体时间线，再解释单鱼体表、鳃和浮沉异常。",
+    "集体浮头、多鱼死亡、污染水暴露或药物过量按高风险分诊。"
+  ],
+  "questions": [
+    "鱼种、缸体体积、数量、过滤打氧、开缸多久、近期是否新进鱼或换水？",
+    "水温、pH、氨氮、亚硝酸盐、硝酸盐和余氯检测结果是多少？",
+    "是单鱼还是多鱼发病？是否浮头、急促鳃动、沉底、侧翻或集体死亡？",
+    "体表是否白点、白膜、出血、溃烂、烂鳍、霉样附着或擦缸？"
+  ]
+}

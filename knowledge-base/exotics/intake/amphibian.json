@@ -1,0 +1,131 @@
+{
+  "key": "amphibian",
+  "label": "两栖类结构化问诊模板",
+  "species_scope": [
+    "amphibian",
+    "frog",
+    "toad",
+    "salamander",
+    "newt",
+    "axolotl"
+  ],
+  "summary": "围绕两栖类水质、温湿度、化学暴露、皮肤、浮肿、神经和群体异常采集病史。",
+  "feature_flags": [
+    "water_quality_issue",
+    "temperature_issue",
+    "humidity_issue",
+    "chemical_exposure",
+    "skin_shell_issue",
+    "bloating",
+    "neurologic_signs",
+    "group_morbidity"
+  ],
+  "red_flag_prompts": [
+    "污染水/清洁剂/金属暴露、神经异常、明显浮肿、严重皮肤溃疡或群体死亡时，按两栖类高风险处理。",
+    "模板不输出药浴、药物或剂量。"
+  ],
+  "sections": [
+    {
+      "key": "species_water_environment",
+      "title": "物种 / 水质 / 环境",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "exact_species",
+          "label": "具体种类、体重/体长、陆栖/水栖/半水栖、饲养年限",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "两栖类不同物种环境需求差异明显。"
+        },
+        {
+          "key": "water_quality",
+          "label": "水温、气温、湿度、pH、氨氮、亚硝酸盐、硝酸盐、氯和换水频率",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "water_quality_issue",
+            "temperature_issue",
+            "humidity_issue"
+          ],
+          "clinical_reason": "水质和温湿度是两栖疾病判断核心。"
+        },
+        {
+          "key": "water_source",
+          "label": "用水来源、除氯方式、过滤、底材、造景和近期是否换环境",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "水源和造景变化可引发急性问题。"
+        }
+      ]
+    },
+    {
+      "key": "exposure_skin_neuro",
+      "title": "暴露 / 皮肤 / 神经红旗",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "chemical_exposure",
+          "label": "是否接触清洁剂、消毒剂、药浴、金属、肥皂、香薰或污染水？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "chemical_exposure"
+          ],
+          "clinical_reason": "两栖类经皮吸收敏感，化学暴露可快速恶化。"
+        },
+        {
+          "key": "skin",
+          "label": "皮肤是否发红、溃疡、白膜、霉样附着、脱皮异常或出血？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "skin_shell_issue"
+          ],
+          "clinical_reason": "皮肤异常可反映水质、感染或毒性问题。"
+        },
+        {
+          "key": "neuro_bloat",
+          "label": "是否浮肿、异常漂浮、翻正困难、抽搐、不能站立或异常游动？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "bloating",
+            "neurologic_signs"
+          ],
+          "clinical_reason": "浮肿和神经症状是重要高风险线索。"
+        }
+      ]
+    },
+    {
+      "key": "feeding_group",
+      "title": "采食 / 群体 / 时间线",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "feeding",
+          "label": "最近采食、粪便、体重/体型和活动量变化",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "采食和活动变化常早于严重症状。"
+        },
+        {
+          "key": "group_status",
+          "label": "同缸动物是否也发病、死亡或近期新进个体？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "group_morbidity"
+          ],
+          "clinical_reason": "群体异常提示环境、水质或传染风险。"
+        },
+        {
+          "key": "timeline",
+          "label": "症状开始时间、变化速度和已经做过哪些处理",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "时间线影响急症分级和后续检查。"
+        }
+      ]
+    }
+  ]
+}

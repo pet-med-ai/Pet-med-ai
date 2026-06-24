@@ -1,0 +1,8 @@
+gate,requirement,go
+validator,python3 scripts/validate_exotics_reptile_split.py PASS,required
+exotic_kb_validator,python3 scripts/validate_exotic_kb.py PASS,required
+exotic_intake_templates_validator,python3 scripts/validate_exotic_intake_templates.py PASS,required
+ci_static_checks,bash scripts/ci_static_checks.sh PASS,required
+online_smoke,bash scripts/smoke_petmed.sh ALL PASS,required
+safety,no DB write / no final diagnosis / no treatment plan / no prescription / no drug dose,required
+decision,GO_TO_EXOTICS_SMALL_MAMMAL_SPLIT_V1,required

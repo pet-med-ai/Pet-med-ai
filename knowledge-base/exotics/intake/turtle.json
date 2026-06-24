@@ -1,0 +1,130 @@
+{
+  "key": "turtle",
+  "label": "龟鳖/陆龟/水龟结构化问诊模板",
+  "species_scope": [
+    "turtle",
+    "tortoise",
+    "terrapin"
+  ],
+  "summary": "围绕龟类水质、温度、UVB、甲壳、浮水、呼吸和繁殖风险采集病史。",
+  "feature_flags": [
+    "water_quality_issue",
+    "temperature_issue",
+    "uvb_issue",
+    "shell_issue",
+    "respiratory_distress",
+    "buoyancy_problem",
+    "reproductive_issue",
+    "vent_prolapse"
+  ],
+  "red_flag_prompts": [
+    "张口呼吸、伸颈呼吸、持续侧浮/不能下潜、泄殖腔脱出、严重腐甲或外伤时，按龟类急症优先处理。",
+    "模板只采集饲养和症状线索，不输出用药或剂量。"
+  ],
+  "sections": [
+    {
+      "key": "signalment_environment",
+      "title": "基础信息 / 环境",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "exact_species",
+          "label": "具体龟种、体重、年龄和饲养年限",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "龟种和体型影响水陆环境、晒背和疾病方向。"
+        },
+        {
+          "key": "habitat_type",
+          "label": "水龟、半水龟还是陆龟？水深、晒台、垫材或土壤如何？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "水陆环境直接影响甲壳、呼吸和消化风险。"
+        },
+        {
+          "key": "temperature_uvb",
+          "label": "水温、晒背点温度、冷区/夜温、UVB 类型/距离/更换时间",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "temperature_issue",
+            "uvb_issue"
+          ],
+          "clinical_reason": "温度和 UVB 是龟类代谢与免疫核心参数。"
+        }
+      ]
+    },
+    {
+      "key": "water_shell_respiration",
+      "title": "水质 / 甲壳 / 呼吸红旗",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "water_quality",
+          "label": "过滤、换水频率、pH、氨氮、亚硝酸盐、硝酸盐和余氯检测结果",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "water_quality_issue"
+          ],
+          "clinical_reason": "水质异常常与眼部、皮肤、甲壳和呼吸问题相关。"
+        },
+        {
+          "key": "shell_skin",
+          "label": "是否软壳、腐甲、裂甲、出血、外伤、皮肤红肿或脱皮异常？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "shell_issue",
+            "skin_shell_issue"
+          ],
+          "clinical_reason": "甲壳和皮肤异常需要区分环境、营养和感染方向。"
+        },
+        {
+          "key": "resp_buoyancy",
+          "label": "是否张口呼吸、鼻泡、伸颈、侧浮、沉不下去或长期沉底？",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "respiratory_distress",
+            "buoyancy_problem"
+          ],
+          "clinical_reason": "呼吸和浮水异常是龟类高风险线索。"
+        }
+      ]
+    },
+    {
+      "key": "feeding_elimination_reproduction",
+      "title": "采食 / 排泄 / 繁殖",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "diet_appetite",
+          "label": "日常饮食、钙粉/维生素、最近采食和体重变化",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "饮食结构和拒食时间影响代谢和消化判断。"
+        },
+        {
+          "key": "elimination",
+          "label": "排便、尿酸、排尿是否异常？有无腹胀或异物风险？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "排泄变化可提示消化、泌尿或脱水问题。"
+        },
+        {
+          "key": "reproductive",
+          "label": "雌性是否近期产蛋、刨土、躁动、疑似蛋滞留或泄殖腔脱出？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "reproductive_issue",
+            "egg_binding",
+            "vent_prolapse"
+          ],
+          "clinical_reason": "繁殖问题和泄殖腔脱出属于重要红旗。"
+        }
+      ]
+    }
+  ]
+}

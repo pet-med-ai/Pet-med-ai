@@ -1,0 +1,142 @@
+{
+  "key": "lizard",
+  "label": "蜥蜴类结构化问诊模板",
+  "species_scope": [
+    "lizard",
+    "bearded_dragon",
+    "leopard_gecko",
+    "gecko",
+    "iguana",
+    "chameleon"
+  ],
+  "summary": "围绕蜥蜴温度梯度、UVB、饮食补钙、拒食、蜕皮、呼吸和繁殖风险采集病史。",
+  "feature_flags": [
+    "temperature_issue",
+    "uvb_issue",
+    "mbd_signs",
+    "dysecdysis",
+    "appetite_down",
+    "feces_down",
+    "respiratory_distress",
+    "reproductive_issue"
+  ],
+  "red_flag_prompts": [
+    "抽搐、严重无力、张口呼吸、疑似蛋滞留、明显脱水或严重外伤时，按蜥蜴急症优先处理。",
+    "模板不输出补钙方案、药物或剂量。"
+  ],
+  "sections": [
+    {
+      "key": "signalment_husbandry",
+      "title": "基础信息 / 饲养参数",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "exact_species",
+          "label": "具体品种、体重、年龄、性别和饲养年限",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "不同蜥蜴物种温湿度、饮食和疾病谱差异明显。"
+        },
+        {
+          "key": "temperature_gradient",
+          "label": "热点、冷区、夜温、湿度和是否有温度计/湿度计记录",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "temperature_issue",
+            "humidity_issue"
+          ],
+          "clinical_reason": "温度梯度影响消化、免疫和活动。"
+        },
+        {
+          "key": "uvb_lighting",
+          "label": "UVB 灯型号、距离、遮挡、更换时间和每日光照时长",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "uvb_issue",
+            "mbd_signs"
+          ],
+          "clinical_reason": "UVB 与钙磷代谢和骨骼风险密切相关。"
+        }
+      ]
+    },
+    {
+      "key": "diet_gi_mbd",
+      "title": "饮食 / 胃肠 / 代谢骨病线索",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "diet_supplement",
+          "label": "日常食物、昆虫/蔬菜比例、钙粉和维生素补充方式",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "饮食和补充方式是代谢和消化判断基础。"
+        },
+        {
+          "key": "appetite_feces",
+          "label": "最近采食、排便、腹胀、便秘、误食垫材或异物风险",
+          "answer_type": "text",
+          "required": true,
+          "trigger_features": [
+            "appetite_down",
+            "feces_down",
+            "abd_distension"
+          ],
+          "clinical_reason": "拒食和排便异常需结合温度和异物风险。"
+        },
+        {
+          "key": "mbd_signs",
+          "label": "是否腿软、下颌软、骨折、抽搐、走路异常或不能爬？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "mbd_signs",
+            "weakness",
+            "neurologic_signs"
+          ],
+          "clinical_reason": "骨骼和神经症状是高风险。"
+        }
+      ]
+    },
+    {
+      "key": "skin_resp_reproduction",
+      "title": "蜕皮 / 呼吸 / 繁殖",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "shedding_skin",
+          "label": "是否蜕皮不全、眼部残皮、指趾/尾尖残皮、皮肤损伤或寄生虫？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "dysecdysis",
+            "skin_shell_issue"
+          ],
+          "clinical_reason": "蜕皮和体表问题常与湿度、营养和外伤相关。"
+        },
+        {
+          "key": "respiration",
+          "label": "是否张口呼吸、鼻口分泌物、喘鸣或精神明显下降？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "respiratory_distress"
+          ],
+          "clinical_reason": "呼吸异常需低应激评估。"
+        },
+        {
+          "key": "reproductive",
+          "label": "雌性是否腹部膨大、挖掘、躁动、疑似产蛋困难？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "egg_binding",
+            "reproductive_issue"
+          ],
+          "clinical_reason": "繁殖相关问题在部分蜥蜴中可进展为急症。"
+        }
+      ]
+    }
+  ]
+}

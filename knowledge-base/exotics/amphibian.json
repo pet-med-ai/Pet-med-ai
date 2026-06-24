@@ -1,0 +1,95 @@
+{
+  "key": "amphibian",
+  "label": "两栖类",
+  "summary": "蛙、蟾蜍、蝾螈、螈和墨西哥钝口螈等两栖类的水质、温湿度、皮肤、浮肿、神经、采食和群体暴露分诊规则。",
+  "system_hints": [
+    {
+      "label": "水质/温湿度/化学暴露",
+      "features": [
+        "water_quality_issue",
+        "temperature_issue",
+        "humidity_issue",
+        "chemical_exposure"
+      ]
+    },
+    {
+      "label": "皮肤/脱皮/损伤",
+      "features": [
+        "skin_shell_issue",
+        "dysecdysis",
+        "trauma"
+      ]
+    },
+    {
+      "label": "浮肿/消化/采食",
+      "features": [
+        "bloating",
+        "appetite_down",
+        "feces_down"
+      ]
+    },
+    {
+      "label": "呼吸/神经/群体异常",
+      "features": [
+        "respiratory_distress",
+        "neurologic_signs",
+        "group_morbidity"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "chemical_exposure"
+      ],
+      "reason": "清洁剂、金属、氯、药液或污染水暴露可能快速恶化。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "neurologic_signs"
+      ],
+      "reason": "翻正困难、抽搐、异常游动或不能站立属于高风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "bloating",
+        "low_energy"
+      ],
+      "reason": "明显浮肿合并精神差需优先评估水质、感染和系统性疾病。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "skin_shell_issue"
+      ],
+      "reason": "皮肤发红、溃疡、脱皮异常或霉样附着提示环境或感染问题。"
+    }
+  ],
+  "diseases": [
+    "水质/温度/化学暴露相关问题",
+    "皮肤感染或损伤",
+    "浮肿综合征样问题",
+    "消化道或寄生虫相关问题",
+    "神经系统或全身性疾病"
+  ],
+  "checks": [
+    "具体两栖种类、陆栖/水栖/半水栖环境和同缸动物",
+    "水温、气温、湿度、pH、氨氮、亚硝酸盐、硝酸盐、氯和换水频率",
+    "用水来源、除氯方式、清洁剂/金属/药物暴露",
+    "皮肤、体表黏液、浮肿、口腔和肢体损伤检查",
+    "必要时水质复核、皮肤/粪便检查和病原检测"
+  ],
+  "actions": [
+    "两栖类先核对水质、温度、湿度和化学暴露，再解释皮肤、采食和神经症状。",
+    "污染水暴露、神经症状、明显浮肿、皮肤严重溃疡或群体发病按高风险分诊。"
+  ],
+  "questions": [
+    "具体种类和饲养方式？水温、气温、湿度、pH、氨氮、亚硝酸盐和换水频率是多少？",
+    "用水是否除氯？近期是否用过清洁剂、消毒剂、药浴、金属装饰或新造景？",
+    "是否拒食、浮肿、异常漂浮、翻正困难、抽搐、皮肤发红/溃疡/霉样附着？",
+    "同缸动物是否也出现症状或死亡？近期是否新进个体或换环境？"
+  ]
+}
