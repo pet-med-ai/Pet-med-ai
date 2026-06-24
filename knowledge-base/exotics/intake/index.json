@@ -12,11 +12,31 @@
     "lizard",
     "snake",
     "amphibian",
-    "fish"
+    "fish",
+    "guinea_pig",
+    "hamster",
+    "chinchilla",
+    "rat_mouse",
+    "hedgehog",
+    "sugar_glider"
   ],
   "notes": [
     "V1 只返回问诊模板，不新增数据库字段。",
     "前端可展示模板，后续 V2 再做可编辑表单和持久化。",
-    "Reptile Split V1 增加 turtle/lizard/snake/amphibian/fish 结构化问诊模板；generic reptile 作为兼容回退。"
-  ]
+    "Reptile Split V1 增加 turtle/lizard/snake/amphibian/fish 结构化问诊模板；generic reptile 作为兼容回退。",
+    "Small Mammal Split V1 将 guinea_pig / hamster / chinchilla / rat_mouse / hedgehog / sugar_glider 拆出独立问诊模板；rodent 保留为 legacy fallback。"
+  ],
+  "small_mammal_split_v1": {
+    "mode": "exotics_small_mammal_split_v1",
+    "new_template_keys": [
+      "guinea_pig",
+      "hamster",
+      "chinchilla",
+      "rat_mouse",
+      "hedgehog",
+      "sugar_glider"
+    ],
+    "drug_dose_status": "not_reviewed_not_enabled",
+    "source_review_status": "required_not_started"
+  }
 }

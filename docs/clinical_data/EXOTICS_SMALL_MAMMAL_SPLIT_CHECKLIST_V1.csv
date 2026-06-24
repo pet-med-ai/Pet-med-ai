@@ -1,0 +1,9 @@
+item,status,notes
+small_mammal_rule_keys_present,PASS,guinea_pig hamster chinchilla rat_mouse hedgehog sugar_glider exist
+species_mapping_split,PASS,exact species map away from generic rodent fallback
+rodent_fallback_retained,PASS,legacy rodent rule remains available
+intake_templates_present,PASS,each split key has a structured intake template
+drug_dose_disabled,PASS,no dose route or frequency output
+source_review_required,PASS,source review not started and explicitly required
+db_write_blocked,PASS,no database writes or migrations
+human_review_required,PASS,clinician review remains required

@@ -1,0 +1,118 @@
+{
+  "key": "sugar_glider",
+  "label": "蜜袋鼯 / Sugar glider",
+  "summary": "蜜袋鼯营养代谢、后肢无力、自残/外伤、脱水、呼吸、pouch / 生殖和饲养群体的分诊规则。",
+  "system_hints": [
+    {
+      "label": "营养 / 代谢 / 后肢无力",
+      "features": [
+        "nutrition_imbalance_risk",
+        "hindlimb_weakness",
+        "weakness"
+      ]
+    },
+    {
+      "label": "自残 / 外伤 / 咬伤",
+      "features": [
+        "self_mutilation",
+        "trauma",
+        "bleeding"
+      ]
+    },
+    {
+      "label": "采食 / 脱水 / 精神",
+      "features": [
+        "appetite_down",
+        "weight_loss",
+        "dehydration"
+      ]
+    },
+    {
+      "label": "呼吸系统",
+      "features": [
+        "respiratory_distress",
+        "nasal_ocular_discharge"
+      ]
+    },
+    {
+      "label": "生殖 / pouch / 泌尿",
+      "features": [
+        "reproductive_issue",
+        "pouch_issue",
+        "urinary_issue"
+      ]
+    },
+    {
+      "label": "群体 / 环境 / 应激",
+      "features": [
+        "same_cage_affected",
+        "husbandry_problem",
+        "stress"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "hindlimb_weakness"
+      ],
+      "reason": "蜜袋鼯后肢无力、不能攀爬或拖行需优先复核营养/代谢、外伤和疼痛。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "self_mutilation"
+      ],
+      "reason": "自残、咬尾、咬生殖器或持续出血属于高风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "明显呼吸困难、发绀或张口呼吸为高风险。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "nutrition_imbalance_risk"
+      ],
+      "reason": "长期饮食比例不平衡会影响骨骼、牙齿和全身状态。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "pouch_issue"
+      ],
+      "reason": "pouch 分泌物、异味或幼崽问题需复核生殖/感染方向。"
+    }
+  ],
+  "diseases": [
+    "营养代谢相关问题",
+    "后肢无力 / 外伤 / 疼痛方向",
+    "自残或行为/疼痛相关问题",
+    "脱水 / 采食下降",
+    "呼吸道疾病",
+    "pouch / 生殖 / 泌尿问题"
+  ],
+  "checks": [
+    "体重、脱水、体况和活动能力",
+    "饮食配方、钙磷来源、昆虫/水果/主食比例",
+    "后肢力量、攀爬能力、外伤和疼痛复核",
+    "尾巴、生殖器、pouch、皮肤和咬伤检查",
+    "呼吸、鼻眼分泌物和笼舍通风",
+    "同笼关系、社交应激和环境温度记录"
+  ],
+  "actions": [
+    "蜜袋鼯自残、出血、后肢无力、呼吸困难或明显脱水时按高风险处理。",
+    "记录饮食配方、同笼关系、夜间活动、体重和环境温度；本规则不提供药物剂量或处方。"
+  ],
+  "questions": [
+    "是否后肢无力、不能攀爬、拖行、跌落或突然不活动？",
+    "是否自残、咬尾、咬生殖器、外伤、出血或同笼攻击？",
+    "日常饮食配方是什么？钙源、昆虫、水果、主食比例如何？",
+    "是否采食下降、脱水、体重下降、腹泻、呼吸异常或鼻眼分泌物？",
+    "是否 pouch 分泌物/异味、幼崽问题、排尿异常或近期社交应激？"
+  ]
+}

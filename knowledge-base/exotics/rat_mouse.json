@@ -1,0 +1,118 @@
+{
+  "key": "rat_mouse",
+  "label": "宠物鼠 / 大鼠 / 小鼠",
+  "summary": "宠物鼠呼吸、肿块、牙科、皮肤外伤、神经和群体环境的分诊规则。",
+  "system_hints": [
+    {
+      "label": "呼吸系统",
+      "features": [
+        "respiratory_distress",
+        "nasal_ocular_discharge",
+        "voice_change"
+      ]
+    },
+    {
+      "label": "肿块 / 老年问题",
+      "features": [
+        "mass_lump",
+        "weight_loss",
+        "low_energy"
+      ]
+    },
+    {
+      "label": "牙科 / 采食",
+      "features": [
+        "dental_signs",
+        "appetite_down",
+        "drooling"
+      ]
+    },
+    {
+      "label": "皮肤 / 寄生虫 / 外伤",
+      "features": [
+        "skin_shell_issue",
+        "trauma",
+        "bleeding"
+      ]
+    },
+    {
+      "label": "神经 / 头斜 / 虚弱",
+      "features": [
+        "neurologic_signs",
+        "head_tilt",
+        "weakness"
+      ]
+    },
+    {
+      "label": "群体 / 环境",
+      "features": [
+        "husbandry_problem",
+        "same_cage_affected"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "宠物鼠张口呼吸、明显喘促或发绀为高风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "bleeding"
+      ],
+      "reason": "持续出血、外伤或被同笼咬伤需优先处理。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "collapse"
+      ],
+      "reason": "虚脱、不能站立或低体温样反应为高风险。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "mass_lump"
+      ],
+      "reason": "肿块需要记录位置、大小、生长速度和破溃情况。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "head_tilt"
+      ],
+      "reason": "头斜或转圈需复核耳病、神经或外伤方向。"
+    }
+  ],
+  "diseases": [
+    "呼吸道疾病",
+    "乳腺/皮下肿块或脓肿",
+    "牙齿过长或口腔问题",
+    "皮肤寄生虫、外伤或同笼咬伤",
+    "耳病 / 神经系统异常",
+    "环境刺激或群体传播问题"
+  ],
+  "checks": [
+    "呼吸频率、鼻眼分泌物、声音变化和笼舍氨味",
+    "肿块大小、位置、破溃和生长速度记录",
+    "门齿、采食、体重和脱水复核",
+    "皮肤、外伤、同笼冲突和垫材刺激复核",
+    "头斜、转圈、步态和活动能力评估",
+    "同笼动物是否也有症状"
+  ],
+  "actions": [
+    "宠物鼠呼吸困难、虚脱、持续出血或神经异常时按高风险处理。",
+    "记录笼舍通风、垫材、同笼数量、体重变化和肿块时间线；本规则不提供药物剂量或处方。"
+  ],
+  "questions": [
+    "是否喘促、张口呼吸、鼻眼分泌物、咔哒声或同笼也有呼吸症状？",
+    "是否有肿块？位置、大小、增长速度、是否破溃或影响活动？",
+    "是否采食下降、流口水、门齿过长、体重下降或脱水？",
+    "是否皮肤瘙痒、脱毛、外伤、出血、同笼打架或垫材变化？",
+    "是否头斜、转圈、抽搐、后肢无力或突然虚弱？"
+  ]
+}

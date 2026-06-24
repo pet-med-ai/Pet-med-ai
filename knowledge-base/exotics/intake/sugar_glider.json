@@ -1,0 +1,186 @@
+{
+  "key": "sugar_glider",
+  "label": "蜜袋鼯结构化问诊模板",
+  "species_scope": [
+    "sugar_glider"
+  ],
+  "summary": "围绕蜜袋鼯营养代谢、后肢无力、自残外伤、脱水、pouch/生殖、呼吸和群体应激采集病史。",
+  "feature_flags": [
+    "nutrition_imbalance_risk",
+    "hindlimb_weakness",
+    "self_mutilation",
+    "trauma",
+    "appetite_down",
+    "dehydration",
+    "pouch_issue",
+    "respiratory_distress"
+  ],
+  "red_flag_prompts": [
+    "出现呼吸困难、虚脱、持续出血、神经异常、拒食合并精神差等情况时，按小型异宠急症优先处理。",
+    "本模板只采集病史和红旗信息，不提供处方或药物剂量。"
+  ],
+  "sections": [
+    {
+      "key": "signalment",
+      "title": "基础信息 / 群体",
+      "priority": "core",
+      "questions": [
+        {
+          "key": "exact_species",
+          "label": "具体品种/类型、年龄、性别、体重和来源时间？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "物种、年龄和体重趋势影响风险判断。"
+        },
+        {
+          "key": "same_cage",
+          "label": "单只还是同笼/群养？同伴是否有类似症状或冲突？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "群体信息有助于判断传染、环境或攻击风险。",
+          "trigger_features": [
+            "same_cage_affected"
+          ]
+        },
+        {
+          "key": "housing",
+          "label": "笼舍温度、垫材、通风、清洁和近期环境变化？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "环境是小型哺乳动物分诊核心。",
+          "trigger_features": [
+            "husbandry_problem",
+            "temperature_issue"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "food_weight_output",
+      "title": "采食 / 体重 / 粪尿",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "appetite",
+          "label": "过去 12–24 小时采食、饮水、体重和活动是否改变？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "拒食和体重下降常提示高风险。",
+          "trigger_features": [
+            "anorexia",
+            "appetite_down",
+            "weight_loss"
+          ]
+        },
+        {
+          "key": "feces_urine",
+          "label": "粪便和尿液数量、颜色、性状是否改变？是否腹泻、少粪、血尿或排尿困难？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "粪尿变化提示胃肠、泌尿或脱水问题。",
+          "trigger_features": [
+            "diarrhea",
+            "feces_down",
+            "urinary_issue"
+          ]
+        },
+        {
+          "key": "pain_energy",
+          "label": "是否磨牙、弓背、腹胀、精神差、虚弱或低体温样反应？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "疼痛和全身状态决定复核优先级。",
+          "trigger_features": [
+            "low_energy",
+            "weakness",
+            "abd_distension"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "species_specific",
+      "title": "物种特异红旗",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "mouth_dental",
+          "label": "是否流口水、口臭、门齿异常、采食困难或口腔疼痛？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "小型哺乳动物牙科或口腔问题常导致采食下降。",
+          "trigger_features": [
+            "dental_signs",
+            "drooling"
+          ]
+        },
+        {
+          "key": "respiration",
+          "label": "是否喘促、张口呼吸、鼻眼分泌物或呼吸声音异常？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "呼吸困难是高风险红旗。",
+          "trigger_features": [
+            "respiratory_distress",
+            "nasal_ocular_discharge"
+          ]
+        },
+        {
+          "key": "neuro_mobility",
+          "label": "是否后肢无力、头斜、转圈、翻身困难、抽搐或不能正常活动？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "神经和运动异常需优先复核。",
+          "trigger_features": [
+            "neurologic_signs",
+            "head_tilt",
+            "hindlimb_weakness",
+            "ataxia"
+          ]
+        }
+      ]
+    },
+    {
+      "key": "skin_trauma_mass",
+      "title": "皮肤 / 外伤 / 肿块",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "skin",
+          "label": "是否脱毛、掉刺、瘙痒、结痂、足底红肿、皮肤破溃或寄生虫可疑？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "皮肤和足底问题常与环境、疼痛和感染相关。",
+          "trigger_features": [
+            "skin_shell_issue",
+            "pododermatitis_signs",
+            "pruritus"
+          ]
+        },
+        {
+          "key": "trauma_mass",
+          "label": "是否有外伤、出血、同笼咬伤、肿块、破溃或生长变快？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "外伤、出血和肿块需要记录时间线。",
+          "trigger_features": [
+            "trauma",
+            "bleeding",
+            "mass_lump"
+          ]
+        },
+        {
+          "key": "nutrition_context",
+          "label": "日常饮食结构、补充品、零食和近期换粮情况？",
+          "answer_type": "text",
+          "required": true,
+          "clinical_reason": "营养结构是小型异宠基础病史。",
+          "trigger_features": [
+            "nutrition_imbalance_risk",
+            "vitamin_c_risk"
+          ]
+        }
+      ]
+    }
+  ]
+}

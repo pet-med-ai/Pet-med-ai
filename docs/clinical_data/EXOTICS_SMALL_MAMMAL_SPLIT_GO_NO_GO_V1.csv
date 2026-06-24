@@ -1,0 +1,12 @@
+gate,required,evidence,status
+validator_pass,true,python3 scripts/validate_exotics_small_mammal_split.py,PENDING
+exotic_kb_validator_pass,true,python3 scripts/validate_exotic_kb.py,PENDING
+exotic_intake_validator_pass,true,python3 scripts/validate_exotic_intake_templates.py,PENDING
+ci_static_checks_pass,true,bash scripts/ci_static_checks.sh,PENDING
+online_smoke_pass,true,bash scripts/smoke_petmed.sh,PENDING
+no_db_write,true,read_only static validation,PENDING
+no_final_diagnosis,true,forbidden key scan,PENDING
+no_treatment_plan,true,forbidden key scan,PENDING
+no_prescription,true,forbidden key scan,PENDING
+no_drug_dose,true,forbidden dose scan,PENDING
+decision,true,GO_TO_EXOTICS_FERRET_DEEPENING_V1,PENDING

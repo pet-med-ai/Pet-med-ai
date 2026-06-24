@@ -1,0 +1,120 @@
+{
+  "key": "chinchilla",
+  "label": "龙猫 / Chinchilla",
+  "summary": "龙猫牙科、少粪/胃肠动力、热应激、毛发皮肤、皮肤真菌和饲养环境的分诊规则。",
+  "system_hints": [
+    {
+      "label": "牙科 / 体重下降",
+      "features": [
+        "dental_signs",
+        "weight_loss",
+        "drooling"
+      ]
+    },
+    {
+      "label": "胃肠 / 少粪",
+      "features": [
+        "feces_down",
+        "no_feces",
+        "abd_distension",
+        "anorexia"
+      ]
+    },
+    {
+      "label": "热应激 / 环境",
+      "features": [
+        "temperature_issue",
+        "heat_stress_risk",
+        "weakness"
+      ]
+    },
+    {
+      "label": "皮肤 / 毛发 / 真菌风险",
+      "features": [
+        "skin_shell_issue",
+        "fur_loss",
+        "humidity_issue"
+      ]
+    },
+    {
+      "label": "泌尿 / 繁殖",
+      "features": [
+        "urinary_issue",
+        "reproductive_issue"
+      ]
+    },
+    {
+      "label": "外伤 / 跳跃跌落",
+      "features": [
+        "trauma",
+        "lameness",
+        "neurologic_signs"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "anorexia",
+        "feces_down"
+      ],
+      "reason": "龙猫拒食合并少粪提示胃肠动力或牙科疼痛风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "heat_stress_risk"
+      ],
+      "reason": "高温环境下喘促、虚弱或倒卧需优先处理热应激。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "明显呼吸困难或发绀为高风险。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "dental_signs"
+      ],
+      "reason": "流涎、挑食、掉草或体重下降提示牙科问题。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "skin_shell_issue"
+      ],
+      "reason": "脱毛、结痂或皮屑需复核真菌、垫材和湿度。"
+    }
+  ],
+  "diseases": [
+    "牙科疾病 / 臼齿问题",
+    "胃肠动力异常或少粪",
+    "热应激",
+    "皮肤真菌或毛发异常",
+    "外伤 / 跌落相关损伤",
+    "泌尿或繁殖相关问题"
+  ],
+  "checks": [
+    "连续体重趋势、采食和粪便数量",
+    "口腔、臼齿、流涎和面部对称性评估",
+    "环境温度、湿度、通风和沙浴记录",
+    "腹部触诊和影像按需复核胃肠内容物",
+    "皮肤/毛发、垫材和同伴状态",
+    "跳跃跌落、跛行或神经症状复核"
+  ],
+  "actions": [
+    "龙猫高温、拒食、少粪、呼吸困难或明显虚弱时按高风险处理。",
+    "记录温度、湿度、饮食纤维、零食、沙浴、运动笼和近期应激；本规则不提供药物剂量或处方。"
+  ],
+  "questions": [
+    "最近是否拒食、少粪、粪粒变小、体重下降或流口水？",
+    "笼舍温度和湿度是多少？近期是否高温、通风差或运动后虚弱？",
+    "是否脱毛、皮屑、结痂、瘙痒或同伴也有皮肤问题？",
+    "是否跌落、跛行、腹胀、排尿异常或精神沉郁？",
+    "干草、颗粒、零食、沙浴频率和最近是否换环境？"
+  ]
+}

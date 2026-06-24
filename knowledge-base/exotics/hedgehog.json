@@ -1,0 +1,117 @@
+{
+  "key": "hedgehog",
+  "label": "刺猬 / Hedgehog",
+  "summary": "刺猬食欲下降、体重变化、步态/神经、皮肤螨虫、呼吸、口腔和肿块的分诊规则。",
+  "system_hints": [
+    {
+      "label": "神经 / 步态 / 翻身困难",
+      "features": [
+        "neurologic_signs",
+        "ataxia",
+        "weakness"
+      ]
+    },
+    {
+      "label": "皮肤 / 刺 / 螨虫",
+      "features": [
+        "skin_shell_issue",
+        "pruritus",
+        "fur_loss"
+      ]
+    },
+    {
+      "label": "采食 / 体重 / 口腔",
+      "features": [
+        "appetite_down",
+        "weight_loss",
+        "dental_signs"
+      ]
+    },
+    {
+      "label": "呼吸系统",
+      "features": [
+        "respiratory_distress",
+        "nasal_ocular_discharge"
+      ]
+    },
+    {
+      "label": "肿块 / 老年问题",
+      "features": [
+        "mass_lump",
+        "bleeding",
+        "low_energy"
+      ]
+    },
+    {
+      "label": "环境 / 温度",
+      "features": [
+        "temperature_issue",
+        "husbandry_problem"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "neurologic_signs"
+      ],
+      "reason": "刺猬翻身困难、共济失调、抽搐或明显无力需优先分诊。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "明显呼吸困难、发绀或张口呼吸为高风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "bleeding"
+      ],
+      "reason": "口腔、肿块或外伤出血需要尽快复核。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "mass_lump"
+      ],
+      "reason": "刺猬肿块和口腔病变需要记录时间线与破溃情况。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "skin_shell_issue"
+      ],
+      "reason": "掉刺、皮屑、瘙痒或结痂提示皮肤/螨虫或环境问题。"
+    }
+  ],
+  "diseases": [
+    "神经 / 步态异常方向",
+    "皮肤螨虫或皮肤感染",
+    "口腔 / 牙科 / 采食下降",
+    "呼吸道疾病",
+    "肿瘤 / 脓肿 / 老年相关问题",
+    "温度和饲养环境相关问题"
+  ],
+  "checks": [
+    "体重趋势、采食量和活动轮使用情况",
+    "步态、翻身能力、后肢力量和神经体征",
+    "皮肤、掉刺、皮屑、耳缘和瘙痒复核",
+    "口腔、牙齿、流涎、口臭和面部肿胀",
+    "肿块大小、位置、生长速度和破溃",
+    "笼舍温度、垫材、饮食和夜间活动记录"
+  ],
+  "actions": [
+    "刺猬神经异常、呼吸困难、出血或快速体重下降时按高风险处理。",
+    "记录夜间活动、食量、体重、环境温度和外观照片；本规则不提供药物剂量或处方。"
+  ],
+  "questions": [
+    "是否走路摇晃、翻身困难、后肢无力、抽搐或突然不活动？",
+    "是否掉刺、皮屑、瘙痒、结痂、耳缘异常或皮肤红肿？",
+    "是否采食下降、体重下降、流口水、口臭或牙齿/口腔异常？",
+    "是否有肿块、出血、破溃、呼吸异常或鼻眼分泌物？",
+    "笼舍温度、垫材、食物、夜间活动和近期应激有什么变化？"
+  ]
+}

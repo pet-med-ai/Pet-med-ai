@@ -12,18 +12,24 @@
     "lizard",
     "snake",
     "amphibian",
-    "fish"
+    "fish",
+    "guinea_pig",
+    "hamster",
+    "chinchilla",
+    "rat_mouse",
+    "hedgehog",
+    "sugar_glider"
   ],
   "species_to_rule": {
     "rabbit": "rabbit",
     "bird": "bird",
     "ferret": "ferret",
-    "guinea_pig": "rodent",
-    "hamster": "rodent",
-    "chinchilla": "rodent",
-    "rat": "rodent",
-    "hedgehog": "rodent",
-    "sugar_glider": "rodent",
+    "guinea_pig": "guinea_pig",
+    "hamster": "hamster",
+    "chinchilla": "chinchilla",
+    "rat": "rat_mouse",
+    "hedgehog": "hedgehog",
+    "sugar_glider": "sugar_glider",
     "reptile": "reptile",
     "turtle": "turtle",
     "snake": "snake",
@@ -47,7 +53,14 @@
     "axolotl": "amphibian",
     "goldfish": "fish",
     "koi": "fish",
-    "betta": "fish"
+    "betta": "fish",
+    "cavy": "guinea_pig",
+    "dwarf_hamster": "hamster",
+    "syrian_hamster": "hamster",
+    "mouse": "rat_mouse",
+    "pet_rat": "rat_mouse",
+    "pet_mouse": "rat_mouse",
+    "african_pygmy_hedgehog": "hedgehog"
   },
   "group_to_rule": {
     "lagomorph": "rabbit",
@@ -57,12 +70,18 @@
     "fish": "fish",
     "mustelid": "ferret",
     "rodent": "rodent",
-    "insectivore": "rodent",
-    "marsupial": "rodent",
+    "insectivore": "hedgehog",
+    "marsupial": "sugar_glider",
     "turtle": "turtle",
     "chelonian": "turtle",
     "lizard": "lizard",
-    "snake": "snake"
+    "snake": "snake",
+    "cavy": "guinea_pig",
+    "cricetid": "hamster",
+    "chinchillidae": "chinchilla",
+    "murine": "rat_mouse",
+    "rat_mouse": "rat_mouse",
+    "glider": "sugar_glider"
   },
   "reptile_split_v1": {
     "mode": "exotics_reptile_split_v1",
@@ -74,6 +93,22 @@
       "snake",
       "amphibian",
       "fish"
+    ],
+    "not_comprehensive_clinical_kb": true,
+    "drug_dose_status": "not_reviewed_not_enabled",
+    "source_review_status": "required_not_started"
+  },
+  "small_mammal_split_v1": {
+    "mode": "exotics_small_mammal_split_v1",
+    "status": "split_scaffold",
+    "keeps_generic_rodent_fallback": true,
+    "new_rule_keys": [
+      "guinea_pig",
+      "hamster",
+      "chinchilla",
+      "rat_mouse",
+      "hedgehog",
+      "sugar_glider"
     ],
     "not_comprehensive_clinical_kb": true,
     "drug_dose_status": "not_reviewed_not_enabled",

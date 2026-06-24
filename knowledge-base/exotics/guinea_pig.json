@@ -1,0 +1,121 @@
+{
+  "key": "guinea_pig",
+  "label": "豚鼠 / Guinea pig",
+  "summary": "豚鼠牙科、维生素 C / 营养、拒食少粪、腹泻、泌尿结石、呼吸和足底皮炎的分诊规则。",
+  "system_hints": [
+    {
+      "label": "牙科 / 采食下降",
+      "features": [
+        "dental_signs",
+        "anorexia",
+        "weight_loss"
+      ]
+    },
+    {
+      "label": "营养 / 维生素 C 风险",
+      "features": [
+        "vitamin_c_risk",
+        "weakness",
+        "skin_shell_issue"
+      ]
+    },
+    {
+      "label": "胃肠 / 粪便异常",
+      "features": [
+        "feces_down",
+        "no_feces",
+        "diarrhea",
+        "abd_distension"
+      ]
+    },
+    {
+      "label": "泌尿 / 尿石风险",
+      "features": [
+        "urinary_issue",
+        "hematuria",
+        "straining"
+      ]
+    },
+    {
+      "label": "呼吸系统异常",
+      "features": [
+        "respiratory_distress",
+        "nasal_ocular_discharge"
+      ]
+    },
+    {
+      "label": "足底 / 皮肤 / 疼痛",
+      "features": [
+        "pododermatitis_signs",
+        "trauma",
+        "low_energy"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "anorexia",
+        "low_energy"
+      ],
+      "reason": "豚鼠拒食合并精神差进展快，需优先评估疼痛、牙科、脱水和胃肠停滞。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "豚鼠张口呼吸、明显喘促或发绀为高风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "diarrhea",
+        "low_energy"
+      ],
+      "reason": "腹泻合并精神差或虚弱可快速脱水。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "urinary_issue"
+      ],
+      "reason": "血尿、排尿困难或叫痛需复核尿石、膀胱炎或疼痛问题。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "dental_signs"
+      ],
+      "reason": "流涎、挑食、体重下降或面部不对称提示牙科疾病。"
+    }
+  ],
+  "diseases": [
+    "牙科疾病 / 臼齿过长相关采食下降",
+    "维生素 C / 营养相关问题",
+    "胃肠动力异常或菌群紊乱",
+    "尿石 / 泌尿系统疼痛",
+    "呼吸道感染",
+    "足底皮炎 / 疼痛相关活动下降"
+  ],
+  "checks": [
+    "连续体重趋势和体况评分",
+    "门齿、臼齿和口腔疼痛评估",
+    "腹部触诊、粪便数量和性状记录",
+    "尿液颜色、排尿姿势和尿石影像复核",
+    "呼吸频率、鼻眼分泌物和胸部影像按需",
+    "垫材、笼底、足底和饮食结构复核"
+  ],
+  "actions": [
+    "豚鼠拒食、腹泻、呼吸困难或尿痛时不要长期观察，按异宠复核优先级处理。",
+    "记录过去 12–24 小时采食、粪便、尿液、体重和活动变化；本规则不提供药物剂量或处方。"
+  ],
+  "questions": [
+    "过去 12–24 小时是否主动进食？粪便数量、大小、形状是否改变？",
+    "是否流口水、挑食、面部肿胀、磨牙或体重下降？",
+    "是否血尿、排尿困难、排尿时叫痛或尿液颜色异常？",
+    "日粮中干草、颗粒、蔬菜和维生素 C 来源是什么？",
+    "是否喘促、鼻眼分泌物、腹泻、足底红肿或行动困难？"
+  ]
+}

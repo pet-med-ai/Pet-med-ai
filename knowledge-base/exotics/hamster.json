@@ -1,0 +1,119 @@
+{
+  "key": "hamster",
+  "label": "仓鼠 / Hamster",
+  "summary": "仓鼠湿尾样腹泻、颊囊问题、皮肤外伤、呼吸异常、肿块、低体温和饲养应激的分诊规则。",
+  "system_hints": [
+    {
+      "label": "胃肠 / 湿尾样风险",
+      "features": [
+        "diarrhea",
+        "wet_tail_signs",
+        "low_energy"
+      ]
+    },
+    {
+      "label": "颊囊 / 口腔问题",
+      "features": [
+        "cheek_pouch_issue",
+        "dental_signs",
+        "appetite_down"
+      ]
+    },
+    {
+      "label": "呼吸系统异常",
+      "features": [
+        "respiratory_distress",
+        "nasal_ocular_discharge"
+      ]
+    },
+    {
+      "label": "皮肤 / 外伤 / 咬伤",
+      "features": [
+        "skin_shell_issue",
+        "trauma",
+        "bleeding"
+      ]
+    },
+    {
+      "label": "肿块 / 老年问题",
+      "features": [
+        "mass_lump",
+        "weight_loss",
+        "low_energy"
+      ]
+    },
+    {
+      "label": "环境 / 低体温 / 应激",
+      "features": [
+        "temperature_issue",
+        "husbandry_problem",
+        "collapse"
+      ]
+    }
+  ],
+  "red_flags": [
+    {
+      "level": "高",
+      "features": [
+        "diarrhea",
+        "low_energy"
+      ],
+      "reason": "仓鼠腹泻合并精神差或肛周潮湿需优先分诊。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "张口呼吸、明显喘促或发绀为高风险。"
+    },
+    {
+      "level": "高",
+      "features": [
+        "collapse"
+      ],
+      "reason": "虚脱、低体温样无反应或不能行走需紧急复核。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "cheek_pouch_issue"
+      ],
+      "reason": "颊囊外翻、滞留食物或口腔异味提示局部问题。"
+    },
+    {
+      "level": "中",
+      "features": [
+        "mass_lump"
+      ],
+      "reason": "仓鼠肿块常见但需记录生长速度、破溃和活动影响。"
+    }
+  ],
+  "diseases": [
+    "湿尾样腹泻 / 胃肠疾病",
+    "颊囊嵌塞或颊囊炎",
+    "呼吸道感染",
+    "咬伤、外伤或皮肤寄生虫问题",
+    "肿瘤 / 脓肿 / 老年相关疾病",
+    "环境应激或低温相关精神沉郁"
+  ],
+  "checks": [
+    "体重、体温感、脱水和精神状态快速评估",
+    "肛周、粪便性状和腹部触诊",
+    "颊囊、门齿和口腔异味检查",
+    "皮肤、外伤、同笼咬伤和垫材刺激复核",
+    "呼吸频率、鼻眼分泌物和笼舍温度",
+    "肿块位置、大小、破溃和生长速度记录"
+  ],
+  "actions": [
+    "仓鼠腹泻、湿尾样肛周潮湿、呼吸困难或虚脱时按高风险处理。",
+    "记录垫材、笼舍温度、近期换粮、同笼冲突和新购入/运输应激；本规则不提供药物剂量或处方。"
+  ],
+  "questions": [
+    "是否腹泻、肛周潮湿、有异味、精神变差或体重下降？",
+    "是否颊囊鼓胀不消、口腔异味、流口水或进食困难？",
+    "是否喘促、鼻眼分泌物、低温、虚弱或不能正常行走？",
+    "是否有肿块、破溃、皮肤脱毛、咬伤或同笼冲突？",
+    "近期是否换粮、换垫材、搬家、新购入或环境温度异常？"
+  ]
+}
