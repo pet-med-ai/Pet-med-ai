@@ -241,3 +241,7 @@ python3 scripts/validate_exotics_ferret_deepening.py
 echo "[ci_static_checks] Exotics Lab / Imaging Interpretation Readiness V1 static checks"
 python3 scripts/validate_exotics_lab_imaging_interpretation_readiness.py
 # --- Exotics Lab / Imaging Interpretation Readiness V1 static checks: end ---
+# --- Exotics Drug Dose Source Review Pack V1 static checks: start ---
+echo "[ci_static_checks] Exotics Drug Dose Source Review Pack V1 static checks"
+python3 scripts/validate_exotics_drug_dose_source_review_pack.py
+# --- Exotics Drug Dose Source Review Pack V1 static checks: end ---

@@ -1,0 +1,11 @@
+item,required_state,status
+source review matrix present,true,pending
+no numeric dose values,true,pending
+dose output disabled,true,pending
+prescription write blocked,true,pending
+treatment plan blocked,true,pending
+source review required,true,pending
+human review required,true,pending
+clinician signoff required,true,pending
+external provider calls blocked,true,pending
+database writes blocked,true,pending

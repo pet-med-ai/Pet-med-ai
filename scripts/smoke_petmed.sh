@@ -3387,3 +3387,9 @@ if [ -f scripts/validate_exotics_lab_imaging_interpretation_readiness.py ]; then
   python3 scripts/validate_exotics_lab_imaging_interpretation_readiness.py
 fi
 # --- Exotics Lab / Imaging Interpretation Readiness V1 smoke: end ---
+# --- Exotics Drug Dose Source Review Pack V1 smoke: start ---
+if [ -f scripts/validate_exotics_drug_dose_source_review_pack.py ]; then
+  echo "[smoke] Exotics Drug Dose Source Review Pack V1 smoke"
+  python3 scripts/validate_exotics_drug_dose_source_review_pack.py
+fi
+# --- Exotics Drug Dose Source Review Pack V1 smoke: end ---

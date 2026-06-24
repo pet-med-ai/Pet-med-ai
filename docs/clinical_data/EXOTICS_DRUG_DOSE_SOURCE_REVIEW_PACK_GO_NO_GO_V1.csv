@@ -1,0 +1,14 @@
+gate,go_requirement,status
+validator,PASS,pending
+ci_static_checks,PASS,pending
+online_smoke,ALL_PASS,pending
+source_review_pack_present,true,pending
+source_review_matrix_present,true,pending
+is_dose_engine,false,pending
+is_prescription_engine,false,pending
+drug_dose_status,not_reviewed_not_enabled,pending
+source_review_status,required_not_started,pending
+dose_output_enabled,false,pending
+production_database_revision,0009_diag_data,pending
+production_schema_ok,true,pending
+decision,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_CONTROLLED_RESEARCH_V1,pending
