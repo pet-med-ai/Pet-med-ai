@@ -1,0 +1,15 @@
+gate,required,actual,decision
+validator,python3 scripts/validate_exotics_lab_imaging_interpretation_readiness.py,PENDING,NO_GO_UNTIL_PASS
+exotic_kb_validator,python3 scripts/validate_exotic_kb.py,PENDING,NO_GO_UNTIL_PASS
+exotic_intake_validator,python3 scripts/validate_exotic_intake_templates.py,PENDING,NO_GO_UNTIL_PASS
+ci_static_checks,bash scripts/ci_static_checks.sh,PENDING,NO_GO_UNTIL_PASS
+online_smoke,bash scripts/smoke_petmed.sh,PENDING,NO_GO_UNTIL_PASS
+database_revision,0009_diag_data,PENDING,NO_GO_UNTIL_CONFIRMED
+alembic_head,0009_diag_data,PENDING,NO_GO_UNTIL_CONFIRMED
+schema_ok,true,PENDING,NO_GO_UNTIL_CONFIRMED
+writes_database,false,false,GO
+final_diagnosis,false,false,GO
+treatment_plan,false,false,GO
+prescription,false,false,GO
+drug_dose,false,false,GO
+decision,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_PACK_V1,PENDING,NO_GO_UNTIL_RECORDED

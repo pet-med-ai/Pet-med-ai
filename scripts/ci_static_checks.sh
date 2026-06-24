@@ -237,3 +237,7 @@ python3 scripts/validate_exotics_small_mammal_split.py
 echo "[ci_static_checks] Exotics Ferret Deepening V1 validator"
 python3 scripts/validate_exotics_ferret_deepening.py
 # --- Exotics Ferret Deepening V1 static checks: end ---
+# --- Exotics Lab / Imaging Interpretation Readiness V1 static checks: start ---
+echo "[ci_static_checks] Exotics Lab / Imaging Interpretation Readiness V1 static checks"
+python3 scripts/validate_exotics_lab_imaging_interpretation_readiness.py
+# --- Exotics Lab / Imaging Interpretation Readiness V1 static checks: end ---

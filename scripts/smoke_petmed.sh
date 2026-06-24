@@ -3381,3 +3381,9 @@ if [ -f scripts/validate_exotics_ferret_deepening.py ]; then
   python3 scripts/validate_exotics_ferret_deepening.py
 fi
 # --- Exotics Ferret Deepening V1 smoke: end ---
+# --- Exotics Lab / Imaging Interpretation Readiness V1 smoke: start ---
+if [ -f scripts/validate_exotics_lab_imaging_interpretation_readiness.py ]; then
+  echo "[smoke] Exotics Lab / Imaging Interpretation Readiness V1 validator"
+  python3 scripts/validate_exotics_lab_imaging_interpretation_readiness.py
+fi
+# --- Exotics Lab / Imaging Interpretation Readiness V1 smoke: end ---
