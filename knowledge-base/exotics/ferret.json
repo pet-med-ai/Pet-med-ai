@@ -1,14 +1,16 @@
 {
   "key": "ferret",
   "label": "雪貂",
-  "summary": "雪貂低血糖样虚弱、胃肠异物、消化道症状、呼吸异常和全身性疾病分诊规则。",
+  "summary": "雪貂低血糖样虚弱、胃肠异物、消化道脱水、肾上腺/皮肤、呼吸、泌尿生殖、肿块和外伤神经问题的异宠分诊规则。",
   "system_hints": [
     {
       "label": "内分泌/低血糖样虚弱",
       "features": [
         "hypoglycemia_signs",
         "weakness",
-        "drooling"
+        "drooling",
+        "seizures",
+        "collapse"
       ]
     },
     {
@@ -31,6 +33,63 @@
       "features": [
         "urinary_issue",
         "low_energy"
+      ]
+    },
+    {
+      "label": "胃肠异物/梗阻风险",
+      "features": [
+        "foreign_body_risk",
+        "vomiting",
+        "regurgitation",
+        "abd_distension",
+        "feces_down",
+        "black_tarry_stool"
+      ]
+    },
+    {
+      "label": "消化道炎症/腹泻脱水",
+      "features": [
+        "diarrhea",
+        "appetite_down",
+        "dehydration",
+        "low_energy"
+      ]
+    },
+    {
+      "label": "肾上腺/皮肤/泌尿生殖异常",
+      "features": [
+        "hair_loss",
+        "pruritus",
+        "urinary_issue",
+        "reproductive_issue",
+        "vulvar_swelling"
+      ]
+    },
+    {
+      "label": "呼吸/感染暴露",
+      "features": [
+        "respiratory_distress",
+        "coughing",
+        "nasal_ocular_discharge",
+        "fever_history"
+      ]
+    },
+    {
+      "label": "肿块/淋巴/慢性消瘦",
+      "features": [
+        "weight_loss",
+        "mass_or_swelling",
+        "lymph_node_enlargement",
+        "low_energy"
+      ]
+    },
+    {
+      "label": "疼痛/外伤/神经异常",
+      "features": [
+        "trauma",
+        "pain",
+        "neurologic_signs",
+        "hindlimb_weakness"
       ]
     }
   ],
@@ -64,6 +123,73 @@
         "diarrhea"
       ],
       "reason": "食欲下降合并腹泻需评估脱水、感染和胃肠疾病。"
+    },
+    {
+      "level": "高",
+      "label": "低血糖样急症",
+      "features": [
+        "hypoglycemia_signs"
+      ],
+      "reason": "雪貂突然虚弱、流涎、后肢无力、发呆、抽搐或虚脱需优先查血糖并按高风险稳定。"
+    },
+    {
+      "level": "高",
+      "label": "胃肠异物/梗阻风险",
+      "features": [
+        "foreign_body_risk",
+        "vomiting"
+      ],
+      "reason": "呕吐、腹痛或便少合并啃咬橡胶、泡棉、玩具、耳塞、鞋垫等异物时，需优先排查胃肠异物或部分梗阻。"
+    },
+    {
+      "level": "高",
+      "label": "虚脱/不能站立",
+      "features": [
+        "collapse"
+      ],
+      "reason": "虚脱、不能站立、抽搐或明显意识异常为高风险，需要立即分诊。"
+    },
+    {
+      "level": "高",
+      "label": "呼吸困难",
+      "features": [
+        "respiratory_distress"
+      ],
+      "reason": "张口呼吸、明显喘促、发绀或严重呼吸费力为急症红旗。"
+    },
+    {
+      "level": "高",
+      "label": "排尿困难/尿闭样表现",
+      "features": [
+        "urinary_issue"
+      ],
+      "reason": "频繁蹲尿、排尿困难、血尿或疑似尿闭需要尽快复核泌尿风险。"
+    },
+    {
+      "level": "中",
+      "label": "腹泻脱水风险",
+      "features": [
+        "diarrhea",
+        "low_energy"
+      ],
+      "reason": "腹泻合并精神差、采食下降或脱水提示消化道或感染相关风险。"
+    },
+    {
+      "level": "中",
+      "label": "肾上腺/皮肤内分泌线索",
+      "features": [
+        "hair_loss"
+      ],
+      "reason": "对称性脱毛、瘙痒、外阴肿大或行为改变需纳入肾上腺/内分泌复核。"
+    },
+    {
+      "level": "中",
+      "label": "慢性消瘦/肿块复核",
+      "features": [
+        "weight_loss",
+        "mass_or_swelling"
+      ],
+      "reason": "体重下降、可触及肿块或淋巴结异常需要记录位置、进展和全身状态。"
     }
   ],
   "diseases": [
@@ -71,22 +197,67 @@
     "胃肠异物",
     "胃肠炎",
     "脱水或疼痛相关精神沉郁",
-    "肾上腺/内分泌相关问题"
+    "肾上腺/内分泌相关问题",
+    "胃肠异物/部分梗阻",
+    "胃肠炎/腹泻脱水",
+    "肾上腺相关皮肤/内分泌问题",
+    "泌尿生殖相关问题",
+    "呼吸道/全身感染性疾病",
+    "淋巴结/肿块/慢性消瘦复核",
+    "外伤/疼痛/神经异常"
   ],
   "checks": [
     "即刻血糖",
     "腹部触诊和影像",
     "脱水与疼痛评分",
     "粪便评估",
-    "体重和采食记录"
+    "体重和采食记录",
+    "即刻血糖和低血糖样症状复核",
+    "体重、体况、脱水和疼痛评分",
+    "腹部触诊，必要时腹部影像评估异物、积气或梗阻",
+    "粪便性状、排便量和黑便/血便记录",
+    "尿液颜色、排尿姿势和血尿/尿闭样表现复核",
+    "皮肤、被毛、外阴/乳腺、肛周和可触及肿块检查",
+    "呼吸频率、鼻眼分泌物和低应激听诊/影像按需",
+    "基础血检/生化、电解质和感染/炎症指标按临床判断复核",
+    "饮食、笼舍、异物暴露和同住动物病史复核"
   ],
   "actions": [
     "雪貂突然虚弱、流涎或后肢无力时，先按高风险稳定并查血糖。",
-    "询问是否啃咬橡胶、泡棉、玩具、布料或其他异物。"
+    "询问是否啃咬橡胶、泡棉、玩具、布料或其他异物。",
+    "雪貂突然虚弱、流涎、后肢无力、抽搐或虚脱时，按高风险稳定并优先查血糖；本规则不输出剂量或用药方案。",
+    "呕吐、腹痛、便少或黑便合并异物暴露时，不要长期观察，需尽快排查胃肠异物或部分梗阻。",
+    "腹泻、精神差或采食下降时记录脱水、体重和最近进食排便时间，避免把分诊结果当治疗计划。",
+    "脱毛、瘙痒、外阴肿大、体重下降或肿块时，作为肾上腺/内分泌/肿瘤样问题复核线索，而不是最终诊断。"
   ],
   "questions": [
     "是否突然虚弱、发呆、流口水、后肢无力、抽搐或不能站立？",
     "最近是否呕吐、腹泻、腹痛，或啃咬橡胶/泡棉/玩具等异物？",
-    "最近食欲、排便、体重和活动量有什么变化？"
-  ]
+    "最近食欲、排便、体重和活动量有什么变化？",
+    "是否突然虚弱、发呆、流口水、后肢无力、抽搐或不能站立？症状从什么时候开始？",
+    "最后一次进食时间、吃了多少？是否伴随呕吐、腹泻、黑便、便少或腹痛？",
+    "近期是否啃咬或吞食橡胶、泡棉、玩具、耳塞、鞋垫、布料或其他异物？",
+    "是否排尿困难、血尿、频繁蹲尿、尿少或疑似尿闭？",
+    "是否有脱毛、瘙痒、外阴肿大、气味改变、攻击性改变或明显体重下降？",
+    "是否咳嗽、打喷嚏、鼻眼分泌物、喘促、张口呼吸或同住动物也有症状？",
+    "是否发现肿块、淋巴结肿大、外伤、跛行、头斜、转圈或神经异常？",
+    "日常饮食、零食、生肉/猫粮/雪貂粮比例、笼舍和近期环境变化是什么？"
+  ],
+  "ferret_deepening_v1": {
+    "mode": "exotics_ferret_deepening_v1",
+    "status": "ferret_deepened_triage_scaffold",
+    "focus": [
+      "hypoglycemia_insulinoma_like_triage",
+      "foreign_body_gi_obstruction_triage",
+      "diarrhea_dehydration_review",
+      "adrenal_skin_endocrine_review",
+      "urinary_reproductive_review",
+      "respiratory_infectious_review",
+      "mass_weight_loss_neuro_trauma_review"
+    ],
+    "not_comprehensive_clinical_kb": true,
+    "drug_dose_status": "not_reviewed_not_enabled",
+    "source_review_status": "required_not_started",
+    "human_review_required": true
+  }
 }

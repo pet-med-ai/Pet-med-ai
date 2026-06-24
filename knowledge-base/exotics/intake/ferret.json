@@ -4,7 +4,7 @@
   "species_scope": [
     "ferret"
   ],
-  "summary": "围绕低血糖样虚弱、胃肠异物、消化道症状、饮食和疫苗/暴露采集病史。",
+  "summary": "围绕雪貂低血糖样虚弱、胃肠异物、腹泻脱水、肾上腺/皮肤、泌尿生殖、呼吸、肿块和外伤神经风险采集结构化病史。",
   "feature_flags": [
     "hypoglycemia_signs",
     "weakness",
@@ -12,16 +12,38 @@
     "foreign_body_risk",
     "vomiting",
     "diarrhea",
-    "collapse"
+    "collapse",
+    "seizures",
+    "hindlimb_weakness",
+    "regurgitation",
+    "abd_distension",
+    "feces_down",
+    "black_tarry_stool",
+    "dehydration",
+    "appetite_down",
+    "respiratory_distress",
+    "coughing",
+    "nasal_ocular_discharge",
+    "urinary_issue",
+    "hair_loss",
+    "pruritus",
+    "vulvar_swelling",
+    "weight_loss",
+    "mass_or_swelling",
+    "trauma",
+    "neurologic_signs"
   ],
   "red_flag_prompts": [
     "雪貂突然虚弱、流口水、后肢无力、发呆、抽搐或虚脱时，优先按低血糖样高风险处理。",
-    "呕吐/腹痛合并啃咬橡胶、泡棉、玩具或布料时，需警惕胃肠异物。"
+    "呕吐/腹痛合并啃咬橡胶、泡棉、玩具或布料时，需警惕胃肠异物。",
+    "呕吐/腹痛/便少合并啃咬橡胶、泡棉、玩具、耳塞、鞋垫或布料时，需警惕胃肠异物或部分梗阻。",
+    "张口呼吸、发绀、严重喘促、疑似尿闭、黑便/血便或不能站立时，不应等待模板补全后再分诊。",
+    "本模板只做异宠分诊和病史采集，不输出处方、剂量、给药途径或治疗计划。"
   ],
   "sections": [
     {
       "key": "signalment",
-      "title": "基础信息",
+      "title": "基础信息 / 风险背景",
       "priority": "core",
       "questions": [
         {
@@ -29,14 +51,21 @@
           "label": "年龄、性别、是否绝育/去味、疫苗和驱虫情况",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "年龄和绝育状态影响内分泌和常见疾病判断。"
+          "clinical_reason": "年龄和绝育状态影响内分泌、肿瘤样问题和常见病判断。"
         },
         {
-          "key": "weight",
-          "label": "当前体重和近期体重变化",
+          "key": "weight_trend",
+          "label": "当前体重、近期体重变化和体况",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "体重变化对慢性病、脱水和营养状态判断重要。"
+          "clinical_reason": "体重下降和体况变化是慢性病、脱水和营养风险线索。"
+        },
+        {
+          "key": "housing_animals",
+          "label": "单只还是多只饲养？同住动物是否有类似症状？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "群体信息有助于判断感染、环境暴露和饮食问题。"
         }
       ]
     },
@@ -54,54 +83,205 @@
             "hypoglycemia_signs",
             "weakness",
             "drooling",
-            "collapse"
+            "collapse",
+            "seizures"
           ],
-          "clinical_reason": "雪貂低血糖样表现需快速识别。"
+          "clinical_reason": "雪貂低血糖样表现需快速识别并优先稳定。"
         },
         {
           "key": "last_meal",
-          "label": "最后一次进食时间、吃了多少、是否呕吐或腹泻？",
+          "label": "最后一次进食时间、吃了多少？是否进食后改善或恶化？",
           "answer_type": "text",
           "required": true,
-          "clinical_reason": "采食和胃肠症状影响低血糖和脱水风险。"
+          "clinical_reason": "采食时间和状态变化影响低血糖、胃肠和脱水风险判断。"
+        },
+        {
+          "key": "episode_pattern",
+          "label": "类似虚弱发作是否反复出现？持续多久？是否伴随后肢无力或抽搐？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "hindlimb_weakness",
+            "seizures"
+          ],
+          "clinical_reason": "反复发作模式提示需要进一步复核内分泌或神经方向。"
         }
       ]
     },
     {
       "key": "foreign_body_gi",
-      "title": "胃肠 / 异物风险",
+      "title": "胃肠 / 异物 / 梗阻风险",
       "priority": "red_flag",
       "questions": [
         {
           "key": "foreign_body",
-          "label": "近期是否啃咬或吞食橡胶、泡棉、玩具、布料、耳塞、鞋垫等？",
+          "label": "近期是否啃咬或吞食橡胶、泡棉、玩具、布料、耳塞、鞋垫、塑料等？",
           "answer_type": "text",
           "required": true,
           "trigger_features": [
             "foreign_body_risk"
           ],
-          "clinical_reason": "雪貂胃肠异物常见且可危及生命。"
+          "clinical_reason": "雪貂胃肠异物常见，呕吐或腹痛时风险升高。"
         },
         {
-          "key": "abdomen",
-          "label": "是否呕吐、干呕、腹痛、黑便、便少或排便困难？",
+          "key": "vomiting_abdomen",
+          "label": "是否呕吐、干呕、腹痛、腹胀、黑便、便少或排便困难？",
           "answer_type": "text",
-          "required": false,
+          "required": true,
           "trigger_features": [
             "vomiting",
             "abd_distension",
-            "diarrhea"
+            "feces_down",
+            "black_tarry_stool"
           ],
-          "clinical_reason": "胃肠症状决定异物和脱水分诊。"
+          "clinical_reason": "胃肠症状决定异物、部分梗阻和脱水分诊。"
         },
         {
-          "key": "diet",
-          "label": "日常饮食、零食、生肉/猫粮/雪貂粮，以及近期是否换粮？",
+          "key": "stool_history",
+          "label": "最近 24 小时粪便次数、颜色、性状和是否带血/发黑？",
           "answer_type": "text",
           "required": false,
-          "clinical_reason": "饮食改变可导致胃肠问题。"
+          "clinical_reason": "粪便变化有助于判断腹泻、出血或梗阻风险。"
+        }
+      ]
+    },
+    {
+      "key": "diarrhea_dehydration",
+      "title": "腹泻 / 脱水 / 感染复核",
+      "priority": "red_flag",
+      "questions": [
+        {
+          "key": "diarrhea_details",
+          "label": "是否腹泻、水样便、黏液便、血便或肛周污染？持续多久？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "diarrhea"
+          ],
+          "clinical_reason": "腹泻合并精神差或采食下降可快速造成脱水。"
+        },
+        {
+          "key": "hydration_status",
+          "label": "牙龈是否黏、眼窝是否凹、皮肤弹性/精神状态如何？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "dehydration",
+            "low_energy"
+          ],
+          "clinical_reason": "脱水评估影响分诊优先级。"
+        },
+        {
+          "key": "diet_change",
+          "label": "近期是否换粮、吃生肉/猫粮/零食、接触新动物或应激？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "饮食和暴露变化可诱发消化道问题。"
+        }
+      ]
+    },
+    {
+      "key": "urinary_reproductive_endocrine",
+      "title": "泌尿 / 生殖 / 肾上腺线索",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "urination",
+          "label": "是否频繁蹲尿、排尿困难、血尿、尿少、舔尿道或疑似尿闭？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "urinary_issue"
+          ],
+          "clinical_reason": "雪貂排尿异常需尽快复核泌尿风险。"
+        },
+        {
+          "key": "hair_skin_vulva",
+          "label": "是否对称脱毛、瘙痒、皮肤油腻、外阴肿大、气味或行为改变？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "hair_loss",
+            "pruritus",
+            "vulvar_swelling"
+          ],
+          "clinical_reason": "这些是肾上腺/内分泌或皮肤问题的重要线索。"
+        },
+        {
+          "key": "chronic_signs",
+          "label": "是否长期消瘦、精神下降、腹部变大或活动耐力下降？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "weight_loss",
+            "low_energy"
+          ],
+          "clinical_reason": "慢性体况变化需要和急性红旗分开记录。"
+        }
+      ]
+    },
+    {
+      "key": "respiratory_exposure",
+      "title": "呼吸 / 暴露 / 感染线索",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "breathing",
+          "label": "是否咳嗽、打喷嚏、鼻眼分泌物、张口呼吸、喘促或发绀？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "respiratory_distress",
+            "coughing",
+            "nasal_ocular_discharge"
+          ],
+          "clinical_reason": "呼吸困难是高风险红旗，需低应激分诊。"
+        },
+        {
+          "key": "exposure",
+          "label": "近期是否接触烟雾、香薰、清洁剂、粉尘、寒冷或同住动物呼吸道症状？",
+          "answer_type": "text",
+          "required": false,
+          "clinical_reason": "环境和传染暴露影响呼吸问题判断。"
+        }
+      ]
+    },
+    {
+      "key": "mass_neuro_trauma",
+      "title": "肿块 / 神经 / 外伤",
+      "priority": "context",
+      "questions": [
+        {
+          "key": "mass_location",
+          "label": "是否发现肿块、淋巴结肿大、皮下包块或腹部包块？位置和变化？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "mass_or_swelling"
+          ],
+          "clinical_reason": "肿块和慢性消瘦需要记录位置、增长速度和全身状态。"
+        },
+        {
+          "key": "neuro_trauma",
+          "label": "是否头斜、转圈、抽搐、跛行、跌落、咬伤、夹伤或疼痛？",
+          "answer_type": "text",
+          "required": false,
+          "trigger_features": [
+            "neurologic_signs",
+            "trauma",
+            "pain"
+          ],
+          "clinical_reason": "神经和外伤信息影响急诊分诊。"
         }
       ]
     }
-  ]
+  ],
+  "ferret_deepening_v1": {
+    "mode": "exotics_ferret_deepening_v1",
+    "status": "ferret_deepened_triage_scaffold",
+    "not_comprehensive_clinical_kb": true,
+    "source_review_status": "required_not_started",
+    "drug_dose_status": "not_reviewed_not_enabled",
+    "human_review_required": true
+  }
 }

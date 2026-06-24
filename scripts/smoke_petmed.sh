@@ -3374,3 +3374,10 @@ if [ -f scripts/validate_exotics_small_mammal_split.py ]; then
   python3 scripts/validate_exotics_small_mammal_split.py
 fi
 # --- Exotics Small Mammal Split V1 smoke: end ---
+
+# --- Exotics Ferret Deepening V1 smoke: start ---
+if [ -f scripts/validate_exotics_ferret_deepening.py ]; then
+  echo "[smoke] Exotics Ferret Deepening V1 validator"
+  python3 scripts/validate_exotics_ferret_deepening.py
+fi
+# --- Exotics Ferret Deepening V1 smoke: end ---

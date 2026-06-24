@@ -232,3 +232,8 @@ python3 scripts/validate_exotics_reptile_split.py
 echo "[ci_static_checks] Exotics Small Mammal Split V1 validator"
 python3 scripts/validate_exotics_small_mammal_split.py
 # --- Exotics Small Mammal Split V1 static checks: end ---
+
+# --- Exotics Ferret Deepening V1 static checks: start ---
+echo "[ci_static_checks] Exotics Ferret Deepening V1 validator"
+python3 scripts/validate_exotics_ferret_deepening.py
+# --- Exotics Ferret Deepening V1 static checks: end ---

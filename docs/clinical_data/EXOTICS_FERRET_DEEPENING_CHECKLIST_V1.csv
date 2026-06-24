@@ -1,0 +1,10 @@
+item,status,evidence
+ferret KB expanded,required,knowledge-base/exotics/ferret.json
+ferret intake expanded,required,knowledge-base/exotics/intake/ferret.json
+hypoglycemia / insulinoma-like triage present,required,low glucose-like weakness prompts
+foreign body / GI obstruction triage present,required,foreign body and vomiting prompts
+adrenal / skin / endocrine review present,required,hair loss / pruritus / vulvar swelling prompts
+urinary / reproductive review present,required,urinary_issue prompts
+respiratory / exposure review present,required,respiratory_distress prompts
+no drug dose,required,drug_dose_status=not_reviewed_not_enabled
+no DB write,required,read_only=true

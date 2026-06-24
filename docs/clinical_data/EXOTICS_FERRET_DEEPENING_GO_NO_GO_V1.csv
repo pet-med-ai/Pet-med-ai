@@ -1,0 +1,11 @@
+gate,required_state,go_no_go
+validator,PASS,GO
+exotic_kb_validator,PASS,GO
+exotic_intake_templates_validator,PASS,GO
+ci_static_checks,PASS,GO
+online_smoke,ALL_PASS,GO
+source_review_status,required_not_started,GO_WITH_BOUNDARY
+drug_dose_status,not_reviewed_not_enabled,GO_WITH_BOUNDARY
+database_revision,0009_diag_data,GO
+schema_ok,true,GO
+decision,GO_TO_EXOTICS_LAB_IMAGING_INTERPRETATION_READINESS_V1,GO
