@@ -1,0 +1,7 @@
+gate,decision,reason
+metadata_only_workspace_governance_signoff_defined,GO,Governance signoff shell is defined as metadata-only.
+source_collection_execution,NO_GO,"Execution remains blocked until named owner, second reviewer, source access, copyright access, and value-capture blockers are signed off in a later explicit stage."
+dose_engine,NO_GO,This stage is not a dose engine and does not capture medication values.
+prescription_engine,NO_GO,This stage is not a prescription engine.
+treatment_plan_engine,NO_GO,This stage is not a treatment-plan engine.
+next_stage,GO,"Proceed only to metadata-only governance signoff record shell, not source collection execution."

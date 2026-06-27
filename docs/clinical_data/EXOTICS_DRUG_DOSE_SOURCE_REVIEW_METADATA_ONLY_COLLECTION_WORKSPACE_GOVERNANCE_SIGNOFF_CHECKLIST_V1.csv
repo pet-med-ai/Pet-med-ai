@@ -1,0 +1,8 @@
+item,required,status,evidence
+governance_signoff_matrix_present,true,PASS,GOVERNANCE_SIGNOFF_MATRIX_V1.csv
+metadata_only_policy,metadata_only_no_medication_values,PASS,all matrix rows
+numeric_dose_capture_blocked,true,PASS,forbidden medication columns absent
+route_frequency_capture_blocked,true,PASS,forbidden medication columns absent
+collection_execution_allowed_now,false,PASS,NO_GO_TO_COLLECTION_EXECUTION
+human_review_required,true,PASS,all rows
+clinician_signoff_required,true,PASS,all rows
