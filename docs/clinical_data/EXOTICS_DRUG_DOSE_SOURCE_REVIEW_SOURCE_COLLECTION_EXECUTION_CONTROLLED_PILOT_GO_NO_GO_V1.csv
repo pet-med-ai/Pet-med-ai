@@ -1,0 +1,8 @@
+gate,required,status,decision
+validator,PASS,PENDING,NO_GO_UNTIL_PASS
+ci_static_checks,PASS,PENDING,NO_GO_UNTIL_PASS
+online_smoke,ALL_PASS,PENDING,NO_GO_UNTIL_PASS
+numeric_dose_capture,false,PASS,GO
+route_frequency_capture,false,PASS,GO
+prescription_or_treatment_plan,false,PASS,GO
+collection_execution_started,false,PASS,GO

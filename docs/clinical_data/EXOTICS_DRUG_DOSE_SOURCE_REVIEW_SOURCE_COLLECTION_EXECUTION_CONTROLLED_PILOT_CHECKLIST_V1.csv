@@ -1,0 +1,9 @@
+item,expected,status,evidence
+controlled_pilot_matrix_present,true,PASS,matrix CSV generated
+metadata_only_policy,true,PASS,allowed metadata fields only
+numeric_dose_capture,false,PASS,prohibited capture fields include numeric_dose_value
+route_frequency_capture,false,PASS,route_text and frequency_text are prohibited
+dose_engine,false,PASS,helper safety flags
+prescription_engine,false,PASS,helper safety flags
+treatment_plan_engine,false,PASS,helper safety flags
+db_write,false,PASS,no ORM/API changes
