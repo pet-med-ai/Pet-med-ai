@@ -1,0 +1,8 @@
+gate,required_result,status,decision
+validator,PASS,pending,NO_GO until pass
+ci_static_checks,PASS,pending,NO_GO until pass
+online_smoke,ALL_PASS,pending,NO_GO until pass
+dose_output_enabled,false,pending,NO_GO if true
+captures_numeric_dose_value,false,pending,NO_GO if true
+captures_route_or_frequency_text,false,pending,NO_GO if true
+source_review_status,evidence_abstraction_protocol_ready_not_started,pending,GO to evidence tables only
