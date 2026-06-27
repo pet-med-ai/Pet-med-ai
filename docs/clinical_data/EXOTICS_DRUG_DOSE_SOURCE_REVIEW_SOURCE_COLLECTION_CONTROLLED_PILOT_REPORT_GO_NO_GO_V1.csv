@@ -1,0 +1,5 @@
+gate,requirement,status,notes
+validator,scripts/validate_exotics_drug_dose_source_review_source_collection_controlled_pilot_report.py PASS,GO,Static report shell validated
+dose_output,"No numeric dose, route, frequency, duration, prescription, protocol, or client instruction fields",GO,Dose engine remains disabled
+collection_execution,collection_execution_started=false,GO,Report shell only
+production_schema,database_revision=0009_diag_data and schema_ok=true,GO_REQUIRED_AFTER_DEPLOY,No migration introduced

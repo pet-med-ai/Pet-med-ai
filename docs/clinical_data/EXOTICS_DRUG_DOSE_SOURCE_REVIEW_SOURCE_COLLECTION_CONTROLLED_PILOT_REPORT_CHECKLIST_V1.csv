@@ -1,0 +1,6 @@
+check_id,item,required,status,evidence
+CPR-001,Controlled pilot report matrix exists,true,PASS,EXOTICS_DRUG_DOSE_SOURCE_REVIEW_SOURCE_COLLECTION_CONTROLLED_PILOT_REPORT_MATRIX_V1.csv
+CPR-002,Report is metadata-only and does not start collection execution,true,PASS,collection_execution_started=false
+CPR-003,No medication value capture fields are present,true,PASS,"validator blocks numeric dose, route, frequency, duration, prescription, protocol, and client instruction columns"
+CPR-004,No database writes are introduced,true,PASS,backend helper is read-only and no API endpoint is added
+CPR-005,Human review and clinician signoff remain required,true,PASS,requires_human_review=true; clinician_signoff_required=true

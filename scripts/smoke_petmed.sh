@@ -3441,3 +3441,10 @@ if [ -f scripts/validate_exotics_drug_dose_source_review_source_collection_execu
   python3 scripts/validate_exotics_drug_dose_source_review_source_collection_execution_controlled_pilot.py
 fi
 # --- Exotics Drug Dose Source Review Source Collection Execution Controlled Pilot V1 smoke: end ---
+
+# --- Exotics Drug Dose Source Review Source Collection Controlled Pilot Report V1 smoke: start ---
+if [ -f scripts/validate_exotics_drug_dose_source_review_source_collection_controlled_pilot_report.py ]; then
+  echo "[smoke] Exotics Drug Dose Source Review Source Collection Controlled Pilot Report V1 validator"
+  python3 scripts/validate_exotics_drug_dose_source_review_source_collection_controlled_pilot_report.py
+fi
+# --- Exotics Drug Dose Source Review Source Collection Controlled Pilot Report V1 smoke: end ---
