@@ -259,3 +259,8 @@ python3 scripts/validate_exotics_drug_dose_source_evidence_abstraction.py
 echo "[ci_static_checks] Exotics Drug Dose Source Review Evidence Tables V1 static checks"
 python3 scripts/validate_exotics_drug_dose_source_review_evidence_tables.py
 # --- Exotics Drug Dose Source Review Evidence Tables V1 static checks: end ---
+
+# --- Exotics Drug Dose Source Review Source Registry V1 static checks: start ---
+echo "[ci_static_checks] Exotics Drug Dose Source Review Source Registry V1 static checks"
+python3 scripts/validate_exotics_drug_dose_source_review_source_registry.py
+# --- Exotics Drug Dose Source Review Source Registry V1 static checks: end ---

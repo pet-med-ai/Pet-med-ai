@@ -1,0 +1,11 @@
+item,required,status
+source registry helper present,true,PASS
+source registry matrix present,true,PASS
+covers all exotics species groups,true,PASS
+covers all review domains,true,PASS
+dose output disabled,true,PASS
+numeric dose capture disabled,true,PASS
+route or frequency capture disabled,true,PASS
+prescription instruction capture disabled,true,PASS
+no database write,true,PASS
+human review required,true,PASS

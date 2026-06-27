@@ -1,0 +1,9 @@
+gate,required_result,go,notes
+validator,PASS,true,source registry validator passes
+ci_static_checks,PASS,true,validator is hooked into CI static checks
+online_smoke,ALL_PASS,true,smoke script runs validator
+dose_output_enabled,false,true,no usable dose output
+captures_numeric_dose_value,false,true,no numeric medication amount captured
+captures_route_or_frequency_text,false,true,no administration instruction captured
+writes_database,false,true,read-only source registry shell
+decision,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_SOURCE_COLLECTION_PROTOCOL_V1,true,next source collection protocol stage
