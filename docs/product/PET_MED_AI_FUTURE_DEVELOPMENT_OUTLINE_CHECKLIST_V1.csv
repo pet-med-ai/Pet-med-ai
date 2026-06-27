@@ -1,0 +1,25 @@
+category,item,required,status,notes
+scope,Future development outline document exists,true,PENDING,docs/product/PET_MED_AI_FUTURE_DEVELOPMENT_OUTLINE_V1.md
+scope,Clinical main line is preserved,true,PENDING,Structured intake to hospital operations loop
+scope,Production hard gate remains documented,true,PENDING,0009_diag_data required
+scope,Dangerous feature flags remain closed,true,PENDING,Real integrations and prescription writes remain off
+scope,Git discipline documented,true,PENDING,No git add dot and no local secrets
+content,Exotics source-review safety chain included,true,PENDING,Metadata-only and no dose engine boundaries
+content,Exotics clinical depth roadmap included,true,PENDING,Rabbit/avian/reptile/small mammal/ferret V2 depth
+content,Lab and imaging readiness roadmap included,true,PENDING,No interpretation engine enabled
+content,Diagnostic assistance roadmap included,true,PENDING,Evidence quality and review queue next steps
+content,Clinical docs roadmap included,true,PENDING,Client-facing boundary separated
+content,Data ingestion roadmap included,true,PENDING,Real ingest remains readiness-only
+content,Frontend UI roadmap included,true,PENDING,Exotics visibility and review UI
+content,Ops QA audit roadmap included,true,PENDING,QA V3 and audit search
+content,Commercial support roadmap included,true,PENDING,Support layer only
+content,Prescription and dose high-risk roadmap included,true,PENDING,Default NO-GO
+safety,No business code change,true,PENDING,Docs and validator only
+safety,No DB write,true,PENDING,writes_database=false
+safety,No final diagnosis,true,PENDING,not a diagnostic engine
+safety,No treatment plan,true,PENDING,no treatment plan
+safety,No prescription,true,PENDING,no prescription
+safety,No drug dose,true,PENDING,no dose route frequency
+validation,Static validator added,true,PENDING,scripts/validate_petmed_future_development_outline.py
+validation,ci_static_checks hook added,true,PENDING,validator runs in CI
+validation,smoke hook added,true,PENDING,validator runs in smoke

@@ -1,0 +1,10 @@
+gate,required,status,go_criteria,no_go_criteria
+validator,true,PENDING,python3 scripts/validate_petmed_future_development_outline.py PASS,validator FAIL
+ci_static_checks,true,PENDING,bash scripts/ci_static_checks.sh PASS,CI static checks FAIL
+online_smoke,true,PENDING,bash scripts/smoke_petmed.sh ALL PASS,online smoke FAIL
+production_schema,true,PENDING,database_revision=0009_diag_data and schema_ok=true,schema mismatch or migration_errors present
+dangerous_flags,true,PENDING,all dangerous feature flags false,any dangerous feature flag true or missing
+scope_boundary,true,PENDING,outline only; no business code,backend/frontend feature logic modified unexpectedly
+dose_boundary,true,PENDING,no drug dose / route / frequency enabled,any dose output or route/frequency plan enabled
+prescription_boundary,true,PENDING,no prescription or treatment plan enabled,prescription or treatment plan enabled
+decision,true,PENDING,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_METADATA_ONLY_COLLECTION_WORKSPACE_GOVERNANCE_SIGNOFF_RECORD_VALIDATION_V1,next decision missing or unsafe
