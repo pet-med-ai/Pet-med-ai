@@ -1,0 +1,11 @@
+check_id,required_status,notes
+previous_workspace_exists,PASS_REQUIRED,Previous metadata-only workspace module must be present.
+workspace_matrix_coverage,PASS_REQUIRED,Validation covers every species group and review domain.
+required_fields_present,PASS_REQUIRED,Workspace rows include required metadata-only fields.
+forbidden_fields_absent,PASS_REQUIRED,"No dose, route, frequency, prescription, protocol, client instruction, or copyrighted full-text fields."
+numeric_value_capture_blocked,PASS_REQUIRED,numeric value capture remains blocked.
+route_frequency_capture_blocked,PASS_REQUIRED,route/frequency capture remains blocked.
+usable_instruction_blocked,PASS_REQUIRED,usable medication instruction capture remains blocked.
+collection_execution_blocked,PASS_REQUIRED,source collection execution remains not_started and NO_GO.
+human_review_required,PASS_REQUIRED,Human review and clinician signoff remain required.
+no_database_write,PASS_REQUIRED,"No backend endpoint, no DB migration, no DB write."

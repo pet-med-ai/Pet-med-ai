@@ -1,0 +1,9 @@
+gate,decision,notes
+metadata_only_workspace_static_validation,GO,Static validation schema definition only.
+source_collection_execution,NO_GO,Execution remains blocked.
+numeric_dose_capture,NO_GO,No numeric medication values.
+route_frequency_capture,NO_GO,No route or frequency text.
+prescription_or_treatment_protocol,NO_GO,"No prescription, treatment plan, or protocol."
+client_facing_use,NO_GO,Not client-facing.
+database_write,NO_GO,Read-only artifact stage only.
+next_stage,GO,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_METADATA_ONLY_COLLECTION_WORKSPACE_VALIDATION_REPORT_V1

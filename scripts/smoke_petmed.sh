@@ -3460,3 +3460,9 @@ if [ -f scripts/validate_exotics_drug_dose_source_review_metadata_only_collectio
   python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_collection_workspace.py
 fi
 # --- Exotics Drug Dose Source Review Metadata-only Collection Workspace V1 smoke: end ---
+# --- Exotics Drug Dose Source Review Metadata-only Collection Workspace Validation V1 smoke: start ---
+if [ -f scripts/validate_exotics_drug_dose_source_review_metadata_only_collection_workspace_validation.py ]; then
+  echo "[smoke] Exotics Drug Dose Source Review Metadata-only Collection Workspace Validation V1 validator"
+  python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_collection_workspace_validation.py
+fi
+# --- Exotics Drug Dose Source Review Metadata-only Collection Workspace Validation V1 smoke: end ---
