@@ -1,0 +1,9 @@
+item,required,status,evidence
+Governance matrix covers all species groups,yes,present,EXOTICS_DRUG_DOSE_SOURCE_REVIEW_SOURCE_COLLECTION_GOVERNANCE_GO_NO_GO_MATRIX_V1.csv
+All review domains covered,yes,present,six source review domains
+Collection execution blocked,yes,blocked,collection_execution_allowed_now=false
+Numeric dose capture blocked,yes,blocked,captures_numeric_dose_value=false
+Route/frequency capture blocked,yes,blocked,captures_route_or_frequency_text=false
+Usable medication instruction blocked,yes,blocked,stores_usable_medication_instruction=false
+Human review required,yes,required,requires_human_review=true
+Clinician signoff required,yes,required,clinician_signoff_required=true

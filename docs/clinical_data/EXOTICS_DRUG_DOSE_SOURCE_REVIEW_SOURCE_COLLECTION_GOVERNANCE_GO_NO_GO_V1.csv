@@ -1,0 +1,6 @@
+gate,status,decision,notes
+dose_engine,blocked,NO_GO,is_dose_engine=false
+prescription_engine,blocked,NO_GO,is_prescription_engine=false
+treatment_plan_engine,blocked,NO_GO,is_treatment_plan_engine=false
+source_collection_execution,blocked,NO_GO,collection_execution_started=false; collection_execution_allowed_now=false
+metadata_only_workspace,next_stage,GO_TO_NEXT_REVIEW_STAGE,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_METADATA_ONLY_COLLECTION_WORKSPACE_V1
