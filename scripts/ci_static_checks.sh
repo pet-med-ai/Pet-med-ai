@@ -288,3 +288,7 @@ python3 scripts/validate_exotics_drug_dose_source_review_source_collection_contr
 echo "[ci_static_checks] Exotics Drug Dose Source Review Source Collection Governance Go/No-Go V1 validator"
 python3 scripts/validate_exotics_drug_dose_source_review_source_collection_governance_go_no_go.py
 # --- Exotics Drug Dose Source Review Source Collection Governance Go/No-Go V1 static checks: end ---
+# --- Exotics Drug Dose Source Review Metadata-only Collection Workspace V1 static checks: start ---
+echo "[ci_static_checks] Exotics Drug Dose Source Review Metadata-only Collection Workspace V1 static checks"
+python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_collection_workspace.py
+# --- Exotics Drug Dose Source Review Metadata-only Collection Workspace V1 static checks: end ---

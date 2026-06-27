@@ -1,0 +1,9 @@
+check_id,required_status,notes
+workspace_matrix_present,PASS_REQUIRED,Matrix covers every species group and review domain.
+metadata_only_policy,PASS_REQUIRED,Workspace allows metadata only and no medication values.
+numeric_value_capture_blocked,PASS_REQUIRED,numeric_dose_value and dose_unit remain forbidden.
+route_frequency_capture_blocked,PASS_REQUIRED,route_text and frequency_text remain forbidden.
+usable_instruction_blocked,PASS_REQUIRED,"prescription_direction, treatment_protocol, and client_instruction remain forbidden."
+collection_execution_blocked,PASS_REQUIRED,source_collection_execution_status remains not_started.
+human_review_required,PASS_REQUIRED,Human review and clinician signoff remain required.
+no_database_write,PASS_REQUIRED,"No backend endpoint, no DB migration, no DB write."

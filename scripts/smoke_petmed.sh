@@ -3454,3 +3454,9 @@ if [ -f scripts/validate_exotics_drug_dose_source_review_source_collection_gover
   python3 scripts/validate_exotics_drug_dose_source_review_source_collection_governance_go_no_go.py
 fi
 # --- Exotics Drug Dose Source Review Source Collection Governance Go/No-Go V1 smoke: end ---
+# --- Exotics Drug Dose Source Review Metadata-only Collection Workspace V1 smoke: start ---
+if [ -f scripts/validate_exotics_drug_dose_source_review_metadata_only_collection_workspace.py ]; then
+  echo "[smoke] Exotics Drug Dose Source Review Metadata-only Collection Workspace V1 validator"
+  python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_collection_workspace.py
+fi
+# --- Exotics Drug Dose Source Review Metadata-only Collection Workspace V1 smoke: end ---
