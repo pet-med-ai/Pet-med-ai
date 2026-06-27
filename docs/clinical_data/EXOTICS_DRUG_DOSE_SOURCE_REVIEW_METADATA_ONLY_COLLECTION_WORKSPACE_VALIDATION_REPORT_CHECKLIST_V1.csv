@@ -1,0 +1,14 @@
+item,expected,status
+validation report shell exists,true,PASS
+species/domain matrix complete,14 species groups x 6 review domains,PASS
+workspace population blocked,metadata_only_workspace_populated=false,PASS
+workspace validation execution blocked,metadata_only_workspace_validation_executed=false,PASS
+collection execution blocked,collection_execution_allowed_now=false,PASS
+dose engine disabled,is_dose_engine=false,PASS
+prescription engine disabled,is_prescription_engine=false,PASS
+treatment plan engine disabled,is_treatment_plan_engine=false,PASS
+numeric medication value capture blocked,captures_numeric_dose_value=false,PASS
+route/frequency capture blocked,captures_route_or_frequency_text=false,PASS
+usable medication instruction storage blocked,stores_usable_medication_instruction=false,PASS
+human review required,requires_human_review=true,PASS
+clinician signoff required,clinician_signoff_required=true,PASS
