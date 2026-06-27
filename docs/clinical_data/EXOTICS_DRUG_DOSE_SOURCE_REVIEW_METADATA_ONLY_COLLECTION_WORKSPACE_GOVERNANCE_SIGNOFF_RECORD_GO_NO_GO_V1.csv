@@ -1,0 +1,7 @@
+gate,expected,go_no_go
+validator,PASS,GO only if validator passes
+no_numeric_dose_capture,true,NO-GO if numeric medication value fields appear
+no_route_frequency_capture,true,NO-GO if route or frequency fields appear
+no_usable_medication_instruction,true,NO-GO if prescription direction or treatment protocol appears
+collection_execution_allowed_now,false,NO-GO to source collection execution
+governance_decision,NO_GO_TO_COLLECTION_EXECUTION,must remain NO-GO

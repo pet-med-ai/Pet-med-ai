@@ -1,0 +1,7 @@
+item,required,status,notes
+helper_present,true,pending_local_validation,backend helper builds metadata-only governance signoff record matrix
+matrix_present,true,pending_local_validation,matrix covers species groups and review domains
+forbidden_columns_absent,true,pending_local_validation,no numeric medication values or executable medication instructions
+source_collection_execution_blocked,true,pending_local_validation,collection execution remains not started and not allowed
+governance_decision_no_go,true,pending_local_validation,NO_GO_TO_COLLECTION_EXECUTION remains enforced
+human_review_required,true,pending_local_validation,human review and clinician signoff remain required
