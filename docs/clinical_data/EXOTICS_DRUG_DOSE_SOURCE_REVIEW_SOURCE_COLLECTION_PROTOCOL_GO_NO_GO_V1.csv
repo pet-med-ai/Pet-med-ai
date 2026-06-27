@@ -1,0 +1,10 @@
+gate,required_state,actual_state,decision
+validator,PASS,PENDING_LOCAL_RUN,NO_GO_UNTIL_PASS
+ci_static_checks,PASS,PENDING_LOCAL_RUN,NO_GO_UNTIL_PASS
+online_smoke,ALL_PASS,PENDING_DEPLOYMENT_SMOKE,NO_GO_UNTIL_PASS
+dose_engine,false,false,GO
+prescription_engine,false,false,GO
+captures_numeric_dose_value,false,false,GO
+captures_route_or_frequency_text,false,false,GO
+writes_database,false,false,GO
+next_decision,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_SOURCE_COLLECTION_EXECUTION_READINESS_V1,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_SOURCE_COLLECTION_EXECUTION_READINESS_V1,GO_AFTER_VALIDATION
