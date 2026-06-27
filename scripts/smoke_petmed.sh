@@ -3427,3 +3427,10 @@ if [ -f scripts/validate_exotics_drug_dose_source_review_source_collection_proto
   python3 scripts/validate_exotics_drug_dose_source_review_source_collection_protocol.py
 fi
 # --- Exotics Drug Dose Source Review Source Collection Protocol V1 smoke: end ---
+
+# --- Exotics Drug Dose Source Review Source Collection Execution Readiness V1 smoke: start ---
+if [ -f scripts/validate_exotics_drug_dose_source_review_source_collection_execution_readiness.py ]; then
+  echo "[smoke] Exotics Drug Dose Source Review Source Collection Execution Readiness V1 validator"
+  python3 scripts/validate_exotics_drug_dose_source_review_source_collection_execution_readiness.py
+fi
+# --- Exotics Drug Dose Source Review Source Collection Execution Readiness V1 smoke: end ---

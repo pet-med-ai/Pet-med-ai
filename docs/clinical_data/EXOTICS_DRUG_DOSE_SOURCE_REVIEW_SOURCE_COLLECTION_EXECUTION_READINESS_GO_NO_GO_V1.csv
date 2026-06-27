@@ -1,0 +1,10 @@
+gate,go,no_go
+validator,PASS,FAIL
+ci_static_checks,PASS,FAIL
+online_smoke,PASS,FAIL
+collection_execution_started,false,true
+dose_output_enabled,false,true
+captures_numeric_dose_value,false,true
+captures_route_or_frequency_text,false,true
+stores_usable_medication_instruction,false,true
+writes_database,false,true

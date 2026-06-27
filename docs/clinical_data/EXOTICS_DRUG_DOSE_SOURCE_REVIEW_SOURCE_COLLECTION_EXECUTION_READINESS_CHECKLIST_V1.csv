@@ -1,0 +1,9 @@
+item,expected,status
+Execution readiness matrix exists,EXOTICS_DRUG_DOSE_SOURCE_REVIEW_SOURCE_COLLECTION_EXECUTION_READINESS_MATRIX_V1.csv,required
+No collection execution,collection_execution_status=not_started,required
+No medication value capture,captures_numeric_dose_value=false,required
+No route or frequency capture,captures_route_or_frequency_text=false,required
+No usable medication instruction,stores_usable_medication_instruction=false,required
+No database write,writes_database=false,required
+Human review remains required,requires_human_review=true,required
+Clinician signoff remains required,clinician_signoff_required=true,required
