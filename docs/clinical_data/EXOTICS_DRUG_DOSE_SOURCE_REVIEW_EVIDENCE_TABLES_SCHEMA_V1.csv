@@ -1,0 +1,24 @@
+column_name,column_status,data_category,allowed,blocked_reason,description
+table_id,allowed,source_metadata_or_qualitative_review,true,,stable table identifier
+species_group,allowed,source_metadata_or_qualitative_review,true,,target exotic species group
+review_domain,allowed,source_metadata_or_qualitative_review,true,,source review domain
+source_id,allowed,source_metadata_or_qualitative_review,true,,internal source identifier only
+source_type,allowed,source_metadata_or_qualitative_review,true,,"textbook, formulary, label, paper, review, or guideline category"
+citation_key,allowed,source_metadata_or_qualitative_review,true,,short bibliographic key without medication directions
+citation_metadata_status,allowed,source_metadata_or_qualitative_review,true,,missing / pending_review / reviewed metadata state
+species_applicability_note,allowed,source_metadata_or_qualitative_review,true,,qualitative species applicability note
+indication_category,allowed,source_metadata_or_qualitative_review,true,,high-level indication category
+evidence_strength_hint,allowed,source_metadata_or_qualitative_review,true,,qualitative evidence strength only
+contraindication_theme,allowed,source_metadata_or_qualitative_review,true,,qualitative safety theme
+monitoring_theme,allowed,source_metadata_or_qualitative_review,true,,qualitative monitoring theme
+source_conflict_note,allowed,source_metadata_or_qualitative_review,true,,qualitative conflict note without usable medication instructions
+reviewer_initials,allowed,source_metadata_or_qualitative_review,true,,source reviewer initials
+review_status,allowed,source_metadata_or_qualitative_review,true,,not_started / in_review / reviewed / rejected
+numeric_dose_value,blocked,usable_medication_instruction,false,blocked,Must not exist in V1 evidence tables.
+dose_unit,blocked,usable_medication_instruction,false,blocked,Must not exist in V1 evidence tables.
+route_text,blocked,usable_medication_instruction,false,blocked,Must not exist in V1 evidence tables.
+frequency_text,blocked,usable_medication_instruction,false,blocked,Must not exist in V1 evidence tables.
+duration_text,blocked,usable_medication_instruction,false,blocked,Must not exist in V1 evidence tables.
+prescription_direction,blocked,usable_medication_instruction,false,blocked,Must not exist in V1 evidence tables.
+treatment_protocol,blocked,usable_medication_instruction,false,blocked,Must not exist in V1 evidence tables.
+client_instruction,blocked,usable_medication_instruction,false,blocked,Must not exist in V1 evidence tables.

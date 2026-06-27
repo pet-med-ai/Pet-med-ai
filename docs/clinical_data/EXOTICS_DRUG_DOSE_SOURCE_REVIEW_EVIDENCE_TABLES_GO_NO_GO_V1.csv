@@ -1,0 +1,9 @@
+gate,required_result,status,decision
+validator,PASS,pending,NO_GO until pass
+ci_static_checks,PASS,pending,NO_GO until pass
+online_smoke,ALL_PASS,pending,NO_GO until pass
+dose_output_enabled,false,pending,NO_GO if true
+numeric_dose_value_column_present,false,pending,NO_GO if true
+route_text_column_present,false,pending,NO_GO if true
+frequency_text_column_present,false,pending,NO_GO if true
+source_review_status,evidence_tables_schema_ready_not_started,pending,GO to source registry only

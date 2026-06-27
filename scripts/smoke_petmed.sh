@@ -3406,3 +3406,10 @@ if [ -f scripts/validate_exotics_drug_dose_source_evidence_abstraction.py ]; the
   python3 scripts/validate_exotics_drug_dose_source_evidence_abstraction.py
 fi
 # --- Exotics Drug Dose Source Evidence Abstraction V1 smoke: end ---
+
+# --- Exotics Drug Dose Source Review Evidence Tables V1 smoke: start ---
+if [ -f scripts/validate_exotics_drug_dose_source_review_evidence_tables.py ]; then
+  echo "[smoke] Exotics Drug Dose Source Review Evidence Tables V1 validator"
+  python3 scripts/validate_exotics_drug_dose_source_review_evidence_tables.py
+fi
+# --- Exotics Drug Dose Source Review Evidence Tables V1 smoke: end ---

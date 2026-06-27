@@ -1,0 +1,9 @@
+item,required,status,evidence
+evidence table backend helper exists,true,pending,backend/exotics_drug_dose_source_review_evidence_tables.py
+matrix covers all expanded exotic species groups,true,pending,EXOTICS_DRUG_DOSE_SOURCE_REVIEW_EVIDENCE_TABLES_MATRIX_V1.csv
+schema CSV lists allowed and blocked columns,true,pending,EXOTICS_DRUG_DOSE_SOURCE_REVIEW_EVIDENCE_TABLES_SCHEMA_V1.csv
+numeric dose columns blocked,true,pending,schema numeric_dose_value allowed=false
+route and frequency columns blocked,true,pending,schema route_text/frequency_text allowed=false
+prescription and treatment protocol columns blocked,true,pending,schema prescription_direction/treatment_protocol allowed=false
+no database writes,true,pending,safety.writes_database=false
+human review required,true,pending,requires_human_review=true
