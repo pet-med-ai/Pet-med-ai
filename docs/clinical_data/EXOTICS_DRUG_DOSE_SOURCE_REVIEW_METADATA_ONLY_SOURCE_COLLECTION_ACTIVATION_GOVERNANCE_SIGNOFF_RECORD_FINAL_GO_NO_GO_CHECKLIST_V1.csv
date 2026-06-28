@@ -1,0 +1,10 @@
+item,required,status,evidence
+final_go_no_go_matrix_present,true,present,matrix covers every species_group and review_domain
+governance_decision_no_go,true,NO_GO_TO_METADATA_ONLY_SOURCE_COLLECTION_ACTIVATION,activation remains blocked
+no_numeric_dose_value,true,blocked,forbidden field scanner expects no medication values
+no_route_or_frequency_text,true,blocked,route/frequency capture remains blocked
+no_prescription_or_treatment_protocol,true,blocked,not a prescription or treatment plan stage
+no_source_collection_activation,true,not_allowed,collection_activation_allowed_now=false
+no_source_collection_execution,true,not_started,collection_execution_started=false
+human_review_required,true,true,requires_human_review=true
+clinician_signoff_required,true,true,clinician_signoff_required=true

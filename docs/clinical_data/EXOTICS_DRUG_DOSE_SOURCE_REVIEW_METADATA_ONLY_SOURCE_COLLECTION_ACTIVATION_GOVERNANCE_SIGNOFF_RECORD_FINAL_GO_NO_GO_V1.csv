@@ -1,0 +1,5 @@
+gate,decision,reason,required_next_action
+metadata_only_source_collection_activation,NO_GO,governance signoff record is not completed and collection activation remains blocked,complete final-go/no-go report stage before any further readiness review
+dose_engine,NO_GO,source review is metadata-only and not a medication value capture workflow,keep dose_output_enabled=false
+prescription_engine,NO_GO,no prescription direction or treatment protocol may be stored,keep prescription structured write disabled
+client_facing_output,NO_GO,this is internal governance documentation only,keep not_client_facing=true

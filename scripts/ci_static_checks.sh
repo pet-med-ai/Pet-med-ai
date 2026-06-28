@@ -363,3 +363,8 @@ python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_source_co
 echo "[ci_static_checks] Exotics metadata-only source collection activation governance signoff record validation report V1 static checks"
 python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_source_collection_activation_governance_signoff_record_validation_report.py
 # --- Exotics Drug Dose Source Review Metadata-only Source Collection Activation Governance Signoff Record Validation Report V1 static checks: end ---
+
+# --- Exotics Drug Dose Source Review Metadata-only Source Collection Activation Governance Signoff Record Final Go/No-Go V1 static checks: start ---
+echo "[ci_static_checks] Exotics Drug Dose Source Review Metadata-only Source Collection Activation Governance Signoff Record Final Go/No-Go V1 validator"
+python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_source_collection_activation_governance_signoff_record_final_go_no_go.py
+# --- Exotics Drug Dose Source Review Metadata-only Source Collection Activation Governance Signoff Record Final Go/No-Go V1 static checks: end ---
