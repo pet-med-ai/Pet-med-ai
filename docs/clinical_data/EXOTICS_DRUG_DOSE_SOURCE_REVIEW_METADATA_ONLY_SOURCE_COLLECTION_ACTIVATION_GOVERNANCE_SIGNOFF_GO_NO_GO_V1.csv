@@ -1,0 +1,11 @@
+gate,status,go_no_go,notes
+validator,required_pass,GO_IF_PASS,Run stage validator.
+ci_static_checks,required_pass,GO_IF_PASS,Run complete static checks.
+online_smoke,required_pass,GO_IF_PASS,Run smoke without changing production DB.
+production_schema,0009_diag_data_required,GO_IF_MATCH,database_revision and alembic_head must remain 0009_diag_data.
+source_collection_activation,not_allowed,NO_GO,Activation remains blocked.
+source_collection_execution,not_allowed,NO_GO,Execution remains blocked.
+dose_engine,not_enabled,NO_GO,No dose engine.
+prescription_engine,not_enabled,NO_GO,No prescription engine.
+treatment_plan_engine,not_enabled,NO_GO,No treatment-plan engine.
+final_decision,NO_GO_TO_METADATA_ONLY_SOURCE_COLLECTION_ACTIVATION,NO_GO,Next stage is governance signoff record only.

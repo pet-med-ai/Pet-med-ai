@@ -1,0 +1,13 @@
+item,required_status,actual_status,notes
+activation_governance_signoff_matrix_present,true,true,Matrix covers all species groups and review domains.
+clinical_owner_signoff_required,true,true,No activation until named clinical owner signoff exists.
+second_reviewer_signoff_required,true,true,No activation until second reviewer signoff exists.
+source_access_signoff_required,true,true,Source access must be reviewed before activation.
+copyright_access_signoff_required,true,true,Copyright access must be reviewed before activation.
+metadata_only_workspace_required,true,true,Workspace remains metadata-only.
+value_capture_blocker_required,true,true,Forbidden value fields remain blocked.
+collection_activation_allowed_now,false,false,Governance decision remains NO-GO.
+collection_execution_started,false,false,No execution in this stage.
+dose_output_enabled,false,false,No dose output.
+requires_human_review,true,true,Human review is mandatory.
+clinician_signoff_required,true,true,Clinician signoff is mandatory.
