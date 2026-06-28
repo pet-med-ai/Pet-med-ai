@@ -3494,3 +3494,9 @@ if [ -f scripts/validate_petmed_future_development_outline.py ]; then
   python3 scripts/validate_petmed_future_development_outline.py
 fi
 # --- Pet-Med-AI Future Development Outline V1 smoke: end ---
+# --- Exotics Drug Dose Source Review Metadata-only Collection Workspace Governance Signoff Record Validation V1 smoke: start ---
+if [ -f scripts/validate_exotics_drug_dose_source_review_metadata_only_collection_workspace_governance_signoff_record_validation.py ]; then
+  echo "[smoke] Exotics Drug Dose Source Review Metadata-only Collection Workspace Governance Signoff Record Validation V1"
+  python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_collection_workspace_governance_signoff_record_validation.py
+fi
+# --- Exotics Drug Dose Source Review Metadata-only Collection Workspace Governance Signoff Record Validation V1 smoke: end ---

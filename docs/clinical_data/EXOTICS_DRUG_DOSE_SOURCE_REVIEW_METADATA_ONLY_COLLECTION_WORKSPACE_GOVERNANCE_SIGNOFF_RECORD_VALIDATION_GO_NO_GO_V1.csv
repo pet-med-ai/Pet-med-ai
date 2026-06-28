@@ -1,0 +1,8 @@
+gate,decision,reason
+metadata_only_validation_schema,GO,schema-only validation is allowed
+source_collection_execution,NO_GO,source collection execution has not been authorized
+numeric_dose_capture,NO_GO,numeric dose capture remains forbidden
+route_frequency_capture,NO_GO,route and frequency capture remain forbidden
+prescription_or_treatment_plan,NO_GO,not a prescription or treatment engine
+client_facing_output,NO_GO,not client-facing
+next_stage,GO,GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_METADATA_ONLY_COLLECTION_WORKSPACE_GOVERNANCE_SIGNOFF_RECORD_VALIDATION_REPORT_V1

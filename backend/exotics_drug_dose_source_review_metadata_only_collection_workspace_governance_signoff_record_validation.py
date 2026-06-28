@@ -1,0 +1,203 @@
+# -*- coding: utf-8 -*-
+from __future__ import annotations
+
+from typing import Any, Dict, List
+
+MODE = "exotics_drug_dose_source_review_metadata_only_collection_workspace_governance_signoff_record_validation_v1"
+CURRENT_LEVEL = "metadata_only_workspace_governance_signoff_record_validation_schema_only_not_collection_execution"
+NEXT_STAGE = "GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_METADATA_ONLY_COLLECTION_WORKSPACE_GOVERNANCE_SIGNOFF_RECORD_VALIDATION_REPORT_V1"
+GOVERNANCE_DECISION = "NO_GO_TO_COLLECTION_EXECUTION"
+
+SPECIES_GROUPS = [
+    "rabbit",
+    "bird",
+    "ferret",
+    "turtle",
+    "lizard",
+    "snake",
+    "amphibian",
+    "fish",
+    "guinea_pig",
+    "hamster",
+    "chinchilla",
+    "rat_mouse",
+    "hedgehog",
+    "sugar_glider",
+]
+
+REVIEW_DOMAINS = [
+    "analgesia_and_pain_control_source_review",
+    "antimicrobial_source_review",
+    "antiparasitic_source_review",
+    "fluid_and_supportive_care_source_review",
+    "sedation_anesthesia_risk_source_review",
+    "emergency_stabilization_source_review",
+]
+
+ALLOWED_METADATA_ONLY_FIELDS = [
+    "governance_signoff_record_validation_id",
+    "species_group",
+    "review_domain",
+    "governance_signoff_record_id",
+    "workspace_scope",
+    "validation_scope",
+    "validation_record_required",
+    "governance_signoff_record_required",
+    "validation_record_status",
+    "signoff_record_validation_status",
+    "clinical_owner_record_check",
+    "second_reviewer_record_check",
+    "source_access_record_check",
+    "copyright_access_record_check",
+    "metadata_only_policy_record_check",
+    "value_capture_blocker_record_check",
+    "numeric_value_capture_status",
+    "route_frequency_capture_status",
+    "usable_medication_instruction_status",
+    "collection_execution_status",
+    "go_no_go_status",
+    "human_review_required",
+    "clinician_signoff_required",
+    "next_required_stage",
+]
+
+FORBIDDEN_VALUE_FIELDS = [
+    "numeric_dose_value",
+    "dose_unit",
+    "route_text",
+    "frequency_text",
+    "duration_text",
+    "prescription_direction",
+    "treatment_protocol",
+    "client_instruction",
+    "copied_table_text",
+    "copyrighted_full_text",
+]
+
+
+def safety_flags() -> Dict[str, Any]:
+    return {
+        "read_only": True,
+        "dry_run": True,
+        "writes_database": False,
+        "creates_case": False,
+        "updates_case": False,
+        "creates_diagnostic_report": False,
+        "updates_diagnostic_report": False,
+        "creates_observation": False,
+        "updates_observation": False,
+        "creates_imaging_study": False,
+        "updates_imaging_study": False,
+        "writes_ai_summary": False,
+        "writes_abnormal_summary": False,
+        "creates_audit_log": False,
+        "writes_audit_log": False,
+        "executes_source_collection": False,
+        "collection_execution_started": False,
+        "collection_execution_allowed_now": False,
+        "pilot_execution_allowed_now": False,
+        "metadata_only_workspace_defined": True,
+        "metadata_only_workspace_populated": False,
+        "metadata_only_workspace_validation_defined": True,
+        "metadata_only_workspace_validation_executed": False,
+        "metadata_only_workspace_validation_report_defined": True,
+        "metadata_only_workspace_validation_report_has_collection_results": False,
+        "governance_signoff_defined": True,
+        "governance_signoff_completed": False,
+        "governance_signoff_record_defined": True,
+        "governance_signoff_record_completed": False,
+        "governance_signoff_record_validation_defined": True,
+        "governance_signoff_record_validation_executed": False,
+        "is_dose_engine": False,
+        "is_prescription_engine": False,
+        "is_treatment_plan_engine": False,
+        "dose_output_enabled": False,
+        "captures_numeric_dose_value": False,
+        "captures_route_or_frequency_text": False,
+        "stores_usable_medication_instruction": False,
+        "generates_final_diagnosis": False,
+        "generates_diagnostic_conclusion": False,
+        "creates_treatment_plan": False,
+        "writes_prescription": False,
+        "returns_drug_dose": False,
+        "returns_drug_route": False,
+        "returns_drug_frequency": False,
+        "client_facing": False,
+        "not_client_facing": True,
+        "calls_external_ai": False,
+        "calls_external_provider": False,
+        "downloads_attachments": False,
+        "sends_external_message": False,
+        "executes_real_import": False,
+        "executes_real_lab_ingest": False,
+        "executes_real_dicom_ingest": False,
+        "executes_real_device_ingest": False,
+        "requires_human_review": True,
+        "clinician_signoff_required": True,
+        "governance_decision": GOVERNANCE_DECISION,
+    }
+
+
+def build_validation_rows() -> List[Dict[str, str]]:
+    rows: List[Dict[str, str]] = []
+    for species_group in SPECIES_GROUPS:
+        for review_domain in REVIEW_DOMAINS:
+            rows.append({
+                "governance_signoff_record_validation_id": "gsrval-%s-%s" % (species_group, review_domain),
+                "species_group": species_group,
+                "review_domain": review_domain,
+                "governance_signoff_record_id": "required_not_completed",
+                "workspace_scope": "metadata_only_drug_dose_source_review",
+                "validation_scope": "governance_signoff_record_schema_and_blocker_validation_only",
+                "validation_record_required": "true",
+                "governance_signoff_record_required": "true",
+                "validation_record_status": "schema_defined_not_completed",
+                "signoff_record_validation_status": "not_executed",
+                "clinical_owner_record_check": "required_not_verified",
+                "second_reviewer_record_check": "required_not_verified",
+                "source_access_record_check": "required_not_verified",
+                "copyright_access_record_check": "required_not_verified",
+                "metadata_only_policy_record_check": "required_not_verified",
+                "value_capture_blocker_record_check": "required_not_verified",
+                "numeric_value_capture_status": "blocked_not_present",
+                "route_frequency_capture_status": "blocked_not_present",
+                "usable_medication_instruction_status": "blocked_not_present",
+                "collection_execution_status": "not_started",
+                "go_no_go_status": GOVERNANCE_DECISION,
+                "human_review_required": "true",
+                "clinician_signoff_required": "true",
+                "next_required_stage": NEXT_STAGE,
+            })
+    return rows
+
+
+def build_summary() -> Dict[str, Any]:
+    rows = build_validation_rows()
+    flags = safety_flags()
+    return {
+        "mode": MODE,
+        "current_level": CURRENT_LEVEL,
+        "species_group_count": len(SPECIES_GROUPS),
+        "review_domain_count": len(REVIEW_DOMAINS),
+        "row_count": len(rows),
+        "source_review_status": "metadata_only_workspace_governance_signoff_record_validation_defined_no_collection_execution",
+        "drug_dose_status": "not_reviewed_not_enabled",
+        "governance_decision": GOVERNANCE_DECISION,
+        "next_stage": NEXT_STAGE,
+        "forbidden_value_fields": FORBIDDEN_VALUE_FIELDS,
+        "allowed_metadata_only_fields": ALLOWED_METADATA_ONLY_FIELDS,
+        "quality_gate": {
+            "status": "PASS",
+            "coverage_complete": len(rows) == len(SPECIES_GROUPS) * len(REVIEW_DOMAINS),
+            "metadata_only": True,
+            "blocks_numeric_dose": True,
+            "blocks_route_frequency": True,
+            "blocks_usable_medication_instruction": True,
+            "blocks_source_collection_execution": True,
+            "governance_decision": GOVERNANCE_DECISION,
+            "requires_human_review": True,
+            "clinician_signoff_required": True,
+        },
+        "safety": flags,
+        **flags,
+    }

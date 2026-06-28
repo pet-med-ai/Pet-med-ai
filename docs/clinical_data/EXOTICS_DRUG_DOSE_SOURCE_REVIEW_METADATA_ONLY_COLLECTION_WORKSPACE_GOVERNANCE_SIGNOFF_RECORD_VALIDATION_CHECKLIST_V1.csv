@@ -1,0 +1,9 @@
+item,required,status,notes
+helper_present,true,PASS,backend helper defines metadata-only validation rows
+matrix_present,true,PASS,matrix covers all species groups and review domains
+no_numeric_dose_capture,true,PASS,numeric dose fields remain forbidden
+no_route_frequency_capture,true,PASS,route and frequency fields remain forbidden
+no_collection_execution,true,PASS,collection execution remains not started and not allowed
+no_db_write,true,PASS,documentation and helper only
+human_review_required,true,PASS,human review remains mandatory
+clinician_signoff_required,true,PASS,clinician signoff remains mandatory
