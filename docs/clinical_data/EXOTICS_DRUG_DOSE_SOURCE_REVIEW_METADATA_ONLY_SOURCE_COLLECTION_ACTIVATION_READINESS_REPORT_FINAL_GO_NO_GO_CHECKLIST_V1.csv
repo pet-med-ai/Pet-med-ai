@@ -1,0 +1,10 @@
+item,required,status,notes
+final_go_no_go_matrix_present,true,PASS,Matrix shell is present for every species group and review domain.
+metadata_only_policy,true,PASS,Final Go/No-Go fields are metadata-only readiness status fields.
+numeric_dose_blocked,true,PASS,No numeric dose value field is allowed.
+route_frequency_blocked,true,PASS,No route or frequency text field is allowed.
+collection_activation_blocked,true,PASS,Activation remains not started and not allowed.
+collection_execution_blocked,true,PASS,Execution remains not started and not allowed.
+governance_decision,NO_GO_TO_METADATA_ONLY_SOURCE_COLLECTION_ACTIVATION,PASS,Final Go/No-Go remains NO-GO to activation.
+human_review_required,true,PASS,Human clinical review is required before any future stage.
+clinician_signoff_required,true,PASS,Clinician signoff is required before any future activation stage.
