@@ -1,0 +1,8 @@
+item,required,status,evidence
+stage_is_metadata_only,true,PASS,schema shell only
+forbidden_value_fields_absent_from_matrix,true,PASS,validator checks CSV header and cells
+collection_activation_allowed_now,false,PASS,NO_GO_TO_METADATA_ONLY_SOURCE_COLLECTION_ACTIVATION
+collection_execution_started,false,PASS,not_started
+dose_output_enabled,false,PASS,not dose engine
+requires_human_review,true,PASS,clinician review required
+clinician_signoff_required,true,PASS,clinical governance required

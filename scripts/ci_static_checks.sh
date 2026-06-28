@@ -349,3 +349,8 @@ python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_source_co
 echo "[ci_static_checks] Exotics Drug Dose Source Review Metadata-only Source Collection Activation Governance Signoff V1 static checks"
 python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_source_collection_activation_governance_signoff.py
 # --- Exotics Drug Dose Source Review Metadata-only Source Collection Activation Governance Signoff V1 static checks: end ---
+
+# --- Exotics Drug Dose Source Review Metadata-only Source Collection Activation Governance Signoff Record V1 static checks: start ---
+echo "[ci_static_checks] Exotics Drug Dose Source Review Metadata-only Source Collection Activation Governance Signoff Record V1"
+python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_source_collection_activation_governance_signoff_record.py
+# --- Exotics Drug Dose Source Review Metadata-only Source Collection Activation Governance Signoff Record V1 static checks: end ---
