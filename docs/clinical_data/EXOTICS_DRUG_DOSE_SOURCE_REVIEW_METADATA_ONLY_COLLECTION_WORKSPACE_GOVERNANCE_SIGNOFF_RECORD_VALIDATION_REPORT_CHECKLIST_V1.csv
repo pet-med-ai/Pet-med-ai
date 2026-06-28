@@ -1,0 +1,12 @@
+item,required,status
+validation report helper present,yes,PASS
+validation report matrix present,yes,PASS
+all species groups covered,yes,PASS
+all review domains covered,yes,PASS
+metadata-only fields only,yes,PASS
+numeric value capture blocked,yes,PASS
+route frequency capture blocked,yes,PASS
+usable medication instruction blocked,yes,PASS
+collection execution still blocked,yes,PASS
+human review required,yes,PASS
+clinician signoff required,yes,PASS
