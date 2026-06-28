@@ -3514,3 +3514,10 @@ if [ -f scripts/validate_exotics_drug_dose_source_review_metadata_only_collectio
   python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_collection_workspace_governance_signoff_record_final_go_no_go.py
 fi
 # --- Exotics Drug Dose Source Review Metadata-only Collection Workspace Governance Signoff Record Final Go/No-Go V1 smoke: end ---
+
+# --- Exotics Drug Dose Source Review Metadata-only Source Collection Activation Readiness V1 smoke: start ---
+if [ -f scripts/validate_exotics_drug_dose_source_review_metadata_only_source_collection_activation_readiness.py ]; then
+  echo "[smoke] Exotics Drug Dose Source Review Metadata-only Source Collection Activation Readiness V1 validator"
+  python3 scripts/validate_exotics_drug_dose_source_review_metadata_only_source_collection_activation_readiness.py
+fi
+# --- Exotics Drug Dose Source Review Metadata-only Source Collection Activation Readiness V1 smoke: end ---

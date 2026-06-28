@@ -1,0 +1,11 @@
+item,required,status,evidence
+Activation readiness matrix present,true,PASS,docs/clinical_data/EXOTICS_DRUG_DOSE_SOURCE_REVIEW_METADATA_ONLY_SOURCE_COLLECTION_ACTIVATION_READINESS_MATRIX_V1.csv
+Activation remains NO-GO,NO_GO_TO_METADATA_ONLY_SOURCE_COLLECTION_ACTIVATION,PASS,all rows
+Collection activation blocked,collection_activation_allowed_now=false,PASS,backend summary
+Collection execution blocked,collection_execution_started=false,PASS,backend summary
+No dose engine,is_dose_engine=false,PASS,backend summary
+No prescription engine,is_prescription_engine=false,PASS,backend summary
+No numeric dose capture,captures_numeric_dose_value=false,PASS,backend summary
+No route/frequency capture,captures_route_or_frequency_text=false,PASS,backend summary
+Human review required,requires_human_review=true,PASS,backend summary
+Clinician signoff required,clinician_signoff_required=true,PASS,backend summary
