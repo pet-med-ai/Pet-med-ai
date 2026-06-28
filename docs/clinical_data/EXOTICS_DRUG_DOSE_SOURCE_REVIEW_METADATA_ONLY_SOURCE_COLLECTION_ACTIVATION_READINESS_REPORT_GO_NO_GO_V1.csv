@@ -1,0 +1,10 @@
+gate,expected,actual,decision
+is_dose_engine,false,false,GO
+is_prescription_engine,false,false,GO
+is_treatment_plan_engine,false,false,GO
+captures_numeric_dose_value,false,false,GO
+captures_route_or_frequency_text,false,false,GO
+stores_usable_medication_instruction,false,false,GO
+collection_activation_allowed_now,false,false,GO
+collection_execution_allowed_now,false,false,GO
+governance_decision,NO_GO_TO_METADATA_ONLY_SOURCE_COLLECTION_ACTIVATION,NO_GO_TO_METADATA_ONLY_SOURCE_COLLECTION_ACTIVATION,GO
