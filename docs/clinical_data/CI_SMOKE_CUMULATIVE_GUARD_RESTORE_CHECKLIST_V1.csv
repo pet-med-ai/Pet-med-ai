@@ -1,0 +1,11 @@
+id,area,check,expected,evidence,decision
+1,scope,Target files only,Only CI Smoke Cumulative Guard Restore V1 docs validator ci and smoke files are written,TARGET_FILES list,GO
+2,smoke,Embedded legacy cumulative smoke present,0c8fd5d:scripts/smoke_petmed.sh embedded inside scripts/smoke_petmed.sh,embedded_legacy_cumulative_smoke,GO
+3,smoke,Current production hard gate retained,database_revision alembic_head schema_ok migration_errors writes_database exposes_database_url checked,/api/system/version,GO
+4,flags,Dangerous feature flags retained and checked,All dangerous flags must be present and false,/api/system/feature-flags,GO
+5,ci,Target-only tracked diff discipline retained,Non-target tracked diffs fail ci_static_checks,git diff and git diff --cached,GO
+6,ci,Sensitive staged paths blocked,env db backend/app backend/ai_engine frontend/src/components and package-lock are blocked,FORBIDDEN_STAGE_PATTERNS,GO
+7,safety,No business code change,No endpoint model migration AI engine frontend component or DB write change,target list excludes business paths,GO
+8,safety,Read-only stage,writes_database=false and no DB write smoke marker present,read_only=true,GO
+9,validator,Validator passes,validate_ci_smoke_cumulative_guard_restore.py returns PASS,validator=PASS,GO
+10,next,Next stage allowed only after restore,Proceed to Confirmed Diagnosis Treatment Framework Draft V1 after cumulative guard restore,decision marker,GO

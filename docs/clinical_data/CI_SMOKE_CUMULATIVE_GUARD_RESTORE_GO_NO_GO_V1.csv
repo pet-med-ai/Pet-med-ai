@@ -1,0 +1,13 @@
+gate,required,status,evidence,decision
+validator_pass,true,PENDING,python3 scripts/validate_ci_smoke_cumulative_guard_restore.py,GO_IF_PASS
+ci_static_checks_pass,true,PENDING,bash scripts/ci_static_checks.sh,GO_IF_PASS
+online_smoke_all_pass,true,PENDING,KEEP_TMP=1 BASE_URL=https://pet-med-ai-backend.onrender.com FRONTEND_URL=https://pet-med-ai-frontend-static.onrender.com bash scripts/smoke_petmed.sh,GO_IF_PASS
+embedded_legacy_cumulative_smoke,true,PENDING,smoke script embeds 0c8fd5d:scripts/smoke_petmed.sh,GO_IF_PASS
+smoke_line_count_minimum,true,PENDING,validator rejects smoke scripts below cumulative minimum,GO_IF_PASS
+production_database_revision_0009,true,PENDING,database_revision=0009_diag_data,GO_IF_PASS
+production_alembic_head_0009,true,PENDING,alembic_head=0009_diag_data,GO_IF_PASS
+production_schema_ok_true,true,PENDING,schema_ok=true,GO_IF_PASS
+dangerous_feature_flags_disabled,true,PENDING,MISSING=[] and NOT_FALSE=[],GO_IF_PASS
+no_business_code_change,true,PENDING,target files exclude backend app ai_engine frontend components,GO_IF_PASS
+read_only_no_db_write,true,PENDING,writes_database=false and no DB write,GO_IF_PASS
+decision,true,PENDING,GO_TO_CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_V1_AFTER_CUMULATIVE_GUARD_RESTORE,GO_IF_ALL_PASS

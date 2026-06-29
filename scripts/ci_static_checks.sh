@@ -1,16 +1,24 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1
+
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
+MIN_SMOKE_LINES=1000
+
 TARGETS=(
-  "docs/clinical_data/CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_BOUNDARY_V1.md"
-  "docs/clinical_data/CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_BOUNDARY_CHECKLIST_V1.csv"
-  "docs/clinical_data/CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_BOUNDARY_GO_NO_GO_V1.csv"
-  "scripts/validate_confirmed_diagnosis_treatment_framework_boundary.py"
+  "docs/clinical_data/CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.md"
+  "docs/clinical_data/CI_SMOKE_CUMULATIVE_GUARD_RESTORE_CHECKLIST_V1.csv"
+  "docs/clinical_data/CI_SMOKE_CUMULATIVE_GUARD_RESTORE_GO_NO_GO_V1.csv"
+  "scripts/validate_ci_smoke_cumulative_guard_restore.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
+)
+
+OPTIONAL_CORE_VALIDATORS=(
+  "scripts/validate_confirmed_diagnosis_treatment_framework_boundary.py"
 )
 
 DANGEROUS_FLAGS=(
@@ -34,15 +42,36 @@ for target in "${TARGETS[@]}"; do
   test -f "$target" || { echo "missing target: $target" >&2; exit 1; }
 done
 
+printf '%s\n' "[ci_static_checks] no business target paths"
+for target in "${TARGETS[@]}"; do
+  case "$target" in
+    backend/app/*|backend/ai_engine/*|frontend/src/components/*|frontend/package-lock.json|app.db|*.db|.env|frontend/.env.development)
+      echo "forbidden target path for this guard restore stage: $target" >&2
+      exit 1
+      ;;
+  esac
+done
+
 printf '%s\n' "[ci_static_checks] python syntax"
-python3 -m py_compile scripts/validate_confirmed_diagnosis_treatment_framework_boundary.py
+python3 -m py_compile scripts/validate_ci_smoke_cumulative_guard_restore.py
+for validator in scripts/validate_*.py; do
+  [ -f "$validator" ] || continue
+  python3 -m py_compile "$validator"
+done
 
 printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
 
-printf '%s\n' "[ci_static_checks] boundary validator"
-python3 scripts/validate_confirmed_diagnosis_treatment_framework_boundary.py
+printf '%s\n' "[ci_static_checks] restore validator"
+python3 scripts/validate_ci_smoke_cumulative_guard_restore.py
+
+printf '%s\n' "[ci_static_checks] optional core validators"
+for validator in "${OPTIONAL_CORE_VALIDATORS[@]}"; do
+  if [ -f "$validator" ]; then
+    python3 "$validator"
+  fi
+done
 
 printf '%s\n' "[ci_static_checks] target-only tracked diff discipline"
 if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
@@ -65,7 +94,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             ;;
           *)
             echo "non-target tracked diff for this stage: $path" >&2
-            echo "Commit this Boundary V1 stage with explicit target files only; do not use git add ." >&2
+            echo "Commit this CI Smoke Cumulative Guard Restore V1 stage with explicit target files only; do not use git add ." >&2
             exit 1
             ;;
         esac
@@ -73,6 +102,24 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     done <<EOF_CHANGED
 $changed
 EOF_CHANGED
+  fi
+fi
+
+printf '%s\n' "[ci_static_checks] sensitive staged path discipline"
+if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+  staged="$(git diff --cached --name-only -- 2>/dev/null || true)"
+  if [ -n "$staged" ]; then
+    while IFS= read -r path; do
+      [ -z "$path" ] && continue
+      case "$path" in
+        app.db|*.db|.env|frontend/.env.development|frontend/package-lock.json|backend/app/*|backend/ai_engine/*|frontend/src/components/*|*.bak|*.save)
+          echo "forbidden staged path: $path" >&2
+          exit 1
+          ;;
+      esac
+    done <<EOF_STAGED
+$staged
+EOF_STAGED
   fi
 fi
 
@@ -86,6 +133,21 @@ for flag in "${DANGEROUS_FLAGS[@]}"; do
     echo "dangerous flag enablement found: ${flag}: true" >&2
     exit 1
   fi
+  if grep -R --line-number --fixed-strings "\"${flag}\": true" "${TARGETS[@]}"; then
+    echo "dangerous flag enablement found: \"${flag}\": true" >&2
+    exit 1
+  fi
 done
+
+printf '%s\n' "[ci_static_checks] embedded legacy cumulative smoke guard"
+grep -q 'CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1' scripts/smoke_petmed.sh
+grep -q 'LEGACY_SMOKE_BASELINE="0c8fd5d:scripts/smoke_petmed.sh"' scripts/smoke_petmed.sh
+grep -q 'embedded legacy cumulative smoke' scripts/smoke_petmed.sh
+smoke_lines="$(wc -l < scripts/smoke_petmed.sh | tr -d ' ')"
+if [ "$smoke_lines" -lt "$MIN_SMOKE_LINES" ]; then
+  echo "smoke_petmed.sh line count too small for cumulative restore: ${smoke_lines} < ${MIN_SMOKE_LINES}" >&2
+  exit 1
+fi
+printf '%s\n' "smoke_line_count=${smoke_lines}"
 
 printf '%s\n' "PASS: ci_static_checks"
