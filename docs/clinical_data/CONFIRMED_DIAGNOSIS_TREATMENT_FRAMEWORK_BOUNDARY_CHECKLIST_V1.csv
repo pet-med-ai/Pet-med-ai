@@ -1,0 +1,13 @@
+item,requirement,status,evidence,owner,notes
+stage_scope,"Boundary V1 is documentation plus validator only",PASS,"No backend endpoint, frontend UI, migration, or database write is introduced",clinical_core,"Do not implement draft builder in this stage"
+clinician_confirmed_diagnosis,"Future builder requires clinician-confirmed diagnosis",PASS,"confirmed_diagnosis_label, confirmed_by, confirmation_source, and ai_generated=false are mandatory",clinical_core,"AI-generated diagnostic candidates cannot be accepted as confirmation"
+ai_does_not_confirm_diagnosis,"AI must not confirm, infer, finalize, or upgrade diagnosis",PASS,"Future missing-confirmation request must reject before preview generation",clinical_safety,"Required rejection text is documented"
+read_only_boundary,"Boundary V1 remains read-only",PASS,"No DB migration, no DB write, no Case.treatment write, no prescription write",engineering,"Persistence requires separate risk review"
+output_contract,"Allowed output is clinician-facing treatment framework preview",PASS,"Output fields are limited to goals, support categories, monitoring, recheck categories, contraindication checks, and review topics",clinical_core,"Not a treatment plan or prescription"
+blocks_prescription,"Prescription generation and writes are blocked",PASS,"Structured prescription draft, product recommendation, refill, and prescription table write are forbidden",clinical_safety,"ENABLE_PRESCRIPTION_STRUCTURED_WRITE must remain disabled"
+blocks_dose,"Drug dose output is blocked",PASS,"Forbidden scanner inventory includes dose-pattern terms and dose-unit terms for future preview text",clinical_safety,"Scanner inventory is for blocking only"
+blocks_route_frequency,"Drug route and frequency output are blocked",PASS,"Forbidden scanner inventory includes route and frequency-pattern terms for future preview text",clinical_safety,"Scanner inventory is for blocking only"
+not_client_facing,"Preview is clinician-facing only",PASS,"not_client_facing=true, requires_human_review=true, clinician_signoff_required=true",clinical_core,"No client discharge or message output"
+feature_flags,"Dangerous feature flags remain disabled",PASS,"Smoke script verifies real EMR/import/device/billing/delivery/prescription flags are false",ops,"Missing or true dangerous flags are No-Go"
+production_hard_gate,"Production must remain at diagnostic data revision 0009",PASS,"Smoke script verifies database_revision, alembic_head, schema_ok, migration_errors, writes_database, exposes_database_url",ops,"0008 database with 0009 code is P0/No-Go"
+next_stage,"Only next stage is dry-run Draft V1",PASS,"decision=GO_TO_CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_V1",clinical_core,"No persistence or client-facing output in next stage"
