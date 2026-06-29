@@ -3725,6 +3725,146 @@ run_embedded_legacy_cumulative_smoke() {
   printf '%s\n' "PASS: embedded legacy cumulative smoke"
 }
 
+# --- Confirmed Diagnosis Treatment Framework Draft V1 smoke: start ---
+check_confirmed_diagnosis_treatment_framework_draft_v1() {
+  local endpoint="${BASE_URL}/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/build"
+  local status_file="${TMP_DIR}/confirmed_diagnosis_treatment_framework_status.txt"
+  local body_file="${TMP_DIR}/confirmed_diagnosis_treatment_framework_body.json"
+  local payload_file="${TMP_DIR}/confirmed_diagnosis_treatment_framework_payload.json"
+
+  printf '%s\n' "[smoke_petmed] confirmed diagnosis treatment framework dry-run endpoint: ${endpoint}"
+
+  cat > "${payload_file}" <<'JSON_PAYLOAD'
+{
+  "case_id": 1,
+  "confirmed_diagnosis_label": "clinician confirmed diagnosis smoke placeholder",
+  "confirmed_by": "smoke-test-clinician",
+  "confirmation_source": "clinician",
+  "ai_generated": false
+}
+JSON_PAYLOAD
+
+  if [ -n "${AUTH_TOKEN:-}" ] && [ -n "${SMOKE_CASE_ID:-}" ]; then
+    python3 - "${payload_file}" "${SMOKE_CASE_ID}" <<'PY_SET_CASE_ID'
+import json
+import sys
+path, case_id = sys.argv[1], sys.argv[2]
+with open(path, "r", encoding="utf-8") as handle:
+    payload = json.load(handle)
+payload["case_id"] = int(case_id)
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, ensure_ascii=False)
+PY_SET_CASE_ID
+    http_status="$(curl -sS -o "${body_file}" -w '%{http_code}' \
+      -X POST "${endpoint}" \
+      -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer ${AUTH_TOKEN}" \
+      --data-binary "@${payload_file}" || true)"
+    printf '%s\n' "${http_status}" > "${status_file}"
+    if [ "${http_status}" != "200" ]; then
+      echo "NO-GO: treatment framework authenticated smoke expected HTTP 200, got ${http_status}" >&2
+      cat "${body_file}" >&2 || true
+      exit 1
+    fi
+    python3 - "${body_file}" <<'PY_TREATMENT_FRAMEWORK_RESPONSE_CHECK'
+import json
+import re
+import sys
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+errors = []
+if data.get("message") != "confirmed_diagnosis_treatment_framework_built":
+    errors.append("message mismatch")
+if data.get("mode") != "confirmed_diagnosis_treatment_framework_draft_v1":
+    errors.append("mode mismatch")
+quality_gate = data.get("quality_gate") or {}
+safety = data.get("safety") or {}
+expected_true = [
+    (quality_gate, "requires_confirmed_diagnosis"),
+    (quality_gate, "requires_clinician_confirmed_diagnosis"),
+    (quality_gate, "ai_does_not_confirm_diagnosis"),
+    (quality_gate, "blocks_prescription"),
+    (quality_gate, "blocks_dose"),
+    (quality_gate, "blocks_route_frequency"),
+    (safety, "read_only"),
+    (safety, "dry_run"),
+    (safety, "not_client_facing"),
+    (safety, "requires_human_review"),
+    (safety, "clinician_signoff_required"),
+]
+for container, key in expected_true:
+    if container.get(key) is not True:
+        errors.append(f"{key} expected true")
+expected_false = [
+    (safety, "writes_database"),
+    (safety, "writes_case_treatment"),
+    (safety, "creates_prescription"),
+    (safety, "writes_prescription"),
+    (safety, "returns_drug_dose"),
+    (safety, "returns_drug_route"),
+    (safety, "returns_drug_frequency"),
+    (safety, "external_ai_provider_call"),
+]
+for container, key in expected_false:
+    if container.get(key) is not False:
+        errors.append(f"{key} expected false")
+preview = data.get("treatment_framework_preview") or {}
+text = json.dumps(preview, ensure_ascii=False)
+for pattern in [r"\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|g|ml|mL|iu|IU)\s*/\s*kg\b", r"\bq\s*\d+\s*h\b", r"\b(?:SID|BID|TID|QID|q12h|q24h|q8h|q6h|q4h|PO|IV|IM|SC|SQ)\b", r"\b(?:prescribe|prescription|dispense|administer)\b"]:
+    if re.search(pattern, text, re.IGNORECASE):
+        errors.append("forbidden preview wording matched: " + pattern)
+if errors:
+    print("NO-GO: treatment framework response failed")
+    for error in errors:
+        print(error)
+    sys.exit(1)
+print("PASS: treatment framework authenticated dry-run response")
+PY_TREATMENT_FRAMEWORK_RESPONSE_CHECK
+    printf '%s\n' "treatment_framework_dry_run_endpoint_smoke=PASS"
+    printf '%s\n' "treatment_framework_authenticated_payload_smoke=PASS"
+    printf '%s\n' "writes_database=false"
+    return 0
+  fi
+
+  http_status="$(curl -sS -o "${body_file}" -w '%{http_code}' \
+    -X POST "${endpoint}" \
+    -H 'Content-Type: application/json' \
+    --data-binary "@${payload_file}" || true)"
+  printf '%s\n' "${http_status}" > "${status_file}"
+
+  case "${http_status}" in
+    401|403)
+      printf '%s\n' "PASS: treatment framework dry-run endpoint registered and protected"
+      printf '%s\n' "treatment_framework_dry_run_endpoint_smoke=PASS"
+      printf '%s\n' "endpoint_requires_authentication=true"
+      printf '%s\n' "authenticated_payload_smoke=SKIPPED_AUTH_TOKEN_AND_SMOKE_CASE_ID_NOT_SET"
+      ;;
+    422)
+      printf '%s\n' "PASS: treatment framework dry-run endpoint registered and validation-gated"
+      printf '%s\n' "treatment_framework_dry_run_endpoint_smoke=PASS"
+      printf '%s\n' "endpoint_validation_gate_reached=true"
+      printf '%s\n' "authenticated_payload_smoke=SKIPPED_AUTH_TOKEN_AND_SMOKE_CASE_ID_NOT_SET"
+      ;;
+    404)
+      echo "NO-GO: treatment framework dry-run endpoint returned 404" >&2
+      cat "${body_file}" >&2 || true
+      exit 1
+      ;;
+    000)
+      echo "NO-GO: treatment framework dry-run endpoint curl failed" >&2
+      cat "${body_file}" >&2 || true
+      exit 1
+      ;;
+    *)
+      echo "NO-GO: unexpected treatment framework endpoint HTTP status ${http_status}" >&2
+      cat "${body_file}" >&2 || true
+      exit 1
+      ;;
+  esac
+}
+# --- Confirmed Diagnosis Treatment Framework Draft V1 smoke: end ---
+
 check_system_version
 check_feature_flags
 check_frontend
@@ -3738,4 +3878,5 @@ printf '%s\n' "read_only=true"
 printf '%s\n' "no DB write"
 printf '%s\n' "writes_database=false"
 printf '%s\n' "dangerous_feature_flags_disabled=true"
-printf '%s\n' "decision=GO_TO_CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_V1_AFTER_CUMULATIVE_GUARD_RESTORE"
+printf '%s\n' "confirmed_diagnosis_treatment_framework_draft_v1=true"
+printf '%s\n' "decision=GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1"

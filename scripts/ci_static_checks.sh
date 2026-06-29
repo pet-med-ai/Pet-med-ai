@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1
+# CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_V1
+# Cumulative guard remains active: CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
@@ -9,16 +10,19 @@ cd "$ROOT"
 MIN_SMOKE_LINES=1000
 
 TARGETS=(
-  "docs/clinical_data/CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.md"
-  "docs/clinical_data/CI_SMOKE_CUMULATIVE_GUARD_RESTORE_CHECKLIST_V1.csv"
-  "docs/clinical_data/CI_SMOKE_CUMULATIVE_GUARD_RESTORE_GO_NO_GO_V1.csv"
-  "scripts/validate_ci_smoke_cumulative_guard_restore.py"
+  "backend/confirmed_diagnosis_treatment_framework.py"
+  "backend/diagnostic_data_api.py"
+  "docs/clinical_data/CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_V1.md"
+  "docs/clinical_data/CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_CHECKLIST_V1.csv"
+  "docs/clinical_data/CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_GO_NO_GO_V1.csv"
+  "scripts/validate_confirmed_diagnosis_treatment_framework_draft.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
 )
 
 OPTIONAL_CORE_VALIDATORS=(
   "scripts/validate_confirmed_diagnosis_treatment_framework_boundary.py"
+  "scripts/validate_ci_smoke_cumulative_guard_restore.py"
 )
 
 DANGEROUS_FLAGS=(
@@ -42,18 +46,20 @@ for target in "${TARGETS[@]}"; do
   test -f "$target" || { echo "missing target: $target" >&2; exit 1; }
 done
 
-printf '%s\n' "[ci_static_checks] no business target paths"
+printf '%s\n' "[ci_static_checks] no forbidden target paths"
 for target in "${TARGETS[@]}"; do
   case "$target" in
     backend/app/*|backend/ai_engine/*|frontend/src/components/*|frontend/package-lock.json|app.db|*.db|.env|frontend/.env.development)
-      echo "forbidden target path for this guard restore stage: $target" >&2
+      echo "forbidden target path for this stage: $target" >&2
       exit 1
       ;;
   esac
 done
 
 printf '%s\n' "[ci_static_checks] python syntax"
-python3 -m py_compile scripts/validate_ci_smoke_cumulative_guard_restore.py
+python3 -m py_compile backend/confirmed_diagnosis_treatment_framework.py
+python3 -m py_compile backend/diagnostic_data_api.py
+python3 -m py_compile scripts/validate_confirmed_diagnosis_treatment_framework_draft.py
 for validator in scripts/validate_*.py; do
   [ -f "$validator" ] || continue
   python3 -m py_compile "$validator"
@@ -63,8 +69,8 @@ printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
 
-printf '%s\n' "[ci_static_checks] restore validator"
-python3 scripts/validate_ci_smoke_cumulative_guard_restore.py
+printf '%s\n' "[ci_static_checks] draft validator"
+python3 scripts/validate_confirmed_diagnosis_treatment_framework_draft.py
 
 printf '%s\n' "[ci_static_checks] optional core validators"
 for validator in "${OPTIONAL_CORE_VALIDATORS[@]}"; do
@@ -94,7 +100,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             ;;
           *)
             echo "non-target tracked diff for this stage: $path" >&2
-            echo "Commit this CI Smoke Cumulative Guard Restore V1 stage with explicit target files only; do not use git add ." >&2
+            echo "Commit this Draft V1 stage with explicit target files only; do not use git add ." >&2
             exit 1
             ;;
         esac
@@ -139,10 +145,14 @@ for flag in "${DANGEROUS_FLAGS[@]}"; do
   fi
 done
 
-printf '%s\n' "[ci_static_checks] embedded legacy cumulative smoke guard"
+printf '%s\n' "[ci_static_checks] endpoint and cumulative smoke markers"
+grep -q '/dry-run/confirmed-diagnosis/treatment-framework/build' backend/diagnostic_data_api.py
+grep -q 'Confirmed Diagnosis Treatment Framework Draft V1 endpoint: start' backend/diagnostic_data_api.py
 grep -q 'CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_BASELINE="0c8fd5d:scripts/smoke_petmed.sh"' scripts/smoke_petmed.sh
 grep -q 'embedded legacy cumulative smoke' scripts/smoke_petmed.sh
+grep -q 'check_confirmed_diagnosis_treatment_framework_draft_v1' scripts/smoke_petmed.sh
+grep -q 'treatment_framework_dry_run_endpoint_smoke=PASS' scripts/smoke_petmed.sh
 smoke_lines="$(wc -l < scripts/smoke_petmed.sh | tr -d ' ')"
 if [ "$smoke_lines" -lt "$MIN_SMOKE_LINES" ]; then
   echo "smoke_petmed.sh line count too small for cumulative restore: ${smoke_lines} < ${MIN_SMOKE_LINES}" >&2

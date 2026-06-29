@@ -1759,3 +1759,59 @@ def apply_imagingstudy_review_workflow_endpoint(
     }
 # --- ImagingStudy Review Workflow V1 endpoint: end ---
 
+
+# --- Confirmed Diagnosis Treatment Framework Draft V1 endpoint: start ---
+@router.post("/dry-run/confirmed-diagnosis/treatment-framework/build", response_model=dict)
+def build_confirmed_diagnosis_treatment_framework_dry_run(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.confirmed_diagnosis_treatment_framework import (
+            CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_MODE,
+            build_confirmed_diagnosis_treatment_framework,
+            confirmed_diagnosis_treatment_framework_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from confirmed_diagnosis_treatment_framework import (
+            CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_MODE,
+            build_confirmed_diagnosis_treatment_framework,
+            confirmed_diagnosis_treatment_framework_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    raw_case_id = data.get("case_id")
+    if raw_case_id in (None, ""):
+        raise HTTPException(status_code=422, detail="case_id is required")
+    try:
+        case = _owned_case_or_404(db, int(raw_case_id), user)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="case_id must be an integer") from exc
+
+    case_payload = _case_payload(case)
+    payload = dict(data)
+    payload["case_id"] = int(case.id)
+
+    try:
+        framework = build_confirmed_diagnosis_treatment_framework(
+            payload,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    api_safety = _safety_flags(dry_run=True)
+    framework_safety = confirmed_diagnosis_treatment_framework_safety_flags()
+    combined_safety = {**api_safety, **framework_safety}
+    return {
+        "message": "confirmed_diagnosis_treatment_framework_built",
+        "mode": CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_MODE,
+        "case": case_payload,
+        **framework,
+        "safety": combined_safety,
+        **combined_safety,
+    }
+# --- Confirmed Diagnosis Treatment Framework Draft V1 endpoint: end ---

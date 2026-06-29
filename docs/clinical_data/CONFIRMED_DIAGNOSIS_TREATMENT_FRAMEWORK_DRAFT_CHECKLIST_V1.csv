@@ -1,0 +1,23 @@
+item,status,evidence
+stage_name,required,Confirmed Diagnosis Treatment Framework Draft V1
+endpoint_path,required,POST /api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/build
+requires_case_id,required,true
+requires_clinician_confirmed_diagnosis,required,true
+ai_does_not_confirm_diagnosis,required,true
+confirmation_source_clinician_only,required,true
+ai_generated_false_required,required,true
+read_only,required,true
+writes_database,blocked,false
+writes_case_treatment,blocked,false
+creates_prescription,blocked,false
+writes_prescription,blocked,false
+returns_drug_dose,blocked,false
+returns_drug_route,blocked,false
+returns_drug_frequency,blocked,false
+not_client_facing,required,true
+requires_human_review,required,true
+clinician_signoff_required,required,true
+external_ai_provider_call,blocked,false
+validator_required,required,scripts/validate_confirmed_diagnosis_treatment_framework_draft.py
+ci_static_checks_required,required,bash scripts/ci_static_checks.sh
+smoke_required,required,bash scripts/smoke_petmed.sh
