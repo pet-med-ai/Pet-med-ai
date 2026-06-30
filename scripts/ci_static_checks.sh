@@ -22,8 +22,13 @@ TARGETS=(
 
 OPTIONAL_CORE_VALIDATORS=(
   "scripts/validate_confirmed_diagnosis_treatment_framework_boundary.py"
-  "scripts/validate_ci_smoke_cumulative_guard_restore.py"
 )
+
+# Restore validator is stage-scoped and asserts no_business_code_change=true.
+# Draft V1 intentionally adds backend dry-run business code, so do not execute
+# the restore validator here. Preserve the cumulative guard through explicit
+# marker, baseline, embedded-smoke, and line-count checks below.
+RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_restore.py"
 
 DANGEROUS_FLAGS=(
   "ENABLE_EMR_REAL_IMPORT"

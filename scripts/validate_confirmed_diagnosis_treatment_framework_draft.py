@@ -140,8 +140,18 @@ def main() -> int:
     require("LEGACY_SMOKE_BASELINE=\"0c8fd5d:scripts/smoke_petmed.sh\"" in smoke_text, "legacy smoke baseline marker lost")
     require("check_confirmed_diagnosis_treatment_framework_draft_v1" in smoke_text, "missing draft endpoint smoke check")
     require("treatment_framework_dry_run_endpoint_smoke=PASS" in smoke_text, "missing endpoint smoke PASS marker")
+    require(
+        re.search(r"\nrun_embedded_legacy_cumulative_smoke\s*\ncheck_confirmed_diagnosis_treatment_framework_draft_v1\s*\n", smoke_text) is not None,
+        "missing draft endpoint smoke invocation",
+    )
     require("validate_ci_smoke_cumulative_guard_restore.py" in ci_text, "ci restore validator no longer referenced")
     require("validate_confirmed_diagnosis_treatment_framework_draft.py" in ci_text, "ci draft validator missing")
+    optional_core_match = re.search(r"OPTIONAL_CORE_VALIDATORS=\(([\s\S]*?)\)\n", ci_text)
+    require(optional_core_match is not None, "optional core validators block missing")
+    require(
+        "validate_ci_smoke_cumulative_guard_restore.py" not in optional_core_match.group(1),
+        "restore stage validator must not be re-run in Draft CI",
+    )
     require("GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1" in doc_text, "missing next-stage decision in doc")
 
     endpoint_block_match = re.search(

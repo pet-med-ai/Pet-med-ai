@@ -3869,6 +3869,7 @@ check_system_version
 check_feature_flags
 check_frontend
 run_embedded_legacy_cumulative_smoke
+check_confirmed_diagnosis_treatment_framework_draft_v1
 
 printf '%s\n' "ALL PASS: smoke_petmed"
 printf '%s\n' "current_hard_gate_preserved=true"
