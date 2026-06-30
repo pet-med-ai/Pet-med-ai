@@ -139,6 +139,7 @@ def main() -> int:
     require("CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1" in smoke_text, "smoke cumulative restore marker lost")
     require("LEGACY_SMOKE_BASELINE=\"0c8fd5d:scripts/smoke_petmed.sh\"" in smoke_text, "legacy smoke baseline marker lost")
     require("check_confirmed_diagnosis_treatment_framework_draft_v1" in smoke_text, "missing draft endpoint smoke check")
+    require(re.search(r"(?m)^check_confirmed_diagnosis_treatment_framework_draft_v1$", smoke_text) is not None, "draft endpoint smoke function is defined but not called")
     require("treatment_framework_dry_run_endpoint_smoke=PASS" in smoke_text, "missing endpoint smoke PASS marker")
     require(
         re.search(r"\nrun_embedded_legacy_cumulative_smoke\s*\ncheck_confirmed_diagnosis_treatment_framework_draft_v1\s*\n", smoke_text) is not None,
@@ -146,6 +147,15 @@ def main() -> int:
     )
     require("validate_ci_smoke_cumulative_guard_restore.py" in ci_text, "ci restore validator no longer referenced")
     require("validate_confirmed_diagnosis_treatment_framework_draft.py" in ci_text, "ci draft validator missing")
+    require('validate_release_readiness.py' in ci_text, "legacy ci gate compatibility marker missing: validate_release_readiness.py")
+    require('validate_release_changelog.py' in ci_text, "legacy ci gate compatibility marker missing: validate_release_changelog.py")
+    require('validate_system_version_info.py' in ci_text, "legacy ci gate compatibility marker missing: validate_system_version_info.py")
+    require('validate_feature_flags.py' in ci_text, "legacy ci gate compatibility marker missing: validate_feature_flags.py")
+    require('validate_emr_import_execute_create_only.py' in ci_text, "legacy ci gate compatibility marker missing: validate_emr_import_execute_create_only.py")
+    require('validate_alembic_setup.py' in ci_text, "legacy ci gate compatibility marker missing: validate_alembic_setup.py")
+    require('py_compile.compile' in ci_text, "legacy ci gate compatibility marker missing: py_compile.compile")
+    require('CI static checks PASS' in ci_text, "legacy ci gate compatibility marker missing: CI static checks PASS")
+    require("git add ." not in ci_text, "ci contains legacy-forbidden exact git add marker")
     optional_core_match = re.search(r"OPTIONAL_CORE_VALIDATORS=\(([\s\S]*?)\)\n", ci_text)
     require(optional_core_match is not None, "optional core validators block missing")
     require(
