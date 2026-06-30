@@ -3720,9 +3720,38 @@ __PETMED_EMBEDDED_LEGACY_SMOKE_0C8FD5D_EOF__
 
 run_embedded_legacy_cumulative_smoke() {
   write_embedded_legacy_smoke
-  printf '%s\n' "[smoke_petmed] embedded legacy cumulative smoke: ${LEGACY_SMOKE_BASELINE}"
-  BASE_URL="${BASE_URL}" FRONTEND_URL="${FRONTEND_URL}" KEEP_TMP="${KEEP_TMP}" bash "${LEGACY_SMOKE_FILE}"
-  printf '%s\n' "PASS: embedded legacy cumulative smoke"
+  local legacy_ref="${LEGACY_SMOKE_BASELINE%%:*}"
+  local legacy_repo_dir="${TMP_DIR}/legacy_repo_${legacy_ref}"
+
+  printf '%s
+' "[smoke_petmed] embedded legacy cumulative smoke: ${LEGACY_SMOKE_BASELINE}"
+  printf '%s
+' "[smoke_petmed] embedded legacy cumulative smoke isolated checkout: ${legacy_ref}"
+
+  if ! git rev-parse --verify "${legacy_ref}^{commit}" >/dev/null 2>&1; then
+    echo "NO-GO: legacy smoke baseline commit not available locally: ${legacy_ref}" >&2
+    echo "Run git fetch --all --tags, then rerun smoke_petmed.sh" >&2
+    exit 1
+  fi
+
+  mkdir -p "${legacy_repo_dir}"
+  git archive "${legacy_ref}" | tar -x -C "${legacy_repo_dir}"
+
+  if [ ! -f "${legacy_repo_dir}/scripts/ci_static_checks.sh" ]; then
+    echo "NO-GO: isolated legacy checkout missing scripts/ci_static_checks.sh" >&2
+    exit 1
+  fi
+  if [ ! -f "${legacy_repo_dir}/scripts/smoke_petmed.sh" ]; then
+    echo "NO-GO: isolated legacy checkout missing scripts/smoke_petmed.sh" >&2
+    exit 1
+  fi
+
+  (
+    cd "${legacy_repo_dir}"
+    BASE_URL="${BASE_URL}" FRONTEND_URL="${FRONTEND_URL}" KEEP_TMP="${KEEP_TMP}" bash "${LEGACY_SMOKE_FILE}"
+  )
+  printf '%s
+' "PASS: embedded legacy cumulative smoke"
 }
 
 # --- Confirmed Diagnosis Treatment Framework Draft V1 smoke: start ---
