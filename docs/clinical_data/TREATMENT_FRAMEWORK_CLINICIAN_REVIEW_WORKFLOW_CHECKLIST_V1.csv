@@ -1,0 +1,18 @@
+item,status,evidence,notes
+stage_scope,GO,Treatment Framework Clinician Review Workflow V1,dry-run clinician review workflow only
+endpoint_registered,GO,/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/review,protected by auth and case ownership
+requires_clinician_confirmed_diagnosis,GO,confirmed_diagnosis_label + confirmed_by + confirmation_source=clinician,AI cannot confirm diagnosis
+ai_generated_false_required,GO,ai_generated=false,AI-generated diagnosis rejected
+review_decision_preview_only,GO,review_decision_preview_only=true,no persistence in this stage
+writes_database,GO,writes_database=false,no DB writes
+writes_case_treatment,GO,writes_case_treatment=false,no Case.treatment write
+creates_prescription,GO,creates_prescription=false,no prescription object
+writes_prescription,GO,writes_prescription=false,no prescription write
+returns_drug_dose,GO,returns_drug_dose=false,no numeric dose
+returns_drug_route,GO,returns_drug_route=false,no route output
+returns_drug_frequency,GO,returns_drug_frequency=false,no frequency output
+not_client_facing,GO,not_client_facing=true,clinician internal preview only
+requires_human_review,GO,requires_human_review=true,manual clinician review required
+clinician_signoff_required,GO,clinician_signoff_required=true,signoff required before any future persistence
+cumulative_smoke,GO,embedded_legacy_cumulative_smoke=true,legacy smoke must remain active
+production_hard_gate,GO,database_revision=0009_diag_data;alembic_head=0009_diag_data;schema_ok=true,NO-GO if drift

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1
+# TREATMENT_FRAMEWORK_CLINICIAN_REVIEW_WORKFLOW_V1
 # Cumulative guard remains active: CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,11 +10,12 @@ cd "$ROOT"
 MIN_SMOKE_LINES=1000
 
 TARGETS=(
-  "frontend/src/pages/CaseDetail.jsx"
-  "docs/clinical_data/CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1.md"
-  "docs/clinical_data/CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_CHECKLIST_V1.csv"
-  "docs/clinical_data/CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_GO_NO_GO_V1.csv"
-  "scripts/validate_case_detail_treatment_framework_preview_ui.py"
+  "backend/treatment_framework_clinician_review_workflow.py"
+  "backend/diagnostic_data_api.py"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_CLINICIAN_REVIEW_WORKFLOW_V1.md"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_CLINICIAN_REVIEW_WORKFLOW_CHECKLIST_V1.csv"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_CLINICIAN_REVIEW_WORKFLOW_GO_NO_GO_V1.csv"
+  "scripts/validate_treatment_framework_clinician_review_workflow.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
 )
@@ -22,6 +23,7 @@ TARGETS=(
 OPTIONAL_CORE_VALIDATORS=(
   "scripts/validate_confirmed_diagnosis_treatment_framework_boundary.py"
   "scripts/validate_confirmed_diagnosis_treatment_framework_draft.py"
+  "scripts/validate_case_detail_treatment_framework_preview_ui.py"
 )
 
 RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_restore.py"
@@ -70,7 +72,9 @@ for target in "${TARGETS[@]}"; do
 done
 
 printf '%s\n' "[ci_static_checks] python syntax"
-python3 -m py_compile scripts/validate_case_detail_treatment_framework_preview_ui.py
+python3 -m py_compile backend/treatment_framework_clinician_review_workflow.py
+python3 -m py_compile backend/diagnostic_data_api.py
+python3 -m py_compile scripts/validate_treatment_framework_clinician_review_workflow.py
 for validator in scripts/validate_*.py; do
   [ -f "$validator" ] || continue
   python3 -m py_compile "$validator"
@@ -80,8 +84,8 @@ printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
 
-printf '%s\n' "[ci_static_checks] UI validator"
-python3 scripts/validate_case_detail_treatment_framework_preview_ui.py
+printf '%s\n' "[ci_static_checks] review workflow validator"
+python3 scripts/validate_treatment_framework_clinician_review_workflow.py
 
 printf '%s\n' "[ci_static_checks] optional core validators"
 for validator in "${OPTIONAL_CORE_VALIDATORS[@]}"; do
@@ -111,7 +115,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             ;;
           *)
             echo "non-target tracked diff for this stage: $path" >&2
-            echo "Commit this UI V1 stage with explicit target files only; do not stage the entire working tree" >&2
+            echo "Commit this review workflow V1 stage with explicit target files only; do not stage the entire working tree" >&2
             exit 1
             ;;
         esac
@@ -156,15 +160,13 @@ for flag in "${DANGEROUS_FLAGS[@]}"; do
   fi
 done
 
-printf '%s\n' "[ci_static_checks] case detail treatment framework preview UI markers"
-grep -q 'Case Detail Treatment Framework Preview UI V1' frontend/src/pages/CaseDetail.jsx
-grep -q '/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/build' frontend/src/pages/CaseDetail.jsx
-grep -q 'confirmation_source: "clinician"' frontend/src/pages/CaseDetail.jsx
-grep -q 'ai_generated: false' frontend/src/pages/CaseDetail.jsx
-grep -q 'writes_case_treatment=false' frontend/src/pages/CaseDetail.jsx
-grep -q 'returns_drug_dose=false' frontend/src/pages/CaseDetail.jsx
-grep -q 'returns_drug_route=false' frontend/src/pages/CaseDetail.jsx
-grep -q 'returns_drug_frequency=false' frontend/src/pages/CaseDetail.jsx
+printf '%s\n' "[ci_static_checks] review workflow endpoint markers"
+grep -q '/dry-run/confirmed-diagnosis/treatment-framework/review' backend/diagnostic_data_api.py
+grep -q 'Treatment Framework Clinician Review Workflow V1 endpoint: start' backend/diagnostic_data_api.py
+grep -q 'TREATMENT_FRAMEWORK_CLINICIAN_REVIEW_WORKFLOW_MODE' backend/treatment_framework_clinician_review_workflow.py
+grep -q 'review_decision_preview_only' backend/treatment_framework_clinician_review_workflow.py
+grep -q 'writes_case_treatment' backend/treatment_framework_clinician_review_workflow.py
+grep -q 'returns_drug_dose' backend/treatment_framework_clinician_review_workflow.py
 
 printf '%s\n' "[ci_static_checks] cumulative smoke markers"
 grep -q 'CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1' scripts/smoke_petmed.sh
@@ -173,7 +175,8 @@ grep -q 'LEGACY_SMOKE_COMPAT_RABBIT_GI_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_COMPAT_LIZARD_UVB_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'check_confirmed_diagnosis_treatment_framework_draft_v1' scripts/smoke_petmed.sh
 grep -q 'check_case_detail_treatment_framework_preview_ui_v1' scripts/smoke_petmed.sh
-grep -q 'case_detail_treatment_framework_preview_ui=PASS' scripts/smoke_petmed.sh
+grep -q 'check_treatment_framework_clinician_review_workflow_v1' scripts/smoke_petmed.sh
+grep -q 'treatment_framework_clinician_review_workflow_smoke=PASS' scripts/smoke_petmed.sh
 smoke_lines="$(wc -l < scripts/smoke_petmed.sh | tr -d ' ')"
 if [ "$smoke_lines" -lt "$MIN_SMOKE_LINES" ]; then
   echo "smoke_petmed.sh line count too small for cumulative restore: ${smoke_lines} < ${MIN_SMOKE_LINES}" >&2

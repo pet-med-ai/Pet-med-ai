@@ -1,0 +1,17 @@
+gate,decision,evidence_required,no_go_condition
+validator,GO_IF_PASS,python3 scripts/validate_treatment_framework_clinician_review_workflow.py,validator fails
+ci_static_checks,GO_IF_PASS,bash scripts/ci_static_checks.sh,CI static checks fail
+online_smoke,GO_IF_ALL_PASS,bash scripts/smoke_petmed.sh,smoke missing ALL PASS
+review_workflow_endpoint,GO_IF_PASS,treatment_framework_clinician_review_workflow_smoke=PASS,endpoint 404 or unsafe response
+production_database_revision,GO_IF_MATCH,database_revision=0009_diag_data,revision mismatch
+production_alembic_head,GO_IF_MATCH,alembic_head=0009_diag_data,head mismatch
+production_schema,GO_IF_TRUE,schema_ok=true,schema false
+feature_flags,GO_IF_DISABLED,dangerous_feature_flags_disabled=true,any dangerous flag enabled
+read_only,GO_IF_TRUE,read_only=true,read_only missing or false
+no_db_write,GO_IF_FALSE,writes_database=false,DB write attempted
+no_case_treatment_write,GO_IF_FALSE,writes_case_treatment=false,Case.treatment write attempted
+no_prescription,GO_IF_FALSE,creates_prescription=false;writes_prescription=false,prescription created or written
+no_dose_route_frequency,GO_IF_FALSE,returns_drug_dose=false;returns_drug_route=false;returns_drug_frequency=false,dose route or frequency returned
+not_client_facing,GO_IF_TRUE,not_client_facing=true,client-facing output allowed
+human_review,GO_IF_TRUE,requires_human_review=true;clinician_signoff_required=true,human review not required
+next_stage,GO_IF_ALL_PASS,GO_TO_TREATMENT_FRAMEWORK_AUDIT_LOG_V1,any gate fails
