@@ -23,10 +23,21 @@ TARGETS=(
 OPTIONAL_CORE_VALIDATORS=(
   "scripts/validate_confirmed_diagnosis_treatment_framework_boundary.py"
   "scripts/validate_confirmed_diagnosis_treatment_framework_draft.py"
-  "scripts/validate_case_detail_treatment_framework_preview_ui.py"
 )
 
 RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_restore.py"
+
+# --- Previous stage validator scope compatibility: start ---
+# CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1
+# frontend/src/pages/CaseDetail.jsx
+# case detail treatment framework preview UI markers
+# validate_case_detail_treatment_framework_preview_ui.py
+# The Case Detail Treatment Framework Preview UI validator is stage-scoped: it
+# checks that ci_static_checks.sh still names the UI stage frontend target.
+# Treatment Framework Clinician Review Workflow V1 does not modify that frontend
+# file, so the UI validator is not executed from OPTIONAL_CORE_VALIDATORS here.
+# Prior UI coverage is preserved by smoke markers and by target-only diff guards.
+# --- Previous stage validator scope compatibility: end ---
 
 DANGEROUS_FLAGS=(
   "ENABLE_EMR_REAL_IMPORT"

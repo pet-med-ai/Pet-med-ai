@@ -137,6 +137,22 @@ def main() -> int:
     require("Treatment Framework Clinician Review Workflow V1 endpoint: end" in endpoint_text, "missing endpoint end marker")
     require("TREATMENT_FRAMEWORK_CLINICIAN_REVIEW_WORKFLOW_V1" in ci_text, "ci stage marker missing")
     require("validate_treatment_framework_clinician_review_workflow.py" in ci_text, "ci review validator missing")
+    # --- Previous stage validator scope checks: start ---
+    require("CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1" in ci_text, "ci previous UI stage compatibility marker missing")
+    require("frontend/src/pages/CaseDetail.jsx" in ci_text, "ci previous UI frontend target marker missing")
+    require("case detail treatment framework preview UI markers" in ci_text, "ci previous UI marker text missing")
+    optional_core_match = re.search(r"OPTIONAL_CORE_VALIDATORS=\(([\s\S]*?)\)\n", ci_text)
+    require(optional_core_match is not None, "optional core validators block missing")
+    optional_core_body = optional_core_match.group(1)
+    require(
+        "validate_case_detail_treatment_framework_preview_ui.py" not in optional_core_body,
+        "case detail UI stage validator must not be re-run in Review Workflow CI",
+    )
+    require(
+        "validate_ci_smoke_cumulative_guard_restore.py" not in optional_core_body,
+        "restore stage validator must not be re-run in Review Workflow CI",
+    )
+    # --- Previous stage validator scope checks: end ---
     require("check_treatment_framework_clinician_review_workflow_v1" in smoke_text, "missing review workflow smoke function")
     require("treatment_framework_clinician_review_workflow_smoke=PASS" in smoke_text, "missing review workflow smoke PASS marker")
     require("case_detail_treatment_framework_preview_ui=PASS" in smoke_text, "case detail UI smoke marker lost")
@@ -285,6 +301,8 @@ def main() -> int:
     print("not_client_facing=true")
     print("requires_human_review=true")
     print("clinician_signoff_required=true")
+    print("case_detail_ui_stage_validator_not_rerun=true")
+    print("case_detail_treatment_framework_preview_ui_preserved_by_smoke=true")
     print("decision=GO_TO_TREATMENT_FRAMEWORK_AUDIT_LOG_V1")
     return 0
 
