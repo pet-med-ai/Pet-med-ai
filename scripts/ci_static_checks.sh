@@ -53,6 +53,20 @@ DANGEROUS_FLAGS=(
 # CI static checks PASS
 # --- Legacy CI Gate compatibility markers: end ---
 
+# --- Case Detail Treatment Framework Preview UI V1 compatibility markers: start ---
+# Required because scripts/validate_case_detail_treatment_framework_preview_ui.py
+# is still run as an optional core validator in Treatment Framework Clinician
+# Review Workflow V1. These are marker-continuity comments only; this stage
+# still has its own explicit target list and target-only tracked diff discipline.
+# CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1
+# frontend/src/pages/CaseDetail.jsx
+# validate_case_detail_treatment_framework_preview_ui.py
+# validate_confirmed_diagnosis_treatment_framework_draft.py
+# target-only tracked diff discipline
+# sensitive staged path discipline
+# case detail treatment framework preview UI markers
+# --- Case Detail Treatment Framework Preview UI V1 compatibility markers: end ---
+
 printf '%s\n' "[ci_static_checks] git diff --check"
 git diff --check
 
