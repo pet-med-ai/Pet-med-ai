@@ -3940,11 +3940,49 @@ PY_TREATMENT_FRAMEWORK_RESPONSE_CHECK
 }
 # --- Confirmed Diagnosis Treatment Framework Draft V1 smoke: end ---
 
+# --- Case Detail Treatment Framework Preview UI V1 smoke: start ---
+check_case_detail_treatment_framework_preview_ui_v1() {
+  printf '%s\n' "[smoke_petmed] case detail treatment framework preview UI static check"
+
+  grep -q 'Case Detail Treatment Framework Preview UI V1' frontend/src/pages/CaseDetail.jsx
+  grep -q '/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/build' frontend/src/pages/CaseDetail.jsx
+  grep -q 'confirmation_source: "clinician"' frontend/src/pages/CaseDetail.jsx
+  grep -q 'ai_generated: false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'TreatmentFrameworkPreviewPanel' frontend/src/pages/CaseDetail.jsx
+  grep -q 'buildTreatmentFrameworkDiagnosticContext' frontend/src/pages/CaseDetail.jsx
+  grep -q 'writes_case_treatment=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'creates_prescription=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'writes_prescription=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'returns_drug_dose=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'returns_drug_route=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'returns_drug_frequency=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'not_client_facing=true' frontend/src/pages/CaseDetail.jsx
+  grep -q 'requires_human_review=true' frontend/src/pages/CaseDetail.jsx
+  grep -q 'clinician_signoff_required=true' frontend/src/pages/CaseDetail.jsx
+
+  printf '%s\n' "PASS: case detail treatment framework preview UI static markers"
+  printf '%s\n' "case_detail_treatment_framework_preview_ui=PASS"
+  printf '%s\n' "requires_clinician_confirmed_diagnosis=true"
+  printf '%s\n' "ai_does_not_confirm_diagnosis=true"
+  printf '%s\n' "writes_database=false"
+  printf '%s\n' "writes_case_treatment=false"
+  printf '%s\n' "creates_prescription=false"
+  printf '%s\n' "writes_prescription=false"
+  printf '%s\n' "returns_drug_dose=false"
+  printf '%s\n' "returns_drug_route=false"
+  printf '%s\n' "returns_drug_frequency=false"
+  printf '%s\n' "not_client_facing=true"
+  printf '%s\n' "requires_human_review=true"
+  printf '%s\n' "clinician_signoff_required=true"
+}
+# --- Case Detail Treatment Framework Preview UI V1 smoke: end ---
+
 check_system_version
 check_feature_flags
 check_frontend
 run_embedded_legacy_cumulative_smoke
 check_confirmed_diagnosis_treatment_framework_draft_v1
+check_case_detail_treatment_framework_preview_ui_v1
 
 printf '%s\n' "ALL PASS: smoke_petmed"
 printf '%s\n' "current_hard_gate_preserved=true"
@@ -3955,4 +3993,5 @@ printf '%s\n' "no DB write"
 printf '%s\n' "writes_database=false"
 printf '%s\n' "dangerous_feature_flags_disabled=true"
 printf '%s\n' "confirmed_diagnosis_treatment_framework_draft_v1=true"
-printf '%s\n' "decision=GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1"
+printf '%s\n' "case_detail_treatment_framework_preview_ui=true"
+printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_CLINICIAN_REVIEW_WORKFLOW_V1"

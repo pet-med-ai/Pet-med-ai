@@ -28,6 +28,14 @@ export default function CaseDetail() {
   const [diagnosticAssistanceLoading, setDiagnosticAssistanceLoading] = useState(false);
   const [diagnosticAssistanceStatus, setDiagnosticAssistanceStatus] = useState("");
   // --- Diagnostic Assistance Case Detail UI V1 state: end ---
+  // --- Case Detail Treatment Framework Preview UI V1 state: start ---
+  const [treatmentFrameworkPreview, setTreatmentFrameworkPreview] = useState(null);
+  const [treatmentFrameworkLoading, setTreatmentFrameworkLoading] = useState(false);
+  const [treatmentFrameworkStatus, setTreatmentFrameworkStatus] = useState("");
+  const [confirmedDiagnosisLabel, setConfirmedDiagnosisLabel] = useState("");
+  const [confirmedDiagnosisBy, setConfirmedDiagnosisBy] = useState("");
+  // --- Case Detail Treatment Framework Preview UI V1 state: end ---
+
 
 
   // 拉取详情
@@ -223,6 +231,71 @@ export default function CaseDetail() {
     }
   };
   // --- Diagnostic Assistance Case Detail UI V1 actions: end ---
+  // --- Case Detail Treatment Framework Preview UI V1 actions: start ---
+  const buildTreatmentFrameworkPreview = async () => {
+    if (!data?.id) return;
+
+    const diagnosisLabel = confirmedDiagnosisLabel.trim();
+    const confirmedBy = confirmedDiagnosisBy.trim();
+
+    if (!diagnosisLabel || !confirmedBy) {
+      setTreatmentFrameworkStatus("请先填写医生确认诊断和确认医生；AI 不确认诊断。requires_clinician_confirmed_diagnosis=true");
+      return;
+    }
+
+    const diagnosticContext = buildTreatmentFrameworkDiagnosticContext(
+      data,
+      diagnosticDataSummary,
+      diagnosticAssistancePreview
+    );
+
+    try {
+      setTreatmentFrameworkLoading(true);
+      setTreatmentFrameworkStatus("正在生成确诊后治疗框架预览：dry_run=true · writes_database=false · no prescription · no dose/route/frequency");
+
+      const res = await api.post(
+        "/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/build",
+        {
+          case_id: Number(data.id),
+          confirmed_diagnosis_label: diagnosisLabel,
+          confirmed_by: confirmedBy,
+          confirmation_source: "clinician",
+          ai_generated: false,
+          diagnostic_context: diagnosticContext,
+          case_context: buildDiagnosticAssistanceCaseContext(data),
+        }
+      );
+
+      const payload = res.data || {};
+      setTreatmentFrameworkPreview(payload);
+      setTreatmentFrameworkStatus(
+        [
+          "已生成医生端治疗框架预览",
+          "read_only=true",
+          "writes_database=false",
+          "writes_case_treatment=false",
+          "creates_prescription=false",
+          "writes_prescription=false",
+          "returns_drug_dose=false",
+          "returns_drug_route=false",
+          "returns_drug_frequency=false",
+          "not_client_facing=true",
+          "requires_human_review=true",
+          "clinician_signoff_required=true",
+        ].join(" · ")
+      );
+    } catch (e) {
+      console.error("Treatment framework preview failed:", e);
+      const detail = e?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
+      setTreatmentFrameworkStatus(`治疗框架预览失败：${msg}`);
+      alert(`治疗框架预览失败：${msg}`);
+    } finally {
+      setTreatmentFrameworkLoading(false);
+    }
+  };
+  // --- Case Detail Treatment Framework Preview UI V1 actions: end ---
+
 
   // Preventive Care Reminder UI V1: in-app reminders only; sends_external_message=false.
   const fetchPreventiveCareReminders = async () => {
@@ -598,6 +671,21 @@ export default function CaseDetail() {
         />
       </Section>
       {/* --- Diagnostic Assistance Case Detail UI V1 section: end --- */}
+      {/* --- Case Detail Treatment Framework Preview UI V1 section: start --- */}
+      <Section title="确诊后治疗框架预览 / Treatment Framework Preview">
+        <TreatmentFrameworkPreviewPanel
+          confirmedDiagnosisLabel={confirmedDiagnosisLabel}
+          onConfirmedDiagnosisLabelChange={setConfirmedDiagnosisLabel}
+          confirmedDiagnosisBy={confirmedDiagnosisBy}
+          onConfirmedDiagnosisByChange={setConfirmedDiagnosisBy}
+          preview={treatmentFrameworkPreview}
+          loading={treatmentFrameworkLoading}
+          status={treatmentFrameworkStatus}
+          onBuild={buildTreatmentFrameworkPreview}
+        />
+      </Section>
+      {/* --- Case Detail Treatment Framework Preview UI V1 section: end --- */}
+
 
       <Section title="八、预防保健提醒 / Preventive Care">
         <PreventiveCarePanel
@@ -1022,6 +1110,143 @@ function DiagnosticAssistanceQualityGates({ problemGate, candidateGate, traceGat
 }
 // --- Diagnostic Assistance Case Detail UI V1 components: end ---
 
+// --- Case Detail Treatment Framework Preview UI V1 components: start ---
+function TreatmentFrameworkPreviewPanel({
+  confirmedDiagnosisLabel,
+  onConfirmedDiagnosisLabelChange,
+  confirmedDiagnosisBy,
+  onConfirmedDiagnosisByChange,
+  preview,
+  loading,
+  status,
+  onBuild,
+}) {
+  const framework = preview?.treatment_framework_preview || {};
+  const qualityGate = preview?.quality_gate || {};
+  const safety = preview?.safety || {};
+  const confirmedDiagnosis = preview?.confirmed_diagnosis || {};
+  const hasPreview = Boolean(preview);
+
+  return (
+    <div className="treatment-framework-panel">
+      <div className="treatment-framework-form screen-only">
+        <label className="treatment-framework-label">
+          <span>医生确认诊断 / Clinician confirmed diagnosis</span>
+          <textarea
+            value={confirmedDiagnosisLabel}
+            onChange={(event) => onConfirmedDiagnosisLabelChange(event.target.value)}
+            className="treatment-framework-textarea"
+            placeholder="只填写医生已经确认的诊断；AI 不确认诊断。"
+            rows={2}
+          />
+        </label>
+        <label className="treatment-framework-label">
+          <span>确认医生 / Confirmed by</span>
+          <input
+            value={confirmedDiagnosisBy}
+            onChange={(event) => onConfirmedDiagnosisByChange(event.target.value)}
+            className="treatment-framework-input"
+            placeholder="clinician-id / doctor name"
+          />
+        </label>
+        <button type="button" style={btnDoc} onClick={onBuild} disabled={loading}>
+          {loading ? "生成中…" : "生成治疗框架预览"}
+        </button>
+      </div>
+
+      <div className="treatment-framework-status">
+        {status || "医生端 dry-run 预览；必须先由 clinician confirmed diagnosis 触发。不会写 Case.treatment，不写处方，不输出剂量、频率或给药途径。"}
+      </div>
+
+      <div className="treatment-framework-boundary">
+        confirmation_source=clinician · ai_generated=false · read_only=true · writes_database=false · writes_case_treatment=false · creates_prescription=false · writes_prescription=false · returns_drug_dose=false · returns_drug_route=false · returns_drug_frequency=false · not_client_facing=true · requires_human_review=true · clinician_signoff_required=true
+      </div>
+
+      {!hasPreview ? (
+        <div className="treatment-framework-empty">
+          尚未生成治疗框架预览。输入医生确认诊断后，按钮只调用 dry-run endpoint 并在本页展示医生复核草案；不会保存到病例、治疗字段、处方或客户端输出。
+        </div>
+      ) : (
+        <>
+          <div className="treatment-framework-confirmed">
+            <div className="treatment-framework-mini-title">确认诊断来源</div>
+            <div>label={safeText(confirmedDiagnosis.label)}</div>
+            <div>confirmed_by={safeText(confirmedDiagnosis.confirmed_by)}</div>
+            <div>confirmation_source={safeText(confirmedDiagnosis.confirmation_source)}</div>
+            <div>ai_generated={String(confirmedDiagnosis.ai_generated === true ? true : false)}</div>
+          </div>
+
+          <div className="treatment-framework-grid">
+            <TreatmentFrameworkList title="Treatment Goals" items={framework.treatment_goals} />
+            <TreatmentFrameworkList title="Supportive Care Categories" items={framework.supportive_care_categories} />
+            <TreatmentFrameworkList title="Monitoring Parameters" items={framework.monitoring_parameters} />
+            <TreatmentFrameworkList title="Recheck Plan Categories" items={framework.recheck_plan_categories} />
+            <TreatmentFrameworkList title="Contraindication Checks" items={framework.contraindication_checks} />
+            <TreatmentFrameworkList title="Referral / Hospitalization Triggers" items={framework.referral_or_hospitalization_triggers} />
+            <TreatmentFrameworkList title="Procedure / Surgery Review Points" items={framework.procedure_or_surgery_review_points} />
+            <TreatmentFrameworkList title="Nutrition / Environment Support" items={framework.nutrition_and_environment_support_points} />
+            <TreatmentFrameworkList title="Clinician Client-Communication Topics" items={framework.client_communication_topics_for_clinician_review} />
+            <TreatmentFrameworkList title="Medication Class Review Needed" items={framework.medication_class_review_needed} />
+          </div>
+
+          <TreatmentFrameworkSafetyGrid qualityGate={qualityGate} safety={safety} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function TreatmentFrameworkList({ title, items }) {
+  const normalized = normalizeTreatmentFrameworkItems(items);
+  return (
+    <div className="treatment-framework-subblock">
+      <div className="treatment-framework-subtitle">{title}</div>
+      {normalized.length === 0 ? (
+        <div className="treatment-framework-empty-small">暂无条目；需医生结合体检、检验和影像补充。</div>
+      ) : (
+        <ul className="treatment-framework-list">
+          {normalized.map((item, index) => (
+            <li key={`${title}-${index}`}>{item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function TreatmentFrameworkSafetyGrid({ qualityGate, safety }) {
+  const rows = [
+    ["quality_gate.status", qualityGate?.status],
+    ["requires_confirmed_diagnosis", qualityGate?.requires_confirmed_diagnosis],
+    ["blocks_prescription", qualityGate?.blocks_prescription],
+    ["blocks_dose", qualityGate?.blocks_dose],
+    ["blocks_route_frequency", qualityGate?.blocks_route_frequency],
+    ["writes_database", safety?.writes_database],
+    ["writes_case_treatment", safety?.writes_case_treatment],
+    ["creates_prescription", safety?.creates_prescription],
+    ["writes_prescription", safety?.writes_prescription],
+    ["returns_drug_dose", safety?.returns_drug_dose],
+    ["returns_drug_route", safety?.returns_drug_route],
+    ["returns_drug_frequency", safety?.returns_drug_frequency],
+    ["not_client_facing", safety?.not_client_facing],
+    ["requires_human_review", safety?.requires_human_review],
+    ["clinician_signoff_required", safety?.clinician_signoff_required],
+  ];
+
+  return (
+    <div className="treatment-framework-safety-grid">
+      {rows.map(([label, value]) => (
+        <div className="treatment-framework-safety-card" key={label}>
+          <div className="treatment-framework-safety-label">{label}</div>
+          <div className="treatment-framework-safety-value">{String(value)}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+// --- Case Detail Treatment Framework Preview UI V1 components: end ---
+
+
 function PreventiveCarePanel({
   reminders,
   preview,
@@ -1327,6 +1552,72 @@ function buildDiagnosticAssistanceImagingSummary(summary) {
   };
 }
 // --- Diagnostic Assistance Case Detail UI V1 helpers: end ---
+
+// --- Case Detail Treatment Framework Preview UI V1 helpers: start ---
+function buildTreatmentFrameworkDiagnosticContext(data, diagnosticDataSummary, diagnosticAssistancePreview) {
+  const counts = diagnosticDataSummary?.counts || {};
+  const problemPayload = diagnosticAssistancePreview?.problem_list || {};
+  const differentialPayload = diagnosticAssistancePreview?.differential_candidates || {};
+  const tracePayload = diagnosticAssistancePreview?.evidence_trace || {};
+
+  return {
+    source: "case_detail_treatment_framework_preview_ui_v1",
+    dry_run_only: true,
+    read_only: true,
+    writes_database: false,
+    writes_case_treatment: false,
+    creates_prescription: false,
+    writes_prescription: false,
+    returns_drug_dose: false,
+    returns_drug_route: false,
+    returns_drug_frequency: false,
+    not_client_facing: true,
+    requires_human_review: true,
+    clinician_signoff_required: true,
+    diagnostic_data_counts: {
+      reports: counts.reports || 0,
+      observations: counts.observations || 0,
+      imaging_studies: counts.imaging_studies || 0,
+    },
+    lab_context: buildDiagnosticAssistanceLabSummary(diagnosticDataSummary),
+    imaging_context: buildDiagnosticAssistanceImagingSummary(diagnosticDataSummary),
+    diagnostic_assistance_context: {
+      problem_list_preview_count: Array.isArray(problemPayload.problem_list_preview) ? problemPayload.problem_list_preview.length : 0,
+      differential_candidates_preview_count: Array.isArray(differentialPayload.differential_diagnosis_candidates_preview) ? differentialPayload.differential_diagnosis_candidates_preview.length : 0,
+      evidence_trace_preview_count: Array.isArray(tracePayload.diagnostic_reasoning_evidence_trace_preview) ? tracePayload.diagnostic_reasoning_evidence_trace_preview.length : 0,
+      diagnostic_assistance_available: Boolean(diagnosticAssistancePreview),
+    },
+    case_snapshot: buildDiagnosticAssistanceCaseContext(data),
+  };
+}
+
+function normalizeTreatmentFrameworkItems(value) {
+  if (Array.isArray(value)) {
+    return value.map(formatTreatmentFrameworkItem).filter(Boolean);
+  }
+  if (value && typeof value === "object") {
+    return Object.entries(value)
+      .map(([key, item]) => `${key}: ${formatTreatmentFrameworkItem(item)}`)
+      .filter(Boolean);
+  }
+  const text = String(value || "").trim();
+  return text ? [text] : [];
+}
+
+function formatTreatmentFrameworkItem(item) {
+  if (item === null || item === undefined) return "";
+  if (typeof item === "string") return item;
+  if (typeof item === "number" || typeof item === "boolean") return String(item);
+  if (Array.isArray(item)) return item.map(formatTreatmentFrameworkItem).filter(Boolean).join("；");
+  if (typeof item === "object") {
+    const primary = item.title || item.label || item.name || item.category || item.goal || item.parameter || item.topic;
+    const detail = item.detail || item.description || item.reason || item.review_note || item.clinician_review_note;
+    return [primary, detail].filter(Boolean).join("：") || JSON.stringify(item);
+  }
+  return String(item);
+}
+// --- Case Detail Treatment Framework Preview UI V1 helpers: end ---
+
 
 function parseDynamicHistory(value) {
   const lines = String(value || "").split(/\r?\n/);
@@ -1698,6 +1989,128 @@ const css = `
     .diagnostic-assistance-quality-gates { grid-template-columns: 1fr; }
   }
   /* --- Diagnostic Assistance Case Detail UI V1 styles: end --- */
+
+
+  /* --- Case Detail Treatment Framework Preview UI V1 styles: start --- */
+  .treatment-framework-panel {
+    display: grid;
+    gap: 12px;
+  }
+  .treatment-framework-form {
+    display: grid;
+    gap: 10px;
+  }
+  .treatment-framework-label {
+    display: grid;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .treatment-framework-input,
+  .treatment-framework-textarea {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 9px 10px;
+    font: inherit;
+    background: #fff;
+    color: #0f172a;
+  }
+  .treatment-framework-status {
+    border: 1px solid #fde68a;
+    background: #fffbeb;
+    color: #92400e;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .treatment-framework-boundary {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+    border-radius: 12px;
+    padding: 9px 11px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+  .treatment-framework-empty,
+  .treatment-framework-empty-small {
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: #64748b;
+    background: #fff;
+  }
+  .treatment-framework-empty-small {
+    font-size: 12px;
+  }
+  .treatment-framework-confirmed {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 10px 12px;
+    background: #f8fafc;
+    font-size: 12px;
+    color: #334155;
+    display: grid;
+    gap: 3px;
+  }
+  .treatment-framework-mini-title {
+    font-weight: 900;
+    color: #0f172a;
+    margin-bottom: 3px;
+  }
+  .treatment-framework-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .treatment-framework-subblock {
+    display: grid;
+    gap: 8px;
+  }
+  .treatment-framework-subtitle {
+    font-size: 14px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  .treatment-framework-list {
+    margin: 0;
+    padding-left: 18px;
+    display: grid;
+    gap: 6px;
+    font-size: 13px;
+    color: #334155;
+  }
+  .treatment-framework-safety-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .treatment-framework-safety-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    padding: 9px 10px;
+  }
+  .treatment-framework-safety-label {
+    font-size: 11px;
+    color: #64748b;
+    word-break: break-word;
+  }
+  .treatment-framework-safety-value {
+    font-size: 13px;
+    font-weight: 900;
+    color: #0f172a;
+  }
+  @media (max-width: 900px) {
+    .treatment-framework-grid,
+    .treatment-framework-safety-grid { grid-template-columns: 1fr; }
+  }
+  /* --- Case Detail Treatment Framework Preview UI V1 styles: end --- */
+
 
   .preventive-care-panel {
     display: grid;

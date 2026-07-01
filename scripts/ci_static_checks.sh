@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_V1
+# CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1
 # Cumulative guard remains active: CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,24 +10,20 @@ cd "$ROOT"
 MIN_SMOKE_LINES=1000
 
 TARGETS=(
-  "backend/confirmed_diagnosis_treatment_framework.py"
-  "backend/diagnostic_data_api.py"
-  "docs/clinical_data/CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_V1.md"
-  "docs/clinical_data/CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_CHECKLIST_V1.csv"
-  "docs/clinical_data/CONFIRMED_DIAGNOSIS_TREATMENT_FRAMEWORK_DRAFT_GO_NO_GO_V1.csv"
-  "scripts/validate_confirmed_diagnosis_treatment_framework_draft.py"
+  "frontend/src/pages/CaseDetail.jsx"
+  "docs/clinical_data/CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_V1.md"
+  "docs/clinical_data/CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_CHECKLIST_V1.csv"
+  "docs/clinical_data/CASE_DETAIL_TREATMENT_FRAMEWORK_PREVIEW_UI_GO_NO_GO_V1.csv"
+  "scripts/validate_case_detail_treatment_framework_preview_ui.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
 )
 
 OPTIONAL_CORE_VALIDATORS=(
   "scripts/validate_confirmed_diagnosis_treatment_framework_boundary.py"
+  "scripts/validate_confirmed_diagnosis_treatment_framework_draft.py"
 )
 
-# Restore validator is stage-scoped and asserts no_business_code_change=true.
-# Draft V1 intentionally adds backend dry-run business code, so do not execute
-# the restore validator here. Preserve the cumulative guard through explicit
-# marker, baseline, embedded-smoke, and line-count checks below.
 RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_restore.py"
 
 DANGEROUS_FLAGS=(
@@ -43,11 +39,8 @@ DANGEROUS_FLAGS=(
   "ENABLE_BILLING_REAL_WRITE"
 )
 
-
 # --- Legacy CI Gate compatibility markers: start ---
-# Required because embedded legacy smoke from 0c8fd5d runs scripts/validate_ci_gate.py
-# against the current working tree. These are compatibility markers only; current
-# Draft V1 CI still uses the cumulative guard plus this stage's validator.
+# These markers remain so old validation docs can find historical CI expectations.
 # validate_release_readiness.py
 # validate_release_changelog.py
 # validate_system_version_info.py
@@ -77,9 +70,7 @@ for target in "${TARGETS[@]}"; do
 done
 
 printf '%s\n' "[ci_static_checks] python syntax"
-python3 -m py_compile backend/confirmed_diagnosis_treatment_framework.py
-python3 -m py_compile backend/diagnostic_data_api.py
-python3 -m py_compile scripts/validate_confirmed_diagnosis_treatment_framework_draft.py
+python3 -m py_compile scripts/validate_case_detail_treatment_framework_preview_ui.py
 for validator in scripts/validate_*.py; do
   [ -f "$validator" ] || continue
   python3 -m py_compile "$validator"
@@ -89,8 +80,8 @@ printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
 
-printf '%s\n' "[ci_static_checks] draft validator"
-python3 scripts/validate_confirmed_diagnosis_treatment_framework_draft.py
+printf '%s\n' "[ci_static_checks] UI validator"
+python3 scripts/validate_case_detail_treatment_framework_preview_ui.py
 
 printf '%s\n' "[ci_static_checks] optional core validators"
 for validator in "${OPTIONAL_CORE_VALIDATORS[@]}"; do
@@ -120,7 +111,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             ;;
           *)
             echo "non-target tracked diff for this stage: $path" >&2
-            echo "Commit this Draft V1 stage with explicit target files only; do not stage the entire working tree" >&2
+            echo "Commit this UI V1 stage with explicit target files only; do not stage the entire working tree" >&2
             exit 1
             ;;
         esac
@@ -165,14 +156,24 @@ for flag in "${DANGEROUS_FLAGS[@]}"; do
   fi
 done
 
-printf '%s\n' "[ci_static_checks] endpoint and cumulative smoke markers"
-grep -q '/dry-run/confirmed-diagnosis/treatment-framework/build' backend/diagnostic_data_api.py
-grep -q 'Confirmed Diagnosis Treatment Framework Draft V1 endpoint: start' backend/diagnostic_data_api.py
+printf '%s\n' "[ci_static_checks] case detail treatment framework preview UI markers"
+grep -q 'Case Detail Treatment Framework Preview UI V1' frontend/src/pages/CaseDetail.jsx
+grep -q '/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/build' frontend/src/pages/CaseDetail.jsx
+grep -q 'confirmation_source: "clinician"' frontend/src/pages/CaseDetail.jsx
+grep -q 'ai_generated: false' frontend/src/pages/CaseDetail.jsx
+grep -q 'writes_case_treatment=false' frontend/src/pages/CaseDetail.jsx
+grep -q 'returns_drug_dose=false' frontend/src/pages/CaseDetail.jsx
+grep -q 'returns_drug_route=false' frontend/src/pages/CaseDetail.jsx
+grep -q 'returns_drug_frequency=false' frontend/src/pages/CaseDetail.jsx
+
+printf '%s\n' "[ci_static_checks] cumulative smoke markers"
 grep -q 'CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_BASELINE="0c8fd5d:scripts/smoke_petmed.sh"' scripts/smoke_petmed.sh
-grep -q 'embedded legacy cumulative smoke' scripts/smoke_petmed.sh
+grep -q 'LEGACY_SMOKE_COMPAT_RABBIT_GI_TREE_PATH_V1' scripts/smoke_petmed.sh
+grep -q 'LEGACY_SMOKE_COMPAT_LIZARD_UVB_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'check_confirmed_diagnosis_treatment_framework_draft_v1' scripts/smoke_petmed.sh
-grep -q 'treatment_framework_dry_run_endpoint_smoke=PASS' scripts/smoke_petmed.sh
+grep -q 'check_case_detail_treatment_framework_preview_ui_v1' scripts/smoke_petmed.sh
+grep -q 'case_detail_treatment_framework_preview_ui=PASS' scripts/smoke_petmed.sh
 smoke_lines="$(wc -l < scripts/smoke_petmed.sh | tr -d ' ')"
 if [ "$smoke_lines" -lt "$MIN_SMOKE_LINES" ]; then
   echo "smoke_petmed.sh line count too small for cumulative restore: ${smoke_lines} < ${MIN_SMOKE_LINES}" >&2
