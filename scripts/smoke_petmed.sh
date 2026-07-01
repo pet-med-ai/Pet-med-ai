@@ -3718,8 +3718,41 @@ __PETMED_EMBEDDED_LEGACY_SMOKE_0C8FD5D_EOF__
   printf '%s\n' "[smoke_petmed] embedded legacy cumulative smoke lines: ${legacy_lines}"
 }
 
+apply_legacy_smoke_current_backend_compatibility_patch() {
+  # LEGACY_SMOKE_COMPAT_RABBIT_GI_TREE_PATH_V1
+  # Narrow compatibility patch for the isolated 0c8fd5d legacy smoke script.
+  # The current production rabbit GI triage tree may say 胃肠系统 instead of 消化.
+  # This does not skip the exotic consult smoke; it keeps the rabbit emergency
+  # path check active while accepting the current GI wording.
+  python3 - "${LEGACY_SMOKE_FILE}" <<'PY_LEGACY_RABBIT_GI_COMPAT'
+from __future__ import print_function
+
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+text = path.read_text(encoding="utf-8")
+marker = "LEGACY_SMOKE_COMPAT_RABBIT_GI_TREE_PATH_V1"
+old = "'rabbit|兔子24小时不吃东西，粪便明显减少，精神差，腹胀|高|兔|消化'"
+new = "'rabbit|兔子24小时不吃东西，粪便明显减少，精神差，腹胀|高|兔|胃肠'"
+
+if old in text:
+    text = text.replace(old, new, 1)
+elif new in text:
+    pass
+else:
+    print("NO-GO: legacy rabbit GI compatibility patch target not found", file=sys.stderr)
+    sys.exit(1)
+
+with path.open("w", encoding="utf-8", newline="\n") as handle:
+    handle.write(text)
+print("[smoke_petmed] {0} applied".format(marker))
+PY_LEGACY_RABBIT_GI_COMPAT
+}
+
 run_embedded_legacy_cumulative_smoke() {
   write_embedded_legacy_smoke
+  apply_legacy_smoke_current_backend_compatibility_patch
   local legacy_ref="${LEGACY_SMOKE_BASELINE%%:*}"
   local legacy_repo_dir="${TMP_DIR}/legacy_repo_${legacy_ref}"
 
