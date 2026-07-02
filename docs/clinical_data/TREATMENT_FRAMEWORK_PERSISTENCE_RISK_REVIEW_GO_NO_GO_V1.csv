@@ -1,0 +1,12 @@
+gate,go_if,no_go_if,decision
+validator,validate_treatment_framework_persistence_risk_review.py PASS,validator fails,GO_IF_PASS
+ci_static_checks,bash scripts/ci_static_checks.sh PASS,CI fails,GO_IF_PASS
+online_smoke,ALL PASS: smoke_petmed,smoke fails,GO_IF_PASS
+production_schema,database_revision=0009_diag_data and alembic_head=0009_diag_data and schema_ok=true,schema drift,GO_IF_PASS
+dangerous_flags,MISSING=[] and NOT_FALSE=[],any dangerous flag enabled or missing,GO_IF_PASS
+case_treatment_persistence,no_case_treatment_write=true,Case.treatment write detected,NO_GO_TO_CASE_TREATMENT_PERSISTENCE
+prescription,no_prescription_write=true,prescription write detected,NO_GO_TO_PRESCRIPTION
+dose_route_frequency,no_dose_route_frequency=true,dose route or frequency output detected,NO_GO_TO_DOSE_ROUTE_FREQUENCY
+client_facing,not_client_facing=true,client-facing treatment output detected,NO_GO_TO_CLIENT_FACING
+audit_log_scope,append_only_audit_allowed_only=true,audit log treated as treatment plan,GO_IF_PASS
+next_stage,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1,direct persistence implementation requested,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1

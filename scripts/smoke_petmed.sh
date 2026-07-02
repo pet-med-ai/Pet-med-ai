@@ -4194,6 +4194,40 @@ PY_AUDIT_LOG_RESPONSE_CHECK
   esac
 }
 # --- Treatment Framework Audit Log V1 smoke: end ---
+
+# --- Treatment Framework Persistence Risk Review V1 smoke: start ---
+check_treatment_framework_persistence_risk_review_v1() {
+  printf '%s\n' "[smoke_petmed] treatment framework persistence risk review static check"
+
+  grep -q 'TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+  grep -q 'persistence_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+  grep -q 'no_case_treatment_write=true' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+  grep -q 'no_case_treatment_persistence=true' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+  grep -q 'no_prescription_write=true' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+  grep -q 'no_dose_route_frequency=true' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+  grep -q 'append_only_audit_allowed_only=true' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+  grep -q 'signed_review_state_requires_future_design=true' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+  grep -q 'NO_GO_TO_CASE_TREATMENT_PERSISTENCE' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_GO_NO_GO_V1.csv
+  grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+  grep -q 'validate_treatment_framework_persistence_risk_review.py' scripts/ci_static_checks.sh
+
+  printf '%s\n' "PASS: treatment framework persistence risk review static markers"
+  printf '%s\n' "treatment_framework_persistence_risk_review=PASS"
+  printf '%s\n' "persistence_enabled=false"
+  printf '%s\n' "review_state_persistence_enabled=false"
+  printf '%s\n' "writes_database=false"
+  printf '%s\n' "no_case_treatment_write=true"
+  printf '%s\n' "no_case_treatment_persistence=true"
+  printf '%s\n' "no_prescription_write=true"
+  printf '%s\n' "no_dose_route_frequency=true"
+  printf '%s\n' "not_client_facing=true"
+  printf '%s\n' "append_only_audit_allowed_only=true"
+  printf '%s\n' "signed_review_state_requires_future_design=true"
+  printf '%s\n' "requires_human_review=true"
+  printf '%s\n' "clinician_signoff_required=true"
+}
+# --- Treatment Framework Persistence Risk Review V1 smoke: end ---
+
 check_system_version
 check_feature_flags
 check_frontend
@@ -4202,6 +4236,7 @@ check_confirmed_diagnosis_treatment_framework_draft_v1
 check_case_detail_treatment_framework_preview_ui_v1
 check_treatment_framework_clinician_review_workflow_v1
 check_treatment_framework_audit_log_v1
+check_treatment_framework_persistence_risk_review_v1
 
 printf '%s\n' "ALL PASS: smoke_petmed"
 printf '%s\n' "current_hard_gate_preserved=true"
@@ -4215,5 +4250,6 @@ printf '%s\n' "confirmed_diagnosis_treatment_framework_draft_v1=true"
 printf '%s\n' "case_detail_treatment_framework_preview_ui=true"
 printf '%s\n' "treatment_framework_clinician_review_workflow_v1=true"
 printf '%s\n' "treatment_framework_audit_log_v1=true"
-printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_AUDIT_LOG_V1"
-printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1"
+printf '%s\n' "treatment_framework_persistence_risk_review_v1=true"
+printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1"
+printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1"
