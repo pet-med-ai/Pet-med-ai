@@ -93,7 +93,12 @@ printf '%s\n' "[ci_static_checks] persistence risk review validator"
 python3 scripts/validate_treatment_framework_persistence_risk_review.py
 
 printf '%s\n' "[ci_static_checks] optional core validators intentionally skipped"
-for validator in "${OPTIONAL_CORE_VALIDATORS[@]}"; do
+# macOS ships Bash 3.2; with set -u, iterating an empty array as
+# "${OPTIONAL_CORE_VALIDATORS[@]}" can raise an unbound variable error.
+# This stage intentionally keeps the optional validator list empty, so use
+# the :- fallback and skip the empty placeholder.
+for validator in "${OPTIONAL_CORE_VALIDATORS[@]:-}"; do
+  [ -n "$validator" ] || continue
   if [ -f "$validator" ]; then
     python3 "$validator"
   fi

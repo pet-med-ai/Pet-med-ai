@@ -190,6 +190,7 @@ def main() -> int:
     ]:
         require(stage_scoped not in optional, "stage-scoped validator must not be re-run in this risk-review CI: {0}".format(stage_scoped))
     require("git add ." not in ci, "ci contains legacy-forbidden exact git add marker")
+    require("OPTIONAL_CORE_VALIDATORS[@]:-" in ci, "ci optional validators loop must be safe when the optional array is empty under Bash 3.2 set -u")
 
     require_tokens("smoke", smoke, [
         "CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1",
