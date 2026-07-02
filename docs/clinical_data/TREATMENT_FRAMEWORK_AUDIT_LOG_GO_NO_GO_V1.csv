@@ -1,0 +1,12 @@
+gate,go_condition,no_go_condition,status
+validator,python3 scripts/validate_treatment_framework_audit_log.py PASS,validator fails,GO_IF_PASS
+ci,bash scripts/ci_static_checks.sh PASS,ci fails,GO_IF_PASS
+online_smoke,ALL PASS: smoke_petmed,smoke fails,GO_IF_PASS
+prod_db,database_revision=0009_diag_data and alembic_head=0009_diag_data and schema_ok=true,schema mismatch,GO_IF_PASS
+feature_flags,dangerous feature flags disabled,any dangerous flag enabled or missing,GO_IF_PASS
+audit_endpoint,treatment_framework_audit_log_smoke=PASS,endpoint 404 or unsafe response,GO_IF_PASS
+append_only,append_only_audit_log=true and updates_audit_log=false/deletes_audit_log=false,update/delete audit route introduced,GO_IF_PASS
+case_treatment,writes_case_treatment=false,Case.treatment write introduced,NO_GO
+prescription,writes_prescription=false and creates_prescription=false,prescription write introduced,NO_GO
+no_dose_route_frequency,returns_drug_dose=false and returns_drug_route=false and returns_drug_frequency=false,dose/route/frequency output introduced,NO_GO
+next,GO_TO_TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1,decision missing,GO_IF_PASS

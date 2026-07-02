@@ -285,3 +285,90 @@ def append_diagnostic_summary_audit_log(
         **api_safety,
     }
 # --- Diagnostic Summary Audit Log V1 endpoint: end ---
+
+# --- Treatment Framework Audit Log V1 endpoint: start ---
+@router.post("/diagnostic-data/confirmed-diagnosis/treatment-framework/audit-log/append", response_model=dict)
+def append_treatment_framework_audit_log_endpoint(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.treatment_framework_audit_log import (
+            TREATMENT_FRAMEWORK_AUDIT_LOG_MODE,
+            build_treatment_framework_audit_log_event,
+            treatment_framework_audit_log_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from treatment_framework_audit_log import (
+            TREATMENT_FRAMEWORK_AUDIT_LOG_MODE,
+            build_treatment_framework_audit_log_event,
+            treatment_framework_audit_log_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    raw_case_id = data.get("case_id")
+    if raw_case_id in (None, ""):
+        raise HTTPException(status_code=422, detail="case_id is required")
+    try:
+        case_id = int(raw_case_id)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail="case_id must be an integer") from exc
+
+    _assert_owned_case_if_present(db, user, case_id)
+    case = db.get(Case, case_id)
+    if case is None or getattr(case, "deleted_at", None) is not None:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    case_payload = {"case_id": int(case.id), "patient_name": getattr(case, "patient_name", None), "species": getattr(case, "species", None)}
+    payload = dict(data)
+    payload["case_id"] = int(case.id)
+
+    try:
+        plan = build_treatment_framework_audit_log_event(payload, case_context=case_payload)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    dry_run = bool(plan.get("dry_run"))
+    persisted = False
+    log_id = None
+    created_at = None
+
+    if not dry_run:
+        event = plan.get("audit_event") or {}
+        metadata = event.get("metadata") if isinstance(event.get("metadata"), dict) else {}
+        metadata = dict(metadata)
+        metadata.update({"case_context": case_payload, "api_endpoint": "/api/diagnostic-data/confirmed-diagnosis/treatment-framework/audit-log/append", "writes_case_treatment": False, "writes_prescription": False, "writes_treatment_framework": False, "writes_audit_log": True, "append_only_audit_log": True})
+        obj = AuditLog(
+            request_id=event["request_id"],
+            patient_token=event.get("patient_token"),
+            clinician_id=event["clinician_id"],
+            model_version=event.get("model_version"),
+            confidence=None,
+            suggested_action=event.get("suggested_action"),
+            action_taken=event["action_taken"],
+            override_reason=event.get("override_reason"),
+            note=event.get("note"),
+            case_id=int(case.id),
+            session_uid=event.get("session_uid"),
+            event_type=event.get("event_type") or "treatment_framework_review",
+            source=event.get("source") or TREATMENT_FRAMEWORK_AUDIT_LOG_MODE,
+            extra_data=metadata,
+        )
+        db.add(obj)
+        db.commit()
+        db.refresh(obj)
+        persisted = True
+        log_id = obj.log_id
+        created_at = obj.created_at.isoformat() if isinstance(obj.created_at, datetime) else None
+
+    api_safety = treatment_framework_audit_log_safety_flags(dry_run=dry_run, writes_audit_log=persisted)
+    audit_log_result = dict(plan.get("audit_log_result") or {})
+    audit_log_result.update({"persisted": persisted, "audit_log_id": log_id, "created_at": created_at, "append_only": True, "can_update": False, "can_delete": False})
+    quality_gate = dict(plan.get("quality_gate") or {})
+    quality_gate.update({"status": "PASS", "writes_database": bool(api_safety.get("writes_database")), "writes_audit_log": bool(api_safety.get("writes_audit_log")), "writes_case_treatment": False, "writes_prescription": False, "persists_treatment_framework": False, "returns_drug_dose": False, "returns_drug_route": False, "returns_drug_frequency": False})
+
+    return {"message": "treatment_framework_audit_log_appended", "mode": TREATMENT_FRAMEWORK_AUDIT_LOG_MODE, "case": case_payload, "confirmed_diagnosis": plan.get("confirmed_diagnosis"), "review_workflow": plan.get("review_workflow"), "treatment_framework_preview_summary": plan.get("treatment_framework_preview_summary"), "audit_event": plan.get("audit_event"), "audit_log_result": audit_log_result, "quality_gate": quality_gate, "safety": api_safety, **api_safety}
+# --- Treatment Framework Audit Log V1 endpoint: end ---

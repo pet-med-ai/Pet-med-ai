@@ -1,0 +1,12 @@
+item,requirement,status,evidence
+stage_scope,Treatment Framework Audit Log V1 is audit-only,GO,TREATMENT_FRAMEWORK_AUDIT_LOG_V1
+default_dry_run,default dry_run path writes_database=false,GO,dry_run=true
+append_only,audit append is append-only and requires explicit confirmation,GO,append_only_audit_log=true
+confirmed_diagnosis,clinician confirmed diagnosis required,GO,requires_clinician_confirmed_diagnosis=true
+ai_boundary,AI does not confirm diagnosis,GO,ai_does_not_confirm_diagnosis=true
+case_treatment_write,Case.treatment write blocked,GO,writes_case_treatment=false
+prescription_write,prescription creation/write blocked,GO,creates_prescription=false;writes_prescription=false
+dose_route_frequency,dose route frequency output blocked,GO,returns_drug_dose=false;returns_drug_route=false;returns_drug_frequency=false
+client_facing,not client facing,GO,not_client_facing=true
+endpoint_smoke,audit log endpoint smoke required,GO,treatment_framework_audit_log_smoke=PASS
+next_decision,next stage is persistence risk review,GO,GO_TO_TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1
