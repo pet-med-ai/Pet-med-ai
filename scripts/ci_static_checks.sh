@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1
 # Cumulative guard remains active: CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,29 +10,27 @@ cd "$ROOT"
 MIN_SMOKE_LINES=1000
 
 TARGETS=(
-  "docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_CHECKLIST_V1.csv"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_GO_NO_GO_V1.csv"
-  "scripts/validate_treatment_framework_persistence_risk_review.py"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1.md"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_CHECKLIST_V1.csv"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_GO_NO_GO_V1.csv"
+  "scripts/validate_treatment_framework_signed_review_state_design.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
 )
 
-OPTIONAL_CORE_VALIDATORS=(
-)
-
+OPTIONAL_CORE_VALIDATORS=()
 RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_restore.py"
 
 # --- Previous stage compatibility markers: start ---
-# TREATMENT_FRAMEWORK_AUDIT_LOG_V1
-# backend/treatment_framework_audit_log.py
-# backend/audit_log_api.py
-# validate_treatment_framework_audit_log.py
-# treatment_framework_audit_log_smoke=PASS
-# previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1
-# Case Detail Treatment Framework Preview UI V1 coverage remains in smoke.
+# TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1
+# docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+# validate_treatment_framework_persistence_risk_review.py
+# treatment_framework_persistence_risk_review=PASS
+# previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1
+# Treatment Framework Audit Log V1 coverage remains in smoke.
 # Treatment Framework Clinician Review Workflow V1 coverage remains in smoke.
-# Previous stage validators are stage-scoped and are not executed from this risk review.
+# Case Detail Treatment Framework Preview UI V1 coverage remains in smoke.
+# Previous stage validators are stage-scoped and are not executed from this design stage.
 # --- Previous stage compatibility markers: end ---
 
 DANGEROUS_FLAGS=(
@@ -71,7 +69,7 @@ done
 printf '%s\n' "[ci_static_checks] no forbidden target paths"
 for target in "${TARGETS[@]}"; do
   case "$target" in
-    backend/app/*|backend/ai_engine/*|frontend/src/components/*|frontend/package-lock.json|app.db|*.db|.env|frontend/.env.development)
+    backend/app/*|backend/ai_engine/*|frontend/src/components/*|frontend/package-lock.json|app.db|*.db|.env|frontend/.env.development|backend/diagnostic_data_api.py|backend/audit_log_api.py|frontend/src/pages/CaseDetail.jsx)
       echo "forbidden target path for this stage: $target" >&2
       exit 1
       ;;
@@ -79,7 +77,7 @@ for target in "${TARGETS[@]}"; do
 done
 
 printf '%s\n' "[ci_static_checks] python syntax"
-python3 -m py_compile scripts/validate_treatment_framework_persistence_risk_review.py
+python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_design.py
 for validator in scripts/validate_*.py; do
   [ -f "$validator" ] || continue
   python3 -m py_compile "$validator"
@@ -89,14 +87,10 @@ printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
 
-printf '%s\n' "[ci_static_checks] persistence risk review validator"
-python3 scripts/validate_treatment_framework_persistence_risk_review.py
+printf '%s\n' "[ci_static_checks] signed review state design validator"
+python3 scripts/validate_treatment_framework_signed_review_state_design.py
 
 printf '%s\n' "[ci_static_checks] optional core validators intentionally skipped"
-# macOS ships Bash 3.2; with set -u, iterating an empty array as
-# "${OPTIONAL_CORE_VALIDATORS[@]}" can raise an unbound variable error.
-# This stage intentionally keeps the optional validator list empty, so use
-# the :- fallback and skip the empty placeholder.
 for validator in "${OPTIONAL_CORE_VALIDATORS[@]:-}"; do
   [ -n "$validator" ] || continue
   if [ -f "$validator" ]; then
@@ -119,13 +113,13 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       done
       if [ "$allowed" -ne 1 ]; then
         case "$path" in
-          app.db|*.db|.env|frontend/.env.development|frontend/package-lock.json|backend/app/*|backend/ai_engine/*|frontend/src/components/*|*.bak|*.save)
+          app.db|*.db|.env|frontend/.env.development|frontend/package-lock.json|backend/app/*|backend/ai_engine/*|frontend/src/components/*|backend/diagnostic_data_api.py|backend/audit_log_api.py|frontend/src/pages/CaseDetail.jsx|*.bak|*.save)
             echo "forbidden tracked diff for this stage: $path" >&2
             exit 1
             ;;
           *)
             echo "non-target tracked diff for this stage: $path" >&2
-            echo "Commit this persistence risk review stage with explicit target files only; do not stage the entire working tree" >&2
+            echo "Commit this signed review state design stage with explicit target files only; do not stage the entire working tree" >&2
             exit 1
             ;;
         esac
@@ -143,7 +137,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     while IFS= read -r path; do
       [ -z "$path" ] && continue
       case "$path" in
-        app.db|*.db|.env|frontend/.env.development|frontend/package-lock.json|backend/app/*|backend/ai_engine/*|frontend/src/components/*|*.bak|*.save)
+        app.db|*.db|.env|frontend/.env.development|frontend/package-lock.json|backend/app/*|backend/ai_engine/*|frontend/src/components/*|backend/diagnostic_data_api.py|backend/audit_log_api.py|frontend/src/pages/CaseDetail.jsx|*.bak|*.save)
           echo "forbidden staged path: $path" >&2
           exit 1
           ;;
@@ -170,22 +164,25 @@ for flag in "${DANGEROUS_FLAGS[@]}"; do
   fi
 done
 
-printf '%s\n' "[ci_static_checks] persistence risk review markers"
-grep -q 'TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
-grep -q 'persistence_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
-grep -q 'no_case_treatment_write=true' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
-grep -q 'NO_GO_TO_CASE_TREATMENT_PERSISTENCE' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_GO_NO_GO_V1.csv
-grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1.md
+printf '%s\n' "[ci_static_checks] signed review state design markers"
+grep -q 'TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1.md
+grep -q 'persistence_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1.md
+grep -q 'review_state_persistence_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1.md
+grep -q 'no_backend_endpoint_change=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1.md
+grep -q 'no_frontend_ui_change=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1.md
+grep -q 'no_migration=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1.md
+grep -q 'NO_GO_TO_CASE_TREATMENT_PERSISTENCE' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_GO_NO_GO_V1.csv
+grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DRY_RUN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1.md
 
 printf '%s\n' "[ci_static_checks] cumulative smoke markers"
 grep -q 'CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_BASELINE="0c8fd5d:scripts/smoke_petmed.sh"' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_COMPAT_RABBIT_GI_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_COMPAT_LIZARD_UVB_TREE_PATH_V1' scripts/smoke_petmed.sh
-grep -q 'check_treatment_framework_audit_log_v1' scripts/smoke_petmed.sh
-grep -q 'treatment_framework_audit_log_smoke=PASS' scripts/smoke_petmed.sh
 grep -q 'check_treatment_framework_persistence_risk_review_v1' scripts/smoke_petmed.sh
 grep -q 'treatment_framework_persistence_risk_review=PASS' scripts/smoke_petmed.sh
+grep -q 'check_treatment_framework_signed_review_state_design_v1' scripts/smoke_petmed.sh
+grep -q 'treatment_framework_signed_review_state_design=PASS' scripts/smoke_petmed.sh
 smoke_lines="$(wc -l < scripts/smoke_petmed.sh | tr -d ' ')"
 if [ "$smoke_lines" -lt "$MIN_SMOKE_LINES" ]; then
   echo "smoke_petmed.sh line count too small for cumulative restore: ${smoke_lines} < ${MIN_SMOKE_LINES}" >&2
