@@ -1,0 +1,16 @@
+check_id,category,check,status,evidence,decision
+SRSPR-001,scope,signed_review_state_persistence_enabled_false,PASS,signed_review_state_persistence_enabled=false,GO
+SRSPR-002,scope,review_state_persistence_enabled_false,PASS,review_state_persistence_enabled=false,GO
+SRSPR-003,scope,no_business_logic_change,PASS,no_business_logic_change=true,GO
+SRSPR-004,scope,no_backend_endpoint_change,PASS,no_backend_endpoint_change=true,GO
+SRSPR-005,scope,no_frontend_ui_change,PASS,no_frontend_ui_change=true,GO
+SRSPR-006,scope,no_migration,PASS,no_migration=true,GO
+SRSPR-007,safety,no_case_treatment_write,PASS,no_case_treatment_write=true,GO
+SRSPR-008,safety,no_case_treatment_persistence,PASS,no_case_treatment_persistence=true,GO
+SRSPR-009,safety,no_prescription_write,PASS,no_prescription_write=true,GO
+SRSPR-010,safety,no_dose_route_frequency,PASS,no_dose_route_frequency=true,GO
+SRSPR-011,safety,not_client_facing,PASS,not_client_facing=true,GO
+SRSPR-012,workflow,requires_human_review,PASS,requires_human_review=true,GO
+SRSPR-013,workflow,clinician_signoff_required,PASS,clinician_signoff_required=true,GO
+SRSPR-014,audit,append_only_audit_allowed_only,PASS,append_only_audit_allowed_only=true,GO
+SRSPR-015,next_stage,persistence_design_required,PASS,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DESIGN_V1,GO

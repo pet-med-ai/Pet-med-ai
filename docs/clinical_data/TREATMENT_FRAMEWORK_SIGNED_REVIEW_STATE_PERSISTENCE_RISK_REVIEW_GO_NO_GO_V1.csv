@@ -1,0 +1,12 @@
+gate_id,gate,required_result,actual_result,decision,notes
+SRSPR-G001,signed_review_state_persistence,false,false,GO,NO_GO_TO_SIGNED_REVIEW_STATE_PERSISTENCE
+SRSPR-G002,review_state_persistence,false,false,GO,review_state_persistence_enabled=false
+SRSPR-G003,case_treatment_persistence,false,false,GO,no_case_treatment_persistence=true
+SRSPR-G004,case_treatment_write,false,false,GO,no_case_treatment_write=true
+SRSPR-G005,prescription_write,false,false,GO,no_prescription_write=true
+SRSPR-G006,dose_route_frequency,false,false,GO,no_dose_route_frequency=true
+SRSPR-G007,client_facing,false,false,GO,not_client_facing=true
+SRSPR-G008,migration,false,false,GO,no_migration=true
+SRSPR-G009,business_logic_change,false,false,GO,no_business_logic_change=true
+SRSPR-G010,online_smoke,ALL_PASS,PENDING_RUNTIME,GO_REQUIRED,Run smoke_petmed.sh after deployment
+SRSPR-G011,next_stage,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DESIGN_V1,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DESIGN_V1,GO,Design only before any persistence
