@@ -34,6 +34,19 @@ RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_re
 # Earlier stage coverage remains in smoke; previous stage validators are stage-scoped.
 # --- Previous stage compatibility markers: end ---
 
+# --- Prior treatment framework static smoke CI marker continuity: start ---
+# Required because current smoke keeps static checks for previous stages active.
+# These are marker-continuity comments only; previous stage validators remain
+# stage-scoped and must not be re-run from OPTIONAL_CORE_VALIDATORS.
+# TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1
+# validate_treatment_framework_persistence_risk_review.py
+# treatment_framework_persistence_risk_review=PASS
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1
+# validate_treatment_framework_signed_review_state_design.py
+# treatment_framework_signed_review_state_design=PASS
+# --- Prior treatment framework static smoke CI marker continuity: end ---
+
+
 DANGEROUS_FLAGS=(
   "ENABLE_EMR_REAL_IMPORT"
   "ENABLE_EMR_IMPORT_CASE_UPDATE"

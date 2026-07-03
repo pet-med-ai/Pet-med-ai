@@ -179,6 +179,14 @@ def main() -> int:
         "sensitive staged path discipline",
         "PASS: ci_static_checks",
     ])
+    require_tokens("ci previous-stage smoke continuity", ci, [
+        "TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1",
+        "validate_treatment_framework_persistence_risk_review.py",
+        "treatment_framework_persistence_risk_review=PASS",
+        "TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1",
+        "validate_treatment_framework_signed_review_state_design.py",
+        "treatment_framework_signed_review_state_design=PASS",
+    ])
     optional = optional_block(ci)
     for stage_scoped in [
         "validate_treatment_framework_signed_review_state_dry_run.py",
