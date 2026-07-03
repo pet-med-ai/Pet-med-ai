@@ -1,0 +1,17 @@
+item,status,notes
+stage_marker,GO,CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_UI_V1
+case_detail_ui_panel,GO,frontend/src/pages/CaseDetail.jsx adds signed review state dry-run panel
+uses_dry_run_endpoint_only,GO,/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/build
+requires_clinician_confirmed_diagnosis,GO,confirmation_source=clinician and ai_generated=false
+signed_review_state_dry_run_only,GO,signed_review_state_dry_run_only=true
+signed_review_state_persistence_disabled,GO,signed_review_state_persistence_enabled=false
+review_state_persistence_disabled,GO,review_state_persistence_enabled=false
+no_case_treatment_write,GO,no Case.treatment write
+no_prescription_write,GO,no prescription write
+no_dose_route_frequency,GO,no dose route frequency output
+not_client_facing,GO,doctor-only preview
+requires_human_review,GO,requires_human_review=true
+clinician_signoff_required,GO,clinician_signoff_required=true
+no_backend_endpoint_change,GO,uses existing dry-run endpoint
+no_migration,GO,no Alembic migration
+decision,GO,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_RISK_REVIEW_V1

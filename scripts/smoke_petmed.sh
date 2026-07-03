@@ -4444,6 +4444,62 @@ PY_SIGNED_REVIEW_STATE_RESPONSE_CHECK
   esac
 }
 # --- Treatment Framework Signed Review State Dry Run V1 smoke: end ---
+
+# --- Case Detail Treatment Framework Signed Review State UI V1 smoke: start ---
+check_case_detail_treatment_framework_signed_review_state_ui_v1() {
+  printf '%s
+' "[smoke_petmed] case detail treatment framework signed review state UI static check"
+
+  grep -q 'Case Detail Treatment Framework Signed Review State UI V1' frontend/src/pages/CaseDetail.jsx
+  grep -q '/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/build' frontend/src/pages/CaseDetail.jsx
+  grep -q 'TreatmentFrameworkSignedReviewStatePanel' frontend/src/pages/CaseDetail.jsx
+  grep -q 'buildTreatmentFrameworkSignedReviewStatePreview' frontend/src/pages/CaseDetail.jsx
+  grep -q 'buildSignedReviewStateAuditReference' frontend/src/pages/CaseDetail.jsx
+  grep -q 'confirmation_source: "clinician"' frontend/src/pages/CaseDetail.jsx
+  grep -q 'ai_generated: false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'signed_review_state_dry_run_only=true' frontend/src/pages/CaseDetail.jsx
+  grep -q 'signed_review_state_persistence_enabled=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'review_state_persistence_enabled=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'writes_database=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'writes_case_treatment=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'creates_prescription=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'writes_prescription=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'returns_drug_dose=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'returns_drug_route=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'returns_drug_frequency=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'not_client_facing=true' frontend/src/pages/CaseDetail.jsx
+  grep -q 'requires_human_review=true' frontend/src/pages/CaseDetail.jsx
+  grep -q 'clinician_signoff_required=true' frontend/src/pages/CaseDetail.jsx
+
+  printf '%s
+' "PASS: case detail treatment framework signed review state UI static markers"
+  printf '%s
+' "case_detail_treatment_framework_signed_review_state_ui=PASS"
+  printf '%s
+' "signed_review_state_dry_run_only=true"
+  printf '%s
+' "signed_review_state_persistence_enabled=false"
+  printf '%s
+' "review_state_persistence_enabled=false"
+  printf '%s
+' "writes_database=false"
+  printf '%s
+' "no_case_treatment_write=true"
+  printf '%s
+' "no_case_treatment_persistence=true"
+  printf '%s
+' "no_prescription_write=true"
+  printf '%s
+' "no_dose_route_frequency=true"
+  printf '%s
+' "not_client_facing=true"
+  printf '%s
+' "requires_human_review=true"
+  printf '%s
+' "clinician_signoff_required=true"
+}
+# --- Case Detail Treatment Framework Signed Review State UI V1 smoke: end ---
+
 check_system_version
 check_feature_flags
 check_frontend
@@ -4455,6 +4511,7 @@ check_treatment_framework_audit_log_v1
 check_treatment_framework_persistence_risk_review_v1
 check_treatment_framework_signed_review_state_design_v1
 check_treatment_framework_signed_review_state_dry_run_v1
+check_case_detail_treatment_framework_signed_review_state_ui_v1
 
 printf '%s\n' "ALL PASS: smoke_petmed"
 printf '%s\n' "current_hard_gate_preserved=true"
@@ -4471,5 +4528,6 @@ printf '%s\n' "treatment_framework_audit_log_v1=true"
 printf '%s\n' "treatment_framework_persistence_risk_review_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_design_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_dry_run_v1=true"
-printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DRY_RUN_V1"
-printf '%s\n' "decision=GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_UI_V1"
+printf '%s\n' "case_detail_treatment_framework_signed_review_state_ui=true"
+printf '%s\n' "previous_stage_decision=GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_UI_V1"
+printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_RISK_REVIEW_V1"

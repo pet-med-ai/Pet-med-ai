@@ -36,6 +36,17 @@ export default function CaseDetail() {
   const [confirmedDiagnosisBy, setConfirmedDiagnosisBy] = useState("");
   // --- Case Detail Treatment Framework Preview UI V1 state: end ---
 
+  // --- Case Detail Treatment Framework Signed Review State UI V1 state: start ---
+  const [signedReviewStatePreview, setSignedReviewStatePreview] = useState(null);
+  const [signedReviewStateLoading, setSignedReviewStateLoading] = useState(false);
+  const [signedReviewStateStatus, setSignedReviewStateStatus] = useState("");
+  const [signedReviewStateReviewedBy, setSignedReviewStateReviewedBy] = useState("");
+  const [signedReviewStateReviewDecision, setSignedReviewStateReviewDecision] = useState("approve_for_clinician_use");
+  const [signedReviewStateSignedBy, setSignedReviewStateSignedBy] = useState("");
+  const [signedReviewStateSignoffDecision, setSignedReviewStateSignoffDecision] = useState("sign_internal_review");
+  const [signedReviewStateAuditRequestId, setSignedReviewStateAuditRequestId] = useState("");
+  // --- Case Detail Treatment Framework Signed Review State UI V1 state: end ---
+
 
 
   // 拉取详情
@@ -295,6 +306,90 @@ export default function CaseDetail() {
     }
   };
   // --- Case Detail Treatment Framework Preview UI V1 actions: end ---
+
+  // --- Case Detail Treatment Framework Signed Review State UI V1 actions: start ---
+  const buildTreatmentFrameworkSignedReviewStatePreview = async () => {
+    if (!data?.id) return;
+
+    const diagnosisLabel = confirmedDiagnosisLabel.trim();
+    const confirmedBy = confirmedDiagnosisBy.trim();
+    const reviewedBy = (signedReviewStateReviewedBy || confirmedBy).trim();
+    const signedBy = signedReviewStateSignedBy.trim();
+    const reviewDecision = signedReviewStateReviewDecision;
+    const signoffDecision = signedReviewStateSignoffDecision;
+    const frameworkPreview = treatmentFrameworkPreview?.treatment_framework_preview || {};
+
+    if (!diagnosisLabel || !confirmedBy || !reviewedBy || !signedBy) {
+      setSignedReviewStateStatus("请先填写医生确认诊断、确认医生、复核医生和签名医生；AI 不确认诊断。requires_clinician_confirmed_diagnosis=true");
+      return;
+    }
+
+    if (!treatmentFrameworkPreview || Object.keys(frameworkPreview).length === 0) {
+      setSignedReviewStateStatus("请先生成治疗框架预览，再生成 signed review state dry-run。signed_review_state_dry_run_only=true");
+      return;
+    }
+
+    const auditReference = buildSignedReviewStateAuditReference(
+      data.id,
+      signedReviewStateAuditRequestId
+    );
+
+    try {
+      setSignedReviewStateLoading(true);
+      setSignedReviewStateStatus("正在生成签名复核状态预览：dry_run=true · writes_database=false · signed_review_state_persistence_enabled=false");
+
+      const res = await api.post(
+        "/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/build",
+        {
+          case_id: Number(data.id),
+          confirmed_diagnosis_label: diagnosisLabel,
+          confirmed_by: confirmedBy,
+          confirmation_source: "clinician",
+          ai_generated: false,
+          treatment_framework_preview: frameworkPreview,
+          reviewed_by: reviewedBy,
+          review_decision: reviewDecision,
+          signed_by: signedBy,
+          signoff_decision: signoffDecision,
+          audit_request_id: auditReference.audit_request_id,
+          request_id: auditReference.audit_request_id,
+          audit_log_result: auditReference.audit_log_result,
+          audit_event: auditReference.audit_event,
+          case_context: buildDiagnosticAssistanceCaseContext(data),
+        }
+      );
+
+      const payload = res.data || {};
+      setSignedReviewStatePreview(payload);
+      setSignedReviewStateStatus(
+        [
+          "已生成 signed review state 医生端 dry-run 预览",
+          "signed_review_state_dry_run_only=true",
+          "signed_review_state_persistence_enabled=false",
+          "review_state_persistence_enabled=false",
+          "writes_database=false",
+          "writes_case_treatment=false",
+          "creates_prescription=false",
+          "writes_prescription=false",
+          "returns_drug_dose=false",
+          "returns_drug_route=false",
+          "returns_drug_frequency=false",
+          "not_client_facing=true",
+          "requires_human_review=true",
+          "clinician_signoff_required=true",
+        ].join(" · ")
+      );
+    } catch (e) {
+      console.error("Treatment framework signed review state preview failed:", e);
+      const detail = e?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
+      setSignedReviewStateStatus(`签名复核状态预览失败：${msg}`);
+      alert(`签名复核状态预览失败：${msg}`);
+    } finally {
+      setSignedReviewStateLoading(false);
+    }
+  };
+  // --- Case Detail Treatment Framework Signed Review State UI V1 actions: end ---
 
 
   // Preventive Care Reminder UI V1: in-app reminders only; sends_external_message=false.
@@ -685,6 +780,28 @@ export default function CaseDetail() {
         />
       </Section>
       {/* --- Case Detail Treatment Framework Preview UI V1 section: end --- */}
+
+      {/* --- Case Detail Treatment Framework Signed Review State UI V1 section: start --- */}
+      <Section title="治疗框架签名复核状态预览 / Signed Review State Preview">
+        <TreatmentFrameworkSignedReviewStatePanel
+          treatmentFrameworkPreview={treatmentFrameworkPreview}
+          preview={signedReviewStatePreview}
+          loading={signedReviewStateLoading}
+          status={signedReviewStateStatus}
+          reviewedBy={signedReviewStateReviewedBy}
+          onReviewedByChange={setSignedReviewStateReviewedBy}
+          reviewDecision={signedReviewStateReviewDecision}
+          onReviewDecisionChange={setSignedReviewStateReviewDecision}
+          signedBy={signedReviewStateSignedBy}
+          onSignedByChange={setSignedReviewStateSignedBy}
+          signoffDecision={signedReviewStateSignoffDecision}
+          onSignoffDecisionChange={setSignedReviewStateSignoffDecision}
+          auditRequestId={signedReviewStateAuditRequestId}
+          onAuditRequestIdChange={setSignedReviewStateAuditRequestId}
+          onBuild={buildTreatmentFrameworkSignedReviewStatePreview}
+        />
+      </Section>
+      {/* --- Case Detail Treatment Framework Signed Review State UI V1 section: end --- */}
 
 
       <Section title="八、预防保健提醒 / Preventive Care">
@@ -1246,6 +1363,172 @@ function TreatmentFrameworkSafetyGrid({ qualityGate, safety }) {
 }
 // --- Case Detail Treatment Framework Preview UI V1 components: end ---
 
+// --- Case Detail Treatment Framework Signed Review State UI V1 components: start ---
+function TreatmentFrameworkSignedReviewStatePanel({
+  treatmentFrameworkPreview,
+  preview,
+  loading,
+  status,
+  reviewedBy,
+  onReviewedByChange,
+  reviewDecision,
+  onReviewDecisionChange,
+  signedBy,
+  onSignedByChange,
+  signoffDecision,
+  onSignoffDecisionChange,
+  auditRequestId,
+  onAuditRequestIdChange,
+  onBuild,
+}) {
+  const hasFrameworkPreview = Boolean(treatmentFrameworkPreview?.treatment_framework_preview);
+  const state = preview?.signed_review_state_preview || {};
+  const qualityGate = preview?.quality_gate || {};
+  const safety = preview?.safety || {};
+  const reviewContext = preview?.review_context || {};
+  const hasPreview = Boolean(preview);
+
+  return (
+    <div className="signed-review-state-panel">
+      <div className="signed-review-state-form screen-only">
+        <label className="signed-review-state-label">
+          <span>复核医生 / Reviewed by</span>
+          <input
+            value={reviewedBy}
+            onChange={(event) => onReviewedByChange(event.target.value)}
+            className="signed-review-state-input"
+            placeholder="reviewer clinician id / doctor name"
+          />
+        </label>
+        <label className="signed-review-state-label">
+          <span>复核决定 / Review decision</span>
+          <select
+            value={reviewDecision}
+            onChange={(event) => onReviewDecisionChange(event.target.value)}
+            className="signed-review-state-input"
+          >
+            <option value="approve_for_clinician_use">approve_for_clinician_use</option>
+            <option value="request_revision">request_revision</option>
+            <option value="reject">reject</option>
+          </select>
+        </label>
+        <label className="signed-review-state-label">
+          <span>签名医生 / Signed by</span>
+          <input
+            value={signedBy}
+            onChange={(event) => onSignedByChange(event.target.value)}
+            className="signed-review-state-input"
+            placeholder="signing clinician id / doctor name"
+          />
+        </label>
+        <label className="signed-review-state-label">
+          <span>签名决定 / Signoff decision</span>
+          <select
+            value={signoffDecision}
+            onChange={(event) => onSignoffDecisionChange(event.target.value)}
+            className="signed-review-state-input"
+          >
+            <option value="sign_internal_review">sign_internal_review</option>
+            <option value="request_revision">request_revision</option>
+            <option value="reject">reject</option>
+          </select>
+        </label>
+        <label className="signed-review-state-label">
+          <span>Audit request id / optional dry-run reference</span>
+          <input
+            value={auditRequestId}
+            onChange={(event) => onAuditRequestIdChange(event.target.value)}
+            className="signed-review-state-input"
+            placeholder="optional; auto-generated if empty"
+          />
+        </label>
+        <button type="button" style={btnDoc} onClick={onBuild} disabled={loading || !hasFrameworkPreview}>
+          {loading ? "生成中…" : "生成签名复核状态预览"}
+        </button>
+      </div>
+
+      <div className="signed-review-state-status">
+        {status || "医生端 signed review state dry-run 预览；先生成 Treatment Framework Preview，再生成签名复核状态预览。不会写数据库、不会写 Case.treatment、不会生成处方。"}
+      </div>
+
+      <div className="signed-review-state-boundary">
+        endpoint=/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/build · confirmation_source=clinician · ai_generated=false · signed_review_state_dry_run_only=true · signed_review_state_persistence_enabled=false · review_state_persistence_enabled=false · writes_database=false · writes_case_treatment=false · creates_prescription=false · writes_prescription=false · returns_drug_dose=false · returns_drug_route=false · returns_drug_frequency=false · not_client_facing=true · requires_human_review=true · clinician_signoff_required=true
+      </div>
+
+      {!hasFrameworkPreview && (
+        <div className="signed-review-state-empty">
+          需要先生成“确诊后治疗框架预览”。本面板只读取现有 preview 并调用 signed review state dry-run endpoint，不保存签名状态。
+        </div>
+      )}
+
+      {!hasPreview ? (
+        <div className="signed-review-state-empty">
+          尚未生成 signed review state preview。该状态只是医生端 dry-run 展示，不启用真实 persistence，也不释放给客户端。
+        </div>
+      ) : (
+        <>
+          <div className="signed-review-state-grid">
+            <SignedReviewStateCard label="state_preview_id" value={state.state_preview_id} />
+            <SignedReviewStateCard label="signed_review_status" value={state.signed_review_status} />
+            <SignedReviewStateCard label="review_decision" value={state.review_decision || reviewContext.review_decision} />
+            <SignedReviewStateCard label="reviewed_by" value={state.reviewed_by || reviewContext.reviewed_by} />
+            <SignedReviewStateCard label="signoff_decision" value={state.signoff_decision} />
+            <SignedReviewStateCard label="signed_by" value={state.signed_by} />
+            <SignedReviewStateCard label="signed_at_preview" value={state.signed_at_preview} />
+            <SignedReviewStateCard label="dry_run" value={state.dry_run} />
+            <SignedReviewStateCard label="persisted" value={state.persisted} />
+            <SignedReviewStateCard label="signed_review_state_persisted" value={state.signed_review_state_persisted} />
+            <SignedReviewStateCard label="case_treatment_persisted" value={state.case_treatment_persisted} />
+            <SignedReviewStateCard label="client_release_allowed" value={state.client_release_allowed} />
+          </div>
+
+          <TreatmentFrameworkSignedReviewStateSafetyGrid qualityGate={qualityGate} safety={safety} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function SignedReviewStateCard({ label, value }) {
+  return (
+    <div className="signed-review-state-card">
+      <div className="signed-review-state-card-label">{label}</div>
+      <div className="signed-review-state-card-value">{String(value ?? "—")}</div>
+    </div>
+  );
+}
+
+function TreatmentFrameworkSignedReviewStateSafetyGrid({ qualityGate, safety }) {
+  const rows = [
+    ["quality_gate.status", qualityGate?.status],
+    ["audit_log_reference_present", qualityGate?.audit_log_reference_present],
+    ["signed_review_state_preview_only", qualityGate?.signed_review_state_preview_only],
+    ["review_state_persistence_enabled", qualityGate?.review_state_persistence_enabled],
+    ["writes_database", safety?.writes_database],
+    ["writes_case_treatment", safety?.writes_case_treatment],
+    ["persists_treatment_framework", safety?.persists_treatment_framework],
+    ["creates_prescription", safety?.creates_prescription],
+    ["writes_prescription", safety?.writes_prescription],
+    ["returns_drug_dose", safety?.returns_drug_dose],
+    ["returns_drug_route", safety?.returns_drug_route],
+    ["returns_drug_frequency", safety?.returns_drug_frequency],
+    ["creates_signed_review_state", safety?.creates_signed_review_state],
+    ["persists_signed_review_state", safety?.persists_signed_review_state],
+    ["not_client_facing", safety?.not_client_facing],
+    ["requires_human_review", safety?.requires_human_review],
+    ["clinician_signoff_required", safety?.clinician_signoff_required],
+  ];
+  return (
+    <div className="signed-review-state-safety-grid">
+      {rows.map(([label, value]) => (
+        <SignedReviewStateCard key={label} label={label} value={value} />
+      ))}
+    </div>
+  );
+}
+// --- Case Detail Treatment Framework Signed Review State UI V1 components: end ---
+
+
 
 function PreventiveCarePanel({
   reminders,
@@ -1617,6 +1900,42 @@ function formatTreatmentFrameworkItem(item) {
   return String(item);
 }
 // --- Case Detail Treatment Framework Preview UI V1 helpers: end ---
+
+// --- Case Detail Treatment Framework Signed Review State UI V1 helpers: start ---
+function buildSignedReviewStateAuditReference(caseId, auditRequestId) {
+  const cleanId = String(auditRequestId || "").trim();
+  const requestId = cleanId || `case-detail-signed-review-audit-${caseId || "case"}-${Date.now()}`;
+  return {
+    audit_request_id: requestId,
+    audit_log_result: {
+      decision: "audit_log_append_preview",
+      dry_run: true,
+      will_append_audit_log: false,
+      persisted: false,
+      append_only: true,
+      request_id: requestId,
+      writes_database: false,
+      writes_audit_log: false,
+    },
+    audit_event: {
+      request_id: requestId,
+      event_type: "treatment_framework_review",
+      source: "case_detail_treatment_framework_signed_review_state_ui_v1",
+      metadata: {
+        dry_run: true,
+        writes_database: false,
+        writes_audit_log: false,
+        append_only_audit_log: true,
+        signed_review_state_dry_run_only: true,
+        signed_review_state_persistence_enabled: false,
+        review_state_persistence_enabled: false,
+        not_client_facing: true,
+      },
+    },
+  };
+}
+// --- Case Detail Treatment Framework Signed Review State UI V1 helpers: end ---
+
 
 
 function parseDynamicHistory(value) {
@@ -2110,6 +2429,87 @@ const css = `
     .treatment-framework-safety-grid { grid-template-columns: 1fr; }
   }
   /* --- Case Detail Treatment Framework Preview UI V1 styles: end --- */
+
+  /* --- Case Detail Treatment Framework Signed Review State UI V1 styles: start --- */
+  .signed-review-state-panel {
+    display: grid;
+    gap: 12px;
+  }
+  .signed-review-state-form {
+    display: grid;
+    gap: 10px;
+  }
+  .signed-review-state-label {
+    display: grid;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #0f172a;
+  }
+  .signed-review-state-input {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 9px 10px;
+    font: inherit;
+    background: #fff;
+    color: #0f172a;
+  }
+  .signed-review-state-status {
+    border: 1px solid #c7d2fe;
+    background: #eef2ff;
+    color: #3730a3;
+    border-radius: 12px;
+    padding: 10px 12px;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .signed-review-state-boundary {
+    border: 1px solid #bbf7d0;
+    background: #f0fdf4;
+    color: #166534;
+    border-radius: 12px;
+    padding: 9px 11px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.5;
+  }
+  .signed-review-state-empty {
+    border: 1px dashed #cbd5e1;
+    border-radius: 12px;
+    padding: 10px 12px;
+    color: #64748b;
+    background: #fff;
+  }
+  .signed-review-state-grid,
+  .signed-review-state-safety-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .signed-review-state-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff;
+    padding: 9px 10px;
+  }
+  .signed-review-state-card-label {
+    font-size: 11px;
+    color: #64748b;
+    word-break: break-word;
+  }
+  .signed-review-state-card-value {
+    font-size: 13px;
+    font-weight: 900;
+    color: #0f172a;
+    word-break: break-word;
+  }
+  @media (max-width: 900px) {
+    .signed-review-state-grid,
+    .signed-review-state-safety-grid { grid-template-columns: 1fr; }
+  }
+  /* --- Case Detail Treatment Framework Signed Review State UI V1 styles: end --- */
+
 
 
   .preventive-care-panel {
