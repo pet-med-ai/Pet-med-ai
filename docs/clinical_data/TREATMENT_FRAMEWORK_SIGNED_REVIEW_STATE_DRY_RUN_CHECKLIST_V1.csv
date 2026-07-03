@@ -1,0 +1,12 @@
+item,requirement,status,evidence
+stage_id,TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DRY_RUN_V1,GO,docs and validator
+dry_run_only,signed_review_state_dry_run_only=true,GO,backend safety flags
+persistence_disabled,signed_review_state_persistence_enabled=false,GO,backend safety flags
+case_treatment,no_case_treatment_write=true,GO,validator forbidden snippets
+prescription,no_prescription_write=true,GO,validator forbidden snippets
+dose_route_frequency,no_dose_route_frequency=true,GO,scanner and smoke
+clinician_confirmed_diagnosis,requires_clinician_confirmed_diagnosis=true,GO,builder validation
+ai_diagnosis,ai_does_not_confirm_diagnosis=true,GO,builder validation
+audit_reference,audit_log_reference_required=true,GO,builder validation
+client_facing,not_client_facing=true,GO,safety flags
+next_step,GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_UI_V1,GO,go/no-go

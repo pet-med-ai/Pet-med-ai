@@ -1,0 +1,12 @@
+gate,expected,decision
+validator,validates signed review state dry-run only,GO_IF_PASS
+ci_static_checks,passes target-only and dangerous flag checks,GO_IF_PASS
+online_smoke,ALL PASS: smoke_petmed,GO_IF_PASS
+production_database,database_revision=0009_diag_data,GO_IF_PASS
+dangerous_flags,all dangerous feature flags disabled,GO_IF_PASS
+signed_review_endpoint,registered and protected or validation-gated,GO_IF_PASS
+case_treatment_write,no_case_treatment_write=true,NO_GO_IF_FALSE
+prescription,no_prescription_write=true,NO_GO_IF_FALSE
+dose_route_frequency,no_dose_route_frequency=true,NO_GO_IF_FALSE
+signed_review_persistence,signed_review_state_persistence_enabled=false,NO_GO_IF_FALSE
+next_step,GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_UI_V1,GO_IF_ALL_PASS
