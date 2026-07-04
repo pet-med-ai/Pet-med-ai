@@ -4546,6 +4546,200 @@ check_treatment_framework_signed_review_state_persistence_design_v1() {
 }
 # --- Treatment Framework Signed Review State Persistence Design V1 smoke: end ---
 
+# --- Treatment Framework Signed Review State Persistence Dry Run V1 smoke: start ---
+check_treatment_framework_signed_review_state_persistence_dry_run_v1() {
+  local endpoint="${BASE_URL}/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/persistence/prepare"
+  local status_file="${TMP_DIR}/treatment_framework_signed_review_state_persistence_status.txt"
+  local body_file="${TMP_DIR}/treatment_framework_signed_review_state_persistence_body.json"
+  local payload_file="${TMP_DIR}/treatment_framework_signed_review_state_persistence_payload.json"
+
+  printf '%s\n' "[smoke_petmed] treatment framework signed review state persistence dry-run endpoint: ${endpoint}"
+
+  cat > "${payload_file}" <<'JSON_PAYLOAD'
+{
+  "case_id": 1,
+  "confirmed_diagnosis_label": "clinician confirmed diagnosis smoke placeholder",
+  "confirmed_by": "smoke-test-clinician",
+  "confirmation_source": "clinician",
+  "ai_generated": false,
+  "treatment_framework_preview": {
+    "treatment_goals": ["stabilize patient status under clinician direction"],
+    "care_priority_hint": "clinician_review_required",
+    "supportive_care_categories": ["comfort_support_review"],
+    "monitoring_parameters": ["vital_signs_trend"]
+  },
+  "signed_review_state_preview": {
+    "state_preview_id": "signed-review-state-preview-1",
+    "case_id": 1,
+    "review_decision": "approve_for_clinician_use",
+    "signed_review_status": "signed_internal_review_preview",
+    "signed_by": "smoke-test-signer",
+    "dry_run": true,
+    "persisted": false
+  },
+  "reviewed_by": "smoke-test-reviewer",
+  "review_decision": "approve_for_clinician_use",
+  "signed_by": "smoke-test-signer",
+  "signoff_decision": "sign_internal_review",
+  "audit_log_result": {
+    "decision": "audit_log_append_preview",
+    "append_only": true,
+    "persisted": false
+  },
+  "persistence_requested_by": "smoke-test-signer"
+}
+JSON_PAYLOAD
+
+  if [ -n "${AUTH_TOKEN:-}" ] && [ -n "${SMOKE_CASE_ID:-}" ]; then
+    python3 - "${payload_file}" "${SMOKE_CASE_ID}" <<'PY_SET_CASE_ID'
+import json
+import sys
+path, case_id = sys.argv[1], sys.argv[2]
+with open(path, "r", encoding="utf-8") as handle:
+    payload = json.load(handle)
+payload["case_id"] = int(case_id)
+payload["signed_review_state_preview"]["case_id"] = int(case_id)
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(payload, handle, ensure_ascii=False)
+PY_SET_CASE_ID
+    http_status="$(curl -sS -o "${body_file}" -w '%{http_code}' \
+      -X POST "${endpoint}" \
+      -H 'Content-Type: application/json' \
+      -H "Authorization: Bearer ${AUTH_TOKEN}" \
+      --data-binary "@${payload_file}" || true)"
+    printf '%s\n' "${http_status}" > "${status_file}"
+    if [ "${http_status}" != "200" ]; then
+      echo "NO-GO: treatment framework signed review state persistence dry-run authenticated smoke expected HTTP 200, got ${http_status}" >&2
+      cat "${body_file}" >&2 || true
+      exit 1
+    fi
+    python3 - "${body_file}" <<'PY_PERSISTENCE_DRY_RUN_RESPONSE_CHECK'
+import json
+import re
+import sys
+path = sys.argv[1]
+with open(path, "r", encoding="utf-8") as handle:
+    data = json.load(handle)
+errors = []
+if data.get("message") != "treatment_framework_signed_review_state_persistence_dry_run_built":
+    errors.append("message mismatch")
+if data.get("mode") != "treatment_framework_signed_review_state_persistence_dry_run_v1":
+    errors.append("mode mismatch")
+quality_gate = data.get("quality_gate") or {}
+safety = data.get("safety") or {}
+preview = data.get("persistence_dry_run_preview") or {}
+expected_true = [
+    (quality_gate, "requires_confirmed_diagnosis"),
+    (quality_gate, "requires_clinician_confirmed_diagnosis"),
+    (quality_gate, "ai_does_not_confirm_diagnosis"),
+    (quality_gate, "audit_log_reference_present"),
+    (quality_gate, "signed_review_state_preview_present"),
+    (quality_gate, "signed_review_state_persistence_preview_only"),
+    (quality_gate, "blocks_prescription"),
+    (quality_gate, "blocks_dose"),
+    (quality_gate, "blocks_route_frequency"),
+    (quality_gate, "migration_readiness_required"),
+    (safety, "read_only"),
+    (safety, "dry_run"),
+    (safety, "signed_review_state_persistence_preview_only"),
+    (safety, "migration_readiness_required"),
+    (safety, "not_client_facing"),
+    (safety, "requires_human_review"),
+    (safety, "clinician_signoff_required"),
+    (preview, "dry_run"),
+    (preview, "audit_log_reference_present"),
+    (preview, "migration_readiness_required"),
+    (preview, "signed_review_state_persistence_requires_future_go_no_go"),
+]
+for container, key in expected_true:
+    if container.get(key) is not True:
+        errors.append(f"{key} expected true")
+expected_false = [
+    (quality_gate, "writes_database"),
+    (quality_gate, "writes_case_treatment"),
+    (quality_gate, "persists_treatment_framework"),
+    (quality_gate, "persists_signed_review_state"),
+    (quality_gate, "signed_review_state_persistence_enabled"),
+    (quality_gate, "review_state_persistence_enabled"),
+    (safety, "writes_database"),
+    (safety, "writes_case_treatment"),
+    (safety, "persists_treatment_framework"),
+    (safety, "creates_prescription"),
+    (safety, "writes_prescription"),
+    (safety, "returns_drug_dose"),
+    (safety, "returns_drug_route"),
+    (safety, "returns_drug_frequency"),
+    (safety, "writes_audit_log"),
+    (safety, "creates_signed_review_state"),
+    (safety, "persists_signed_review_state"),
+    (safety, "signed_review_state_persistence_enabled"),
+    (safety, "review_state_persistence_enabled"),
+    (preview, "persisted"),
+    (preview, "writes_database"),
+    (preview, "signed_review_state_persistence_enabled"),
+    (preview, "review_state_persistence_enabled"),
+    (preview, "will_write_now"),
+]
+for container, key in expected_false:
+    if container.get(key) is not False:
+        errors.append(f"{key} expected false")
+text = json.dumps(data.get("treatment_framework_preview") or {}, ensure_ascii=False)
+text += json.dumps(data.get("signed_review_state_preview") or {}, ensure_ascii=False)
+for pattern in [r"\b\d+(?:\.\d+)?\s*(?:mg|mcg|ug|g|ml|mL|iu|IU)\s*/\s*kg\b", r"\bq\s*\d+\s*h\b", r"\b(?:SID|BID|TID|QID|q12h|q24h|q8h|q6h|PO|IV|IM|SC|SQ)\b", r"\b(?:prescribe|prescription|dispense|administer)\b"]:
+    if re.search(pattern, text, re.IGNORECASE):
+        errors.append("forbidden persistence dry-run wording matched: " + pattern)
+if errors:
+    print("NO-GO: treatment framework signed review state persistence dry-run response failed")
+    for error in errors:
+        print(error)
+    sys.exit(1)
+print("PASS: treatment framework signed review state persistence dry-run authenticated response")
+PY_PERSISTENCE_DRY_RUN_RESPONSE_CHECK
+    printf '%s\n' "treatment_framework_signed_review_state_persistence_dry_run_smoke=PASS"
+    printf '%s\n' "treatment_framework_signed_review_state_persistence_authenticated_payload_smoke=PASS"
+    printf '%s\n' "writes_database=false"
+    return 0
+  fi
+
+  http_status="$(curl -sS -o "${body_file}" -w '%{http_code}' \
+    -X POST "${endpoint}" \
+    -H 'Content-Type: application/json' \
+    --data-binary "@${payload_file}" || true)"
+  printf '%s\n' "${http_status}" > "${status_file}"
+
+  case "${http_status}" in
+    401|403)
+      printf '%s\n' "PASS: treatment framework signed review state persistence dry-run endpoint registered and protected"
+      printf '%s\n' "treatment_framework_signed_review_state_persistence_dry_run_smoke=PASS"
+      printf '%s\n' "signed_review_state_persistence_endpoint_requires_authentication=true"
+      printf '%s\n' "signed_review_state_persistence_authenticated_payload_smoke=SKIPPED_AUTH_TOKEN_AND_SMOKE_CASE_ID_NOT_SET"
+      ;;
+    422)
+      printf '%s\n' "PASS: treatment framework signed review state persistence dry-run endpoint registered and validation-gated"
+      printf '%s\n' "treatment_framework_signed_review_state_persistence_dry_run_smoke=PASS"
+      printf '%s\n' "signed_review_state_persistence_endpoint_validation_gate_reached=true"
+      printf '%s\n' "signed_review_state_persistence_authenticated_payload_smoke=SKIPPED_AUTH_TOKEN_AND_SMOKE_CASE_ID_NOT_SET"
+      ;;
+    404)
+      echo "NO-GO: treatment framework signed review state persistence dry-run endpoint returned 404" >&2
+      cat "${body_file}" >&2 || true
+      exit 1
+      ;;
+    000)
+      echo "NO-GO: treatment framework signed review state persistence dry-run endpoint curl failed" >&2
+      cat "${body_file}" >&2 || true
+      exit 1
+      ;;
+    *)
+      echo "NO-GO: unexpected treatment framework signed review state persistence dry-run endpoint HTTP status ${http_status}" >&2
+      cat "${body_file}" >&2 || true
+      exit 1
+      ;;
+  esac
+}
+# --- Treatment Framework Signed Review State Persistence Dry Run V1 smoke: end ---
+
+
 # --- Treatment Framework Signed Review State Persistence Risk Review V1 smoke: start ---
 check_treatment_framework_signed_review_state_persistence_risk_review_v1() {
   printf '%s\n' "[smoke_petmed] treatment framework signed review state persistence risk review static check"
@@ -4603,6 +4797,7 @@ check_treatment_framework_signed_review_state_dry_run_v1
 check_case_detail_treatment_framework_signed_review_state_ui_v1
 check_treatment_framework_signed_review_state_persistence_risk_review_v1
 check_treatment_framework_signed_review_state_persistence_design_v1
+check_treatment_framework_signed_review_state_persistence_dry_run_v1
 
 printf '%s\n' "ALL PASS: smoke_petmed"
 printf '%s\n' "current_hard_gate_preserved=true"
@@ -4621,7 +4816,8 @@ printf '%s\n' "treatment_framework_signed_review_state_design_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_dry_run_v1=true"
 printf '%s\n' "case_detail_treatment_framework_signed_review_state_ui=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_design_v1=true"
+printf '%s\n' "treatment_framework_signed_review_state_persistence_dry_run_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_risk_review_v1=true"
-printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_RISK_REVIEW_V1"
 printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DESIGN_V1"
-printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DRY_RUN_V1"
+printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DESIGN_V1"
+printf '%s\n' "decision=GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_UI_V1"
