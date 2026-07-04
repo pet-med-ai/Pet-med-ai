@@ -211,11 +211,12 @@ def main() -> int:
         "validate_ci_smoke_cumulative_guard_restore.py",
     ]:
         require(stage_scoped not in optional, "stage-scoped validator must not be re-run in this design CI: {0}".format(stage_scoped))
-        require(
-        "validate_treatment_framework_persistence_risk_review.py" in ci and "validate_treatment_framework_signed_review_state_design.py" in ci,
+    require(
+        "validate_treatment_framework_persistence_risk_review.py" in ci
+        and "validate_treatment_framework_signed_review_state_design.py" in ci,
         "ci missing previous-stage static-smoke compatibility validator markers",
     )
-require("git add ." not in ci, "ci contains legacy-forbidden exact git add marker")
+    require("git add ." not in ci, "ci contains legacy-forbidden exact git add marker")
     require('"${OPTIONAL_CORE_VALIDATORS[@]:-}"' in ci, "ci optional validator loop must remain Bash 3.2-safe")
 
     require_tokens("smoke", smoke, [
