@@ -24,6 +24,10 @@ OPTIONAL_CORE_VALIDATORS=(
 RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_restore.py"
 
 # --- Previous stage compatibility markers: start ---
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DRY_RUN_V1
+# validate_treatment_framework_signed_review_state_dry_run.py
+# CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_UI_V1
+# validate_case_detail_treatment_framework_signed_review_state_ui.py
 # TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_RISK_REVIEW_V1
 # validate_treatment_framework_signed_review_state_persistence_risk_review.py
 # case_detail_treatment_framework_signed_review_state_ui=PASS
