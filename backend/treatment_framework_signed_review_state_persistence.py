@@ -4,7 +4,7 @@ Treatment Framework Signed Review State Persistence Dry Run V1.
 
 Builds a clinician-facing dry-run preview for future signed review state
 persistence. This module deliberately does not persist anything:
-no database write, no Case.treatment write, no prescription, no drug dose,
+no database write, no case treatment field write, no prescription, no drug dose,
 no route/frequency recommendation, and no client-facing release.
 """
 from __future__ import annotations
