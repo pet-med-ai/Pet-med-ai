@@ -46,6 +46,13 @@ export default function CaseDetail() {
   const [signedReviewStateSignoffDecision, setSignedReviewStateSignoffDecision] = useState("sign_internal_review");
   const [signedReviewStateAuditRequestId, setSignedReviewStateAuditRequestId] = useState("");
   // --- Case Detail Treatment Framework Signed Review State UI V1 state: end ---
+// --- Case Detail Treatment Framework Signed Review State Persistence UI V1 state: start ---
+const [signedReviewStatePersistencePreview, setSignedReviewStatePersistencePreview] = useState(null);
+const [signedReviewStatePersistenceLoading, setSignedReviewStatePersistenceLoading] = useState(false);
+const [signedReviewStatePersistenceStatus, setSignedReviewStatePersistenceStatus] = useState("");
+const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceRequestedBy] = useState("");
+// --- Case Detail Treatment Framework Signed Review State Persistence UI V1 state: end ---
+
 
 
 
@@ -390,6 +397,92 @@ export default function CaseDetail() {
     }
   };
   // --- Case Detail Treatment Framework Signed Review State UI V1 actions: end ---
+// --- Case Detail Treatment Framework Signed Review State Persistence UI V1 actions: start ---
+const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
+  if (!data?.id) return;
+
+  const diagnosisLabel = confirmedDiagnosisLabel.trim();
+  const confirmedBy = confirmedDiagnosisBy.trim();
+  const requestedBy = (
+    signedReviewStatePersistenceRequestedBy ||
+    signedReviewStateSignedBy ||
+    signedReviewStateReviewedBy ||
+    confirmedBy
+  ).trim();
+  const frameworkPreview = treatmentFrameworkPreview?.treatment_framework_preview || {};
+  const signedState = signedReviewStatePreview?.signed_review_state_preview || {};
+
+  if (!diagnosisLabel || !confirmedBy || !requestedBy) {
+    setSignedReviewStatePersistenceStatus("请先填写医生确认诊断、确认医生和申请医生；AI 不确认诊断。requires_clinician_confirmed_diagnosis=true");
+    return;
+  }
+
+  if (!treatmentFrameworkPreview || Object.keys(frameworkPreview).length === 0) {
+    setSignedReviewStatePersistenceStatus("请先生成治疗框架预览。persistence_dry_run_only=true");
+    return;
+  }
+
+  if (!signedReviewStatePreview || Object.keys(signedState).length === 0) {
+    setSignedReviewStatePersistenceStatus("请先生成 signed review state preview，再生成 persistence dry-run preview。signed_review_state_persistence_enabled=false");
+    return;
+  }
+
+  const payload = buildSignedReviewStatePersistencePayload({
+    data,
+    diagnosisLabel,
+    confirmedBy,
+    treatmentFrameworkPreview,
+    signedReviewStatePreview,
+    reviewedBy: signedReviewStateReviewedBy || confirmedBy,
+    reviewDecision: signedReviewStateReviewDecision,
+    signedBy: signedReviewStateSignedBy || requestedBy,
+    signoffDecision: signedReviewStateSignoffDecision,
+    requestedBy,
+    auditRequestId: signedReviewStateAuditRequestId,
+  });
+
+  try {
+    setSignedReviewStatePersistenceLoading(true);
+    setSignedReviewStatePersistenceStatus("正在生成 signed review state persistence dry-run 预览：writes_database=false · signed_review_state_persistence_enabled=false");
+
+    const res = await api.post(
+      "/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/persistence/prepare",
+      payload
+    );
+
+    const responsePayload = res.data || {};
+    setSignedReviewStatePersistencePreview(responsePayload);
+    setSignedReviewStatePersistenceStatus(
+      [
+        "已生成 signed review state persistence dry-run preview",
+        "persistence_dry_run_only=true",
+        "persistence_enabled=false",
+        "signed_review_state_persistence_enabled=false",
+        "review_state_persistence_enabled=false",
+        "writes_database=false",
+        "writes_case_treatment=false",
+        "creates_prescription=false",
+        "writes_prescription=false",
+        "returns_drug_dose=false",
+        "returns_drug_route=false",
+        "returns_drug_frequency=false",
+        "not_client_facing=true",
+        "requires_human_review=true",
+        "clinician_signoff_required=true",
+      ].join(" · ")
+    );
+  } catch (e) {
+    console.error("Treatment framework signed review state persistence preview failed:", e);
+    const detail = e?.response?.data?.detail;
+    const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
+    setSignedReviewStatePersistenceStatus(`签名复核状态持久化 dry-run 预览失败：${msg}`);
+    alert(`签名复核状态持久化 dry-run 预览失败：${msg}`);
+  } finally {
+    setSignedReviewStatePersistenceLoading(false);
+  }
+};
+// --- Case Detail Treatment Framework Signed Review State Persistence UI V1 actions: end ---
+
 
 
   // Preventive Care Reminder UI V1: in-app reminders only; sends_external_message=false.
@@ -802,6 +895,20 @@ export default function CaseDetail() {
         />
       </Section>
       {/* --- Case Detail Treatment Framework Signed Review State UI V1 section: end --- */}
+{/* --- Case Detail Treatment Framework Signed Review State Persistence UI V1 section: start --- */}
+<Section title="签名复核状态持久化预览 / Signed Review State Persistence Preview">
+  <TreatmentFrameworkSignedReviewStatePersistencePanel
+    signedReviewStatePreview={signedReviewStatePreview}
+    preview={signedReviewStatePersistencePreview}
+    loading={signedReviewStatePersistenceLoading}
+    status={signedReviewStatePersistenceStatus}
+    requestedBy={signedReviewStatePersistenceRequestedBy}
+    onRequestedByChange={setSignedReviewStatePersistenceRequestedBy}
+    onBuild={buildTreatmentFrameworkSignedReviewStatePersistencePreview}
+  />
+</Section>
+{/* --- Case Detail Treatment Framework Signed Review State Persistence UI V1 section: end --- */}
+
 
 
       <Section title="八、预防保健提醒 / Preventive Care">
@@ -1527,6 +1634,111 @@ function TreatmentFrameworkSignedReviewStateSafetyGrid({ qualityGate, safety }) 
   );
 }
 // --- Case Detail Treatment Framework Signed Review State UI V1 components: end ---
+// --- Case Detail Treatment Framework Signed Review State Persistence UI V1 components: start ---
+function TreatmentFrameworkSignedReviewStatePersistencePanel({
+  signedReviewStatePreview,
+  preview,
+  loading,
+  status,
+  requestedBy,
+  onRequestedByChange,
+  onBuild,
+}) {
+  const hasSignedStatePreview = Boolean(signedReviewStatePreview?.signed_review_state_preview);
+  const persistencePreview = preview?.persistence_dry_run_preview || {};
+  const qualityGate = preview?.quality_gate || {};
+  const safety = preview?.safety || {};
+  const hasPreview = Boolean(preview);
+
+  return (
+    <div className="signed-review-state-persistence-panel">
+      <div className="signed-review-state-persistence-form screen-only">
+        <label className="signed-review-state-persistence-label">
+          <span>持久化 dry-run 申请医生 / Requested by</span>
+          <input
+            value={requestedBy}
+            onChange={(event) => onRequestedByChange(event.target.value)}
+            className="signed-review-state-persistence-input"
+            placeholder="requesting clinician id / doctor name"
+          />
+        </label>
+        <button type="button" style={btnDoc} onClick={onBuild} disabled={loading || !hasSignedStatePreview}>
+          {loading ? "生成中…" : "生成持久化 dry-run 预览"}
+        </button>
+      </div>
+
+      <div className="signed-review-state-persistence-status">
+        {status || "医生端 persistence dry-run 预览；先生成 signed review state preview。不会写数据库、不会写病例治疗字段、不会生成处方。"}
+      </div>
+
+      <div className="signed-review-state-persistence-boundary">
+        endpoint=/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/persistence/prepare · persistence_dry_run_only=true · persistence_enabled=false · signed_review_state_persistence_enabled=false · review_state_persistence_enabled=false · writes_database=false · writes_case_treatment=false · creates_prescription=false · writes_prescription=false · returns_drug_dose=false · returns_drug_route=false · returns_drug_frequency=false · not_client_facing=true · requires_human_review=true · clinician_signoff_required=true
+      </div>
+
+      {!hasSignedStatePreview && (
+        <div className="signed-review-state-persistence-empty">
+          需要先生成 signed review state preview。本面板只调用 persistence dry-run endpoint，不保存任何状态。
+        </div>
+      )}
+
+      {!hasPreview ? (
+        <div className="signed-review-state-persistence-empty">
+          尚未生成 signed review state persistence dry-run preview。该结果只用于医生端上线前复核，不启用真实 persistence。
+        </div>
+      ) : (
+        <>
+          <div className="signed-review-state-persistence-grid">
+            <SignedReviewStateCard label="preview_id" value={persistencePreview.preview_id} />
+            <SignedReviewStateCard label="operation" value={persistencePreview.operation} />
+            <SignedReviewStateCard label="dry_run" value={persistencePreview.dry_run} />
+            <SignedReviewStateCard label="persisted" value={persistencePreview.persisted} />
+            <SignedReviewStateCard label="will_write_now" value={persistencePreview.will_write_now} />
+            <SignedReviewStateCard label="writes_database" value={persistencePreview.writes_database} />
+            <SignedReviewStateCard label="signed_review_state_persistence_enabled" value={persistencePreview.signed_review_state_persistence_enabled} />
+            <SignedReviewStateCard label="review_state_persistence_enabled" value={persistencePreview.review_state_persistence_enabled} />
+            <SignedReviewStateCard label="migration_readiness_required" value={persistencePreview.migration_readiness_required} />
+            <SignedReviewStateCard label="future_migration_required" value={persistencePreview.future_migration_required} />
+            <SignedReviewStateCard label="audit_log_reference_present" value={persistencePreview.audit_log_reference_present} />
+            <SignedReviewStateCard label="rollback_evidence_required" value={persistencePreview.rollback_evidence_required} />
+          </div>
+
+          <TreatmentFrameworkSignedReviewStatePersistenceSafetyGrid qualityGate={qualityGate} safety={safety} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function TreatmentFrameworkSignedReviewStatePersistenceSafetyGrid({ qualityGate, safety }) {
+  const rows = [
+    ["quality_gate.status", qualityGate?.status],
+    ["signed_review_state_persistence_preview_only", qualityGate?.signed_review_state_persistence_preview_only],
+    ["signed_review_state_persistence_enabled", qualityGate?.signed_review_state_persistence_enabled],
+    ["review_state_persistence_enabled", qualityGate?.review_state_persistence_enabled],
+    ["writes_database", safety?.writes_database],
+    ["writes_case_treatment", safety?.writes_case_treatment],
+    ["persists_treatment_framework", safety?.persists_treatment_framework],
+    ["creates_prescription", safety?.creates_prescription],
+    ["writes_prescription", safety?.writes_prescription],
+    ["returns_drug_dose", safety?.returns_drug_dose],
+    ["returns_drug_route", safety?.returns_drug_route],
+    ["returns_drug_frequency", safety?.returns_drug_frequency],
+    ["creates_signed_review_state", safety?.creates_signed_review_state],
+    ["persists_signed_review_state", safety?.persists_signed_review_state],
+    ["not_client_facing", safety?.not_client_facing],
+    ["requires_human_review", safety?.requires_human_review],
+    ["clinician_signoff_required", safety?.clinician_signoff_required],
+  ];
+  return (
+    <div className="signed-review-state-persistence-safety-grid">
+      {rows.map(([label, value]) => (
+        <SignedReviewStateCard key={label} label={label} value={value} />
+      ))}
+    </div>
+  );
+}
+// --- Case Detail Treatment Framework Signed Review State Persistence UI V1 components: end ---
+
 
 
 
@@ -1900,6 +2112,56 @@ function formatTreatmentFrameworkItem(item) {
   return String(item);
 }
 // --- Case Detail Treatment Framework Preview UI V1 helpers: end ---
+// --- Case Detail Treatment Framework Signed Review State Persistence UI V1 helpers: start ---
+function buildSignedReviewStatePersistencePayload({
+  data,
+  diagnosisLabel,
+  confirmedBy,
+  treatmentFrameworkPreview,
+  signedReviewStatePreview,
+  reviewedBy,
+  reviewDecision,
+  signedBy,
+  signoffDecision,
+  requestedBy,
+  auditRequestId,
+}) {
+  const auditReference = buildSignedReviewStateAuditReference(data?.id, auditRequestId);
+  return {
+    case_id: Number(data.id),
+    confirmed_diagnosis_label: diagnosisLabel,
+    confirmed_by: confirmedBy,
+    confirmation_source: "clinician",
+    ai_generated: false,
+    treatment_framework_preview: treatmentFrameworkPreview?.treatment_framework_preview || {},
+    signed_review_state_preview: signedReviewStatePreview?.signed_review_state_preview || {},
+    reviewed_by: reviewedBy,
+    review_decision: reviewDecision,
+    signed_by: signedBy,
+    signoff_decision: signoffDecision,
+    persistence_requested_by: requestedBy,
+    audit_request_id: auditReference.audit_request_id,
+    request_id: auditReference.audit_request_id,
+    audit_log_result: auditReference.audit_log_result,
+    audit_event: auditReference.audit_event,
+    persistence_dry_run_only: true,
+    persistence_enabled: false,
+    signed_review_state_persistence_enabled: false,
+    review_state_persistence_enabled: false,
+    writes_database: false,
+    writes_case_treatment: false,
+    creates_prescription: false,
+    writes_prescription: false,
+    returns_drug_dose: false,
+    returns_drug_route: false,
+    returns_drug_frequency: false,
+    not_client_facing: true,
+    requires_human_review: true,
+    clinician_signoff_required: true,
+  };
+}
+// --- Case Detail Treatment Framework Signed Review State Persistence UI V1 helpers: end ---
+
 
 // --- Case Detail Treatment Framework Signed Review State UI V1 helpers: start ---
 function buildSignedReviewStateAuditReference(caseId, auditRequestId) {
@@ -2509,6 +2771,69 @@ const css = `
     .signed-review-state-safety-grid { grid-template-columns: 1fr; }
   }
   /* --- Case Detail Treatment Framework Signed Review State UI V1 styles: end --- */
+/* --- Case Detail Treatment Framework Signed Review State Persistence UI V1 styles: start --- */
+.signed-review-state-persistence-panel {
+  display: grid;
+  gap: 12px;
+}
+.signed-review-state-persistence-form {
+  display: grid;
+  gap: 10px;
+}
+.signed-review-state-persistence-label {
+  display: grid;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.signed-review-state-persistence-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 9px 10px;
+  font: inherit;
+  background: #fff;
+  color: #0f172a;
+}
+.signed-review-state-persistence-status {
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.signed-review-state-persistence-boundary {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+  border-radius: 12px;
+  padding: 9px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.signed-review-state-persistence-empty {
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #64748b;
+  background: #fff;
+}
+.signed-review-state-persistence-grid,
+.signed-review-state-persistence-safety-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+@media (max-width: 900px) {
+  .signed-review-state-persistence-grid,
+  .signed-review-state-persistence-safety-grid { grid-template-columns: 1fr; }
+}
+/* --- Case Detail Treatment Framework Signed Review State Persistence UI V1 styles: end --- */
+
 
 
 

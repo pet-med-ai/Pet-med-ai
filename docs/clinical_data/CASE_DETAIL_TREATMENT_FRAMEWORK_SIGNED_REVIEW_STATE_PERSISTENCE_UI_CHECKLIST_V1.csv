@@ -1,0 +1,15 @@
+id,item,required,status
+1,case_detail_signed_review_state_persistence_ui_only,true,PASS
+2,uses_persistence_prepare_dry_run_endpoint_only,true,PASS
+3,persistence_enabled_false,true,PASS
+4,signed_review_state_persistence_enabled_false,true,PASS
+5,review_state_persistence_enabled_false,true,PASS
+6,writes_database_false,true,PASS
+7,no_case_treatment_write,true,PASS
+8,no_prescription_write,true,PASS
+9,no_dose_route_frequency,true,PASS
+10,not_client_facing,true,PASS
+11,requires_human_review,true,PASS
+12,clinician_signoff_required,true,PASS
+13,no_migration,true,PASS
+14,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1,true,PASS

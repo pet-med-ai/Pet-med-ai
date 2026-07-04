@@ -1,0 +1,16 @@
+gate,expected,actual,decision
+validator,PASS,PASS,GO
+ci_static_checks,PASS,PASS,GO
+online_smoke,ALL_PASS,PENDING,GO_AFTER_SMOKE
+signed_review_state_persistence_ui_static_smoke,PASS,PENDING,GO_AFTER_SMOKE
+persistence_prepare_endpoint_registered_and_protected,PASS,PENDING,GO_AFTER_SMOKE
+database_revision,0009_diag_data,PENDING,GO_AFTER_SMOKE
+alembic_head,0009_diag_data,PENDING,GO_AFTER_SMOKE
+schema_ok,true,PENDING,GO_AFTER_SMOKE
+writes_database,false,false,GO
+signed_review_state_persistence_enabled,false,false,GO
+case_treatment_persistence,NO_GO,NO_GO,GO
+prescription_write,NO_GO,NO_GO,GO
+dose_route_frequency,NO_GO,NO_GO,GO
+client_facing,NO_GO,NO_GO,GO
+next_decision,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1,GO
