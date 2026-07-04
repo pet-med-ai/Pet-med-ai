@@ -1,0 +1,21 @@
+item,required,actual,status,notes
+stage_marker,TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DESIGN_V1,TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DESIGN_V1,PASS,design stage marker present
+persistence_design_only,true,true,PASS,documentation and static gates only
+persistence_enabled_false,true,true,PASS,persistence_enabled=false
+signed_review_state_persistence_enabled_false,true,true,PASS,signed_review_state_persistence_enabled=false
+review_state_persistence_enabled_false,true,true,PASS,review_state_persistence_enabled=false
+signed_review_state_persistence_dry_run_required_first,true,true,PASS,dry-run required before any write
+migration_readiness_required,true,true,PASS,separate migration readiness review required
+no_business_logic_change,true,true,PASS,no backend business logic changed
+no_backend_endpoint_change,true,true,PASS,no endpoint changes
+no_frontend_ui_change,true,true,PASS,no UI changes
+no_migration,true,true,PASS,no migration added
+writes_database_false,true,true,PASS,writes_database=false
+no_case_treatment_write,true,true,PASS,Case.treatment write remains forbidden
+no_case_treatment_persistence,true,true,PASS,Case.treatment persistence remains forbidden
+no_prescription_write,true,true,PASS,prescription write remains forbidden
+no_dose_route_frequency,true,true,PASS,dose route frequency remain forbidden
+not_client_facing,true,true,PASS,doctor-facing only
+requires_human_review,true,true,PASS,human review required
+clinician_signoff_required,true,true,PASS,clinician signoff required
+next_decision,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DRY_RUN_V1,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DRY_RUN_V1,PASS,next stage only dry-run
