@@ -29,6 +29,13 @@ RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_re
 # case_detail_treatment_framework_signed_review_state_ui=PASS
 # treatment_framework_signed_review_state_dry_run_smoke=PASS
 # previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DESIGN_V1
+# TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1
+# validate_treatment_framework_persistence_risk_review.py
+# treatment_framework_persistence_risk_review=PASS
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1
+# validate_treatment_framework_signed_review_state_design.py
+# treatment_framework_signed_review_state_design=PASS
+# Current cumulative smoke still runs previous-stage static checks that grep current ci_static_checks.sh for these markers.
 # Earlier stage coverage remains in smoke; previous stage validators are stage-scoped.
 # --- Previous stage compatibility markers: end ---
 

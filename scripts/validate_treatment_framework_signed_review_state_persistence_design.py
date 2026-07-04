@@ -192,6 +192,10 @@ def main() -> int:
         "validate_treatment_framework_signed_review_state_persistence_design.py",
         "TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_RISK_REVIEW_V1",
         "validate_treatment_framework_signed_review_state_persistence_risk_review.py",
+        "TREATMENT_FRAMEWORK_PERSISTENCE_RISK_REVIEW_V1",
+        "treatment_framework_persistence_risk_review=PASS",
+        "TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_DESIGN_V1",
+        "treatment_framework_signed_review_state_design=PASS",
         "target-only tracked diff discipline",
         "sensitive staged path discipline",
         "signed review state persistence design markers",
@@ -207,7 +211,11 @@ def main() -> int:
         "validate_ci_smoke_cumulative_guard_restore.py",
     ]:
         require(stage_scoped not in optional, "stage-scoped validator must not be re-run in this design CI: {0}".format(stage_scoped))
-    require("git add ." not in ci, "ci contains legacy-forbidden exact git add marker")
+        require(
+        "validate_treatment_framework_persistence_risk_review.py" in ci and "validate_treatment_framework_signed_review_state_design.py" in ci,
+        "ci missing previous-stage static-smoke compatibility validator markers",
+    )
+require("git add ." not in ci, "ci contains legacy-forbidden exact git add marker")
     require('"${OPTIONAL_CORE_VALIDATORS[@]:-}"' in ci, "ci optional validator loop must remain Bash 3.2-safe")
 
     require_tokens("smoke", smoke, [
