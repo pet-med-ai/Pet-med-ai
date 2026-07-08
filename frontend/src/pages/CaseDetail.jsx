@@ -52,6 +52,13 @@ const [signedReviewStatePersistenceLoading, setSignedReviewStatePersistenceLoadi
 const [signedReviewStatePersistenceStatus, setSignedReviewStatePersistenceStatus] = useState("");
 const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceRequestedBy] = useState("");
 // --- Case Detail Treatment Framework Signed Review State Persistence UI V1 state: end ---
+  // --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 state: start ---
+  const [signedReviewStateMigrationPreview, setSignedReviewStateMigrationPreview] = useState(null);
+  const [signedReviewStateMigrationLoading, setSignedReviewStateMigrationLoading] = useState(false);
+  const [signedReviewStateMigrationStatus, setSignedReviewStateMigrationStatus] = useState("");
+  const [signedReviewStateMigrationRequestedBy, setSignedReviewStateMigrationRequestedBy] = useState("");
+  // --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 state: end ---
+
 
 
 
@@ -482,6 +489,97 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   }
 };
 // --- Case Detail Treatment Framework Signed Review State Persistence UI V1 actions: end ---
+  // --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 actions: start ---
+  const buildTreatmentFrameworkSignedReviewStateMigrationPreview = async () => {
+    if (!data?.id) return;
+
+    const diagnosisLabel = confirmedDiagnosisLabel.trim();
+    const confirmedBy = confirmedDiagnosisBy.trim();
+    const migrationRequestedBy = (
+      signedReviewStateMigrationRequestedBy ||
+      signedReviewStatePersistenceRequestedBy ||
+      signedReviewStateSignedBy ||
+      confirmedBy
+    ).trim();
+    const frameworkPreview = treatmentFrameworkPreview?.treatment_framework_preview || {};
+    const signedState = signedReviewStatePreview?.signed_review_state_preview || {};
+    const persistencePreview = signedReviewStatePersistencePreview?.persistence_dry_run_preview || {};
+
+    if (!diagnosisLabel || !confirmedBy || !migrationRequestedBy) {
+      setSignedReviewStateMigrationStatus("请先填写医生确认诊断、确认医生和 migration dry-run 申请医生；AI 不确认诊断。requires_clinician_confirmed_diagnosis=true");
+      return;
+    }
+
+    if (!treatmentFrameworkPreview || Object.keys(frameworkPreview).length === 0) {
+      setSignedReviewStateMigrationStatus("请先生成治疗框架预览。migration_dry_run_only=true");
+      return;
+    }
+
+    if (!signedReviewStatePreview || Object.keys(signedState).length === 0) {
+      setSignedReviewStateMigrationStatus("请先生成 signed review state preview。migration_enabled=false");
+      return;
+    }
+
+    if (!signedReviewStatePersistencePreview || Object.keys(persistencePreview).length === 0) {
+      setSignedReviewStateMigrationStatus("请先生成 signed review state persistence dry-run preview，再生成 migration dry-run preview。schema_change_enabled=false");
+      return;
+    }
+
+    const payload = buildSignedReviewStateMigrationPayload({
+      data,
+      diagnosisLabel,
+      confirmedBy,
+      treatmentFrameworkPreview,
+      signedReviewStatePreview,
+      signedReviewStatePersistencePreview,
+      migrationRequestedBy,
+    });
+
+    try {
+      setSignedReviewStateMigrationLoading(true);
+      setSignedReviewStateMigrationStatus("正在生成 signed review state migration dry-run 预览：migration_enabled=false · schema_change_enabled=false · writes_database=false");
+
+      const res = await api.post(
+        "/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/persistence/migration/dry-run",
+        payload
+      );
+
+      const responsePayload = res.data || {};
+      setSignedReviewStateMigrationPreview(responsePayload);
+      setSignedReviewStateMigrationStatus(
+        [
+          "已生成 signed review state persistence migration dry-run preview",
+          "migration_dry_run_only=true",
+          "migration_enabled=false",
+          "migration_file_created=false",
+          "schema_change_enabled=false",
+          "persistence_enabled=false",
+          "signed_review_state_persistence_enabled=false",
+          "review_state_persistence_enabled=false",
+          "writes_database=false",
+          "writes_case_treatment=false",
+          "creates_prescription=false",
+          "writes_prescription=false",
+          "returns_drug_dose=false",
+          "returns_drug_route=false",
+          "returns_drug_frequency=false",
+          "not_client_facing=true",
+          "requires_human_review=true",
+          "clinician_signoff_required=true",
+        ].join(" · ")
+      );
+    } catch (e) {
+      console.error("Treatment framework signed review state migration preview failed:", e);
+      const detail = e?.response?.data?.detail;
+      const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
+      setSignedReviewStateMigrationStatus(`签名复核状态 migration dry-run 预览失败：${msg}`);
+      alert(`签名复核状态 migration dry-run 预览失败：${msg}`);
+    } finally {
+      setSignedReviewStateMigrationLoading(false);
+    }
+  };
+  // --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 actions: end ---
+
 
 
 
@@ -908,6 +1006,20 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   />
 </Section>
 {/* --- Case Detail Treatment Framework Signed Review State Persistence UI V1 section: end --- */}
+      {/* --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 section: start --- */}
+      <Section title="签名复核状态迁移 dry-run 预览 / Signed Review State Migration Preview">
+        <TreatmentFrameworkSignedReviewStateMigrationPanel
+          signedReviewStatePersistencePreview={signedReviewStatePersistencePreview}
+          preview={signedReviewStateMigrationPreview}
+          loading={signedReviewStateMigrationLoading}
+          status={signedReviewStateMigrationStatus}
+          requestedBy={signedReviewStateMigrationRequestedBy}
+          onRequestedByChange={setSignedReviewStateMigrationRequestedBy}
+          onBuild={buildTreatmentFrameworkSignedReviewStateMigrationPreview}
+        />
+      </Section>
+      {/* --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 section: end --- */}
+
 
 
 
@@ -1738,6 +1850,139 @@ function TreatmentFrameworkSignedReviewStatePersistenceSafetyGrid({ qualityGate,
   );
 }
 // --- Case Detail Treatment Framework Signed Review State Persistence UI V1 components: end ---
+// --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 components: start ---
+function TreatmentFrameworkSignedReviewStateMigrationPanel({
+  signedReviewStatePersistencePreview,
+  preview,
+  loading,
+  status,
+  requestedBy,
+  onRequestedByChange,
+  onBuild,
+}) {
+  const hasPersistencePreview = Boolean(signedReviewStatePersistencePreview?.persistence_dry_run_preview);
+  const migrationPlan = preview?.migration_plan_preview || {};
+  const qualityGate = preview?.quality_gate || {};
+  const safety = preview?.safety || {};
+  const schemaPlan = migrationPlan.future_schema_plan || {};
+  const hasPreview = Boolean(preview);
+
+  return (
+    <div className="signed-review-state-migration-panel">
+      <div className="signed-review-state-migration-form screen-only">
+        <label className="signed-review-state-migration-label">
+          <span>Migration dry-run 申请医生 / Requested by</span>
+          <input
+            value={requestedBy}
+            onChange={(event) => onRequestedByChange(event.target.value)}
+            className="signed-review-state-migration-input"
+            placeholder="requesting clinician id / doctor name"
+          />
+        </label>
+        <button type="button" style={btnDoc} onClick={onBuild} disabled={loading || !hasPersistencePreview}>
+          {loading ? "生成中…" : "生成 migration dry-run 预览"}
+        </button>
+      </div>
+
+      <div className="signed-review-state-migration-status">
+        {status || "医生端 migration dry-run 预览；先生成 signed review state persistence dry-run preview。不会执行 migration、不会改 schema、不会写数据库。"}
+      </div>
+
+      <div className="signed-review-state-migration-boundary">
+        endpoint=/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/persistence/migration/dry-run · migration_dry_run_only=true · migration_enabled=false · migration_file_created=false · schema_change_enabled=false · persistence_enabled=false · signed_review_state_persistence_enabled=false · review_state_persistence_enabled=false · writes_database=false · writes_case_treatment=false · creates_prescription=false · writes_prescription=false · returns_drug_dose=false · returns_drug_route=false · returns_drug_frequency=false · not_client_facing=true · requires_human_review=true · clinician_signoff_required=true
+      </div>
+
+      {!hasPersistencePreview && (
+        <div className="signed-review-state-migration-empty">
+          需要先生成 signed review state persistence dry-run preview。本面板只调用 migration dry-run endpoint，不创建 migration 文件、不改 schema。
+        </div>
+      )}
+
+      {!hasPreview ? (
+        <div className="signed-review-state-migration-empty">
+          尚未生成 migration dry-run preview。该结果只用于医生端上线前复核，不执行 Alembic migration。
+        </div>
+      ) : (
+        <>
+          <div className="signed-review-state-migration-grid">
+            <SignedReviewStateCard label="preview_id" value={migrationPlan.preview_id} />
+            <SignedReviewStateCard label="target_table" value={migrationPlan.target_table} />
+            <SignedReviewStateCard label="operation" value={migrationPlan.operation} />
+            <SignedReviewStateCard label="dry_run" value={migrationPlan.dry_run} />
+            <SignedReviewStateCard label="migration_enabled" value={migrationPlan.migration_enabled} />
+            <SignedReviewStateCard label="migration_file_created" value={migrationPlan.migration_file_created} />
+            <SignedReviewStateCard label="schema_change_enabled" value={migrationPlan.schema_change_enabled} />
+            <SignedReviewStateCard label="will_apply_migration" value={migrationPlan.will_apply_migration} />
+            <SignedReviewStateCard label="writes_database" value={migrationPlan.writes_database} />
+            <SignedReviewStateCard label="rollback_plan_required" value={migrationPlan.rollback_plan_required} />
+            <SignedReviewStateCard label="backup_restore_evidence_required" value={migrationPlan.backup_restore_evidence_required} />
+            <SignedReviewStateCard label="authenticated_smoke_required_before_write" value={migrationPlan.authenticated_smoke_required_before_write} />
+          </div>
+
+          <div className="signed-review-state-migration-schema">
+            <div className="signed-review-state-migration-schema-title">Future schema plan preview</div>
+            <SignedReviewStateMigrationList title="Columns" items={schemaPlan.columns_preview} />
+            <SignedReviewStateMigrationList title="Indexes" items={schemaPlan.indexes_preview} />
+            <SignedReviewStateMigrationList title="Foreign keys" items={schemaPlan.foreign_keys_preview} />
+            <SignedReviewStateMigrationList title="Rollback plan" items={migrationPlan.rollback_plan_preview} />
+            <SignedReviewStateMigrationList title="Forbidden write targets" items={migrationPlan.forbidden_write_targets} />
+          </div>
+
+          <TreatmentFrameworkSignedReviewStateMigrationSafetyGrid qualityGate={qualityGate} safety={safety} />
+        </>
+      )}
+    </div>
+  );
+}
+
+function SignedReviewStateMigrationList({ title, items }) {
+  const normalized = normalizeTreatmentFrameworkItems(items);
+  return (
+    <div className="signed-review-state-migration-list-block">
+      <div className="signed-review-state-migration-list-title">{title}</div>
+      {normalized.length === 0 ? (
+        <div className="signed-review-state-migration-empty-small">暂无 dry-run 计划条目。</div>
+      ) : (
+        <ul className="signed-review-state-migration-list">
+          {normalized.map((item, index) => (
+            <li key={`${title}-${index}`}>{item}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function TreatmentFrameworkSignedReviewStateMigrationSafetyGrid({ qualityGate, safety }) {
+  const rows = [
+    ["quality_gate.status", qualityGate?.status],
+    ["migration_dry_run_only", qualityGate?.migration_dry_run_only],
+    ["migration_enabled", qualityGate?.migration_enabled],
+    ["migration_file_created", qualityGate?.migration_file_created],
+    ["schema_change_enabled", qualityGate?.schema_change_enabled],
+    ["writes_database", safety?.writes_database],
+    ["writes_case_treatment", safety?.writes_case_treatment],
+    ["persists_treatment_framework", safety?.persists_treatment_framework],
+    ["creates_prescription", safety?.creates_prescription],
+    ["writes_prescription", safety?.writes_prescription],
+    ["returns_drug_dose", safety?.returns_drug_dose],
+    ["returns_drug_route", safety?.returns_drug_route],
+    ["returns_drug_frequency", safety?.returns_drug_frequency],
+    ["persists_signed_review_state", safety?.persists_signed_review_state],
+    ["not_client_facing", safety?.not_client_facing],
+    ["requires_human_review", safety?.requires_human_review],
+    ["clinician_signoff_required", safety?.clinician_signoff_required],
+  ];
+  return (
+    <div className="signed-review-state-migration-safety-grid">
+      {rows.map(([label, value]) => (
+        <SignedReviewStateCard key={label} label={label} value={value} />
+      ))}
+    </div>
+  );
+}
+// --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 components: end ---
+
 
 
 
@@ -2161,6 +2406,50 @@ function buildSignedReviewStatePersistencePayload({
   };
 }
 // --- Case Detail Treatment Framework Signed Review State Persistence UI V1 helpers: end ---
+// --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 helpers: start ---
+function buildSignedReviewStateMigrationPayload({
+  data,
+  diagnosisLabel,
+  confirmedBy,
+  treatmentFrameworkPreview,
+  signedReviewStatePreview,
+  signedReviewStatePersistencePreview,
+  migrationRequestedBy,
+}) {
+  return {
+    case_id: Number(data.id),
+    confirmed_diagnosis_label: diagnosisLabel,
+    confirmed_by: confirmedBy,
+    confirmation_source: "clinician",
+    ai_generated: false,
+    treatment_framework_preview: treatmentFrameworkPreview?.treatment_framework_preview || {},
+    signed_review_state_preview: signedReviewStatePreview?.signed_review_state_preview || {},
+    persistence_dry_run_preview: signedReviewStatePersistencePreview?.persistence_dry_run_preview || {},
+    migration_dry_run_requested_by: migrationRequestedBy,
+    requested_by: migrationRequestedBy,
+    migration_design_acknowledged: true,
+    migration_readiness_review_completed: true,
+    migration_dry_run_only: true,
+    migration_enabled: false,
+    migration_file_created: false,
+    schema_change_enabled: false,
+    persistence_enabled: false,
+    signed_review_state_persistence_enabled: false,
+    review_state_persistence_enabled: false,
+    writes_database: false,
+    writes_case_treatment: false,
+    creates_prescription: false,
+    writes_prescription: false,
+    returns_drug_dose: false,
+    returns_drug_route: false,
+    returns_drug_frequency: false,
+    not_client_facing: true,
+    requires_human_review: true,
+    clinician_signoff_required: true,
+  };
+}
+// --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 helpers: end ---
+
 
 
 // --- Case Detail Treatment Framework Signed Review State UI V1 helpers: start ---
@@ -2833,6 +3122,103 @@ const css = `
   .signed-review-state-persistence-safety-grid { grid-template-columns: 1fr; }
 }
 /* --- Case Detail Treatment Framework Signed Review State Persistence UI V1 styles: end --- */
+
+/* --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 styles: start --- */
+.signed-review-state-migration-panel {
+  display: grid;
+  gap: 12px;
+}
+.signed-review-state-migration-form {
+  display: grid;
+  gap: 10px;
+}
+.signed-review-state-migration-label {
+  display: grid;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #0f172a;
+}
+.signed-review-state-migration-input {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 9px 10px;
+  font: inherit;
+  background: #fff;
+  color: #0f172a;
+}
+.signed-review-state-migration-status {
+  border: 1px solid #ddd6fe;
+  background: #f5f3ff;
+  color: #5b21b6;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 800;
+}
+.signed-review-state-migration-boundary {
+  border: 1px solid #bbf7d0;
+  background: #f0fdf4;
+  color: #166534;
+  border-radius: 12px;
+  padding: 9px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.signed-review-state-migration-empty,
+.signed-review-state-migration-empty-small {
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: #64748b;
+  background: #fff;
+}
+.signed-review-state-migration-empty-small {
+  font-size: 12px;
+}
+.signed-review-state-migration-grid,
+.signed-review-state-migration-safety-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.signed-review-state-migration-schema {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+  display: grid;
+  gap: 10px;
+}
+.signed-review-state-migration-schema-title {
+  font-weight: 900;
+  color: #0f172a;
+}
+.signed-review-state-migration-list-block {
+  display: grid;
+  gap: 6px;
+}
+.signed-review-state-migration-list-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: #334155;
+}
+.signed-review-state-migration-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: #475569;
+}
+@media (max-width: 900px) {
+  .signed-review-state-migration-grid,
+  .signed-review-state-migration-safety-grid { grid-template-columns: 1fr; }
+}
+/* --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 styles: end --- */
+
 
 
 

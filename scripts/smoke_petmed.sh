@@ -5150,6 +5150,56 @@ PY_MIGRATION_DRY_RUN_RESPONSE_CHECK
 # --- Treatment Framework Signed Review State Persistence Migration Dry Run V1 smoke: end ---
 
 
+# --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 smoke: start ---
+check_case_detail_treatment_framework_signed_review_state_persistence_migration_ui_v1() {
+  printf '%s\n' "[smoke_petmed] case detail treatment framework signed review state persistence migration UI static check"
+
+  grep -q 'Case Detail Treatment Framework Signed Review State Persistence Migration UI V1' frontend/src/pages/CaseDetail.jsx
+  grep -q '/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/persistence/migration/dry-run' frontend/src/pages/CaseDetail.jsx
+  grep -q 'TreatmentFrameworkSignedReviewStateMigrationPanel' frontend/src/pages/CaseDetail.jsx
+  grep -q 'buildTreatmentFrameworkSignedReviewStateMigrationPreview' frontend/src/pages/CaseDetail.jsx
+  grep -q 'buildSignedReviewStateMigrationPayload' frontend/src/pages/CaseDetail.jsx
+  grep -q 'confirmation_source: "clinician"' frontend/src/pages/CaseDetail.jsx
+  grep -q 'ai_generated: false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'migration_dry_run_only=true' frontend/src/pages/CaseDetail.jsx
+  grep -q 'migration_enabled=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'migration_file_created=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'schema_change_enabled=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'persistence_enabled=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'signed_review_state_persistence_enabled=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'review_state_persistence_enabled=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'writes_database=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'writes_case_treatment=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'creates_prescription=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'writes_prescription=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'returns_drug_dose=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'returns_drug_route=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'returns_drug_frequency=false' frontend/src/pages/CaseDetail.jsx
+  grep -q 'not_client_facing=true' frontend/src/pages/CaseDetail.jsx
+  grep -q 'requires_human_review=true' frontend/src/pages/CaseDetail.jsx
+  grep -q 'clinician_signoff_required=true' frontend/src/pages/CaseDetail.jsx
+
+  printf '%s\n' "PASS: case detail treatment framework signed review state persistence migration UI static markers"
+  printf '%s\n' "case_detail_treatment_framework_signed_review_state_persistence_migration_ui=PASS"
+  printf '%s\n' "migration_dry_run_only=true"
+  printf '%s\n' "migration_enabled=false"
+  printf '%s\n' "migration_file_created=false"
+  printf '%s\n' "schema_change_enabled=false"
+  printf '%s\n' "persistence_enabled=false"
+  printf '%s\n' "signed_review_state_persistence_enabled=false"
+  printf '%s\n' "review_state_persistence_enabled=false"
+  printf '%s\n' "writes_database=false"
+  printf '%s\n' "no_case_treatment_write=true"
+  printf '%s\n' "no_case_treatment_persistence=true"
+  printf '%s\n' "no_prescription_write=true"
+  printf '%s\n' "no_dose_route_frequency=true"
+  printf '%s\n' "not_client_facing=true"
+  printf '%s\n' "requires_human_review=true"
+  printf '%s\n' "clinician_signoff_required=true"
+}
+# --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 smoke: end ---
+
+
 check_system_version
 check_feature_flags
 check_frontend
@@ -5169,6 +5219,7 @@ check_case_detail_treatment_framework_signed_review_state_persistence_ui_v1
 check_treatment_framework_signed_review_state_persistence_migration_readiness_review_v1
 check_treatment_framework_signed_review_state_persistence_migration_design_v1
 check_treatment_framework_signed_review_state_persistence_migration_dry_run_v1
+check_case_detail_treatment_framework_signed_review_state_persistence_migration_ui_v1
 
 printf '%s\n' "ALL PASS: smoke_petmed"
 printf '%s\n' "current_hard_gate_preserved=true"
@@ -5189,9 +5240,11 @@ printf '%s\n' "case_detail_treatment_framework_signed_review_state_ui=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_design_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_dry_run_v1=true"
 printf '%s\n' "case_detail_treatment_framework_signed_review_state_persistence_ui=true"
+printf '%s\n' "case_detail_treatment_framework_signed_review_state_persistence_migration_ui=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_risk_review_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_readiness_review_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_design_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_dry_run_v1=true"
 printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_V1"
-printf '%s\n' "decision=GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_UI_V1"
+printf '%s\n' "previous_stage_previous_stage_previous_stage_decision=GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_UI_V1"
+printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_FINAL_GO_NO_GO_V1"

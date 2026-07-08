@@ -1,0 +1,13 @@
+gate,decision,reason
+validator,GO,validate_case_detail_treatment_framework_signed_review_state_persistence_migration_ui.py PASS
+ci_static_checks,GO,target-only discipline and static markers PASS
+online_smoke,GO,ALL PASS required
+migration_ui_static_smoke,GO,case_detail_treatment_framework_signed_review_state_persistence_migration_ui=PASS
+migration_write,NO_GO,migration_enabled=false
+migration_file,NO_GO,migration_file_created=false
+schema_change,NO_GO,schema_change_enabled=false
+case_treatment_persistence,NO_GO,no_case_treatment_write=true
+prescription_write,NO_GO,no_prescription_write=true
+dose_route_frequency,NO_GO,no_dose_route_frequency=true
+client_facing,NO_GO,not_client_facing=true
+next,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_FINAL_GO_NO_GO_V1,Proceed only after PASS
