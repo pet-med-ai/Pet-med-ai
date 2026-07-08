@@ -1,0 +1,55 @@
+# -*- coding: utf-8 -*-
+"""
+INACTIVE DRAFT ONLY.
+
+Treatment Framework Signed Review State Persistence Migration Implementation V1.
+
+This file is intentionally stored under docs/clinical_data as .py.txt so Alembic
+will not discover it as a live migration head. Do not copy it into
+backend/migrations/versions until a later migration apply readiness gate passes.
+"""
+from __future__ import annotations
+
+from alembic import op
+import sqlalchemy as sa
+
+
+revision = "0010_treatment_framework_signed_review_states"
+down_revision = "0009_diag_data"
+branch_labels = None
+depends_on = None
+
+
+def upgrade() -> None:
+    """Draft additive table creation only. Not active in this stage."""
+    op.create_table(
+        "treatment_framework_signed_review_states",
+        sa.Column("id", sa.Integer(), primary_key=True, nullable=False),
+        sa.Column("case_id", sa.Integer(), nullable=False),
+        sa.Column("confirmed_diagnosis_label", sa.String(length=255), nullable=False),
+        sa.Column("confirmed_by", sa.String(length=100), nullable=False),
+        sa.Column("confirmation_source", sa.String(length=50), nullable=False),
+        sa.Column("ai_generated", sa.Boolean(), nullable=False, server_default=sa.false()),
+        sa.Column("review_decision", sa.String(length=80), nullable=False),
+        sa.Column("signed_review_status", sa.String(length=80), nullable=False),
+        sa.Column("reviewed_by", sa.String(length=100), nullable=False),
+        sa.Column("signed_by", sa.String(length=100), nullable=False),
+        sa.Column("signoff_decision", sa.String(length=80), nullable=False),
+        sa.Column("audit_log_reference", sa.String(length=120), nullable=True),
+        sa.Column("source_preview_id", sa.String(length=120), nullable=True),
+        sa.Column("metadata_json", sa.JSON(), nullable=True),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        sa.Column("updated_at", sa.DateTime(timezone=True), nullable=False),
+        sa.ForeignKeyConstraint(["case_id"], ["cases.id"], name="fk_tfsrs_case_id_cases"),
+    )
+    op.create_index("ix_tfsrs_case_id", "treatment_framework_signed_review_states", ["case_id"])
+    op.create_index("ix_tfsrs_audit_log_reference", "treatment_framework_signed_review_states", ["audit_log_reference"])
+    op.create_index("ix_tfsrs_created_at", "treatment_framework_signed_review_states", ["created_at"])
+
+
+def downgrade() -> None:
+    """Draft rollback only. Not active in this stage."""
+    op.drop_index("ix_tfsrs_created_at", table_name="treatment_framework_signed_review_states")
+    op.drop_index("ix_tfsrs_audit_log_reference", table_name="treatment_framework_signed_review_states")
+    op.drop_index("ix_tfsrs_case_id", table_name="treatment_framework_signed_review_states")
+    op.drop_table("treatment_framework_signed_review_states")

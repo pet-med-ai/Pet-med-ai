@@ -1,0 +1,14 @@
+check_id,item,required,status
+IMPL-001,migration_implementation_draft_only,true,PASS
+IMPL-002,inactive_migration_draft_created,true,PASS
+IMPL-003,active_migration_file_created_false,true,PASS
+IMPL-004,migration_apply_allowed_false,true,PASS
+IMPL-005,schema_change_enabled_false,true,PASS
+IMPL-006,database_revision_remains_0009_diag_data,true,PASS
+IMPL-007,no_case_treatment_write,true,PASS
+IMPL-008,no_prescription_write,true,PASS
+IMPL-009,no_dose_route_frequency,true,PASS
+IMPL-010,rollback_plan_required,true,PASS
+IMPL-011,backup_restore_evidence_required,true,PASS
+IMPL-012,authenticated_smoke_required_before_write,true,PASS
+IMPL-013,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1,true,PASS

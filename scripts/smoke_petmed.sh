@@ -5249,6 +5249,52 @@ check_treatment_framework_signed_review_state_persistence_migration_final_go_no_
 }
 # --- Treatment Framework Signed Review State Persistence Migration Final Go/No-Go V1 smoke: end ---
 
+# --- Treatment Framework Signed Review State Persistence Migration Implementation V1 smoke: start ---
+check_treatment_framework_signed_review_state_persistence_migration_implementation_v1() {
+  printf '%s\n' "[smoke_petmed] treatment framework signed review state persistence migration implementation static check"
+
+  grep -q 'TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'migration_implementation_draft_only=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'active_migration_file_created=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'inactive_migration_draft_created=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'migration_apply_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'migration_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'schema_change_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'writes_database=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'no_case_treatment_write=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'no_prescription_write=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'no_dose_route_frequency=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'revision = "0010_treatment_framework_signed_review_states"' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt
+  grep -q 'down_revision = "0009_diag_data"' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt
+  grep -q '"treatment_framework_signed_review_states"' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt
+  grep -q 'NO_GO_TO_ACTIVE_ALEMBIC_REVISION' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_GO_NO_GO_V1.csv
+  grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
+  grep -q 'validate_treatment_framework_signed_review_state_persistence_migration_implementation.py' scripts/ci_static_checks.sh
+
+  if [ -f backend/migrations/versions/0010_treatment_framework_signed_review_states.py ]; then
+    echo "NO-GO: active Alembic revision was created before apply readiness review" >&2
+    exit 1
+  fi
+
+  printf '%s\n' "PASS: treatment framework signed review state persistence migration implementation static markers"
+  printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_implementation=PASS"
+  printf '%s\n' "migration_implementation_draft_only=true"
+  printf '%s\n' "migration_apply_allowed=false"
+  printf '%s\n' "migration_enabled=false"
+  printf '%s\n' "active_migration_file_created=false"
+  printf '%s\n' "inactive_migration_draft_created=true"
+  printf '%s\n' "schema_change_enabled=false"
+  printf '%s\n' "writes_database=false"
+  printf '%s\n' "no_case_treatment_write=true"
+  printf '%s\n' "no_case_treatment_persistence=true"
+  printf '%s\n' "no_prescription_write=true"
+  printf '%s\n' "no_dose_route_frequency=true"
+  printf '%s\n' "not_client_facing=true"
+  printf '%s\n' "requires_human_review=true"
+  printf '%s\n' "clinician_signoff_required=true"
+}
+# --- Treatment Framework Signed Review State Persistence Migration Implementation V1 smoke: end ---
+
 check_system_version
 check_feature_flags
 check_frontend
@@ -5270,6 +5316,7 @@ check_treatment_framework_signed_review_state_persistence_migration_design_v1
 check_treatment_framework_signed_review_state_persistence_migration_dry_run_v1
 check_case_detail_treatment_framework_signed_review_state_persistence_migration_ui_v1
 check_treatment_framework_signed_review_state_persistence_migration_final_go_no_go_v1
+check_treatment_framework_signed_review_state_persistence_migration_implementation_v1
 
 printf '%s\n' "ALL PASS: smoke_petmed"
 printf '%s\n' "current_hard_gate_preserved=true"
@@ -5292,6 +5339,7 @@ printf '%s\n' "treatment_framework_signed_review_state_persistence_dry_run_v1=tr
 printf '%s\n' "case_detail_treatment_framework_signed_review_state_persistence_ui=true"
 printf '%s\n' "case_detail_treatment_framework_signed_review_state_persistence_migration_ui=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_final_go_no_go_v1=true"
+printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_implementation_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_risk_review_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_readiness_review_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_design_v1=true"
@@ -5299,4 +5347,5 @@ printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_dry
 printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_V1"
 printf '%s\n' "previous_stage_previous_stage_previous_stage_decision=GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_UI_V1"
 printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_FINAL_GO_NO_GO_V1"
-printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1"
+printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1"
+printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1"
