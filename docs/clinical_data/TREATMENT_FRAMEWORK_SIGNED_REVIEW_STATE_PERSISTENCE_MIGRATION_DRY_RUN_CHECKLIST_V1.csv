@@ -1,0 +1,17 @@
+item,required,status
+migration_dry_run_only,true,PASS
+migration_enabled_false,true,PASS
+migration_file_created_false,true,PASS
+schema_change_enabled_false,true,PASS
+signed_review_state_persistence_enabled_false,true,PASS
+review_state_persistence_enabled_false,true,PASS
+migration_design_acknowledged_required,true,PASS
+migration_readiness_review_completed_required,true,PASS
+no_case_treatment_write,true,PASS
+no_case_treatment_persistence,true,PASS
+no_prescription_write,true,PASS
+no_dose_route_frequency,true,PASS
+not_client_facing,true,PASS
+requires_human_review,true,PASS
+clinician_signoff_required,true,PASS
+GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_UI_V1,true,PASS

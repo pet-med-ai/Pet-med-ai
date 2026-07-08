@@ -1984,3 +1984,60 @@ def build_treatment_framework_signed_review_state_persistence_dry_run(
     }
 # --- Treatment Framework Signed Review State Persistence Dry Run V1 endpoint: end ---
 
+# --- Treatment Framework Signed Review State Persistence Migration Dry Run V1 endpoint: start ---
+@router.post("/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/persistence/migration/dry-run", response_model=dict)
+def build_treatment_framework_signed_review_state_persistence_migration_dry_run_endpoint(
+    data: Dict[str, Any],
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user),
+):
+    try:
+        from backend.treatment_framework_signed_review_state_persistence_migration_dry_run import (
+            TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_MODE,
+            build_treatment_framework_signed_review_state_persistence_migration_dry_run,
+            treatment_framework_signed_review_state_persistence_migration_dry_run_safety_flags,
+        )
+    except ModuleNotFoundError:
+        from treatment_framework_signed_review_state_persistence_migration_dry_run import (
+            TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_MODE,
+            build_treatment_framework_signed_review_state_persistence_migration_dry_run,
+            treatment_framework_signed_review_state_persistence_migration_dry_run_safety_flags,
+        )
+
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=422, detail="request body must be an object")
+
+    raw_case_id = data.get("case_id")
+    if raw_case_id in (None, ""):
+        raise HTTPException(status_code=422, detail="case_id is required")
+    try:
+        case = _owned_case_or_404(db, int(raw_case_id), user)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail="case_id must be an integer") from exc
+
+    case_payload = _case_payload(case)
+    payload = dict(data)
+    payload["case_id"] = int(case.id)
+
+    try:
+        migration_dry_run = build_treatment_framework_signed_review_state_persistence_migration_dry_run(
+            payload,
+            case_context=case_payload,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    api_safety = _safety_flags(dry_run=True)
+    migration_safety = treatment_framework_signed_review_state_persistence_migration_dry_run_safety_flags()
+    combined_safety = {**api_safety, **migration_safety}
+    return {
+        "message": "treatment_framework_signed_review_state_persistence_migration_dry_run_built",
+        "mode": TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_MODE,
+        "case": case_payload,
+        **migration_dry_run,
+        "safety": combined_safety,
+        **combined_safety,
+    }
+# --- Treatment Framework Signed Review State Persistence Migration Dry Run V1 endpoint: end ---
+
+
