@@ -1,0 +1,17 @@
+id,item,required,status,evidence
+1,migration_readiness_review_only,true,PASS,migration_readiness_review_only=true
+2,migration_enabled_false,true,PASS,migration_enabled=false
+3,migration_file_created_false,true,PASS,migration_file_created=false
+4,schema_change_enabled_false,true,PASS,schema_change_enabled=false
+5,persistence_enabled_false,true,PASS,persistence_enabled=false
+6,signed_review_state_persistence_enabled_false,true,PASS,signed_review_state_persistence_enabled=false
+7,review_state_persistence_enabled_false,true,PASS,review_state_persistence_enabled=false
+8,writes_database_false,true,PASS,writes_database=false
+9,no_case_treatment_write,true,PASS,no_case_treatment_write=true
+10,no_prescription_write,true,PASS,no_prescription_write=true
+11,no_dose_route_frequency,true,PASS,no_dose_route_frequency=true
+12,not_client_facing,true,PASS,not_client_facing=true
+13,rollback_plan_required,true,PASS,rollback_plan_required=true
+14,backup_restore_evidence_required,true,PASS,backup_restore_evidence_required=true
+15,authenticated_smoke_required_before_write,true,PASS,authenticated_smoke_required_before_write=true
+16,next_stage_design_only,true,PASS,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1
