@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1
 # Cumulative guard remains active: CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,10 +10,10 @@ cd "$ROOT"
 MIN_SMOKE_LINES=1000
 
 TARGETS=(
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_CHECKLIST_V1.csv"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_GO_NO_GO_V1.csv"
-  "scripts/validate_treatment_framework_signed_review_state_persistence_migration_readiness_review.py"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1.md"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_CHECKLIST_V1.csv"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_GO_NO_GO_V1.csv"
+  "scripts/validate_treatment_framework_signed_review_state_persistence_migration_design.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
 )
@@ -24,10 +24,13 @@ OPTIONAL_CORE_VALIDATORS=(
 RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_restore.py"
 
 # --- Previous stage compatibility markers: start ---
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1
+# validate_treatment_framework_signed_review_state_persistence_migration_readiness_review.py
+# treatment_framework_signed_review_state_persistence_migration_readiness_review=PASS
+# previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1
 # CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_UI_V1
 # validate_case_detail_treatment_framework_signed_review_state_persistence_ui.py
 # case_detail_treatment_framework_signed_review_state_persistence_ui=PASS
-# previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1
 # TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_DRY_RUN_V1
 # validate_treatment_framework_signed_review_state_persistence_dry_run.py
 # treatment_framework_signed_review_state_persistence_dry_run_smoke=PASS
@@ -90,7 +93,7 @@ for target in "${TARGETS[@]}"; do
 done
 
 printf '%s\n' "[ci_static_checks] python syntax"
-python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_persistence_migration_readiness_review.py
+python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_persistence_migration_design.py
 for validator in scripts/validate_*.py; do
   [ -f "$validator" ] || continue
   python3 -m py_compile "$validator"
@@ -100,8 +103,8 @@ printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
 
-printf '%s\n' "[ci_static_checks] signed review state persistence migration readiness review validator"
-python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_readiness_review.py
+printf '%s\n' "[ci_static_checks] signed review state persistence migration design validator"
+python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_design.py
 
 printf '%s\n' "[ci_static_checks] optional core validators intentionally skipped"
 for validator in "${OPTIONAL_CORE_VALIDATORS[@]:-}"; do
@@ -132,7 +135,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             ;;
           *)
             echo "non-target tracked diff for this stage: $path" >&2
-            echo "Commit this migration readiness review stage with explicit target files only; do not stage the whole working tree" >&2
+            echo "Commit this migration design stage with explicit target files only; do not stage the whole working tree" >&2
             exit 1
             ;;
         esac
@@ -177,26 +180,25 @@ for flag in "${DANGEROUS_FLAGS[@]}"; do
   fi
 done
 
-printf '%s\n' "[ci_static_checks] signed review state persistence migration readiness review markers"
-grep -q 'TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md
-grep -q 'migration_readiness_review_only=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md
-grep -q 'migration_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md
-grep -q 'migration_file_created=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md
-grep -q 'schema_change_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md
-grep -q 'signed_review_state_persistence_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md
-grep -q 'rollback_plan_required=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md
-grep -q 'backup_restore_evidence_required=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md
-grep -q 'NO_GO_TO_SIGNED_REVIEW_STATE_DATABASE_WRITE' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_GO_NO_GO_V1.csv
-grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_READINESS_REVIEW_V1.md
+printf '%s\n' "[ci_static_checks] signed review state persistence migration design markers"
+grep -q 'TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1.md
+grep -q 'migration_design_only=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1.md
+grep -q 'migration_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1.md
+grep -q 'migration_file_created=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1.md
+grep -q 'schema_change_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1.md
+grep -q 'signed_review_state_persistence_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1.md
+grep -q 'migration_dry_run_required_first=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1.md
+grep -q 'NO_GO_TO_SIGNED_REVIEW_STATE_DATABASE_WRITE' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_GO_NO_GO_V1.csv
+grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1.md
 
 printf '%s\n' "[ci_static_checks] cumulative smoke markers"
 grep -q 'CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_BASELINE="0c8fd5d:scripts/smoke_petmed.sh"' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_COMPAT_RABBIT_GI_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_COMPAT_LIZARD_UVB_TREE_PATH_V1' scripts/smoke_petmed.sh
-grep -q 'check_case_detail_treatment_framework_signed_review_state_persistence_ui_v1' scripts/smoke_petmed.sh
 grep -q 'check_treatment_framework_signed_review_state_persistence_migration_readiness_review_v1' scripts/smoke_petmed.sh
-grep -q 'treatment_framework_signed_review_state_persistence_migration_readiness_review=PASS' scripts/smoke_petmed.sh
+grep -q 'check_treatment_framework_signed_review_state_persistence_migration_design_v1' scripts/smoke_petmed.sh
+grep -q 'treatment_framework_signed_review_state_persistence_migration_design=PASS' scripts/smoke_petmed.sh
 smoke_lines="$(wc -l < scripts/smoke_petmed.sh | tr -d ' ')"
 if [ "$smoke_lines" -lt "$MIN_SMOKE_LINES" ]; then
   echo "smoke_petmed.sh line count too small for cumulative restore: ${smoke_lines} < ${MIN_SMOKE_LINES}" >&2

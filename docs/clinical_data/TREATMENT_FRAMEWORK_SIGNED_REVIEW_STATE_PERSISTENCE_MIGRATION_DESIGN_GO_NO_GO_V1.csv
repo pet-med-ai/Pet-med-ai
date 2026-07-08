@@ -1,0 +1,17 @@
+gate,required,actual,decision
+online_smoke,ALL_PASS,PENDING,GO_AFTER_DEPLOY
+migration_design_only,true,true,GO
+migration_enabled,false,false,GO
+migration_file_created,false,false,GO
+schema_change_enabled,false,false,GO
+database_write,false,false,GO
+case_treatment_persistence,NO_GO,NO_GO_TO_CASE_TREATMENT_PERSISTENCE,NO_GO
+signed_review_state_database_write,NO_GO,NO_GO_TO_SIGNED_REVIEW_STATE_DATABASE_WRITE,NO_GO
+prescription_write,NO_GO,NO_GO_TO_PRESCRIPTION_WRITE,NO_GO
+dose_route_frequency,NO_GO,NO_GO_TO_DOSE_ROUTE_FREQUENCY_OUTPUT,NO_GO
+client_facing,false,false,GO
+rollback_plan_required,true,true,GO
+backup_restore_evidence_required,true,true,GO
+authenticated_smoke_required_before_write,true,true,GO
+dangerous_feature_flags_disabled,true,true,GO
+next_stage,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_V1,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_V1,GO

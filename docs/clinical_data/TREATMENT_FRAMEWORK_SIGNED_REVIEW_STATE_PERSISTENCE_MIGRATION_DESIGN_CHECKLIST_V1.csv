@@ -1,0 +1,22 @@
+item,required,actual,decision,notes
+migration_design_only,true,true,GO,Design-only stage
+migration_enabled_false,true,true,GO,migration_enabled=false
+migration_file_created_false,true,true,GO,migration_file_created=false
+schema_change_enabled_false,true,true,GO,schema_change_enabled=false
+persistence_enabled_false,true,true,GO,persistence_enabled=false
+signed_review_state_persistence_enabled_false,true,true,GO,signed_review_state_persistence_enabled=false
+review_state_persistence_enabled_false,true,true,GO,review_state_persistence_enabled=false
+migration_dry_run_required_first,true,true,GO,migration dry-run required before any future write
+migration_model_design_only,true,true,GO,candidate entity contract only
+no_backend_endpoint_change,true,true,GO,no endpoint change in this stage
+no_frontend_ui_change,true,true,GO,no UI change in this stage
+no_migration,true,true,GO,no migration file
+no_case_treatment_write,true,true,GO,no case treatment field write
+no_prescription_write,true,true,GO,no prescription write
+no_dose_route_frequency,true,true,GO,no dose route frequency output
+rollback_plan_required,true,true,GO,rollback plan required before future migration
+backup_restore_evidence_required,true,true,GO,backup restore evidence required
+authenticated_smoke_required_before_write,true,true,GO,authenticated 200 smoke required before future write
+append_only_audit_linkage_required,true,true,GO,audit evidence required
+dangerous_feature_flags_disabled,true,true,GO,real write flags remain disabled
+next_stage,true,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_V1,GO,Proceed to migration dry-run only
