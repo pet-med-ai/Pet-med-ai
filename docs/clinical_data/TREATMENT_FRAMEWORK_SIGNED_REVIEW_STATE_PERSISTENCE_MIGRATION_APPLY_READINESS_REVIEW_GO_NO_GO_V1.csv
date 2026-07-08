@@ -1,0 +1,6 @@
+gate,decision,reason,required_next_step
+production_migration_apply,NO_GO_TO_PRODUCTION_MIGRATION_APPLY,no production apply before staging rehearsal and rollback evidence,staging rehearsal plan
+active_migration_file,NO_GO_TO_ACTIVE_MIGRATION_FILE_ON_MAIN,active Alembic head would break 0009 production hard gate,separate future go/no-go
+database_write,NO_GO_TO_DATABASE_WRITE,apply readiness review is read-only,none
+case_treatment_persistence,NO_GO_TO_CASE_TREATMENT_PERSISTENCE,case treatment write remains forbidden,none
+next_stage,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1,readiness review completed without enabling migration,staging rehearsal plan

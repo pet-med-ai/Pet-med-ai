@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1
 # Cumulative guard remains active: CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,11 +10,10 @@ cd "$ROOT"
 MIN_SMOKE_LINES=1000
 
 TARGETS=(
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_CHECKLIST_V1.csv"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_GO_NO_GO_V1.csv"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt"
-  "scripts/validate_treatment_framework_signed_review_state_persistence_migration_implementation.py"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_CHECKLIST_V1.csv"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_GO_NO_GO_V1.csv"
+  "scripts/validate_treatment_framework_signed_review_state_persistence_migration_apply_readiness_review.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
 )
@@ -29,12 +28,15 @@ RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_re
 # validate_treatment_framework_signed_review_state_persistence_migration_final_go_no_go.py
 # treatment_framework_signed_review_state_persistence_migration_final_go_no_go=PASS
 # previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1
-# CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_UI_V1
-# validate_case_detail_treatment_framework_signed_review_state_persistence_migration_ui.py
-# case_detail_treatment_framework_signed_review_state_persistence_migration_ui=PASS
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1
+# validate_treatment_framework_signed_review_state_persistence_migration_implementation.py
+# treatment_framework_signed_review_state_persistence_migration_implementation=PASS
 # TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_V1
 # validate_treatment_framework_signed_review_state_persistence_migration_dry_run.py
 # treatment_framework_signed_review_state_persistence_migration_dry_run_smoke=PASS
+# CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_UI_V1
+# validate_case_detail_treatment_framework_signed_review_state_persistence_migration_ui.py
+# case_detail_treatment_framework_signed_review_state_persistence_migration_ui=PASS
 # TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DESIGN_V1
 # validate_treatment_framework_signed_review_state_persistence_migration_design.py
 # treatment_framework_signed_review_state_persistence_migration_design=PASS
@@ -57,7 +59,6 @@ RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_re
 # --- Previous stage compatibility markers: end ---
 
 # --- Legacy CI Gate compatibility markers: start ---
-# These markers remain so old validation docs can find historical CI expectations.
 # validate_release_readiness.py
 # validate_release_changelog.py
 # validate_system_version_info.py
@@ -92,7 +93,7 @@ done
 printf '%s\n' "[ci_static_checks] no forbidden target paths"
 for target in "${TARGETS[@]}"; do
   case "$target" in
-    backend/app/*|backend/ai_engine/*|frontend/src/components/*|frontend/package-lock.json|backend/migrations/versions/*|app.db|*.db|.env|frontend/.env.development)
+    backend/migrations/versions/*|backend/app/*|backend/ai_engine/*|frontend/src/components/*|frontend/package-lock.json|app.db|*.db|.env|frontend/.env.development)
       echo "forbidden target path for this stage: $target" >&2
       exit 1
       ;;
@@ -100,7 +101,7 @@ for target in "${TARGETS[@]}"; do
 done
 
 printf '%s\n' "[ci_static_checks] python syntax"
-python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_persistence_migration_implementation.py
+python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_persistence_migration_apply_readiness_review.py
 for validator in scripts/validate_*.py; do
   [ -f "$validator" ] || continue
   python3 -m py_compile "$validator"
@@ -110,8 +111,8 @@ printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
 
-printf '%s\n' "[ci_static_checks] signed review state persistence migration implementation validator"
-python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_implementation.py
+printf '%s\n' "[ci_static_checks] signed review state persistence migration apply readiness review validator"
+python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_apply_readiness_review.py
 
 printf '%s\n' "[ci_static_checks] optional core validators intentionally skipped"
 for validator in "${OPTIONAL_CORE_VALIDATORS[@]:-}"; do
@@ -136,13 +137,13 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
       done
       if [ "$allowed" -ne 1 ]; then
         case "$path" in
-          app.db|*.db|.env|frontend/.env.development|frontend/package-lock.json|backend/app/*|backend/ai_engine/*|frontend/src/components/*|backend/migrations/versions/*|*.bak|*.save)
+          app.db|*.db|.env|frontend/.env.development|frontend/package-lock.json|backend/migrations/versions/*|backend/app/*|backend/ai_engine/*|frontend/src/components/*|*.bak|*.save)
             echo "forbidden tracked diff for this stage: $path" >&2
             exit 1
             ;;
           *)
             echo "non-target tracked diff for this stage: $path" >&2
-            echo "Commit this migration implementation stage with explicit target files only; do not stage the whole working tree" >&2
+            echo "Commit this apply readiness review stage with explicit target files only; do not stage the whole working tree" >&2
             exit 1
             ;;
         esac
@@ -160,7 +161,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
     while IFS= read -r path; do
       [ -z "$path" ] && continue
       case "$path" in
-        app.db|*.db|.env|frontend/.env.development|frontend/package-lock.json|backend/app/*|backend/ai_engine/*|frontend/src/components/*|backend/migrations/versions/*|*.bak|*.save)
+        app.db|*.db|.env|frontend/.env.development|frontend/package-lock.json|backend/migrations/versions/*|backend/app/*|backend/ai_engine/*|frontend/src/components/*|*.bak|*.save)
           echo "forbidden staged path: $path" >&2
           exit 1
           ;;
@@ -187,17 +188,17 @@ for flag in "${DANGEROUS_FLAGS[@]}"; do
   fi
 done
 
-printf '%s\n' "[ci_static_checks] signed review state persistence migration implementation markers"
-grep -q 'TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
-grep -q 'migration_implementation_draft_only=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
-grep -q 'active_migration_file_created=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
-grep -q 'inactive_migration_draft_created=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
-grep -q 'migration_apply_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
-grep -q 'schema_change_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
-grep -q 'NO_GO_TO_ACTIVE_ALEMBIC_REVISION' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_GO_NO_GO_V1.csv
-grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1.md
-grep -q 'revision = "0010_treatment_framework_signed_review_states"' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt
-test ! -f backend/migrations/versions/0010_treatment_framework_signed_review_states.py
+printf '%s\n' "[ci_static_checks] signed review state persistence migration apply readiness review markers"
+grep -q 'TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md
+grep -q 'apply_readiness_review_only=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md
+grep -q 'active_migration_file_created=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md
+grep -q 'production_migration_apply_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md
+grep -q 'migration_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md
+grep -q 'schema_change_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md
+grep -q 'writes_database=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md
+grep -q 'staging_rehearsal_required=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md
+grep -q 'NO_GO_TO_PRODUCTION_MIGRATION_APPLY' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_GO_NO_GO_V1.csv
+grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1.md
 
 printf '%s\n' "[ci_static_checks] cumulative smoke markers"
 grep -q 'CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1' scripts/smoke_petmed.sh
@@ -205,8 +206,8 @@ grep -q 'LEGACY_SMOKE_BASELINE="0c8fd5d:scripts/smoke_petmed.sh"' scripts/smoke_
 grep -q 'LEGACY_SMOKE_COMPAT_RABBIT_GI_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_COMPAT_LIZARD_UVB_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'check_treatment_framework_signed_review_state_persistence_migration_final_go_no_go_v1' scripts/smoke_petmed.sh
-grep -q 'check_treatment_framework_signed_review_state_persistence_migration_implementation_v1' scripts/smoke_petmed.sh
-grep -q 'treatment_framework_signed_review_state_persistence_migration_implementation=PASS' scripts/smoke_petmed.sh
+grep -q 'check_treatment_framework_signed_review_state_persistence_migration_apply_readiness_review_v1' scripts/smoke_petmed.sh
+grep -q 'treatment_framework_signed_review_state_persistence_migration_apply_readiness_review=PASS' scripts/smoke_petmed.sh
 smoke_lines="$(wc -l < scripts/smoke_petmed.sh | tr -d ' ')"
 if [ "$smoke_lines" -lt "$MIN_SMOKE_LINES" ]; then
   echo "smoke_petmed.sh line count too small for cumulative restore: ${smoke_lines} < ${MIN_SMOKE_LINES}" >&2

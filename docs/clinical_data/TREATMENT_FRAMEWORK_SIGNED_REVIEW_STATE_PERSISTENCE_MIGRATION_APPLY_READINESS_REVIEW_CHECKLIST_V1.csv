@@ -1,0 +1,9 @@
+check_id,item,required,status,evidence
+AR-001,apply_readiness_review_only,true,PASS,review stage only
+AR-002,active_migration_file_created_false,true,PASS,no backend/migrations/versions target
+AR-003,production_migration_apply_allowed_false,true,PASS,NO_GO_TO_PRODUCTION_MIGRATION_APPLY
+AR-004,staging_rehearsal_required,true,PASS,next stage is rehearsal plan
+AR-005,rollback_dry_run_required,true,PASS,rollback gate retained
+AR-006,backup_restore_evidence_required,true,PASS,backup/restore evidence required before write
+AR-007,authenticated_smoke_required_before_write,true,PASS,authenticated 200 smoke required before any persistence
+AR-008,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1,true,PASS,decision set
