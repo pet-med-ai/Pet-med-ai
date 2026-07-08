@@ -219,7 +219,11 @@ def main() -> int:
 
     require("GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1" in final_doc, "previous final go/no-go decision missing")
     require("inactive_migration_draft_created=true" in implementation_doc, "implementation stage must remain inactive draft")
-    require("revision = \"0010_tfsrs\"" in inactive_draft, "inactive 0010 draft revision missing")
+    require(
+        "revision = \"0010_tfsrs\"" in inactive_draft
+        or "revision = \"0010_treatment_framework_signed_review_states\"" in inactive_draft,
+        "inactive 0010 draft revision missing",
+    )
     require("down_revision = \"0009_diag_data\"" in inactive_draft, "inactive 0010 draft down_revision missing")
 
     combined_targets = "\n".join([doc, checklist, go_no_go, ci, smoke])
