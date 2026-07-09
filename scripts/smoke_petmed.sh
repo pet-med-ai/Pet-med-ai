@@ -5331,6 +5331,63 @@ check_treatment_framework_signed_review_state_persistence_migration_apply_readin
 }
 # --- Treatment Framework Signed Review State Persistence Migration Apply Readiness Review V1 smoke: end ---
 
+
+# --- Treatment Framework Signed Review State Persistence Migration Staging Rehearsal Plan V1 smoke: start ---
+check_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan_v1() {
+  printf '%s\n' "[smoke_petmed] treatment framework signed review state persistence migration staging rehearsal plan static check"
+
+  grep -q 'TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'staging_rehearsal_plan_only=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'staging_rehearsal_execution_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'staging_rehearsal_dry_run_required_first=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'active_migration_file_created=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'active_migration_file_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'production_migration_apply_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'migration_apply_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'migration_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'migration_file_created=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'schema_change_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'persistence_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'signed_review_state_persistence_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'review_state_persistence_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'writes_database=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'no_case_treatment_write=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'no_case_treatment_persistence=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'no_prescription_write=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'no_dose_route_frequency=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'staging_environment_required=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'rollback_dry_run_required=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'backup_restore_evidence_required=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'authenticated_smoke_required_before_write=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'NO_GO_TO_ACTIVE_MIGRATION_FILE_ON_MAIN' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+  grep -q 'validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan.py' scripts/ci_static_checks.sh
+
+  printf '%s\n' "PASS: treatment framework signed review state persistence migration staging rehearsal plan static markers"
+  printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan=PASS"
+  printf '%s\n' "staging_rehearsal_plan_only=true"
+  printf '%s\n' "staging_rehearsal_execution_allowed=false"
+  printf '%s\n' "active_migration_file_created=false"
+  printf '%s\n' "active_migration_file_allowed=false"
+  printf '%s\n' "production_migration_apply_allowed=false"
+  printf '%s\n' "migration_apply_allowed=false"
+  printf '%s\n' "migration_enabled=false"
+  printf '%s\n' "migration_file_created=false"
+  printf '%s\n' "schema_change_enabled=false"
+  printf '%s\n' "writes_database=false"
+  printf '%s\n' "no_case_treatment_write=true"
+  printf '%s\n' "no_case_treatment_persistence=true"
+  printf '%s\n' "no_prescription_write=true"
+  printf '%s\n' "no_dose_route_frequency=true"
+  printf '%s\n' "not_client_facing=true"
+  printf '%s\n' "rollback_dry_run_required=true"
+  printf '%s\n' "backup_restore_evidence_required=true"
+  printf '%s\n' "authenticated_smoke_required_before_write=true"
+  printf '%s\n' "requires_human_review=true"
+  printf '%s\n' "clinician_signoff_required=true"
+}
+# --- Treatment Framework Signed Review State Persistence Migration Staging Rehearsal Plan V1 smoke: end ---
+
 check_system_version
 check_feature_flags
 check_frontend
@@ -5353,39 +5410,66 @@ check_treatment_framework_signed_review_state_persistence_migration_dry_run_v1
 check_case_detail_treatment_framework_signed_review_state_persistence_migration_ui_v1
 check_treatment_framework_signed_review_state_persistence_migration_final_go_no_go_v1
 check_treatment_framework_signed_review_state_persistence_migration_apply_readiness_review_v1
+check_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan_v1
 check_treatment_framework_signed_review_state_persistence_migration_implementation_v1
 
-printf '%s\n' "ALL PASS: smoke_petmed"
-printf '%s\n' "current_hard_gate_preserved=true"
-printf '%s\n' "embedded_legacy_cumulative_smoke=true"
-printf '%s\n' "legacy_smoke_baseline=${LEGACY_SMOKE_BASELINE}"
-printf '%s\n' "read_only=true"
-printf '%s\n' "no DB write"
-printf '%s\n' "writes_database=false"
-printf '%s\n' "dangerous_feature_flags_disabled=true"
-printf '%s\n' "confirmed_diagnosis_treatment_framework_draft_v1=true"
-printf '%s\n' "case_detail_treatment_framework_preview_ui=true"
-printf '%s\n' "treatment_framework_clinician_review_workflow_v1=true"
-printf '%s\n' "treatment_framework_audit_log_v1=true"
-printf '%s\n' "treatment_framework_persistence_risk_review_v1=true"
-printf '%s\n' "treatment_framework_signed_review_state_design_v1=true"
-printf '%s\n' "treatment_framework_signed_review_state_dry_run_v1=true"
-printf '%s\n' "case_detail_treatment_framework_signed_review_state_ui=true"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_design_v1=true"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_dry_run_v1=true"
-printf '%s\n' "case_detail_treatment_framework_signed_review_state_persistence_ui=true"
-printf '%s\n' "case_detail_treatment_framework_signed_review_state_persistence_migration_ui=true"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_final_go_no_go_v1=true"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_apply_readiness_review_v1=true"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_implementation_v1=true"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_risk_review_v1=true"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_readiness_review_v1=true"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_design_v1=true"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_dry_run_v1=true"
-printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_DRY_RUN_V1"
-printf '%s\n' "previous_stage_previous_stage_previous_stage_decision=GO_TO_CASE_DETAIL_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_UI_V1"
-printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_FINAL_GO_NO_GO_V1"
-printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1"
-printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1"
-printf '%s\n' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_V1"
-printf '%s\n' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1"
+printf '%s
+' "ALL PASS: smoke_petmed"
+printf '%s
+' "current_hard_gate_preserved=true"
+printf '%s
+' "embedded_legacy_cumulative_smoke=true"
+printf '%s
+' "legacy_smoke_baseline=${LEGACY_SMOKE_BASELINE}"
+printf '%s
+' "read_only=true"
+printf '%s
+' "no DB write"
+printf '%s
+' "writes_database=false"
+printf '%s
+' "dangerous_feature_flags_disabled=true"
+printf '%s
+' "confirmed_diagnosis_treatment_framework_draft_v1=true"
+printf '%s
+' "case_detail_treatment_framework_preview_ui=true"
+printf '%s
+' "treatment_framework_clinician_review_workflow_v1=true"
+printf '%s
+' "treatment_framework_audit_log_v1=true"
+printf '%s
+' "treatment_framework_persistence_risk_review_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_design_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_dry_run_v1=true"
+printf '%s
+' "case_detail_treatment_framework_signed_review_state_ui=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_design_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_dry_run_v1=true"
+printf '%s
+' "case_detail_treatment_framework_signed_review_state_persistence_ui=true"
+printf '%s
+' "case_detail_treatment_framework_signed_review_state_persistence_migration_ui=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_migration_final_go_no_go_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_risk_review_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_migration_readiness_review_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_migration_design_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_migration_dry_run_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_migration_implementation_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_migration_apply_readiness_review_v1=true"
+printf '%s
+' "treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan_v1=true"
+printf '%s
+' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1"
+printf '%s
+' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1"

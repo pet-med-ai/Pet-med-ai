@@ -1,0 +1,20 @@
+item,required,status,evidence
+staging_rehearsal_plan_only,true,PASS,planning stage only
+staging_rehearsal_execution_allowed_false,true,PASS,execution disabled
+staging_rehearsal_dry_run_required_first,true,PASS,next stage must be dry-run
+active_migration_file_created_false,true,PASS,no active migration file created
+active_migration_file_allowed_false,true,PASS,no active migration file allowed in this stage
+production_migration_apply_allowed_false,true,PASS,no production migration apply
+migration_apply_allowed_false,true,PASS,no migration apply
+migration_enabled_false,true,PASS,migration disabled
+schema_change_enabled_false,true,PASS,no schema change
+writes_database_false,true,PASS,no DB write
+no_case_treatment_write,true,PASS,no case treatment write
+no_prescription_write,true,PASS,no prescription write
+no_dose_route_frequency,true,PASS,no dose route frequency output
+staging_environment_required,true,PASS,staging rehearsal needs explicit environment
+rollback_dry_run_required,true,PASS,rollback dry-run required before write
+backup_restore_evidence_required,true,PASS,backup restore evidence required before write
+authenticated_smoke_required_before_write,true,PASS,authenticated smoke required before write
+append_only_audit_linkage_required,true,PASS,audit linkage required
+next_decision,true,PASS,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1
