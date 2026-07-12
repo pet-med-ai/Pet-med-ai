@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1
 # Cumulative guard remains active: CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,10 +10,10 @@ cd "$ROOT"
 MIN_SMOKE_LINES=1000
 
 TARGETS=(
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_CHECKLIST_V1.csv"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_GO_NO_GO_V1.csv"
-  "scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan.py"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_CHECKLIST_V1.csv"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_GO_NO_GO_V1.csv"
+  "scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
 )
@@ -24,6 +24,11 @@ OPTIONAL_CORE_VALIDATORS=(
 RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_restore.py"
 
 # --- Previous stage compatibility markers: start ---
+# Treatment Framework Signed Review State Persistence Migration Staging Rehearsal Plan V1
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1
+# validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan.py
+# treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan=PASS
+# previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1
 # TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_APPLY_READINESS_REVIEW_V1
 # validate_treatment_framework_signed_review_state_persistence_migration_apply_readiness_review.py
 # treatment_framework_signed_review_state_persistence_migration_apply_readiness_review=PASS
@@ -105,7 +110,7 @@ for target in "${TARGETS[@]}"; do
 done
 
 printf '%s\n' "[ci_static_checks] python syntax"
-python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan.py
+python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run.py
 for validator in scripts/validate_*.py; do
   [ -f "$validator" ] || continue
   python3 -m py_compile "$validator"
@@ -115,8 +120,8 @@ printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
 
-printf '%s\n' "[ci_static_checks] signed review state persistence migration staging rehearsal plan validator"
-python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan.py
+printf '%s\n' "[ci_static_checks] signed review state persistence migration staging rehearsal dry run validator"
+python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run.py
 
 printf '%s\n' "[ci_static_checks] optional core validators intentionally skipped"
 for validator in "${OPTIONAL_CORE_VALIDATORS[@]:-}"; do
@@ -192,16 +197,26 @@ for flag in "${DANGEROUS_FLAGS[@]}"; do
   fi
 done
 
-printf '%s\n' "[ci_static_checks] signed review state persistence migration staging rehearsal plan markers"
-grep -q 'TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
-grep -q 'staging_rehearsal_plan_only=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
-grep -q 'staging_rehearsal_execution_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
-grep -q 'active_migration_file_created=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
-grep -q 'production_migration_apply_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
-grep -q 'migration_apply_allowed=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
-grep -q 'schema_change_enabled=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
-grep -q 'writes_database=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
-grep -q 'NO_GO_TO_ACTIVE_MIGRATION_FILE_ON_MAIN' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
+printf '%s\n' "[ci_static_checks] signed review state persistence migration staging rehearsal dry run markers"
+grep -q 'STAGING_REHEARSAL_DRY_RUN_ONLY=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'REAL_STAGING_MIGRATION_EXECUTED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'PRODUCTION_MIGRATION_EXECUTED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'ACTIVE_0010_MIGRATION_FILE_CREATED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'SCHEMA_CHANGE_APPLIED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'DATABASE_WRITE_PERFORMED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'CASE_TREATMENT_WRITE_PERFORMED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'PRESCRIPTION_WRITE_PERFORMED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'database_revision=0009_diag_data' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'alembic_head=0009_diag_data' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'schema_ok=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'migration_errors=\[\]' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'writes_database=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'exposes_database_url=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'backup_restore_evidence_required=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'rollback_dry_run_required=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'authenticated_smoke_required_before_future_write=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
 grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_PLAN_V1.md
 
 printf '%s\n' "[ci_static_checks] cumulative smoke markers"
@@ -211,12 +226,20 @@ grep -q 'LEGACY_SMOKE_COMPAT_RABBIT_GI_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_COMPAT_LIZARD_UVB_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'check_treatment_framework_signed_review_state_persistence_migration_apply_readiness_review_v1' scripts/smoke_petmed.sh
 grep -q 'check_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan_v1' scripts/smoke_petmed.sh
+grep -q 'check_treatment_framework_signed_review_state_persistence_migration_implementation_v1' scripts/smoke_petmed.sh
+grep -q '# >>> treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1_smoke_petmed_runtime_gate' scripts/smoke_petmed.sh
+grep -q 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run.py' scripts/smoke_petmed.sh
 grep -q 'treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan=PASS' scripts/smoke_petmed.sh
+grep -q 'treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run=PASS' scripts/smoke_petmed.sh
+grep -q 'treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1=true' scripts/smoke_petmed.sh
+grep -q 'previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1' scripts/smoke_petmed.sh
+grep -q 'decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1' scripts/smoke_petmed.sh
 smoke_lines="$(wc -l < scripts/smoke_petmed.sh | tr -d ' ')"
 if [ "$smoke_lines" -lt "$MIN_SMOKE_LINES" ]; then
   echo "smoke_petmed.sh line count too small for cumulative restore: ${smoke_lines} < ${MIN_SMOKE_LINES}" >&2
   exit 1
 fi
 printf '%s\n' "smoke_line_count=${smoke_lines}"
+
 
 printf '%s\n' "PASS: ci_static_checks"

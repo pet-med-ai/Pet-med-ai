@@ -1,0 +1,10 @@
+gate_id,gate,required_state,observed_state,decision,blocking,notes
+GATE-001,production_hard_gate,database_revision=0009_diag_data; alembic_head=0009_diag_data; schema_ok=true; migration_errors=[],static markers present; no migration command executed,GO_FOR_STATIC_DRY_RUN_ONLY,yes,Does not authorize production apply.
+GATE-002,active_migration_file_absence,No active backend/migrations/versions/0010*.py file exists.,Validator filesystem check required.,GO_FOR_STATIC_DRY_RUN_ONLY,yes,Fails closed if an active 0010 file is present.
+GATE-003,staging_rehearsal_execution,No real staging migration execution in this phase.,REAL_STAGING_MIGRATION_EXECUTED=false,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,Future evidence package must be reviewed first.
+GATE-004,backup_restore_evidence,Backup and restore evidence captured before future apply rehearsal.,Requirement defined; evidence not collected in this phase.,NO_GO_FOR_REAL_APPLY,yes,Blocks real staging apply until satisfied.
+GATE-005,rollback_dry_run_evidence,Rollback dry-run evidence captured before future apply rehearsal.,Requirement defined; evidence not collected in this phase.,NO_GO_FOR_REAL_APPLY,yes,Blocks real staging apply until satisfied.
+GATE-006,authenticated_smoke_before_future_write,Authenticated smoke evidence before any future write-capable operation.,Requirement defined; evidence not collected in this phase.,NO_GO_FOR_REAL_WRITE,yes,Static smoke wiring only.
+GATE-007,write_safety,"No database write, Case.treatment write, prescription write, schema change, or client-facing release.",All static no-write markers present.,GO_FOR_STATIC_DRY_RUN_ONLY,yes,No runtime apply is performed.
+GATE-008,dangerous_feature_flags,All dangerous feature flags remain false.,Exact false markers required in the dry-run document.,GO_FOR_STATIC_DRY_RUN_ONLY,yes,Does not enable hidden write paths.
+GATE-009,final_decision,Advance only to a staging rehearsal evidence phase.,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1,yes,Conservative next phase selected.
