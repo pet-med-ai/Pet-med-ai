@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1
 # Cumulative guard remains active: CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1.
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -10,12 +10,12 @@ cd "$ROOT"
 MIN_SMOKE_LINES=1000
 
 TARGETS=(
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_CHECKLIST_V1.csv"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_SCHEMA_EVIDENCE_V1.csv"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_SMOKE_EVIDENCE_V1.csv"
-  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_GO_NO_GO_V1.csv"
-  "scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence.py"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_CHECKLIST_V1.csv"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_REGISTER_V1.csv"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_VERIFICATION_V1.csv"
+  "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_GO_NO_GO_V1.csv"
+  "scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
 )
@@ -26,6 +26,11 @@ OPTIONAL_CORE_VALIDATORS=(
 RESTORE_GUARD_VALIDATOR_REFERENCE="scripts/validate_ci_smoke_cumulative_guard_restore.py"
 
 # --- Previous stage compatibility markers: start ---
+# Treatment Framework Signed Review State Persistence Migration Staging Rehearsal Evidence V1
+# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1
+# scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence.py
+# treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1=PASS
+# previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1
 # Treatment Framework Signed Review State Persistence Migration Staging Rehearsal Dry Run V1
 # TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1
 # scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run.py
@@ -117,7 +122,7 @@ for target in "${TARGETS[@]}"; do
 done
 
 printf '%s\n' "[ci_static_checks] python syntax"
-python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence.py
+python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py
 for validator in scripts/validate_*.py; do
   [ -f "$validator" ] || continue
   python3 -m py_compile "$validator"
@@ -127,8 +132,8 @@ printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
 
-printf '%s\n' "[ci_static_checks] signed review state persistence migration staging rehearsal evidence validator"
-python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence.py
+printf '%s\n' "[ci_static_checks] signed review state persistence migration rollback restore evidence package validator"
+python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py
 
 printf '%s\n' "[ci_static_checks] optional core validators intentionally skipped"
 for validator in "${OPTIONAL_CORE_VALIDATORS[@]:-}"; do
@@ -159,7 +164,7 @@ if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
             ;;
           *)
             echo "non-target tracked diff for this stage: $path" >&2
-            echo "Commit this staging rehearsal evidence stage with explicit target files only; do not stage the whole working tree" >&2
+            echo "Commit this rollback restore evidence package with explicit target files only; do not stage the whole working tree" >&2
             exit 1
             ;;
         esac
@@ -204,55 +209,55 @@ for flag in "${DANGEROUS_FLAGS[@]}"; do
   fi
 done
 
-printf '%s\n' "[ci_static_checks] signed review state persistence migration staging rehearsal evidence markers"
-grep -q 'stage_id=PMAI-P0-01' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'STAGING_REHEARSAL_EVIDENCE_REGISTER_ONLY=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'REAL_STAGING_MIGRATION_EXECUTED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'PRODUCTION_MIGRATION_EXECUTED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'ACTIVE_0010_MIGRATION_FILE_CREATED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'SCHEMA_CHANGE_APPLIED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'DATABASE_WRITE_PERFORMED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'CASE_TREATMENT_WRITE_PERFORMED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'PRESCRIPTION_WRITE_PERFORMED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'EVIDENCE_COMPLETENESS=PARTIAL' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'STAGING_APPLY_AUTHORIZED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'ROLLBACK_RESTORE_EVIDENCE_COMPLETE=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'AUTHENTICATED_STAGING_SMOKE_COMPLETE=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'database_revision=0009_diag_data' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'alembic_head=0009_diag_data' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'schema_ok=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'migration_errors=\[\]' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'writes_database=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'exposes_database_url=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'PENDING_P0_02' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_CHECKLIST_V1.csv
-grep -q 'PENDING_P0_03' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_CHECKLIST_V1.csv
-grep -q 'PENDING_P0_04' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_CHECKLIST_V1.csv
-grep -q 'REFERENCE_DRAFT_ONLY' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_SCHEMA_EVIDENCE_V1.csv
-grep -q 'staging_runtime_introspection' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_SCHEMA_EVIDENCE_V1.csv
-grep -q 'PENDING_P0_03' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_SMOKE_EVIDENCE_V1.csv
-grep -q 'NO_GO_FOR_STAGING_MIGRATION_APPLY' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_GO_NO_GO_V1.csv
-grep -q 'NO_GO_FOR_REAL_WRITE' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_GO_NO_GO_V1.csv
-grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
+printf '%s\n' "[ci_static_checks] signed review state persistence migration rollback restore evidence package markers"
+grep -q 'stage_id=PMAI-P0-02' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'PACKAGE_INITIALIZED=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'STAGE_STATUS=IN_PROGRESS' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'EVIDENCE_COMPLETENESS=PENDING_EXTERNAL_EXECUTION' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'ROLLBACK_RESTORE_EVIDENCE_COMPLETE=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'STAGING_MIGRATION_EXECUTED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'PRODUCTION_MIGRATION_EXECUTED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'ACTIVE_0010_MIGRATION_FILE_CREATED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'APPLICATION_DATABASE_WRITE_PERFORMED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'PRODUCTION_DATABASE_WRITE_PERFORMED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'STAMP_HEAD_USED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'MANUAL_ALEMBIC_REVISION_EDIT_USED=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'database_revision=0009_diag_data' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'alembic_head=0009_diag_data' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'schema_ok=true' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'migration_errors=\[\]' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'writes_database=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'exposes_database_url=false' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'PENDING_EXTERNAL_EVIDENCE' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_CHECKLIST_V1.csv
+grep -q 'HOLD_PENDING_EXTERNAL_EVIDENCE' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_CHECKLIST_V1.csv
+grep -q 'UNRECORDED' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_REGISTER_V1.csv
+grep -q 'PENDING' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_VERIFICATION_V1.csv
+grep -q 'NO_GO_TO_PMAI_P0_03' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_GO_NO_GO_V1.csv
 grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md
-grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_GO_NO_GO_V1.csv
-grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md
+grep -q 'HOLD_PMAI_P0_02_PENDING_EXTERNAL_ROLLBACK_RESTORE_EVIDENCE' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+grep -q 'GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1' docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
+if ls backend/migrations/versions/0010*.py >/dev/null 2>&1; then
+  echo "active backend/migrations/versions/0010*.py is forbidden in PMAI-P0-02" >&2
+  exit 1
+fi
 
 printf '%s\n' "[ci_static_checks] cumulative smoke markers"
 grep -q 'CI_SMOKE_CUMULATIVE_GUARD_RESTORE_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_BASELINE="0c8fd5d:scripts/smoke_petmed.sh"' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_COMPAT_RABBIT_GI_TREE_PATH_V1' scripts/smoke_petmed.sh
 grep -q 'LEGACY_SMOKE_COMPAT_LIZARD_UVB_TREE_PATH_V1' scripts/smoke_petmed.sh
-grep -q '# >>> treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1_smoke_petmed_compatibility_gate' scripts/smoke_petmed.sh
-grep -q '# >>> treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1_smoke_petmed_runtime_gate' scripts/smoke_petmed.sh
-grep -q 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence.py' scripts/smoke_petmed.sh
-grep -q 'treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1=PASS' scripts/smoke_petmed.sh
+grep -q '# >>> treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1_smoke_petmed_compatibility_gate' scripts/smoke_petmed.sh
+grep -q '# >>> treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1_smoke_petmed_runtime_gate' scripts/smoke_petmed.sh
+grep -q 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py' scripts/smoke_petmed.sh
 grep -q 'treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1=PASS' scripts/smoke_petmed.sh
-grep -q 'treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1=true' scripts/smoke_petmed.sh
+grep -q 'treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1_package_v1=PASS' scripts/smoke_petmed.sh
 grep -q 'treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1=true' scripts/smoke_petmed.sh
-grep -q 'previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1' scripts/smoke_petmed.sh
-grep -q 'decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1' scripts/smoke_petmed.sh
-if grep -Eq '^[[:space:]]*python3 .*validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run\.py' scripts/smoke_petmed.sh; then
-  echo "historical dry-run validator must not execute after CI TARGETS advance" >&2
+grep -q 'treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1=IN_PROGRESS' scripts/smoke_petmed.sh
+grep -q 'rollback_restore_evidence_complete=false' scripts/smoke_petmed.sh
+grep -q 'previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1' scripts/smoke_petmed.sh
+grep -q 'decision=HOLD_PMAI_P0_02_PENDING_EXTERNAL_ROLLBACK_RESTORE_EVIDENCE' scripts/smoke_petmed.sh
+if grep -Eq '^[[:space:]]*python3 .*validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence\.py' scripts/smoke_petmed.sh; then
+  echo "historical staging rehearsal evidence validator must not execute after CI TARGETS advance" >&2
   exit 1
 fi
 smoke_lines="$(wc -l < scripts/smoke_petmed.sh | tr -d ' ')"

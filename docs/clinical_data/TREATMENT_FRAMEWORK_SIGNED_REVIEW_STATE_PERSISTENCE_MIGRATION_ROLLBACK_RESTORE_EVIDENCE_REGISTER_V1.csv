@@ -1,0 +1,21 @@
+evidence_id,evidence_type,required_field,observed_value,evidence_source,evidence_sha256,evidence_status,blocking,notes
+RRE-001,environment,staging_service_label,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Non-secret provider service label only.
+RRE-002,environment,database_engine,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Engine and major version; no connection string.
+RRE-003,environment,production_isolation_proof,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Sanitized evidence reference and SHA-256.
+RRE-004,backup,backup_id,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Provider identifier; must not be a secret.
+RRE-005,backup,backup_created_at_utc,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,ISO-8601 UTC timestamp.
+RRE-006,backup,backup_integrity_status,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected value VERIFIED at completion.
+RRE-007,restore,restore_target_label,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Disposable isolated target label.
+RRE-008,restore,restore_started_at_utc,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,ISO-8601 UTC timestamp.
+RRE-009,restore,restore_completed_at_utc,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,ISO-8601 UTC timestamp.
+RRE-010,restore,restore_duration_seconds,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Positive integer derived from timestamps.
+RRE-011,revision,pre_restore_revision,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Must be 0009_diag_data.
+RRE-012,revision,post_restore_revision,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Must be 0009_diag_data.
+RRE-013,revision,post_restore_alembic_head,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Must be 0009_diag_data.
+RRE-014,revision,post_restore_schema_ok,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Must be true.
+RRE-015,revision,post_restore_migration_errors,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Must be an empty list.
+RRE-016,operation_output,backup_output_artifact,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Sanitized text evidence with SHA-256.
+RRE-017,operation_output,restore_output_artifact,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Sanitized text evidence with SHA-256.
+RRE-018,operation_output,rollback_dry_run_artifact,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Restore-based rollback drill; no active 0010.
+RRE-019,governance,operator_role,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Role label only.
+RRE-020,governance,incident_owner_role,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Role label and escalation path; no personal contacts.

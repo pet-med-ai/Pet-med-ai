@@ -1,0 +1,13 @@
+gate_id,gate,required_state,observed_state,decision,blocking,notes
+GATE-001,stage_boundary,Package only; no backup/restore/migration executed by apply script.,PACKAGE_INITIALIZED=true; STAGE_STATUS=IN_PROGRESS,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,Does not complete PMAI-P0-02.
+GATE-002,previous_handoff,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1,Captured from PMAI-P0-01,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,Entry decision only.
+GATE-003,production_hard_gate,revision/head 0009; schema_ok; no migration errors,Runtime smoke required,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,No production operation.
+GATE-004,active_0010_absence,No active backend/migrations/versions/0010*.py,Validator filesystem check,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,Fails closed.
+GATE-005,backup_evidence,"Backup ID, timestamp, integrity, and sanitized output hash",PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,Must be verified.
+GATE-006,restore_evidence,"Disposable target, timestamps, duration, and sanitized output hash",PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,Must be verified.
+GATE-007,revision_verification,Restored revision/head 0009; schema_ok; no errors,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,No stamp-head shortcut.
+GATE-008,data_verification,"Required row counts, links, and pseudonymized case readback match",PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,Any mismatch is NO-GO.
+GATE-009,rollback_dry_run,Sanitized rollback/restore drill artifact and restored state,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,No active 0010 apply or downgrade.
+GATE-010,failure_ownership,"Operator role, incident owner role, and escalation criteria recorded",PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,No personal contact data required.
+GATE-011,secret_and_clinical_safety,"No credentials, owner data, prescription, medication detail, or client release",Static validator required,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,Dangerous feature flags stay false.
+GATE-012,current_decision,Remain in PMAI-P0-02 until evidence is complete,HOLD_PMAI_P0_02_PENDING_EXTERNAL_ROLLBACK_RESTORE_EVIDENCE,HOLD_PMAI_P0_02_PENDING_EXTERNAL_ROLLBACK_RESTORE_EVIDENCE,yes,"Completion decision is recorded separately, not activated."
