@@ -1,0 +1,110 @@
+# Treatment Framework Signed Review State Persistence Migration Staging Rehearsal Evidence V1
+
+## Stage identity
+
+stage_id=PMAI-P0-01
+stage_name=Treatment Framework Signed Review State Persistence Migration Staging Rehearsal Evidence V1
+stage_type=staging_rehearsal_evidence_register_only
+STAGING_REHEARSAL_EVIDENCE_REGISTER_ONLY=true
+REAL_STAGING_MIGRATION_EXECUTED=false
+PRODUCTION_MIGRATION_EXECUTED=false
+ACTIVE_0010_MIGRATION_FILE_CREATED=false
+SCHEMA_CHANGE_APPLIED=false
+DATABASE_WRITE_PERFORMED=false
+CASE_TREATMENT_WRITE_PERFORMED=false
+PRESCRIPTION_WRITE_PERFORMED=false
+CLIENT_FACING_RELEASE_PERFORMED=false
+CLIENT_FACING_MEDICATION_DETAIL_OUTPUT=false
+EVIDENCE_COMPLETENESS=PARTIAL
+STAGING_APPLY_AUTHORIZED=false
+ROLLBACK_RESTORE_EVIDENCE_COMPLETE=false
+AUTHENTICATED_STAGING_SMOKE_COMPLETE=false
+STAGING_ENVIRONMENT_ID_RECORDED=false
+STAGING_DATABASE_URL_RECORDED=false
+BACKUP_ID_RECORDED=false
+RESTORE_ID_RECORDED=false
+MIGRATION_COMMAND_OUTPUT_RECORDED=false
+
+This phase creates a verifiable evidence register and reference baseline for PMAI-P0-01. It does not claim that a staging migration, restore drill, rollback drill, or authenticated staging payload smoke has occurred.
+
+## Production hard gate remains unchanged
+
+database_revision=0009_diag_data
+alembic_head=0009_diag_data
+schema_ok=true
+migration_errors=[]
+writes_database=false
+exposes_database_url=false
+
+## Evidence baseline
+
+baseline_commit_sha=2c9c9e3d6f47c580d6ded2ba68706f49a0d7a7a2
+baseline_remote_ref=origin/main
+inactive_0010_draft_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt
+inactive_0010_draft_sha256=bfab1107e54d888854d685fcab62e4367871acd44c12d2c2bad0a63946a8995d
+inactive_0010_revision=0010_treatment_framework_signed_review_states
+inactive_0010_down_revision=0009_diag_data
+inactive_0010_reference_only=true
+active_0010_migration_file_must_not_exist=true
+no_staging_secret_material_collected=true
+evidence_claims_must_not_mark_unexecuted_checks_as_passed=true
+
+The baseline commit must remain an ancestor of the eventual evidence-stage commit. The inactive draft hash provides a reproducible reference without creating an Alembic-discoverable migration file.
+
+## Evidence registers
+
+- checklist=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_CHECKLIST_V1.csv
+- schema_evidence=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_SCHEMA_EVIDENCE_V1.csv
+- smoke_evidence=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_SMOKE_EVIDENCE_V1.csv
+- go_no_go=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_GO_NO_GO_V1.csv
+- validator=scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence.py
+
+The schema register distinguishes draft-reference checks from live staging schema evidence. The smoke register distinguishes static/cumulative checks from authenticated staging payload checks. Pending external evidence remains blocking and must not be relabeled as complete without source artifacts.
+
+## Required follow-on gates
+
+P0_02_ROLLBACK_RESTORE_EVIDENCE_REQUIRED=true
+P0_03_AUTHENTICATED_STAGING_SMOKE_REQUIRED=true
+P0_04_STAGING_MIGRATION_APPLY_REQUIRED_LATER=true
+staging_environment_isolation_evidence_required=true
+pre_migration_revision_evidence_required=true
+backup_restore_evidence_required=true
+rollback_dry_run_evidence_required=true
+authenticated_owner_scope_smoke_required=true
+idempotency_evidence_required=true
+failure_rollback_evidence_required=true
+live_schema_evidence_required_after_future_apply=true
+
+## Dangerous feature flags remain disabled
+
+- ENABLE_EMR_REAL_IMPORT=false
+- ENABLE_EMR_IMPORT_CASE_UPDATE=false
+- ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+- ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+- ENABLE_PREVENTIVE_SMS_DELIVERY=false
+- ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+- ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+- ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+- ENABLE_DEVICE_REAL_INGEST=false
+- ENABLE_BILLING_REAL_WRITE=false
+
+## Explicit non-goals
+
+- no real staging migration
+- no production migration
+- no active backend/migrations/versions/0010 migration file
+- no schema change
+- no database write
+- no Case.treatment write
+- no prescription write
+- no medication amount, route, or frequency output
+- no client-facing AI diagnosis
+- no real EMR, LIS, DICOM, PACS, device, or gateway ingest
+- no automatic SMS, WeChat, or email delivery
+- no invoice real write
+- no database URL or staging credential capture
+
+## Decision
+
+previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1
+decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1

@@ -1,0 +1,13 @@
+gate_id,gate,required_state,observed_state,decision,blocking,notes
+GATE-001,stage_boundary,Evidence register only; no migration or write.,STAGING_REHEARSAL_EVIDENCE_REGISTER_ONLY=true,GO_FOR_EVIDENCE_REGISTER_ONLY,yes,No staging apply authorization.
+GATE-002,baseline_commit,Baseline commit captured and remains an ancestor of HEAD.,captured in evidence document,GO_FOR_REFERENCE_BASELINE,yes,No source mutation outside target files.
+GATE-003,inactive_0010_reference,"Draft path, revision, down_revision, and SHA-256 captured; active file absent.",REFERENCE_DRAFT_ONLY,GO_FOR_REFERENCE_ONLY,yes,Does not activate Alembic revision 0010.
+GATE-004,production_hard_gate,Production remains 0009 with schema_ok and no migration errors.,cumulative smoke runtime check required,GO_FOR_EVIDENCE_REGISTER_ONLY,yes,No production migration.
+GATE-005,staging_environment_isolation,Named staging environment and proof of production isolation.,PENDING_EXTERNAL_EVIDENCE,NO_GO_FOR_STAGING_MIGRATION_APPLY,yes,No staging secrets in repository.
+GATE-006,backup_restore,"Backup ID, restore instance, duration, revision, row counts, and case readback.",PENDING_P0_02,NO_GO_FOR_STAGING_MIGRATION_APPLY,yes,Rollback/restore gate is next.
+GATE-007,rollback_dry_run,Rollback evidence and restored state verified.,PENDING_P0_02,NO_GO_FOR_STAGING_MIGRATION_APPLY,yes,Manual revision stamping is not accepted.
+GATE-008,authenticated_staging_smoke,"Owner scope, workflow payload, idempotency, and failure rollback verified.",PENDING_P0_03,NO_GO_FOR_REAL_WRITE,yes,No authenticated write-capable smoke now.
+GATE-009,live_schema_evidence,"Live staging table, columns, indexes, constraints, and revision verified after future apply.",PENDING_P0_04,NO_GO_FOR_STAGING_MIGRATION_APPLY,yes,Current schema remains 0009.
+GATE-010,write_safety,"No DB, Case.treatment, prescription, medication-detail, or client-facing release.",static no-write markers present,GO_FOR_EVIDENCE_REGISTER_ONLY,yes,Dangerous flags stay false.
+GATE-011,active_migration_absence,No active backend/migrations/versions/0010*.py file.,validator filesystem check,GO_FOR_EVIDENCE_REGISTER_ONLY,yes,Fails closed.
+GATE-012,final_decision,Advance only to rollback and restore evidence.,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1,yes,Still NO-GO for staging migration apply and real writes.

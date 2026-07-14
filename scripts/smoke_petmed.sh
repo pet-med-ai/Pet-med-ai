@@ -5413,26 +5413,49 @@ check_treatment_framework_signed_review_state_persistence_migration_apply_readin
 check_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan_v1
 check_treatment_framework_signed_review_state_persistence_migration_implementation_v1
 
-# >>> treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1_smoke_petmed_runtime_gate
-PETMED_STAGING_REHEARSAL_DRY_RUN_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-printf '%s\n' "[smoke_petmed] treatment framework signed review state persistence migration staging rehearsal dry run static check"
-python3 "${PETMED_STAGING_REHEARSAL_DRY_RUN_ROOT}/scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run.py"
-printf '%s\n' "PASS: treatment framework signed review state persistence migration staging rehearsal dry run static markers"
-printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run=PASS"
+# >>> treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1_smoke_petmed_compatibility_gate
+PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+printf '%s\n' "[smoke_petmed] treatment framework signed review state persistence migration staging rehearsal dry run compatibility check"
+test -f "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md"
+test -f "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_CHECKLIST_V1.csv"
+test -f "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_GO_NO_GO_V1.csv"
+test -f "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run.py"
+grep -q 'STAGING_REHEARSAL_DRY_RUN_ONLY=true' "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md"
+grep -q 'REAL_STAGING_MIGRATION_EXECUTED=false' "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md"
+grep -q 'ACTIVE_0010_MIGRATION_FILE_CREATED=false' "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md"
+grep -q 'database_revision=0009_diag_data' "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md"
+grep -q 'alembic_head=0009_diag_data' "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md"
+grep -q 'decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1' "${PETMED_STAGING_REHEARSAL_DRY_RUN_COMPAT_ROOT}/docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1.md"
+printf '%s\n' "PASS: treatment framework signed review state persistence migration staging rehearsal dry run compatibility markers"
+printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1=PASS"
 printf '%s\n' "staging_rehearsal_dry_run_only=true"
 printf '%s\n' "real_staging_migration_executed=false"
 printf '%s\n' "active_migration_file_created=false"
-printf '%s\n' "production_migration_apply_allowed=false"
+printf '%s\n' "writes_database=false"
+# <<< treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1_smoke_petmed_compatibility_gate
+
+# >>> treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1_smoke_petmed_runtime_gate
+PETMED_STAGING_REHEARSAL_EVIDENCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+printf '%s\n' "[smoke_petmed] treatment framework signed review state persistence migration staging rehearsal evidence static check"
+python3 "${PETMED_STAGING_REHEARSAL_EVIDENCE_ROOT}/scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence.py"
+printf '%s\n' "PASS: treatment framework signed review state persistence migration staging rehearsal evidence static markers"
+printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1=PASS"
+printf '%s\n' "stage_id=PMAI-P0-01"
+printf '%s\n' "staging_rehearsal_evidence_register_only=true"
+printf '%s\n' "evidence_completeness=PARTIAL"
+printf '%s\n' "real_staging_migration_executed=false"
+printf '%s\n' "production_migration_executed=false"
+printf '%s\n' "active_migration_file_created=false"
+printf '%s\n' "staging_apply_authorized=false"
+printf '%s\n' "rollback_restore_evidence_complete=false"
+printf '%s\n' "authenticated_staging_smoke_complete=false"
 printf '%s\n' "schema_change_enabled=false"
 printf '%s\n' "writes_database=false"
 printf '%s\n' "no_case_treatment_write=true"
 printf '%s\n' "no_prescription_write=true"
 printf '%s\n' "no_dose_route_frequency=true"
 printf '%s\n' "not_client_facing=true"
-printf '%s\n' "backup_restore_evidence_required=true"
-printf '%s\n' "rollback_dry_run_required=true"
-printf '%s\n' "authenticated_smoke_required_before_future_write=true"
-# <<< treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1_smoke_petmed_runtime_gate
+# <<< treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1_smoke_petmed_runtime_gate
 
 printf '%s
 ' "ALL PASS: smoke_petmed"
@@ -5491,7 +5514,8 @@ printf '%s
 printf '%s
 ' "treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_plan_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_dry_run_v1=true"
+printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1=true"
 printf '%s
-' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_DRY_RUN_V1"
+' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1"
 printf '%s
-' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1"
+' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1"
