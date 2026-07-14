@@ -30,6 +30,7 @@ GO_NO_GO_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSI
 VALIDATOR_REL = "scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py"
 CI_REL = "scripts/ci_static_checks.sh"
 SMOKE_REL = "scripts/smoke_petmed.sh"
+WORKFLOW_REL = ".github/workflows/ci-gate.yml"
 PREVIOUS_DOC_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_V1.md"
 PREVIOUS_CHECKLIST_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_CHECKLIST_V1.csv"
 PREVIOUS_SCHEMA_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_SCHEMA_EVIDENCE_V1.csv"
@@ -37,7 +38,7 @@ PREVIOUS_SMOKE_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE
 PREVIOUS_GO_NO_GO_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_STAGING_REHEARSAL_EVIDENCE_GO_NO_GO_V1.csv"
 PREVIOUS_VALIDATOR_REL = "scripts/validate_treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence.py"
 INACTIVE_DRAFT_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt"
-TARGET_PATHS = ['docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_CHECKLIST_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_REGISTER_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_VERIFICATION_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_GO_NO_GO_V1.csv', 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py', 'scripts/ci_static_checks.sh', 'scripts/smoke_petmed.sh']
+TARGET_PATHS = ['docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_CHECKLIST_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_REGISTER_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_VERIFICATION_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_GO_NO_GO_V1.csv', 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py', 'scripts/ci_static_checks.sh', 'scripts/smoke_petmed.sh', '.github/workflows/ci-gate.yml']
 DANGEROUS_FLAGS = ['ENABLE_EMR_REAL_IMPORT', 'ENABLE_EMR_IMPORT_CASE_UPDATE', 'ENABLE_EMR_ATTACHMENT_DOWNLOAD', 'ENABLE_PREVENTIVE_AUTO_DELIVERY', 'ENABLE_PREVENTIVE_SMS_DELIVERY', 'ENABLE_PREVENTIVE_WECHAT_DELIVERY', 'ENABLE_PREVENTIVE_EMAIL_DELIVERY', 'ENABLE_PRESCRIPTION_STRUCTURED_WRITE', 'ENABLE_DEVICE_REAL_INGEST', 'ENABLE_BILLING_REAL_WRITE']
 
 PREVIOUS_RUNTIME_BEGIN = "# >>> treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1_smoke_petmed_runtime_gate"
@@ -350,6 +351,24 @@ def check_state_claims(doc, state):
         require(doc_value(doc, "decision") == COMPLETION_DECISION, "complete decision must hand off to authenticated staging smoke")
 
 
+def check_workflow_wiring():
+    workflow = read(WORKFLOW_REL)
+    match = re.search(
+        r"(?ms)^  static-backend-gate:\n(.*?)(?=^  frontend-build-gate:|\Z)",
+        workflow,
+    )
+    require(match is not None, "static backend CI job is missing")
+    static_job = match.group(1)
+    require(
+        "uses: actions/checkout@v4" in static_job,
+        "static backend checkout action is missing",
+    )
+    require(
+        "fetch-depth: 0" in static_job,
+        "static backend checkout must fetch full history for baseline validation",
+    )
+
+
 def check_ci_wiring():
     ci = read(CI_REL)
     require_tokens(
@@ -367,6 +386,7 @@ def check_ci_wiring():
             "rollback restore evidence package markers",
             "target-only tracked diff discipline",
             "sensitive staged path discipline",
+            "full history checkout for baseline verification",
             "PASS: ci_static_checks",
         ],
     )
@@ -455,6 +475,7 @@ def main():
     check_previous_stage()
     check_csvs(state)
     check_secret_safety()
+    check_workflow_wiring()
     check_ci_wiring()
     check_smoke_wiring(state)
     check_shell_syntax(CI_REL)

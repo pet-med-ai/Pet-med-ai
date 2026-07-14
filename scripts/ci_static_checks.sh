@@ -18,6 +18,7 @@ TARGETS=(
   "scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
+  ".github/workflows/ci-gate.yml"
 )
 
 OPTIONAL_CORE_VALIDATORS=(
@@ -131,6 +132,13 @@ done
 printf '%s\n' "[ci_static_checks] shell syntax"
 bash -n scripts/ci_static_checks.sh
 bash -n scripts/smoke_petmed.sh
+
+printf '%s\n' "[ci_static_checks] full history checkout for baseline verification"
+STATIC_BACKEND_JOB="$(
+  sed -n '/^  static-backend-gate:/,/^  frontend-build-gate:/p' .github/workflows/ci-gate.yml
+)"
+printf '%s\n' "$STATIC_BACKEND_JOB" | grep -q 'uses: actions/checkout@v4'
+printf '%s\n' "$STATIC_BACKEND_JOB" | grep -q 'fetch-depth: 0'
 
 printf '%s\n' "[ci_static_checks] signed review state persistence migration rollback restore evidence package validator"
 python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py
