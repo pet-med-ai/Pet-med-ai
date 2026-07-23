@@ -1,0 +1,7 @@
+stage_id=PMAI-P0-02
+operator_role=release_operator
+incident_owner_role=backend_owner
+failure_criteria=revision mismatch; row-count mismatch; unreadable sample; restore failure; secret leakage
+escalation_action=HOLD_PMAI_P0_02_AND_STOP
+stamp_head_used=false
+manual_alembic_revision_edit_used=false

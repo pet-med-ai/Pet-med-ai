@@ -1,0 +1,13 @@
+stage_id=PMAI-P0-02
+backup_provider=Render
+backup_method=PITR
+backup_id=render-pitr-point-20260722T152600Z
+backup_created_at_utc=2026-07-22T15:26:00Z
+backup_integrity_status=VERIFIED
+provider_operation_status=SUCCESS
+raw_backup_committed=false
+connection_uri_recorded=false
+credential_recorded=false
+backup_id_basis=operator_sanitized_reference_from_provider_restore_point
+backup_timestamp_semantics=selected_pitr_restore_point_utc
+source_service_label=pet-med-ai-db-staging-source-ohio

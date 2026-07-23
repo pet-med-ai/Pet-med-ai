@@ -1,13 +1,13 @@
 check_id,verification_area,object_name,baseline_value,restored_value,comparison_status,evidence_source,blocking,notes
-VER-001,revision,database_revision,0009_diag_data,UNRECORDED,PENDING,UNRECORDED,yes,Restored target must remain 0009.
-VER-002,revision,alembic_head,0009_diag_data,UNRECORDED,PENDING,UNRECORDED,yes,No stamp or manual edit.
-VER-003,schema,treatment_framework_signed_review_states,ABSENT,UNRECORDED,PENDING,UNRECORDED,yes,0010 table must remain absent in this pre-apply drill.
-VER-004,row_count,cases,UNRECORDED,UNRECORDED,PENDING,UNRECORDED,yes,Exact baseline/restored count comparison.
-VER-005,row_count,consult_sessions,UNRECORDED,UNRECORDED,PENDING,UNRECORDED,yes,Exact baseline/restored count comparison.
-VER-006,row_count,diagnostic_reports,UNRECORDED,UNRECORDED,PENDING,UNRECORDED,yes,Exact baseline/restored count comparison.
-VER-007,row_count,observations,UNRECORDED,UNRECORDED,PENDING,UNRECORDED,yes,Exact baseline/restored count comparison.
-VER-008,row_count,imaging_studies,UNRECORDED,UNRECORDED,PENDING,UNRECORDED,yes,Exact baseline/restored count comparison.
-VER-009,row_count,audit_log,UNRECORDED,UNRECORDED,PENDING,UNRECORDED,yes,Append-only audit rows must match.
-VER-010,sample_readback,pseudonymized_case,UNRECORDED,UNRECORDED,PENDING,UNRECORDED,yes,"Use a hash or synthetic label, not owner data."
-VER-011,referential_integrity,case_diagnostic_links,VALID,UNRECORDED,PENDING,UNRECORDED,yes,"Reports, observations, and imaging remain linked to the case."
-VER-012,referential_integrity,case_audit_links,VALID,UNRECORDED,PENDING,UNRECORDED,yes,Audit case references remain readable.
+VER-001,revision,database_revision,0009_diag_data,0009_diag_data,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,Source and restore remain 0009_diag_data.
+VER-002,revision,alembic_head,0009_diag_data,0009_diag_data,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,No stamp or manual edit.
+VER-003,schema,treatment_framework_signed_review_states,ABSENT,ABSENT,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,Signed-review 0010 table remains absent.
+VER-004,row_count,cases,1,1,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,Exact count comparison.
+VER-005,row_count,consult_sessions,1,1,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,Exact count comparison.
+VER-006,row_count,diagnostic_reports,1,1,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,Exact count comparison.
+VER-007,row_count,observations,1,1,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,Exact count comparison.
+VER-008,row_count,imaging_studies,1,1,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,Exact count comparison.
+VER-009,row_count,audit_log,1,1,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,Append-only audit rows match.
+VER-010,sample_readback,pseudonymized_case,b7948013679367cecc45911823a73a53,b7948013679367cecc45911823a73a53,MATCH,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/12_restore_comparison_sanitized.txt,yes,Salted pseudonymized token; no owner or patient identity.
+VER-011,referential_integrity,case_diagnostic_links,VALID,VALID,PASS,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/11_restore_readonly_verification.csv,yes,"Reports, observations, and imaging remain linked to the case."
+VER-012,referential_integrity,case_audit_links,VALID,VALID,PASS,docs/clinical_data/evidence/PMAI_P0_02_ROLLBACK_RESTORE_V1/11_restore_readonly_verification.csv,yes,Audit case reference remains readable.

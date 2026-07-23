@@ -1,0 +1,11 @@
+stage_id=PMAI-P0-02
+provider=Render
+staging_service_label=pet-med-ai-db-staging-source-ohio
+database_engine=PostgreSQL 18
+source_environment=staging
+isolated_from_production=true
+production_backend_attached=false
+application_writers_suspended_or_absent=true
+recovery_method=PITR
+operator_role=release_operator
+incident_owner_role=backend_owner

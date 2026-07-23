@@ -1,13 +1,13 @@
 gate_id,gate,required_state,observed_state,decision,blocking,notes
-GATE-001,stage_boundary,Package only; no backup/restore/migration executed by apply script.,PACKAGE_INITIALIZED=true; STAGE_STATUS=IN_PROGRESS,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,Does not complete PMAI-P0-02.
-GATE-002,previous_handoff,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1,Captured from PMAI-P0-01,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,Entry decision only.
-GATE-003,production_hard_gate,revision/head 0009; schema_ok; no migration errors,Runtime smoke required,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,No production operation.
-GATE-004,active_0010_absence,No active backend/migrations/versions/0010*.py,Validator filesystem check,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,Fails closed.
-GATE-005,backup_evidence,"Backup ID, timestamp, integrity, and sanitized output hash",PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,Must be verified.
-GATE-006,restore_evidence,"Disposable target, timestamps, duration, and sanitized output hash",PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,Must be verified.
-GATE-007,revision_verification,Restored revision/head 0009; schema_ok; no errors,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,No stamp-head shortcut.
-GATE-008,data_verification,"Required row counts, links, and pseudonymized case readback match",PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,Any mismatch is NO-GO.
-GATE-009,rollback_dry_run,Sanitized rollback/restore drill artifact and restored state,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,No active 0010 apply or downgrade.
-GATE-010,failure_ownership,"Operator role, incident owner role, and escalation criteria recorded",PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_03,yes,No personal contact data required.
-GATE-011,secret_and_clinical_safety,"No credentials, owner data, prescription, medication detail, or client release",Static validator required,GO_FOR_EVIDENCE_COLLECTION_ONLY,yes,Dangerous feature flags stay false.
-GATE-012,current_decision,Remain in PMAI-P0-02 until evidence is complete,HOLD_PMAI_P0_02_PENDING_EXTERNAL_ROLLBACK_RESTORE_EVIDENCE,HOLD_PMAI_P0_02_PENDING_EXTERNAL_ROLLBACK_RESTORE_EVIDENCE,yes,"Completion decision is recorded separately, not activated."
+GATE-001,stage_boundary,Complete P0-02 without signed-review 0010 or production migration.,STAGE_STATUS=COMPLETE; SIGNED_REVIEW_0010_STAGING_MIGRATION_EXECUTED=false,PASS,yes,Only isolated staging 0009 baseline/fixture writes occurred.
+GATE-002,previous_handoff,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1,Captured from PMAI-P0-01,PASS,yes,Entry decision only.
+GATE-003,production_hard_gate,revision/head 0009; schema_ok; no migration errors,Cumulative runtime smoke required before commit,PASS_RUNTIME_REQUIRED,yes,No production operation authorized.
+GATE-004,active_0010_absence,No active backend/migrations/versions/0010*.py,Validator filesystem check,PASS,yes,Fails closed.
+GATE-005,backup_evidence,"Backup ID, timestamp, integrity, sanitized hash",render-pitr-point-20260722T152600Z; 2026-07-22T15:26:00Z; VERIFIED,PASS,yes,Render PITR evidence verified.
+GATE-006,restore_evidence,"Disposable target, timestamps, duration, sanitized hash",pet-med-ai-db-p0-02-restore-ohio-202607221526; duration=864s; SUCCESS,PASS,yes,Disposable Ohio restore target.
+GATE-007,revision_verification,Restored revision/head 0009; schema_ok; no errors,0009_diag_data; schema_ok=true; migration_errors=[],PASS,yes,No stamp-head shortcut.
+GATE-008,data_verification,"Required row counts, links, and pseudonymized readback match",row_count_parity=MATCH; sample_case_readback=MATCH; referential_integrity=PASS,PASS,yes,Exact source/restore parity.
+GATE-009,rollback_dry_run,Sanitized restore drill and restored state,comparison_status=PASS; signed-review 0010 absent,PASS,yes,No signed-review 0010 apply or downgrade.
+GATE-010,failure_ownership,"Operator role, incident owner role, escalation criteria recorded",roles and HOLD stop path recorded,PASS,yes,No personal contact data.
+GATE-011,secret_and_clinical_safety,"No credentials, owner data, prescription, medication detail, or client release",manifest verified; sanitization scan PASS,PASS,yes,Dangerous feature flags stay false.
+GATE-012,current_decision,Advance only to authenticated staging smoke,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1,GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1,yes,Does not authorize P0-04 signed-review 0010 apply or production write.

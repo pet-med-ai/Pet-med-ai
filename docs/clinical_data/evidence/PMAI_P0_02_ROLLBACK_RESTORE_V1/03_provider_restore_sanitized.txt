@@ -1,0 +1,13 @@
+stage_id=PMAI-P0-02
+restore_target_label=pet-med-ai-db-p0-02-restore-ohio-202607221526
+restore_started_at_utc=2026-07-22T16:02:27Z
+restore_completed_at_utc=2026-07-22T16:16:51Z
+restore_duration_seconds=864
+restore_status=SUCCESS
+restore_target_is_disposable=true
+restore_target_isolated_from_production=true
+production_service_repointed=false
+production_database_modified=false
+restore_completion_time_basis=first_successful_restore_readonly_capture_file_mtime
+restore_duration_semantics=start_recovery_to_first_successful_readonly_verification
+restore_region=Ohio_US_East
