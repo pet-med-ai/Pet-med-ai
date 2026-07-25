@@ -5453,33 +5453,41 @@ printf '%s\n' "rollback_restore_evidence_required=true"
 printf '%s\n' "writes_database=false"
 # <<< treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1_smoke_petmed_compatibility_gate
 
-# >>> treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1_smoke_petmed_runtime_gate
-PETMED_ROLLBACK_RESTORE_EVIDENCE_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-printf '%s\n' "[smoke_petmed] treatment framework signed review state persistence migration rollback restore evidence completion check"
-python3 "${PETMED_ROLLBACK_RESTORE_EVIDENCE_ROOT}/scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py" --require-complete
-printf '%s\n' "PASS: treatment framework signed review state persistence migration rollback restore evidence completion markers"
+# >>> treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1_smoke_petmed_compatibility_gate
+test -f "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md"
+test -f "scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py"
+grep -q 'stage_id=PMAI-P0-02' "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md"
+grep -q 'STAGE_STATUS=COMPLETE' "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md"
+grep -q 'EVIDENCE_COMPLETENESS=COMPLETE' "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md"
+grep -q 'ROLLBACK_RESTORE_EVIDENCE_COMPLETE=true' "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md"
+grep -q 'decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1' "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md"
+printf '%s\n' "PASS: PMAI-P0-02 rollback restore evidence compatibility markers"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1=PASS"
-printf '%s\n' "stage_id=PMAI-P0-02"
-printf '%s\n' "stage_status=COMPLETE"
-printf '%s\n' "evidence_completeness=COMPLETE"
-printf '%s\n' "rollback_restore_evidence_complete=true"
-printf '%s\n' "backup_evidence_complete=true"
-printf '%s\n' "restore_evidence_complete=true"
-printf '%s\n' "rollback_dry_run_evidence_complete=true"
-printf '%s\n' "data_verification_complete=true"
-printf '%s\n' "clinical_case_readback_complete=true"
-printf '%s\n' "staging_baseline_0001_to_0009_preparation_executed=true"
-printf '%s\n' "staging_synthetic_fixture_write_executed=true"
+printf '%s\n' "p0_02_stage_status=COMPLETE"
+printf '%s\n' "p0_02_completion_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1"
+# <<< treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1_smoke_petmed_compatibility_gate
+
+# >>> treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke_v1_smoke_petmed_runtime_gate
+PETMED_P0_03_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+printf '%s\n' "[smoke_petmed] PMAI-P0-03 authenticated staging smoke package check"
+python3 "${PETMED_P0_03_ROOT}/scripts/validate_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py"
+printf '%s\n' "PASS: PMAI-P0-03 authenticated staging smoke package markers"
+printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke_v1_package_v1=PASS"
+printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke_v1=IN_PROGRESS"
+printf '%s\n' "stage_id=PMAI-P0-03"
+printf '%s\n' "package_initialized=true"
+printf '%s\n' "evidence_completeness=PENDING_EXTERNAL_EXECUTION"
+printf '%s\n' "authenticated_staging_smoke_complete=false"
+printf '%s\n' "runner_not_executed_by_cumulative_smoke=true"
 printf '%s\n' "signed_review_0010_staging_migration_executed=false"
 printf '%s\n' "production_migration_executed=false"
 printf '%s\n' "active_migration_file_created=false"
-printf '%s\n' "production_writes_database=false"
 printf '%s\n' "no_case_treatment_write=true"
 printf '%s\n' "no_prescription_write=true"
 printf '%s\n' "no_dose_route_frequency=true"
 printf '%s\n' "not_client_facing=true"
-printf '%s\n' "current_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1"
-# <<< treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1_smoke_petmed_runtime_gate
+printf '%s\n' "current_decision=HOLD_PMAI_P0_03_PENDING_AUTHENTICATED_STAGING_SMOKE_EVIDENCE"
+# <<< treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke_v1_smoke_petmed_runtime_gate
 
 printf '%s
 ' "ALL PASS: smoke_petmed"
@@ -5541,7 +5549,9 @@ printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_sta
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_staging_rehearsal_evidence_v1=true"
 printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1=COMPLETE"
 printf '%s\n' "rollback_restore_evidence_complete=true"
+printf '%s\n' "treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke_v1=IN_PROGRESS"
+printf '%s\n' "authenticated_staging_smoke_complete=false"
 printf '%s
-' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1"
+' "previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1"
 printf '%s
-' "decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1"
+' "decision=HOLD_PMAI_P0_03_PENDING_AUTHENTICATED_STAGING_SMOKE_EVIDENCE"

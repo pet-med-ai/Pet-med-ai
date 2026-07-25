@@ -1,0 +1,13 @@
+gate_id,gate,required_state,observed_state,decision,blocking,notes
+ASG-001,entry_gate,PMAI-P0-02 COMPLETE,VERIFIED_REFERENCE,GO_FOR_AUTHENTICATED_SMOKE_PREPARATION_ONLY,yes,Does not authorize external execution by CI.
+ASG-002,staging_backend,Isolated staging backend and staging-only secret,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04,yes,Must not use production backend.
+ASG-003,authentication,User A/B authentication succeeds; unauthenticated access fails,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04,yes,Real JWT context required.
+ASG-004,owner_scope,User B cannot read or process user A case,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04,yes,404 required.
+ASG-005,workflow_chain,Build/review/signed/persistence/migration previews pass,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04,yes,All remain dry-run.
+ASG-006,audit_link,Exactly one append-only audit row links correct case/review,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04,yes,No signed-state write.
+ASG-007,idempotency,Deterministic replay and one-time append strategy verified,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04,yes,Actual append is not replayed.
+ASG-008,failure_atomicity,Invalid requests leave no partial write,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04,yes,Case snapshot and audit count stable.
+ASG-009,clinical_safety,"No Case.treatment, prescription, or medication detail",PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04,yes,Not client-facing.
+ASG-010,production_hard_gate,Production remains 0009 and dangerous flags false,PENDING_RUNTIME_EVIDENCE,NO_GO_TO_PMAI_P0_04,yes,Read-only check.
+ASG-011,active_0010,No active backend/migrations/versions/0010*.py,VALIDATOR_FILESYSTEM_CHECK,GO_FOR_PACKAGE_INITIALIZATION_ONLY,yes,P0-04 only.
+ASG-012,current_decision,Hold until all P0-03 evidence is verified,HOLD_PMAI_P0_03_PENDING_AUTHENTICATED_STAGING_SMOKE_EVIDENCE,HOLD_PMAI_P0_03_PENDING_AUTHENTICATED_STAGING_SMOKE_EVIDENCE,yes,Completion decision is not activated.

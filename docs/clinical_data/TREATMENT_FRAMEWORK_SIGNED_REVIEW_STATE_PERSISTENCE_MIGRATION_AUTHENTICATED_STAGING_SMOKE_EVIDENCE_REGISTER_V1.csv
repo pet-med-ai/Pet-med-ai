@@ -1,0 +1,31 @@
+evidence_id,evidence_type,required_field,observed_value,evidence_source,evidence_sha256,evidence_status,blocking,notes
+ASE-001,environment,staging_backend_label,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Non-secret Render service label.
+ASE-002,environment,staging_region,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected Ohio US East.
+ASE-003,environment,staging_database_revision,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected 0009_diag_data.
+ASE-004,environment,production_database_revision,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected 0009_diag_data.
+ASE-005,environment,dangerous_feature_flags,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,All required flags false.
+ASE-006,authentication,user_a_authenticated,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected true.
+ASE-007,authentication,user_b_authenticated,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected true.
+ASE-008,authorization,unauthenticated_request_blocked,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected HTTP 401.
+ASE-009,authorization,cross_user_case_read_blocked,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected HTTP 404.
+ASE-010,authorization,cross_user_chain_blocked,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected HTTP 404.
+ASE-011,workflow,treatment_framework_build,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected PASS.
+ASE-012,workflow,clinician_review,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected PASS.
+ASE-013,workflow,append_only_audit_link,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Exactly one row.
+ASE-014,workflow,signed_review_state_preview,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected PASS and persisted=false.
+ASE-015,workflow,persistence_prepare_preview,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected PASS and writes_database=false.
+ASE-016,workflow,migration_path_preview,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected PASS and migration_enabled=false.
+ASE-017,readback,case_snapshot_unchanged,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected true.
+ASE-018,readback,audit_case_link_correct,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected true.
+ASE-019,idempotency,dry_run_replay_deterministic,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected true.
+ASE-020,idempotency,actual_audit_append_count,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected 1.
+ASE-021,failure,missing_audit_reference_blocked,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected HTTP 422.
+ASE-022,failure,missing_migration_ack_blocked,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected HTTP 422.
+ASE-023,failure,forbidden_medication_detail_blocked,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected HTTP 422.
+ASE-024,failure,no_partial_write_after_failures,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected true.
+ASE-025,safety,case_treatment_write,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected false.
+ASE-026,safety,prescription_write,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected false.
+ASE-027,safety,medication_detail_output,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Expected false.
+ASE-028,governance,operator_role,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Role label only.
+ASE-029,governance,incident_owner_role,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,Role label only.
+ASE-030,artifact,sanitized_runner_output,UNRECORDED,UNRECORDED,,PENDING_EXTERNAL_EVIDENCE,yes,JSON artifact and SHA-256.

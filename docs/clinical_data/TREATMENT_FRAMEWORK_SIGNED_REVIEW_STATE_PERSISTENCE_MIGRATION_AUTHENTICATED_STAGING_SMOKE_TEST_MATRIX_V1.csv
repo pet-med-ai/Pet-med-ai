@@ -1,0 +1,21 @@
+test_id,test_area,request_or_check,expected_result,observed_result,test_status,evidence_source,blocking,notes
+AST-001,preflight,staging health/version/flags,200; revision 0009; flags false,UNRECORDED,PENDING,UNRECORDED,yes,Read-only preflight.
+AST-002,authentication,signup/login user A and user B,both authenticated,UNRECORDED,PENDING,UNRECORDED,yes,Ephemeral credentials.
+AST-003,authentication,unauthenticated framework build,HTTP 401,UNRECORDED,PENDING,UNRECORDED,yes,Endpoint protected.
+AST-004,owner_scope,user B GET user A case,HTTP 404,UNRECORDED,PENDING,UNRECORDED,yes,No existence leak.
+AST-005,framework,authenticated framework build,PASS; no write,UNRECORDED,PENDING,UNRECORDED,yes,No dose/route/frequency.
+AST-006,review,authenticated clinician review,PASS; preview only,UNRECORDED,PENDING,UNRECORDED,yes,No review-state persistence.
+AST-007,audit,audit dry-run repeated with fixed request ID,deterministic match,UNRECORDED,PENDING,UNRECORDED,yes,Preflight idempotency strategy.
+AST-008,audit,single confirmed audit append,one append-only row,UNRECORDED,PENDING,UNRECORDED,yes,Do not replay.
+AST-009,signed_state,signed review state preview,correct case/review/audit; persisted=false,UNRECORDED,PENDING,UNRECORDED,yes,No signed-state write.
+AST-010,persistence,persistence prepare preview,writes_database=false,UNRECORDED,PENDING,UNRECORDED,yes,Migration still required.
+AST-011,migration_path,migration dry-run preview,migration_enabled=false; no 0010,UNRECORDED,PENDING,UNRECORDED,yes,P0-04 remains separate.
+AST-012,owner_scope,user B treatment chain request,HTTP 404,UNRECORDED,PENDING,UNRECORDED,yes,Owner scope on chain.
+AST-013,replay,repeat read-only chain,preview hashes match,UNRECORDED,PENDING,UNRECORDED,yes,Deterministic replay.
+AST-014,failure,missing audit reference,HTTP 422 and no extra write,UNRECORDED,PENDING,UNRECORDED,yes,Fail closed.
+AST-015,failure,missing migration acknowledgement,HTTP 422 and no extra write,UNRECORDED,PENDING,UNRECORDED,yes,Fail closed.
+AST-016,failure,forbidden medication detail,HTTP 422 and no extra write,UNRECORDED,PENDING,UNRECORDED,yes,No medication detail output.
+AST-017,readback,owner-scoped QA audit readback,exactly one linked audit row,UNRECORDED,PENDING,UNRECORDED,yes,Correct case and event.
+AST-018,atomicity,final case/audit snapshot,case unchanged; audit count one,UNRECORDED,PENDING,UNRECORDED,yes,No partial write.
+AST-019,production,production version/flags,revision 0009; flags false,UNRECORDED,PENDING,UNRECORDED,yes,Read-only production check.
+AST-020,secret_safety,sanitize evidence artifact,no URL/token/email/password/raw IDs,UNRECORDED,PENDING,UNRECORDED,yes,SHA-256 manifest required.
