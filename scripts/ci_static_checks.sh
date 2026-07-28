@@ -10,12 +10,14 @@ cd "$ROOT"
 MIN_SMOKE_LINES=1000
 
 TARGETS=(
+  "backend/diagnostic_data_api.py"
   "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md"
   "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_CHECKLIST_V1.csv"
   "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_EVIDENCE_REGISTER_V1.csv"
   "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_TEST_MATRIX_V1.csv"
   "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_GO_NO_GO_V1.csv"
   "scripts/run_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py"
+  "scripts/validate_clinical_qa_dashboard_v2.py"
   "scripts/validate_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py"
   "scripts/ci_static_checks.sh"
   "scripts/smoke_petmed.sh"
@@ -129,6 +131,8 @@ for target in "${TARGETS[@]}"; do
 done
 
 printf '%s\n' "[ci_static_checks] python syntax"
+python3 -m py_compile backend/diagnostic_data_api.py
+python3 -m py_compile scripts/validate_clinical_qa_dashboard_v2.py
 python3 -m py_compile scripts/run_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py
 python3 -m py_compile scripts/validate_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py
 for validator in scripts/validate_*.py; do
@@ -146,6 +150,11 @@ STATIC_BACKEND_JOB="$(
 )"
 printf '%s\n' "$STATIC_BACKEND_JOB" | grep -q 'uses: actions/checkout@v4'
 printf '%s\n' "$STATIC_BACKEND_JOB" | grep -q 'fetch-depth: 0'
+
+printf '%s\n' "[ci_static_checks] Clinical QA Dashboard V2 static checks"
+printf '%s\n' "[ci_static_checks] P0-03 audit readback contract repair"
+grep -Fq '"audit_logs": dashboard_payload["audit_logs"]' backend/diagnostic_data_api.py
+python3 scripts/validate_clinical_qa_dashboard_v2.py
 
 printf '%s\n' "[ci_static_checks] signed review state persistence migration authenticated staging smoke package validator"
 python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py

@@ -1541,6 +1541,7 @@ def get_clinical_qa_dashboard_v2_summary(
             "owner_scoped": True,
         },
         **dashboard,
+        "audit_logs": dashboard_payload["audit_logs"],
         "safety": combined_safety,
         **combined_safety,
     }

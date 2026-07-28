@@ -25,15 +25,32 @@ CHECKLIST_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERS
 REGISTER_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_EVIDENCE_REGISTER_V1.csv"
 MATRIX_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_TEST_MATRIX_V1.csv"
 GO_NO_GO_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_GO_NO_GO_V1.csv"
+API_REL = "backend/diagnostic_data_api.py"
+CLINICAL_QA_REL = "backend/clinical_qa_dashboard.py"
 RUNNER_REL = "scripts/run_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py"
+CLINICAL_QA_VALIDATOR_REL = "scripts/validate_clinical_qa_dashboard_v2.py"
 VALIDATOR_REL = "scripts/validate_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py"
 CI_REL = "scripts/ci_static_checks.sh"
 SMOKE_REL = "scripts/smoke_petmed.sh"
 WORKFLOW_REL = ".github/workflows/ci-gate.yml"
 PREVIOUS_DOC_REL = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md"
 PREVIOUS_VALIDATOR_REL = "scripts/validate_treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence.py"
-TARGET_PATHS = ['docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_CHECKLIST_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_EVIDENCE_REGISTER_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_TEST_MATRIX_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_GO_NO_GO_V1.csv', 'scripts/run_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py', 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py', 'scripts/ci_static_checks.sh', 'scripts/smoke_petmed.sh']
+TARGET_PATHS = [
+    "backend/diagnostic_data_api.py",
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md",
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_CHECKLIST_V1.csv",
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_EVIDENCE_REGISTER_V1.csv",
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_TEST_MATRIX_V1.csv",
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_GO_NO_GO_V1.csv",
+    "scripts/run_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py",
+    "scripts/validate_clinical_qa_dashboard_v2.py",
+    "scripts/validate_treatment_framework_signed_review_state_persistence_migration_authenticated_staging_smoke.py",
+    "scripts/ci_static_checks.sh",
+    "scripts/smoke_petmed.sh",
+]
 DANGEROUS_FLAGS = ['ENABLE_EMR_REAL_IMPORT', 'ENABLE_EMR_IMPORT_CASE_UPDATE', 'ENABLE_EMR_ATTACHMENT_DOWNLOAD', 'ENABLE_PREVENTIVE_AUTO_DELIVERY', 'ENABLE_PREVENTIVE_SMS_DELIVERY', 'ENABLE_PREVENTIVE_WECHAT_DELIVERY', 'ENABLE_PREVENTIVE_EMAIL_DELIVERY', 'ENABLE_PRESCRIPTION_STRUCTURED_WRITE', 'ENABLE_DEVICE_REAL_INGEST', 'ENABLE_BILLING_REAL_WRITE']
+AUDIT_LOG_ALLOWED_FIELDS = ["log_id", "case_id", "event_type", "source", "created_at"]
+AUDIT_LOG_FORBIDDEN_FIELDS = ["note", "metadata", "metadata_json", "patient_token", "clinician_id", "request_id"]
 
 P0_02_RUNTIME_BEGIN = "# >>> treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1_smoke_petmed_runtime_gate"
 P0_02_COMPAT_BEGIN = "# >>> treatment_framework_signed_review_state_persistence_migration_rollback_restore_evidence_v1_smoke_petmed_compatibility_gate"
@@ -247,6 +264,82 @@ def check_runner():
     require("stamp head" not in runner, "runner must not execute stamp head")
 
 
+def check_audit_readback_contract():
+    api = read(API_REL)
+    start = "# --- Clinical QA Dashboard V2 endpoint: start ---"
+    end = "# --- Clinical QA Dashboard V2 endpoint: end ---"
+    require(api.count(start) == 1, "Clinical QA endpoint start marker must occur once")
+    require(api.count(end) == 1, "Clinical QA endpoint end marker must occur once")
+    block = api.split(start, 1)[1].split(end, 1)[0]
+    require_tokens(
+        "PMAI-P0-03 owner-scoped audit readback contract",
+        block,
+        [
+            "case = _owned_case_or_404(db, int(case_id), user)",
+            "Case.owner_id == owner_id",
+            "case_ids = [int(item.id) for item in case_rows]",
+            "AuditLog.case_id.in_(case_ids)",
+            '"owner_scoped": True',
+            '"audit_logs": dashboard_payload["audit_logs"]',
+            "**dashboard",
+        ],
+    )
+
+    mapping = re.search(
+        r'(?ms)^\s*"audit_logs":\s*\[\s*\{(?P<body>.*?)^\s*\}\s*\n\s*for item in audit_logs\s*\n\s*\],',
+        block,
+    )
+    require(mapping is not None, "sanitized audit_logs mapping is missing")
+    fields = re.findall(r'(?m)^\s*"([^"]+)":', mapping.group("body"))
+    require(fields == AUDIT_LOG_ALLOWED_FIELDS, "audit_logs whitelist mismatch: %r" % fields)
+    for field in AUDIT_LOG_FORBIDDEN_FIELDS:
+        require('"%s"' % field not in mapping.group(0), "sensitive audit_logs field exposed: " + field)
+
+    response_token = '"audit_logs": dashboard_payload["audit_logs"]'
+    require(block.count(response_token) == 1, "audit_logs response passthrough must occur once")
+    require(block.rfind(response_token) > block.rfind("**dashboard"), "audit_logs passthrough must follow **dashboard")
+    for token in ("db.add(", "db.commit(", "db.delete(", "AuditLog(", "alembic upgrade", "stamp head"):
+        require(token not in block, "read-only audit response contains forbidden token: " + token)
+
+    runner = read(RUNNER_REL)
+    require_tokens(
+        "PMAI-P0-03 runner audit readback expectation",
+        runner,
+        [
+            'rows = data.get("audit_logs")',
+            'fail("audit readback has no audit_logs list")',
+            "owner-scoped audit readback",
+        ],
+    )
+
+    behavior_validator = read(CLINICAL_QA_VALIDATOR_REL)
+    require_tokens(
+        "Clinical QA audit readback behavior validator",
+        behavior_validator,
+        [
+            "AUDIT_LOG_ALLOWED_FIELDS = (",
+            "AUDIT_LOG_FORBIDDEN_FIELDS = (",
+            "def assert_audit_readback_contract() -> None:",
+            'response must expose only dashboard_payload["audit_logs"]',
+            "cross-user 404 helper token missing",
+            "AUDIT_READBACK_CONTRACT=PASS",
+        ],
+    )
+
+    dashboard = read(CLINICAL_QA_REL)
+    require_tokens(
+        "Clinical QA aggregate compatibility",
+        dashboard,
+        [
+            'CLINICAL_QA_DASHBOARD_MODE = "clinical_qa_dashboard_v2"',
+            '"cards": cards',
+            '"metrics": metrics',
+            '"qa_queue": qa_queue',
+            '"writes_database": False',
+        ],
+    )
+
+
 def check_secret_safety():
     combined = "\n".join(
         read(path)
@@ -296,9 +389,13 @@ def check_ci():
             "# TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1",
             RUNNER_REL,
             VALIDATOR_REL,
+            "python3 -m py_compile " + API_REL,
             "python3 -m py_compile " + RUNNER_REL,
+            "python3 -m py_compile " + CLINICAL_QA_VALIDATOR_REL,
             "python3 -m py_compile " + VALIDATOR_REL,
+            "python3 " + CLINICAL_QA_VALIDATOR_REL,
             "python3 " + VALIDATOR_REL,
+            "P0-03 audit readback contract repair",
             'for validator in "${OPTIONAL_CORE_VALIDATORS[@]:-}"; do',
             '[ -n "$validator" ] || continue',
             "authenticated staging smoke package markers",
@@ -346,6 +443,7 @@ def check_smoke():
     )
     runtime = smoke[runtime_begin:runtime_end]
     require("python3" in runtime and VALIDATOR_REL in runtime, "PMAI-P0-03 validator is not executed by smoke")
+    require("python3 " + CLINICAL_QA_VALIDATOR_REL in smoke, "Clinical QA behavior validator is not preserved in cumulative smoke")
     require(PACKAGE_TOKEN + "=PASS" in runtime, "PMAI-P0-03 package PASS marker missing")
     summary = smoke[final_pass:]
     require_tokens(
@@ -386,6 +484,7 @@ def main():
     doc = check_document()
     check_csvs()
     check_runner()
+    check_audit_readback_contract()
     check_secret_safety()
     check_workflow()
     check_ci()
@@ -417,6 +516,9 @@ def main():
     print("exposes_database_url=false")
     print("PASS: dangerous feature flags disabled")
     print("PASS: no Case.treatment, prescription, or medication-detail output")
+    print("audit_readback_contract=PASS")
+    print("audit_log_field_whitelist=log_id,case_id,event_type,source,created_at")
+    print("owner_scoped_audit_readback=true")
     print("validator_previous_stage_decision=" + ENTRY_DECISION)
     print("validator_decision=" + HOLD_DECISION)
     print("ALL PASS: " + PACKAGE_TOKEN)
