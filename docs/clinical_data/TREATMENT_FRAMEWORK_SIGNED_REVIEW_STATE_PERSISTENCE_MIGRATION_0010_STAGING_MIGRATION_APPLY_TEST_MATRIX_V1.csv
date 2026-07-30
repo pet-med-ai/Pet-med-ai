@@ -1,0 +1,21 @@
+test_id,phase,test,expected,status,evidence,write_scope,decision
+P04-T001,initialization,Exact main baseline,b85e48a,PASS,initializer preflight,none,GOVERNANCE_ONLY
+P04-T002,initialization,P0-03 prerequisite and evidence hash,COMPLETE and exact SHA-256,PASS,repository reference,none,GOVERNANCE_ONLY
+P04-T003,initialization,No active 0010 migration,zero matching files,PASS,repository scan,none,GOVERNANCE_ONLY
+P04-T004,initialization,Locked runner has no execution capability,static lock,PASS,validator,none,GOVERNANCE_ONLY
+P04-T005,initialization,CI exact nine-target scope,exact ordered list,PASS,validator,repository only,GOVERNANCE_ONLY
+P04-T006,initialization,P0-03 smoke gate becomes static,no python execution,PASS,validator,none,GOVERNANCE_ONLY
+P04-T007,initialization,P0-04 smoke gate runs only validator,default validator only,PASS,validator,none,GOVERNANCE_ONLY
+P04-T008,schema_review,Short revision ID approval,length no greater than 32,NOT_AUTHORIZED,UNRECORDED,none,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T009,schema_review,Audit FK type nullability and lifecycle approval,aligned non-null FK,NOT_AUTHORIZED,UNRECORDED,none,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T010,schema_review,Unique idempotency contract approval,non-null unique constraint,NOT_AUTHORIZED,UNRECORDED,none,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T011,schema_review,Case FK deletion lifecycle approval,explicit decision,NOT_AUTHORIZED,UNRECORDED,none,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T012,deployment,Staging-only isolation and production exclusion,verified,NOT_RUN,UNRECORDED,none,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T013,backup,Fresh post-P0-03 backup,verified,NOT_RUN,UNRECORDED,staging backup only,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T014,rehearsal,Disposable restore exact upgrade,approved exact revision,NOT_RUN,UNRECORDED,disposable schema,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T015,rehearsal,Disposable downgrade and return to 0009,0009_diag_data,NOT_RUN,UNRECORDED,disposable schema,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T016,source_apply,Fresh source backup and exact-target apply,approved exact revision,NOT_AUTHORIZED,UNRECORDED,staging schema only,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T017,verification,Pre/post schema and critical-row parity,PASS,NOT_RUN,UNRECORDED,read-only verification,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T018,verification,New table row count,0,NOT_RUN,UNRECORDED,read-only verification,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T019,production,Production revision and data unchanged,0009_diag_data and no write,NOT_RUN,UNRECORDED,read-only verification,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-T020,clinical_safety,No Case.treatment prescription or medication output,all false,PASS_GOVERNANCE_LOCK,package markers,none,NO_GO_TO_PMAI_P0_04_EXECUTION

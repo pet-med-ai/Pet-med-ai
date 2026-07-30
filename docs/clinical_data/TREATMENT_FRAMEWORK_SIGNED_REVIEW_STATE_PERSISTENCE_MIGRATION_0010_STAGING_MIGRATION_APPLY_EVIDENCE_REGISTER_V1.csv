@@ -1,0 +1,21 @@
+evidence_id,category,evidence_item,status,value,storage,secret_safety,decision
+P04-E001,baseline,initializer commit,RECORDED_REFERENCE,b85e48a80019e522a5b5d1f3df6531752de2c25c,repository,PASS,GOVERNANCE_ONLY
+P04-E002,prerequisite,P0-03 external evidence hash,RECORDED_REFERENCE,da52b46466a65316331d420c809bc406e49dfa722b1b5875667e30db50eef213,hash only,PASS,GOVERNANCE_ONLY
+P04-E003,draft,inactive draft hash,RECORDED_REFERENCE,bfab1107e54d888854d685fcab62e4367871acd44c12d2c2bad0a63946a8995d,repository,PASS,GOVERNANCE_ONLY
+P04-E004,draft,revision length blocker,BLOCKER_RECORDED,45 exceeds maximum 32,repository,PASS,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E005,draft,audit foreign-key blocker,BLOCKER_RECORDED,nullable String(120) index-only versus audit_log.log_id String(64) PK,repository,PASS,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E006,draft,idempotency blocker,BLOCKER_RECORDED,non-null unique idempotency constraint absent,repository,PASS,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E007,draft,case lifecycle blocker,BLOCKER_RECORDED,case foreign-key ondelete unspecified,repository,PASS,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E008,deployment,production auto-deploy risk,BLOCKER_RECORDED,pet-med-ai-backend autoDeployTrigger commit,repository,PASS,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E009,deployment,staging-only commit isolation or production freeze,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E010,artifact,approved active migration file SHA-256,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E011,backup,fresh post-P0-03 staging backup,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external restricted workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E012,rehearsal,disposable restore identity and source revision,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E013,rehearsal,exact-target upgrade result,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E014,rehearsal,downgrade and return-to-0009 result,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E015,backup,fresh pre-source-apply staging backup,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external restricted workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E016,source_apply,source commit and migration SHA pin,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E017,source_apply,exact approved revision apply output,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E018,verification,pre/post schema comparison,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E019,verification,critical row parity and new table zero rows,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-E020,production,production remains 0009 and unchanged,UNRECORDED,PENDING_EXTERNAL_EVIDENCE,external sanitized workspace,REQUIRED,NO_GO_TO_PMAI_P0_04_EXECUTION
