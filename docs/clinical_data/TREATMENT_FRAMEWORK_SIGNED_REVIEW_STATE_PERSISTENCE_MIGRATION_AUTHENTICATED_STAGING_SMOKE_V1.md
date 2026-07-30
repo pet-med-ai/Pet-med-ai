@@ -6,27 +6,29 @@ stage_id=PMAI-P0-03
 stage_name=Treatment Framework Signed Review State Persistence Migration Authenticated Staging Smoke V1
 stage_type=authenticated_staging_smoke
 PACKAGE_INITIALIZED=true
-STAGE_STATUS=IN_PROGRESS
-EVIDENCE_COMPLETENESS=PENDING_EXTERNAL_EXECUTION
-AUTHENTICATED_STAGING_SMOKE_COMPLETE=false
-STAGING_BACKEND_PROVISIONED=false
-STAGING_BACKEND_ISOLATED=false
-STAGING_DATABASE_REVISION_VERIFIED=false
-AUTHENTICATION_VERIFIED=false
-OWNER_SCOPE_VERIFIED=false
-CROSS_USER_DENIAL_VERIFIED=false
-TREATMENT_FRAMEWORK_BUILD_VERIFIED=false
-CLINICIAN_REVIEW_VERIFIED=false
-APPEND_ONLY_AUDIT_LINK_VERIFIED=false
-SIGNED_REVIEW_STATE_PREVIEW_VERIFIED=false
-PERSISTENCE_PREPARE_VERIFIED=false
-MIGRATION_PATH_PREVIEW_VERIFIED=false
-READBACK_VERIFIED=false
-IDEMPOTENCY_STRATEGY_VERIFIED=false
-FAILURE_NO_PARTIAL_WRITE_VERIFIED=false
-STAGING_SYNTHETIC_USERS_WRITE_EXECUTED=false
-STAGING_SYNTHETIC_CASE_WRITE_EXECUTED=false
-STAGING_APPEND_ONLY_AUDIT_WRITE_EXECUTED=false
+STAGE_STATUS=COMPLETE
+EVIDENCE_COMPLETENESS=COMPLETE
+AUTHENTICATED_STAGING_SMOKE_COMPLETE=true
+EVIDENCE_INTEGRITY_VERIFIED=true
+STAGING_BACKEND_PROVISIONED=true
+STAGING_BACKEND_ISOLATED=true
+STAGING_DATABASE_REVISION_VERIFIED=true
+AUTHENTICATION_VERIFIED=true
+OWNER_SCOPE_VERIFIED=true
+CROSS_USER_DENIAL_VERIFIED=true
+TREATMENT_FRAMEWORK_BUILD_VERIFIED=true
+CLINICIAN_REVIEW_VERIFIED=true
+APPEND_ONLY_AUDIT_LINK_VERIFIED=true
+SIGNED_REVIEW_STATE_PREVIEW_VERIFIED=true
+PERSISTENCE_PREPARE_VERIFIED=true
+MIGRATION_PATH_PREVIEW_VERIFIED=true
+READBACK_VERIFIED=true
+IDEMPOTENCY_STRATEGY_VERIFIED=true
+FAILURE_NO_PARTIAL_WRITE_VERIFIED=true
+STAGING_SYNTHETIC_USERS_WRITE_EXECUTED=true
+STAGING_SYNTHETIC_CASE_WRITE_EXECUTED=true
+STAGING_APPEND_ONLY_AUDIT_WRITE_EXECUTED=true
+STAGING_APPEND_ONLY_AUDIT_WRITE_COUNT=1
 SIGNED_REVIEW_0010_STAGING_MIGRATION_EXECUTED=false
 PRODUCTION_MIGRATION_EXECUTED=false
 ACTIVE_0010_MIGRATION_FILE_CREATED=false
@@ -38,124 +40,102 @@ CLIENT_FACING_MEDICATION_DETAIL_OUTPUT=false
 STAGING_DATABASE_URL_RECORDED=false
 STAGING_CREDENTIAL_RECORDED=false
 RUNNER_REQUIRES_EXPLICIT_CONFIRMATION=true
+RUNNER_EXECUTED_BY_CI=false
 PACKAGE_CONNECTS_DATABASE=false
 PACKAGE_WRITES_DATABASE=false
+P0_04_ENTRY_AUTHORIZED=true
+STAGING_0010_APPLY_AUTHORIZED=false
+PRODUCTION_MIGRATION_AUTHORIZED=false
 
-PMAI-P0-03 is initialized but not complete. This package prepares a guarded
-authenticated staging runner and evidence registers. The repository apply
-script and package validator perform no HTTP call and no database write.
+PMAI-P0-03 is complete. A real authenticated smoke run was executed only
+against the isolated staging backend. The resulting external JSON artifact
+was sanitized, permission-checked, SHA-256 verified, and deliberately kept
+outside the repository. Completion authorizes entry into P0-04 governance;
+it does not itself create or execute migration 0010.
 
-## Entry gate
+## Entry and reproducible baseline
 
 baseline_commit_sha=b37362a2a343b068926edce4862b6f7d7c62a19d
+smoke_execution_commit_sha=4ef91255e8eb1ca15be17579a1dceb2587d7b575
+smoke_execution_repo_head=4ef9125
 previous_stage_document=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_ROLLBACK_RESTORE_EVIDENCE_V1.md
 previous_stage_status=COMPLETE
 previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1
 rollback_restore_evidence_complete=true
 
-## Purpose and clinical value
+## Sanitized external evidence summary
 
-Use a real authenticated context, an isolated staging backend, two synthetic
-users, and a synthetic staging case to verify the full pre-migration chain:
+evidence_artifact_basename=PMAI_P0_03_AUTHENTICATED_STAGING_SMOKE_V1.json
+evidence_artifact_sha256=da52b46466a65316331d420c809bc406e49dfa722b1b5875667e30db50eef213
+evidence_artifact_committed=false
+evidence_artifact_storage=external_local_workspace_not_committed
+evidence_integrity_verified=true
+evidence_file_mode=600
+evidence_workspace_mode=700
+smoke_started_at_utc=2026-07-29T14:50:33Z
+smoke_completed_at_utc=2026-07-29T14:51:18Z
+staging_service_label=pet-med-ai-backend-staging-ohio
+staging_region=Ohio_US_East
+staging_revision=0009_diag_data
+production_revision=0009_diag_data
+operator_role=release_operator
+incident_owner_role=backend_owner
 
-```text
-build treatment framework
--> clinician review
--> append-only treatment-framework audit link
--> signed review state preview
--> persistence prepare preview
--> migration path preview
--> owner-scoped readback
-```
+No staging URL, database connection URI, credential, token, email address,
+raw user identifier, raw case identifier, or raw audit identifier is stored
+in this package.
 
-This stage verifies authorization and dry-run behavior before any signed-review
-0010 schema apply. It is not a migration stage and not a controlled signed-state
-persistence stage.
+## Verified authentication and owner scope
 
-## Required isolated staging backend
+unauthenticated_request_blocked=true
+user_a_authenticated=true
+user_b_authenticated=true
+cross_user_case_read_blocked=true
+cross_user_treatment_chain_blocked=true
+cross_user_audit_readback_blocked=true
+owner_scoped_audit_readback_verified=true
 
-The future external run requires a dedicated Render web service such as:
+## Verified workflow chain
 
-```text
-service_label=pet-med-ai-backend-staging-ohio
-region=Ohio_US_East
-database_service=pet-med-ai-db-staging-source-ohio
-environment=staging
-production_database_attached=false
-production_secret_reused=false
-```
+treatment_framework_build_verified=true
+clinician_review_verified=true
+append_only_audit_link_verified=true
+signed_review_state_preview_verified=true
+persistence_prepare_preview_verified=true
+migration_path_preview_verified=true
+readback_verified=true
+case_snapshot_unchanged=true
 
-Required staging-only environment values:
+## Verified idempotency and failure behavior
 
-```text
-DATABASE_URL=<Render staging internal database URL; never commit>
-SECRET_KEY=<unique staging-only secret; never commit>
-ENVIRONMENT=staging
-PYTHON_VERSION=3.11.9
-```
+idempotency_strategy=write_once_audit_append_plus_deterministic_read_only_replay
+audit_dry_run_repeated=true
+actual_audit_append_replayed=false
+read_only_chain_repeated=true
+server_unique_request_constraint_claimed=false
+dry_run_replay_deterministic=true
+missing_audit_reference_blocked=true
+missing_migration_ack_blocked=true
+forbidden_medication_detail_blocked=true
+no_partial_write_after_failures=true
 
-All dangerous feature flags remain false. The runner refuses the production
-backend hostname and requires `staging` in the target hostname.
+## Controlled staging write scope
 
-## External runner write scope
+synthetic_users_created=2
+synthetic_cases_created=1
+append_only_audit_rows_created=1
+signed_review_state_rows_created=0
+case_treatment_write=false
+prescription_write=false
+medication_detail_output=false
+production_database_write=false
+active_0010_created=false
+migration_executed=false
 
-The guarded runner is not invoked by CI or cumulative smoke. When explicitly
-executed against the isolated staging backend, it is allowed to create only:
-
-```text
-two synthetic staging users
-one synthetic staging case
-exactly one append-only treatment-framework audit row
-```
-
-It must not write:
-
-```text
-Case.treatment
-treatment framework persistence
-signed review state persistence
-prescription records
-medication amount, route, or frequency
-client-facing output
-production data
-```
-
-## Authentication and owner-scope matrix
-
-The external evidence must prove:
-
-- unauthenticated treatment-framework requests return 401;
-- user A can access only user A's synthetic case;
-- user B receives 404 for user A's case and treatment-framework chain;
-- readback audit linkage points only to user A's case;
-- no token, email, password, connection URI, or raw case identifier is
-  committed as evidence.
-
-## Idempotency strategy
-
-The current append-only audit endpoint does not claim server-side request-ID
-uniqueness. PMAI-P0-03 therefore uses a fail-closed interim strategy:
-
-1. run the audit request twice in dry-run mode with a fixed request ID and
-   require deterministic output;
-2. append the audit row exactly once;
-3. never replay the actual append request;
-4. repeat all subsequent read-only dry-run chain requests and require
-   deterministic preview hashes;
-5. require exactly one audit row on owner-scoped readback.
-
-A database uniqueness constraint for future signed-state persistence remains a
-P0-04/P0-05 concern. This stage does not create that constraint.
-
-## Failure and partial-write checks
-
-The external evidence must verify that the following fail with no extra audit
-row and no Case mutation:
-
-- missing audit reference before signed-review preview;
-- missing migration design/readiness acknowledgement;
-- forbidden medication amount, route, frequency, or prescription wording;
-- cross-user access.
+The two users and one case are synthetic staging-only records. The single
+audit row is append-only and is the only treatment-chain persistence created
+by the successful smoke. This promotion performs no cleanup of earlier
+failed-attempt staging records.
 
 ## Production hard gate remains unchanged
 
@@ -179,20 +159,34 @@ exposes_database_url=false
 - ENABLE_DEVICE_REAL_INGEST=false
 - ENABLE_BILLING_REAL_WRITE=false
 
-## Completion contract
+## Completion boundary
 
-PMAI-P0-03 can be marked COMPLETE only after a sanitized external evidence
-artifact proves authentication, owner scope, cross-user denial, deterministic
-replay, exactly one append-only audit link, complete dry-run chain, and no
-partial write on failure.
-
-Until then:
-
-authenticated_staging_smoke_complete=false
+authenticated_staging_smoke_complete=true
+p0_04_entry_authorized=true
 staging_0010_apply_authorized=false
 production_migration_authorized=false
 
+P0-04 may now be initialized as a separate controlled stage. Before any
+staging schema apply, P0-04 must establish its own target files, validator,
+explicit confirmation, rollback boundary, and staging-only execution gate.
+This promotion does not create an active migration file and does not execute
+Alembic.
+
+## Explicit non-goals retained
+
+- no active backend/migrations/versions/0010*.py in this promotion
+- no signed-review 0010 staging migration execution
+- no production migration or production schema change
+- no Case.treatment write
+- no prescription write
+- no medication amount, route, or frequency output
+- no client-facing AI diagnosis
+- no real EMR, LIS, DICOM, PACS, device, or gateway ingest
+- no automatic SMS, WeChat, or email delivery
+- no real invoice write
+
 ## Decision
 
-decision=HOLD_PMAI_P0_03_PENDING_AUTHENTICATED_STAGING_SMOKE_EVIDENCE
+previous_stage_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1
+decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1
 completion_decision=GO_TO_TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1
