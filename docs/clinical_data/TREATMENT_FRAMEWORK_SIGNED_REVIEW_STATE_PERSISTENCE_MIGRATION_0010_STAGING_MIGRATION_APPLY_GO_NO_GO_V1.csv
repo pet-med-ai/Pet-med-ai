@@ -1,11 +1,11 @@
 gate_id,gate,required_state,current_state,evidence_status,decision,notes
 P04-G001,P0-03 entry gate,COMPLETE with verified evidence,PASS,VERIFIED_REFERENCE,GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY,Does not authorize migration execution
 P04-G002,Governance package gate,IN_PROGRESS package with locked runner,PASS,PACKAGE_INITIALIZED,GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY,Repository-only initialization
-P04-G003,Migration schema approval,All four draft blockers resolved,BLOCKED,PENDING_GOVERNANCE,NO_GO_TO_PMAI_P0_04_EXECUTION,Do not activate draft
+P04-G003,Migration schema approval,Corrected contract recorded; inactive draft remains unapproved,PASS_GOVERNANCE_ONLY,SCHEMA_CONTRACT_RECORDED,GO_TO_PMAI_P0_04_DEPLOYMENT_ISOLATION_AND_REHEARSAL_PREPARATION_ONLY,Not an active migration or execution authorization
 P04-G004,Deployment isolation,Staging-only pin or production freeze,BLOCKED,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04_EXECUTION,Production auto-deploy risk
 P04-G005,Fresh backup,Post-P0-03 staging backup verified,BLOCKED,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04_EXECUTION,Old P0-02 backup is insufficient
 P04-G006,Disposable restore rehearsal,Apply downgrade and return to 0009,BLOCKED,PENDING_EXTERNAL_EVIDENCE,NO_GO_TO_PMAI_P0_04_EXECUTION,Must precede source staging apply
 P04-G007,Source staging apply,Fresh backup exact revision and pinned artifact,NOT_AUTHORIZED,UNRECORDED,NO_GO_TO_PMAI_P0_04_EXECUTION,Forbid upgrade head stamp and manual edits
 P04-G008,Post-apply evidence,Schema parity zero new rows production unchanged,NOT_RUN,UNRECORDED,NO_GO_TO_PMAI_P0_04_EXECUTION,Sanitized external evidence required
 P04-G009,Clinical safety,No treatment prescription or client medication output,LOCKED_FALSE,GOVERNANCE_MARKERS,NO_GO_TO_PMAI_P0_04_EXECUTION,No clinical write scope
-P04-G010,PMAI-P0-04 execution,All blocking gates PASS plus separate authorization,HOLD,INCOMPLETE,HOLD_PMAI_P0_04_PENDING_STAGING_0010_APPLY_GOVERNANCE_AND_EVIDENCE,Remain IN_PROGRESS
+P04-G010,PMAI-P0-04 execution,All blocking gates PASS plus separate authorization,HOLD,INCOMPLETE,HOLD_PMAI_P0_04_PENDING_DEPLOYMENT_ISOLATION_BACKUP_REHEARSAL_AND_EXTERNAL_EVIDENCE,Schema resolved; deployment isolation backup rehearsal and external evidence remain

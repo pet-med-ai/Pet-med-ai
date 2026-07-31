@@ -4,10 +4,10 @@ P04-C002,entry,P0-03 evidence SHA-256 is locked,VERIFIED_REFERENCE,da52b46466a65
 P04-C003,baseline,Clean main at reviewed commit,VERIFIED_INITIALIZER,b85e48a80019e522a5b5d1f3df6531752de2c25c,yes,GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY
 P04-C004,baseline,No active 0010 migration exists,VERIFIED_INITIALIZER,backend/migrations/versions/0010*.py absent,yes,GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY
 P04-C005,draft,Inactive draft hash is unchanged,VERIFIED_REFERENCE,bfab1107e54d888854d685fcab62e4367871acd44c12d2c2bad0a63946a8995d,yes,GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY
-P04-C006,schema,Approve revision ID no longer than 32 characters,BLOCKED_REQUIRES_DECISION,45-character draft revision is invalid,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
-P04-C007,schema,Approve aligned non-null audit_log.log_id foreign key and lifecycle,BLOCKED_REQUIRES_DECISION,draft is nullable String(120) and index-only,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
-P04-C008,schema,Approve non-null unique idempotency key and constraint,BLOCKED_REQUIRES_DECISION,draft contains neither,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
-P04-C009,schema,Approve case foreign-key ondelete and lifecycle,BLOCKED_REQUIRES_DECISION,draft does not specify ondelete,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-C006,schema,Approved revision ID is 0010_signed_review_states and no longer than 32 characters,GOVERNANCE_APPROVED,0010_signed_review_states length 25,yes,GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION
+P04-C007,schema,Approved same-case audit identity semantics and referenced-audit immutability,GOVERNANCE_APPROVED,unique composite FK RESTRICT; fixed event source action actor request and payload hash; protection triggers,yes,GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION
+P04-C008,schema,Approved transactional random idempotency key payload hash and conflict contract,GOVERNANCE_APPROVED,random opaque String(64) unique; same-hash replay; mismatch HTTP 409; atomic audit,yes,GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION
+P04-C009,schema,Approved one-root immutable non-branching version and case lifecycle,GOVERNANCE_APPROVED,partial unique root; unique same-case supersedes; mutation reject; active-case FOR SHARE; case RESTRICT,yes,GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION
 P04-C010,deployment,Isolate staging branch/commit or freeze production deploy,PENDING_EXTERNAL_EVIDENCE,production autoDeployTrigger is commit,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
 P04-C011,deployment,Pin staging source commit and active migration SHA-256,PENDING_EXTERNAL_EVIDENCE,UNRECORDED,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
 P04-C012,backup,Create fresh staging backup after P0-03 writes,PENDING_EXTERNAL_EVIDENCE,UNRECORDED,yes,NO_GO_TO_PMAI_P0_04_EXECUTION

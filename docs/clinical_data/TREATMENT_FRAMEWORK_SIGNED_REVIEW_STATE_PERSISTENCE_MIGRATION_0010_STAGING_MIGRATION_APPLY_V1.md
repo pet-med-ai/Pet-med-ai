@@ -7,7 +7,7 @@ stage_name=Treatment Framework Signed Review State Persistence Migration 0010 St
 stage_type=staging_migration_apply_governance_preparation
 PACKAGE_INITIALIZED=true
 STAGE_STATUS=IN_PROGRESS
-EVIDENCE_COMPLETENESS=PENDING_GOVERNANCE_AND_EXTERNAL_EXECUTION
+EVIDENCE_COMPLETENESS=PENDING_DEPLOYMENT_ISOLATION_BACKUP_REHEARSAL_AND_EXTERNAL_EXECUTION
 P0_03_PREREQUISITE_COMPLETE=true
 P0_04_ENTRY_AUTHORIZED=true
 P0_04_GOVERNANCE_PREPARATION_COMPLETE=true
@@ -43,7 +43,7 @@ source_database_revision=0009_diag_data
 source_alembic_head=0009_diag_data
 production_database_revision_expected=0009_diag_data
 
-## Inactive draft review — unresolved blocking findings
+## Inactive draft findings and approved replacement contract
 
 inactive_draft_sha256=bfab1107e54d888854d685fcab62e4367871acd44c12d2c2bad0a63946a8995d
 inactive_draft_revision=0010_treatment_framework_signed_review_states
@@ -51,7 +51,7 @@ inactive_draft_revision_length=45
 alembic_revision_max_length=32
 candidate_short_revision=0010_signed_review_states
 candidate_short_revision_length=25
-candidate_short_revision_approved=false
+candidate_short_revision_approved=true
 draft_revision_id_approved=false
 draft_audit_log_reference_type=String(120)
 expected_audit_log_id_type=String(64)
@@ -61,7 +61,36 @@ draft_audit_log_foreign_key_present=false
 draft_idempotency_key_non_null=false
 draft_idempotency_unique_constraint_present=false
 draft_case_foreign_key_ondelete_specified=false
-migration_schema_review_approved=false
+migration_schema_review_approved=true
+
+schema_contract_resolution_recorded=true
+P0_04_SCHEMA_CONTRACT_RESOLUTION_COMPLETE=true
+schema_contract_resolution_baseline_commit_sha=5262f1438c7a36137c930301c36f82ed05dc56ff
+schema_contract_resolution_document=TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_SCHEMA_CONTRACT_RESOLUTION_V1.md
+schema_contract_approval_scope=GOVERNANCE_ONLY_NOT_EXECUTION_AUTHORIZATION
+corrected_migration_implementation_authorized=false
+approved_revision=0010_signed_review_states
+approved_revision_length=25
+approved_down_revision=0009_diag_data
+approved_audit_log_id_type=String(64)
+approved_audit_log_same_case_composite_fk=true
+approved_audit_log_composite_unique=true
+approved_audit_log_id_unique=true
+approved_audit_semantics_insert_trigger_required=true
+approved_referenced_audit_mutation_protection_required=true
+approved_idempotency_key_type=String(64)
+approved_idempotency_key_unique=true
+approved_idempotency_key_random_opaque=true
+approved_payload_sha256_type=String(64)
+approved_row_lifecycle=IMMUTABLE_VERSIONED_APPEND_ONLY
+approved_supersedes_state_id=true
+approved_one_root_per_case_partial_unique_index=true
+approved_append_only_trigger_required=true
+approved_active_case_insert_trigger_required=true
+approved_active_case_insert_lock=FOR_SHARE
+approved_updated_at_present=false
+approved_finite_vocabulary_enforcement=DATABASE_CHECK_CONSTRAINTS_REQUIRED
+approved_input_normalization_mapping_recorded=true
 
 The inactive `.py.txt` draft cannot be activated as written:
 
@@ -76,8 +105,9 @@ The inactive `.py.txt` draft cannot be activated as written:
 4. The `case_id` foreign key does not specify deletion behavior. Its `ondelete`
    and lifecycle contract must be decided explicitly.
 
-Every finding above is blocking. Resolving it requires a separately reviewed
-change; governance initialization is not permission to edit or copy the draft.
+The old draft remains blocked exactly as written. The separately reviewed replacement
+contract is now recorded in the dedicated schema-contract document, but does not
+authorize editing, copying, activation, deployment, database access, or Alembic.
 
 ## Deployment isolation blocker
 
@@ -152,5 +182,5 @@ database output belong in this repository package.
 
 ## Current decision
 
-decision=HOLD_PMAI_P0_04_PENDING_STAGING_0010_APPLY_GOVERNANCE_AND_EVIDENCE
-next_step=RESOLVE_SCHEMA_BLOCKERS_AND_APPROVE_ISOLATED_STAGING_EXECUTION_PLAN
+decision=HOLD_PMAI_P0_04_PENDING_DEPLOYMENT_ISOLATION_BACKUP_REHEARSAL_AND_EXTERNAL_EVIDENCE
+next_step=ESTABLISH_DEPLOYMENT_ISOLATION_THEN_CAPTURE_FRESH_BACKUP_AND_RUN_DISPOSABLE_REHEARSAL
