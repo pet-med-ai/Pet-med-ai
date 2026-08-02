@@ -8,7 +8,7 @@ P04-C006,schema,Approved revision ID is 0010_signed_review_states and no longer 
 P04-C007,schema,Approved same-case audit identity semantics and referenced-audit immutability,GOVERNANCE_APPROVED,unique composite FK RESTRICT; fixed event source action actor request and payload hash; protection triggers,yes,GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION
 P04-C008,schema,Approved transactional random idempotency key payload hash and conflict contract,GOVERNANCE_APPROVED,random opaque String(64) unique; same-hash replay; mismatch HTTP 409; atomic audit,yes,GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION
 P04-C009,schema,Approved one-root immutable non-branching version and case lifecycle,GOVERNANCE_APPROVED,partial unique root; unique same-case supersedes; mutation reject; active-case FOR SHARE; case RESTRICT,yes,GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION
-P04-C010,deployment,Isolate staging branch/commit or freeze production deploy,PENDING_EXTERNAL_EVIDENCE,production autoDeployTrigger is commit,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-C010,deployment,Isolate staging branch/commit or freeze production deploy,VERIFIED_EXTERNAL_EVIDENCE,isolated staging branch pinned at 8d1dc8814ed8f80d8bc965b494c1c320fc08f228; production excludes candidate branch,yes,GO_TO_FRESH_BACKUP_AND_DISPOSABLE_RESTORE_REHEARSAL_PREPARATION_ONLY
 P04-C011,deployment,Pin staging source commit and active migration SHA-256,PENDING_EXTERNAL_EVIDENCE,UNRECORDED,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
 P04-C012,backup,Create fresh staging backup after P0-03 writes,PENDING_EXTERNAL_EVIDENCE,UNRECORDED,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
 P04-C013,rehearsal,Restore fresh backup into disposable database,PENDING_EXTERNAL_EVIDENCE,UNRECORDED,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
@@ -23,3 +23,4 @@ P04-C021,verification,Verify new table row count is zero,PENDING_EXTERNAL_EVIDEN
 P04-C022,production,Verify production remains at 0009 and receives no candidate deploy,PENDING_EXTERNAL_EVIDENCE,UNRECORDED,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
 P04-C023,clinical_safety,Keep Case.treatment prescription and medication output untouched,GOVERNANCE_LOCKED,all write/output flags false,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
 P04-C024,execution,Obtain separate PMAI-P0-04 execution authorization,HOLD,P0_04_EXECUTION_AUTHORIZED=false,yes,NO_GO_TO_PMAI_P0_04_EXECUTION
+P04-C025,deployment,Record and safely verify both manual dashboard deploys of baseline governance commit,VERIFIED_EXTERNAL_EVIDENCE,manual deploy 8d1dc8814ed8f80d8bc965b494c1c320fc08f228; both services live at 0009 after read-only verification,yes,DEVIATION_RECORDED_AND_SAFELY_VERIFIED_NOT_EXECUTION_AUTHORIZATION

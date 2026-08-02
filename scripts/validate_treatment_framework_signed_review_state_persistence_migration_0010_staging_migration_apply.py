@@ -1,56 +1,49 @@
 #!/usr/bin/env python3
-"""Fail-closed validator for PMAI-P0-04 schema-contract resolution."""
-import argparse
-import ast
-import csv
-import glob
-import hashlib
-import io
-import re
-import subprocess
-import sys
+"""Fail-closed validator for PMAI-P0-04 deployment-isolation promotion."""
+import argparse, ast, csv, glob, hashlib, re, subprocess, sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-HOLD = "HOLD_PMAI_P0_04_PENDING_DEPLOYMENT_ISOLATION_BACKUP_REHEARSAL_AND_EXTERNAL_EVIDENCE"
-DOC = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md"
-CHECKLIST = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv"
-REGISTER = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_EVIDENCE_REGISTER_V1.csv"
-MATRIX = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_TEST_MATRIX_V1.csv"
-GO_NO_GO = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_GO_NO_GO_V1.csv"
-CONTRACT = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_SCHEMA_CONTRACT_RESOLUTION_V1.md"
-RUNNER = "scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py"
-VALIDATOR = "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py"
-CI = "scripts/ci_static_checks.sh"
-SMOKE = "scripts/smoke_petmed.sh"
-TARGETS = [DOC, CHECKLIST, REGISTER, MATRIX, GO_NO_GO, CONTRACT, RUNNER, VALIDATOR, CI, SMOKE]
-HASHES = {'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md': '2f41efee135c919427f7615ddccc6a49d6a35e43946ecaca88256b058f030295', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv': '5feabb11aceb89146b32efab1220abde3b62f761d8d322266921937741421aa4', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_EVIDENCE_REGISTER_V1.csv': 'c5e52894fb7369417bad31eea1bebdc52eb00bd578c95e85cd9c7a435b97c89e', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_TEST_MATRIX_V1.csv': '8f4808734e43dbf9be6315383a44dadd8366ad787b9bee34e3a1e5c8f9797f62', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_GO_NO_GO_V1.csv': '018995eea10824745ff73684c27e5ada6b75ea19ccf04783e12c2172511deddc', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_SCHEMA_CONTRACT_RESOLUTION_V1.md': '66e8caf12033b4d6ebd43759c08ffb86799d483ec85bef53082f21090136c234', 'scripts/ci_static_checks.sh': '57b151c5843e5dbf0c3b3d2e19cca1a4bbbce50adc67fba04dc57e2853dc2ab4', 'scripts/smoke_petmed.sh': 'a7d0ffa194f45a8bacfd5064a64014fbcafc27948ab17218f29f446d781f3795', 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py': 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'}
-INPUT_HASHES = {'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt': 'bfab1107e54d888854d685fcab62e4367871acd44c12d2c2bad0a63946a8995d', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md': '9ca66949f5c515805ade771be5d224eda5bc35827e552c30b2c81656bff7a132', 'backend/models.py': '91d1343c1ebe3df16f00bada05b2b0053f9747e6f714f726a81cd499357b448c', 'docs/ops/ALEMBIC_RELEASE_GUARDRAILS.md': 'a1996e0c022f7a42a83d40f5f2e9bdd8bec2e77a106aa7b8aa0a231b87d83844', 'render.yaml': 'd3bd51ce5fa0dffa8639d0b647784e54bebb8d1040a94f5c2ecd18a789d11150'}
-CSV_EXPECTED = {'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv': [['item_id', 'area', 'requirement', 'status', 'evidence', 'blocking', 'decision'], ['P04-C001', 'entry', 'P0-03 is COMPLETE', 'VERIFIED_REFERENCE', 'P0-03 package markers', 'yes', 'GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY'], ['P04-C002', 'entry', 'P0-03 evidence SHA-256 is locked', 'VERIFIED_REFERENCE', 'da52b46466a65316331d420c809bc406e49dfa722b1b5875667e30db50eef213', 'yes', 'GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY'], ['P04-C003', 'baseline', 'Clean main at reviewed commit', 'VERIFIED_INITIALIZER', 'b85e48a80019e522a5b5d1f3df6531752de2c25c', 'yes', 'GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY'], ['P04-C004', 'baseline', 'No active 0010 migration exists', 'VERIFIED_INITIALIZER', 'backend/migrations/versions/0010*.py absent', 'yes', 'GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY'], ['P04-C005', 'draft', 'Inactive draft hash is unchanged', 'VERIFIED_REFERENCE', 'bfab1107e54d888854d685fcab62e4367871acd44c12d2c2bad0a63946a8995d', 'yes', 'GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY'], ['P04-C006', 'schema', 'Approved revision ID is 0010_signed_review_states and no longer than 32 characters', 'GOVERNANCE_APPROVED', '0010_signed_review_states length 25', 'yes', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-C007', 'schema', 'Approved same-case audit identity semantics and referenced-audit immutability', 'GOVERNANCE_APPROVED', 'unique composite FK RESTRICT; fixed event source action actor request and payload hash; protection triggers', 'yes', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-C008', 'schema', 'Approved transactional random idempotency key payload hash and conflict contract', 'GOVERNANCE_APPROVED', 'random opaque String(64) unique; same-hash replay; mismatch HTTP 409; atomic audit', 'yes', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-C009', 'schema', 'Approved one-root immutable non-branching version and case lifecycle', 'GOVERNANCE_APPROVED', 'partial unique root; unique same-case supersedes; mutation reject; active-case FOR SHARE; case RESTRICT', 'yes', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-C010', 'deployment', 'Isolate staging branch/commit or freeze production deploy', 'PENDING_EXTERNAL_EVIDENCE', 'production autoDeployTrigger is commit', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C011', 'deployment', 'Pin staging source commit and active migration SHA-256', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C012', 'backup', 'Create fresh staging backup after P0-03 writes', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C013', 'rehearsal', 'Restore fresh backup into disposable database', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C014', 'rehearsal', 'Rehearse exact-target upgrade then downgrade to 0009', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C015', 'rehearsal', 'Verify disposable restore returns cleanly to 0009', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C016', 'source_apply', 'Take a second fresh source-staging backup immediately before apply', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C017', 'source_apply', 'Approve exact revision upgrade; forbid upgrade head/stamp/manual edit', 'PENDING_GOVERNANCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C018', 'verification', 'Capture sanitized pre-apply schema', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C019', 'verification', 'Capture sanitized post-apply schema', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C020', 'verification', 'Verify critical-table row parity', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C021', 'verification', 'Verify new table row count is zero', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C022', 'production', 'Verify production remains at 0009 and receives no candidate deploy', 'PENDING_EXTERNAL_EVIDENCE', 'UNRECORDED', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C023', 'clinical_safety', 'Keep Case.treatment prescription and medication output untouched', 'GOVERNANCE_LOCKED', 'all write/output flags false', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-C024', 'execution', 'Obtain separate PMAI-P0-04 execution authorization', 'HOLD', 'P0_04_EXECUTION_AUTHORIZED=false', 'yes', 'NO_GO_TO_PMAI_P0_04_EXECUTION']], 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_EVIDENCE_REGISTER_V1.csv': [['evidence_id', 'category', 'evidence_item', 'status', 'value', 'storage', 'secret_safety', 'decision'], ['P04-E001', 'baseline', 'initializer commit', 'RECORDED_REFERENCE', 'b85e48a80019e522a5b5d1f3df6531752de2c25c', 'repository', 'PASS', 'GOVERNANCE_ONLY'], ['P04-E002', 'prerequisite', 'P0-03 external evidence hash', 'RECORDED_REFERENCE', 'da52b46466a65316331d420c809bc406e49dfa722b1b5875667e30db50eef213', 'hash only', 'PASS', 'GOVERNANCE_ONLY'], ['P04-E003', 'draft', 'inactive draft hash', 'RECORDED_REFERENCE', 'bfab1107e54d888854d685fcab62e4367871acd44c12d2c2bad0a63946a8995d', 'repository', 'PASS', 'GOVERNANCE_ONLY'], ['P04-E004', 'draft', 'approved short revision contract', 'SCHEMA_CONTRACT_RECORDED', '0010_signed_review_states length 25 down_revision 0009_diag_data', 'repository', 'PASS', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-E005', 'draft', 'approved same-case audit semantics and lifecycle', 'SCHEMA_CONTRACT_RECORDED', 'unique composite FK; fixed event source action actor request payload hash; referenced audit mutation rejected', 'repository', 'PASS', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-E006', 'draft', 'approved transactional random idempotency and payload hash contract', 'SCHEMA_CONTRACT_RECORDED', 'random opaque String(64) unique; same hash replay; mismatch HTTP 409; atomic audit', 'repository', 'PASS', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-E007', 'draft', 'approved one-root immutable version and case lifecycle', 'SCHEMA_CONTRACT_RECORDED', 'one root partial unique; same-case supersedes unique; mutation reject; active-case SELECT FOR SHARE', 'repository', 'PASS', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-E008', 'deployment', 'production auto-deploy risk', 'BLOCKER_RECORDED', 'pet-med-ai-backend autoDeployTrigger commit', 'repository', 'PASS', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E009', 'deployment', 'staging-only commit isolation or production freeze', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E010', 'artifact', 'approved active migration file SHA-256', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E011', 'backup', 'fresh post-P0-03 staging backup', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external restricted workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E012', 'rehearsal', 'disposable restore identity and source revision', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E013', 'rehearsal', 'exact-target upgrade result', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E014', 'rehearsal', 'downgrade and return-to-0009 result', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E015', 'backup', 'fresh pre-source-apply staging backup', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external restricted workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E016', 'source_apply', 'source commit and migration SHA pin', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E017', 'source_apply', 'exact approved revision apply output', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E018', 'verification', 'pre/post schema comparison', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E019', 'verification', 'critical row parity and new table zero rows', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-E020', 'production', 'production remains 0009 and unchanged', 'UNRECORDED', 'PENDING_EXTERNAL_EVIDENCE', 'external sanitized workspace', 'REQUIRED', 'NO_GO_TO_PMAI_P0_04_EXECUTION']], 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_TEST_MATRIX_V1.csv': [['test_id', 'phase', 'test', 'expected', 'status', 'evidence', 'write_scope', 'decision'], ['P04-T001', 'initialization', 'Exact main baseline', 'b85e48a', 'PASS', 'initializer preflight', 'none', 'GOVERNANCE_ONLY'], ['P04-T002', 'initialization', 'P0-03 prerequisite and evidence hash', 'COMPLETE and exact SHA-256', 'PASS', 'repository reference', 'none', 'GOVERNANCE_ONLY'], ['P04-T003', 'initialization', 'No active 0010 migration', 'zero matching files', 'PASS', 'repository scan', 'none', 'GOVERNANCE_ONLY'], ['P04-T004', 'initialization', 'Locked runner has no execution capability', 'static lock', 'PASS', 'validator', 'none', 'GOVERNANCE_ONLY'], ['P04-T005', 'initialization', 'CI exact ten-path canonical scope including unchanged locked runner', 'exact ordered list; nine changed paths plus locked runner', 'PASS', 'validator', 'repository only', 'GOVERNANCE_ONLY'], ['P04-T006', 'initialization', 'P0-03 smoke gate becomes static', 'no python execution', 'PASS', 'validator', 'none', 'GOVERNANCE_ONLY'], ['P04-T007', 'initialization', 'P0-04 smoke gate runs only validator', 'default validator only', 'PASS', 'validator', 'none', 'GOVERNANCE_ONLY'], ['P04-T008', 'schema_review', 'Approved short revision contract', '0010_signed_review_states length 25', 'PASS_GOVERNANCE_ONLY', 'schema contract document', 'none', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-T009', 'schema_review', 'Approved same-case audit identity semantics and immutability', 'fixed audit fields plus unique composite link and protection triggers', 'PASS_GOVERNANCE_ONLY', 'schema contract document', 'none', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-T010', 'schema_review', 'Approved random idempotency payload hash and concurrency contract', 'same hash replay; mismatch HTTP 409; no partial audit', 'PASS_GOVERNANCE_ONLY', 'schema contract document', 'none', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-T011', 'schema_review', 'Approved one-root immutable non-branching case lifecycle', 'partial unique root; same-case successor; active-case FOR SHARE; mutation reject', 'PASS_GOVERNANCE_ONLY', 'schema contract document', 'none', 'GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION'], ['P04-T012', 'deployment', 'Staging-only isolation and production exclusion', 'verified', 'NOT_RUN', 'UNRECORDED', 'none', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-T013', 'backup', 'Fresh post-P0-03 backup', 'verified', 'NOT_RUN', 'UNRECORDED', 'staging backup only', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-T014', 'rehearsal', 'Disposable restore exact upgrade', 'approved exact revision', 'NOT_RUN', 'UNRECORDED', 'disposable schema', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-T015', 'rehearsal', 'Disposable downgrade and return to 0009', '0009_diag_data', 'NOT_RUN', 'UNRECORDED', 'disposable schema', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-T016', 'source_apply', 'Fresh source backup and exact-target apply', 'approved exact revision', 'NOT_AUTHORIZED', 'UNRECORDED', 'staging schema only', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-T017', 'verification', 'Pre/post schema and critical-row parity', 'PASS', 'NOT_RUN', 'UNRECORDED', 'read-only verification', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-T018', 'verification', 'New table row count', '0', 'NOT_RUN', 'UNRECORDED', 'read-only verification', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-T019', 'production', 'Production revision and data unchanged', '0009_diag_data and no write', 'NOT_RUN', 'UNRECORDED', 'read-only verification', 'NO_GO_TO_PMAI_P0_04_EXECUTION'], ['P04-T020', 'clinical_safety', 'No Case.treatment prescription or medication output', 'all false', 'PASS_GOVERNANCE_LOCK', 'package markers', 'none', 'NO_GO_TO_PMAI_P0_04_EXECUTION']], 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_GO_NO_GO_V1.csv': [['gate_id', 'gate', 'required_state', 'current_state', 'evidence_status', 'decision', 'notes'], ['P04-G001', 'P0-03 entry gate', 'COMPLETE with verified evidence', 'PASS', 'VERIFIED_REFERENCE', 'GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY', 'Does not authorize migration execution'], ['P04-G002', 'Governance package gate', 'IN_PROGRESS package with locked runner', 'PASS', 'PACKAGE_INITIALIZED', 'GO_FOR_PMAI_P0_04_GOVERNANCE_PREPARATION_ONLY', 'Repository-only initialization'], ['P04-G003', 'Migration schema approval', 'Corrected contract recorded; inactive draft remains unapproved', 'PASS_GOVERNANCE_ONLY', 'SCHEMA_CONTRACT_RECORDED', 'GO_TO_PMAI_P0_04_DEPLOYMENT_ISOLATION_AND_REHEARSAL_PREPARATION_ONLY', 'Not an active migration or execution authorization'], ['P04-G004', 'Deployment isolation', 'Staging-only pin or production freeze', 'BLOCKED', 'PENDING_EXTERNAL_EVIDENCE', 'NO_GO_TO_PMAI_P0_04_EXECUTION', 'Production auto-deploy risk'], ['P04-G005', 'Fresh backup', 'Post-P0-03 staging backup verified', 'BLOCKED', 'PENDING_EXTERNAL_EVIDENCE', 'NO_GO_TO_PMAI_P0_04_EXECUTION', 'Old P0-02 backup is insufficient'], ['P04-G006', 'Disposable restore rehearsal', 'Apply downgrade and return to 0009', 'BLOCKED', 'PENDING_EXTERNAL_EVIDENCE', 'NO_GO_TO_PMAI_P0_04_EXECUTION', 'Must precede source staging apply'], ['P04-G007', 'Source staging apply', 'Fresh backup exact revision and pinned artifact', 'NOT_AUTHORIZED', 'UNRECORDED', 'NO_GO_TO_PMAI_P0_04_EXECUTION', 'Forbid upgrade head stamp and manual edits'], ['P04-G008', 'Post-apply evidence', 'Schema parity zero new rows production unchanged', 'NOT_RUN', 'UNRECORDED', 'NO_GO_TO_PMAI_P0_04_EXECUTION', 'Sanitized external evidence required'], ['P04-G009', 'Clinical safety', 'No treatment prescription or client medication output', 'LOCKED_FALSE', 'GOVERNANCE_MARKERS', 'NO_GO_TO_PMAI_P0_04_EXECUTION', 'No clinical write scope'], ['P04-G010', 'PMAI-P0-04 execution', 'All blocking gates PASS plus separate authorization', 'HOLD', 'INCOMPLETE', 'HOLD_PMAI_P0_04_PENDING_DEPLOYMENT_ISOLATION_BACKUP_REHEARSAL_AND_EXTERNAL_EVIDENCE', 'Schema resolved; deployment isolation backup rehearsal and external evidence remain']]}
+HOLD = 'HOLD_PMAI_P0_04_PENDING_FRESH_BACKUP_REHEARSAL_AND_EXTERNAL_EVIDENCE'
+COMPLETENESS = 'PENDING_FRESH_BACKUP_REHEARSAL_AND_EXTERNAL_EXECUTION'
+DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md'
+CHECKLIST = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv'
+REGISTER = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_EVIDENCE_REGISTER_V1.csv'
+MATRIX = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_TEST_MATRIX_V1.csv'
+GO_NO_GO = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_GO_NO_GO_V1.csv'
+EVIDENCE_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DEPLOYMENT_ISOLATION_EVIDENCE_V1.md'
+CONTRACT = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_SCHEMA_CONTRACT_RESOLUTION_V1.md'
+RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
+VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
+CI = 'scripts/ci_static_checks.sh'
+SMOKE = 'scripts/smoke_petmed.sh'
+TARGETS = ['docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_EVIDENCE_REGISTER_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_TEST_MATRIX_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_GO_NO_GO_V1.csv', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DEPLOYMENT_ISOLATION_EVIDENCE_V1.md', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_SCHEMA_CONTRACT_RESOLUTION_V1.md', 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py', 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py', 'scripts/ci_static_checks.sh', 'scripts/smoke_petmed.sh']
+HASHES = {'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_SCHEMA_CONTRACT_RESOLUTION_V1.md': '66e8caf12033b4d6ebd43759c08ffb86799d483ec85bef53082f21090136c234', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt': 'bfab1107e54d888854d685fcab62e4367871acd44c12d2c2bad0a63946a8995d', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md': '9ca66949f5c515805ade771be5d224eda5bc35827e552c30b2c81656bff7a132', 'backend/models.py': '91d1343c1ebe3df16f00bada05b2b0053f9747e6f714f726a81cd499357b448c', 'docs/ops/ALEMBIC_RELEASE_GUARDRAILS.md': 'a1996e0c022f7a42a83d40f5f2e9bdd8bec2e77a106aa7b8aa0a231b87d83844', 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py': 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f', 'render.yaml': 'd3bd51ce5fa0dffa8639d0b647784e54bebb8d1040a94f5c2ecd18a789d11150', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md': 'a50a807907c15b4cbc0d67f8ee21853468201925694ea52d213ccb5925a8fa41', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv': 'a0120f2422598833d05671a6d60a0964ae444d4b489a02258f1f852588410746', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_EVIDENCE_REGISTER_V1.csv': '7a0d7d7ffa2216e5ac7c4579da95e61d351e99adec762233e58c10bd4831570e', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_TEST_MATRIX_V1.csv': '493e0fb47eb570567cf2675db3dba05d270e1f08c8a385e5f1ed47d61a24673c', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_GO_NO_GO_V1.csv': 'c7069661193e154dd91212b3383fab961de3ac4a7c1017ccdf212d2ff90989f2', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DEPLOYMENT_ISOLATION_EVIDENCE_V1.md': '99bbe0447b47d1aa0c9fd87cb6f55a4554e879a9b8151377b96cec3550cab4c6', 'scripts/ci_static_checks.sh': '2f77ff114b74c2c0ba09d69e7608078814f0c92215554668fece785d45479cc1', 'scripts/smoke_petmed.sh': 'f8b7fa8befa951797ef7ab77b2bc0c16d50c4e411b60ae6ef22c547240febdb0'}
+EVIDENCE_SHA256 = '67fe12a4dc32e8edf91217693bf5ad85a7ab17fee107111aeafde66fabd4525b'
 
-def need(ok, msg):
+def need(ok, message):
     if not ok:
-        print("NO-GO: " + msg, file=sys.stderr)
+        print("NO-GO: " + message, file=sys.stderr)
         raise SystemExit(1)
 
 def text(rel):
-    p = ROOT / rel
-    need(p.is_file(), "missing " + rel)
-    return p.read_text(encoding="utf-8")
+    path = ROOT / rel
+    need(path.is_file(), "missing " + rel)
+    return path.read_text(encoding="utf-8")
 
-def mark(value, key):
+def marker(value, key):
     found = re.findall(r"(?m)^" + re.escape(key) + r"=([^\r\n]+)$", value)
     need(len(found) == 1, "marker count " + key)
     return found[0]
 
-def rows(rel, headers, ids):
-    raw = text(rel)
-    need(list(csv.reader(io.StringIO(raw))) == CSV_EXPECTED[rel], "exact CSV content " + rel)
-    reader = csv.DictReader(io.StringIO(raw))
-    need(reader.fieldnames == headers, "CSV header " + rel)
-    data = list(reader)
-    need([r[headers[0]] for r in data] == ids, "CSV ids " + rel)
-    return {r[headers[0]]: r for r in data}
+def csv_map(rel, id_name):
+    with (ROOT / rel).open("r", encoding="utf-8", newline="") as handle:
+        reader = csv.DictReader(handle)
+        rows = list(reader)
+    need(reader.fieldnames and reader.fieldnames[0] == id_name, "CSV header " + rel)
+    ids = [row[id_name] for row in rows]
+    need(len(ids) == len(set(ids)), "duplicate CSV id " + rel)
+    return {row[id_name]: row for row in rows}
 
 def py_lines(value):
     return [line.strip() for line in value.splitlines() if line.strip().startswith("python3 ") and not line.strip().startswith("python3 -m py_compile ")]
@@ -59,74 +52,122 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--require-complete", action="store_true")
     args = parser.parse_args()
-    for rel in TARGETS:
-        need((ROOT / rel).is_file(), "missing target " + rel)
-    need(not glob.glob(str(ROOT / "backend/migrations/versions/0010*.py")), "active 0010 migration exists")
     for rel, expected in HASHES.items():
-        need(hashlib.sha256((ROOT / rel).read_bytes()).hexdigest() == expected, "hash drift " + rel)
-    for rel, expected in INPUT_HASHES.items():
-        need(hashlib.sha256((ROOT / rel).read_bytes()).hexdigest() == expected, "immutable input drift " + rel)
-    doc = text(DOC); contract = text(CONTRACT)
-    expected = {"stage_id":"PMAI-P0-04", "STAGE_STATUS":"IN_PROGRESS", "EVIDENCE_COMPLETENESS":"PENDING_DEPLOYMENT_ISOLATION_BACKUP_REHEARSAL_AND_EXTERNAL_EXECUTION", "P0_04_EXECUTION_AUTHORIZED":"false", "STAGING_0010_APPLY_AUTHORIZED":"false", "ACTIVE_0010_MIGRATION_FILE_CREATED":"false", "schema_contract_resolution_recorded":"true", "P0_04_SCHEMA_CONTRACT_RESOLUTION_COMPLETE":"true", "migration_schema_review_approved":"true", "corrected_migration_implementation_authorized":"false", "approved_revision":"0010_signed_review_states", "approved_audit_semantics_insert_trigger_required":"true", "approved_referenced_audit_mutation_protection_required":"true", "approved_idempotency_key_type":"String(64)", "approved_idempotency_key_random_opaque":"true", "approved_one_root_per_case_partial_unique_index":"true", "approved_append_only_trigger_required":"true", "approved_active_case_insert_trigger_required":"true", "approved_active_case_insert_lock":"FOR_SHARE", "approved_input_normalization_mapping_recorded":"true", "decision":HOLD}
-    for key, value in expected.items():
-        need(mark(doc, key) == value, "document marker " + key)
-    contract_expected = {"schema_contract_resolution_recorded":"true", "migration_schema_review_approved":"true", "approval_scope":"GOVERNANCE_ONLY_NOT_EXECUTION_AUTHORIZATION", "approved_revision":"0010_signed_review_states", "approved_revision_length":"25", "approved_down_revision":"0009_diag_data", "approved_audit_log_id_type":"String(64)", "approved_audit_log_composite_fk_target":"audit_log.log_id|audit_log.case_id", "approved_audit_log_composite_unique_name":"uq_audit_log_log_id_case_id", "approved_audit_log_id_unique_name":"uq_tfsrs_audit_log_id", "approved_audit_event_type":"treatment_framework_signed_review_state_persisted", "approved_audit_source":"treatment_framework_signed_review_state_persistence_v1", "approved_audit_action_taken":"signed_review_state_persisted", "approved_audit_clinician_match":"signed_by", "approved_audit_request_id_match":"idempotency_key", "approved_audit_payload_hash_storage_column":"metadata", "approved_audit_payload_hash_sql_expression":"metadata->>'payload_sha256'", "approved_audit_payload_hash_non_null":"true", "approved_audit_payload_hash_match":"payload_sha256", "approved_audit_semantics_trigger_name":"trg_tfsrs_validate_audit_semantics", "approved_audit_semantics_lock":"SELECT_AUDIT_ROW_FOR_SHARE", "approved_audit_link_protection_trigger_requirement":"REJECT_REFERENCED_AUDIT_UPDATE_AND_DELETE", "approved_idempotency_key_type":"String(64)", "approved_idempotency_key_unique_name":"uq_tfsrs_idempotency_key", "approved_idempotency_key_format":"cryptographically_random_32_bytes_lowercase_hex_64", "approved_payload_sha256_type":"String(64)", "approved_row_lifecycle":"IMMUTABLE_VERSIONED_APPEND_ONLY", "approved_supersedes_state_id_nullable":"true", "approved_supersedes_state_id_unique_name":"uq_tfsrs_supersedes_state_id", "approved_one_root_per_case_index_name":"uq_tfsrs_one_root_per_case", "approved_one_root_per_case_index_predicate":"supersedes_state_id_IS_NULL", "approved_append_only_trigger_requirement":"REJECT_UPDATE_AND_DELETE", "approved_active_case_insert_trigger_requirement":"REJECT_INSERT_WHEN_CASE_DELETED_AT_IS_NOT_NULL", "approved_active_case_insert_lock":"SELECT_CASE_WHERE_DELETED_AT_NULL_FOR_SHARE", "approved_updated_at_present":"false", "approved_confirmation_source_vocabulary":"clinician_entered|clinician_confirmed", "approved_confirmation_source_input_mapping":"clinician->clinician_entered|clinician_entered->clinician_entered|clinician_confirmed->clinician_confirmed", "approved_review_decision_vocabulary":"approve_for_clinician_use|request_revision|reject", "approved_review_decision_input_mapping":"approve_for_clinician_use->approve_for_clinician_use|request_revision->request_revision|reject->reject", "approved_signed_review_status_vocabulary":"signed_internal_review|revision_requested|rejected", "approved_signed_review_status_input_mapping":"signed_internal_review_preview->signed_internal_review|revision_requested_preview->revision_requested|rejected_preview->rejected", "approved_signoff_decision_vocabulary":"sign_internal_review|request_revision|reject", "approved_signoff_decision_input_mapping":"sign_internal_review->sign_internal_review|signed_internal_review->sign_internal_review|approve_signed_review->sign_internal_review|request_revision->request_revision|revision_requested->request_revision|reject->reject|rejected->reject", "corrected_migration_implementation_authorized":"false", "p0_04_execution_authorized":"false", "staging_0010_apply_authorized":"false", "decision":HOLD}
-    for key, value in contract_expected.items():
-        need(mark(contract, key) == value, "contract marker " + key)
-    for token in ("ForeignKeyConstraint", "audit_log(log_id, case_id)", "audit_log.metadata->>'payload_sha256'", "REJECT_UPDATE_AND_DELETE", "REJECT_INSERT_WHEN_CASE_DELETED_AT_IS_NOT_NULL", "REJECT_REFERENCED_AUDIT_UPDATE_AND_DELETE", "uq_tfsrs_one_root_per_case ON treatment_framework_signed_review_states(case_id)", "WHERE supersedes_state_id IS NULL", "clinician -> clinician_entered", "signed_internal_review_preview->signed_internal_review", "approve_for_clinician_use|request_revision|reject", "signed_internal_review|revision_requested|rejected", "sign_internal_review|request_revision|reject", "same key with a different hash returns HTTP 409", "FOR SHARE", "`updated_at` column"):
-        need(token in contract, "contract token " + token)
-    c = rows(CHECKLIST, ["item_id","area","requirement","status","evidence","blocking","decision"], ["P04-C%03d" % i for i in range(1,25)])
-    for i in range(6,10):
-        need(c["P04-C%03d" % i]["status"] == "GOVERNANCE_APPROVED", "schema checklist approval")
-        need(c["P04-C%03d" % i]["decision"] == "GOVERNANCE_APPROVED_NOT_EXECUTION_AUTHORIZATION", "schema checklist scope")
-    r = rows(REGISTER, ["evidence_id","category","evidence_item","status","value","storage","secret_safety","decision"], ["P04-E%03d" % i for i in range(1,21)])
-    for i in range(4,8):
-        need(r["P04-E%03d" % i]["status"] == "SCHEMA_CONTRACT_RECORDED", "schema register record")
-    m = rows(MATRIX, ["test_id","phase","test","expected","status","evidence","write_scope","decision"], ["P04-T%03d" % i for i in range(1,21)])
-    for i in range(8,12):
-        need(m["P04-T%03d" % i]["status"] == "PASS_GOVERNANCE_ONLY", "schema matrix result")
-    g = rows(GO_NO_GO, ["gate_id","gate","required_state","current_state","evidence_status","decision","notes"], ["P04-G%03d" % i for i in range(1,11)])
-    need(g["P04-G003"]["current_state"] == "PASS_GOVERNANCE_ONLY", "schema gate state")
-    need(g["P04-G003"]["decision"] == "GO_TO_PMAI_P0_04_DEPLOYMENT_ISOLATION_AND_REHEARSAL_PREPARATION_ONLY", "schema gate scope")
-    for i in range(4,10):
-        need(g["P04-G%03d" % i]["decision"] == "NO_GO_TO_PMAI_P0_04_EXECUTION", "pending Go/No-Go")
-    need(g["P04-G010"]["decision"] == HOLD, "final hold")
-    runner = text(RUNNER); tree = ast.parse(runner)
+        path = ROOT / rel
+        need(path.is_file(), "missing protected file " + rel)
+        actual = hashlib.sha256(path.read_bytes()).hexdigest()
+        need(actual == expected, "protected hash " + rel)
+    need(not glob.glob(str(ROOT / "backend/migrations/versions/0010*.py")), "active 0010 migration exists")
+    doc = text(DOC)
+    exact = {
+        "stage_id": "PMAI-P0-04", "STAGE_STATUS": "IN_PROGRESS",
+        "EVIDENCE_COMPLETENESS": COMPLETENESS,
+        "staging_only_branch_or_commit_pin_verified": "true",
+        "production_deployment_freeze_verified": "false",
+        "production_target_excluded": "true", "deployment_isolation_verified": "true",
+        "manual_deploy_observed": "true", "manual_deploy_deviation_recorded": "true",
+        "manual_deploy_deviation_safely_verified": "true",
+        "candidate_migration_deployed": "false",
+        "postdeploy_readonly_verification_passed": "true",
+        "fresh_post_p0_03_staging_backup_verified": "false",
+        "disposable_restore_rehearsal_complete": "false",
+        "corrected_migration_implementation_authorized": "false",
+        "P0_04_EXECUTION_AUTHORIZED": "false", "STAGING_0010_APPLY_AUTHORIZED": "false",
+        "ACTIVE_0010_MIGRATION_FILE_CREATED": "false", "migration_created": "false",
+        "migration_executed": "false", "production_database_write": "false",
+        "decision": HOLD,
+    }
+    for key, expected in exact.items():
+        need(marker(doc, key) == expected, "document marker " + key)
+    evidence = text(EVIDENCE_DOC)
+    for key, expected in {
+        "evidence_type": "DEPLOYMENT_ISOLATION_AND_SAFE_MANUAL_DEPLOY_READBACK",
+        "evidence_artifact_sha256": EVIDENCE_SHA256,
+        "render_configuration_observation_confirmed": "true",
+        "baseline_commit_sha": '8d1dc8814ed8f80d8bc965b494c1c320fc08f228',
+        "isolated_branch": 'pmai-p0-04-staging-0010',
+        "staging_branch": 'pmai-p0-04-staging-0010', "staging_auto_deploy": "false",
+        "production_branch": "main", "production_auto_deploy_trigger": "commit",
+        "production_target_excluded": "true",
+        "production_deployment_freeze_verified": "false",
+        "deployment_isolation_verified_as_point_in_time": "true",
+        "manual_deploy_observed": "true", "manual_deploy_deviation_recorded": "true",
+        "manual_deploy_deviation_safely_verified": "true",
+        "candidate_migration_deployed": "false",
+        "postdeploy_readonly_verification_passed": "true",
+        "staging_database_revision": "0009_diag_data",
+        "production_database_revision": "0009_diag_data",
+        "active_0010_migration_file_present": "false",
+        "direct_database_connection": "false", "database_write": "false",
+        "migration_created": "false", "migration_executed": "false",
+        "runner_execution_enabled": "false", "runner_executed_by_ci": "false",
+        "staging_0010_migration_executed": "false",
+        "production_migration_authorized": "false",
+        "production_migration_executed": "false",
+        "decision": HOLD,
+    }.items():
+        need(marker(evidence, key) == expected, "evidence marker " + key)
+    checklist = csv_map(CHECKLIST, "item_id")
+    register = csv_map(REGISTER, "evidence_id")
+    matrix = csv_map(MATRIX, "test_id")
+    gates = csv_map(GO_NO_GO, "gate_id")
+    need(checklist["P04-C010"]["status"] == "VERIFIED_EXTERNAL_EVIDENCE", "checklist isolation")
+    need(checklist["P04-C025"]["status"] == "VERIFIED_EXTERNAL_EVIDENCE", "checklist deviation")
+    need(register["P04-E009"]["status"] == "VERIFIED_EXTERNAL_EVIDENCE", "register isolation")
+    need(register["P04-E021"]["status"] == "VERIFIED_EXTERNAL_EVIDENCE", "register deviation")
+    need(matrix["P04-T012"]["status"] == "PASS" and matrix["P04-T021"]["status"] == "PASS", "matrix evidence")
+    need(gates["P04-G004"]["current_state"] == "PASS", "isolation gate")
+    need(gates["P04-G010"]["decision"] == HOLD, "final hold")
+    need(gates["P04-G011"]["current_state"] == "PASS", "manual-deploy deviation gate")
+    runner = text(RUNNER)
+    tree = ast.parse(runner)
     imports = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             imports.update(alias.name.split(".")[0] for alias in node.names)
         elif isinstance(node, ast.ImportFrom):
             imports.add((node.module or "").split(".")[0])
-    need(imports == {"__future__", "argparse", "sys"}, "runner imports are not the exact locked set")
-    assignments = [
-        node.value for node in ast.walk(tree)
-        if isinstance(node, ast.Assign)
-        and any(isinstance(target, ast.Name) and target.id == "EXECUTION_ENABLED" for target in node.targets)
-    ]
-    need(len(assignments) == 1 and isinstance(assignments[0], ast.Constant) and assignments[0].value is False, "runner EXECUTION_ENABLED lock")
-    returns = [node for node in ast.walk(tree) if isinstance(node, ast.Return)]
-    need(returns and all(isinstance(node.value, ast.Constant) and node.value.value == 1 for node in returns), "runner must return nonzero on every return path")
-    dangerous_calls = {"open","exec","eval","compile","__import__","system","popen","run","call","check_call","check_output","connect","urlopen","request"}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Call):
-            name = node.func.id if isinstance(node.func, ast.Name) else node.func.attr if isinstance(node.func, ast.Attribute) else ""
-            need(name not in dangerous_calls, "runner execution-capable call " + name)
-    need("EXECUTION_ENABLED = False" in runner and "DATABASE_URL" not in runner, "runner source lock")
-    need('parser.add_argument("--execute", action="store_true")' in runner, "runner execute flag remains explicitly denied")
-    need('print("NO-GO: PMAI-P0-04 migration execution is not authorized")' in runner, "runner execute denial")
-    ci = text(CI); found = re.search(r"(?ms)^TARGETS=\(\n(.*?)^\)", ci); need(found is not None, "CI targets")
-    ci_targets = re.findall(r'^\s*"([^"]+)"\s*$', found.group(1), flags=re.M); need(ci_targets == TARGETS, "CI target scope")
-    need(py_lines(ci) == ["python3 " + VALIDATOR], "CI execution scope")
-    smoke = text(SMOKE); need("schema_contract_resolution_recorded=true" in smoke and "migration_schema_review_approved=true" in smoke and "decision=" + HOLD in smoke, "smoke schema summary")
-    need(RUNNER not in "\n".join(py_lines(smoke)), "smoke runs locked runner")
+    need(imports == {"__future__", "argparse", "sys"}, "locked runner imports")
+    need("EXECUTION_ENABLED = False" in runner and "DATABASE_URL" not in runner, "locked runner source")
+    ci = text(CI)
+    match = re.search(r"(?ms)^TARGETS=\(\n(.*?)^\)", ci)
+    need(match is not None, "CI targets")
+    ci_targets = re.findall(r'^\s*"([^"]+)"\s*$', match.group(1), flags=re.M)
+    need(ci_targets == TARGETS, "CI target scope")
+    need(py_lines(ci) == ["python3 " + VALIDATOR], "CI executes only validator")
+    smoke = text(SMOKE)
+    gate = re.search(r"(?ms)^# >>> treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply_v1_smoke_petmed_runtime_gate$.*?^# <<< treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply_v1_smoke_petmed_runtime_gate$", smoke)
+    need(gate is not None, "P0-04 smoke gate")
+    need(py_lines(gate.group(0)) == ['python3 "${PETMED_P0_04_ROOT}/' + VALIDATOR + '"'], "smoke executes only P0-04 validator in current gate")
+    need(RUNNER not in "\n".join(py_lines(smoke)), "smoke executes runner")
     for rel in (CI, SMOKE):
-        result = subprocess.run(["bash", "-n", str(ROOT / rel)], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        result = subprocess.run(["bash", "-n", str(ROOT / rel)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         need(result.returncode == 0, "shell syntax " + rel)
     if args.require_complete:
-        print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; completion is unavailable", file=sys.stderr)
+        print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; fresh backup and disposable rehearsal are incomplete", file=sys.stderr)
         return 1
-    for line in ("stage_id=PMAI-P0-04", "stage_status=IN_PROGRESS", "evidence_completeness=PENDING_DEPLOYMENT_ISOLATION_BACKUP_REHEARSAL_AND_EXTERNAL_EXECUTION", "schema_contract_resolution_recorded=true", "migration_schema_review_approved=true", "corrected_migration_implementation_authorized=false", "p0_04_execution_authorized=false", "staging_0010_apply_authorized=false", "active_0010_migration_file_created=false", "database_connection=false", "database_write=false", "migration_executed=false", "production_database_write=false", "decision=" + HOLD, "ALL PASS: PMAI-P0-04 schema contract resolution governance"):
+    for line in (
+        "stage_id=PMAI-P0-04", "stage_status=IN_PROGRESS",
+        "evidence_completeness=" + COMPLETENESS,
+        "deployment_isolation_verified=true", "staging_only_branch_or_commit_pin_verified=true",
+        "deployment_isolation_verified_as_point_in_time=true",
+        "production_target_excluded=true", "production_deployment_freeze_verified=false",
+        "manual_deploy_observed=true", "manual_deploy_deviation_recorded=true",
+        "manual_deploy_deviation_safely_verified=true", "candidate_migration_deployed=false",
+        "postdeploy_readonly_verification_passed=true",
+        "fresh_post_p0_03_staging_backup_verified=false",
+        "disposable_restore_rehearsal_complete=false",
+        "corrected_migration_implementation_authorized=false",
+        "runner_execution_enabled=false", "runner_executed_by_ci=false",
+        "p0_04_execution_authorized=false", "staging_0010_apply_authorized=false",
+        "active_0010_migration_file_created=false", "direct_database_connection=false",
+        "staging_0010_migration_executed=false",
+        "production_migration_authorized=false", "production_migration_executed=false",
+        "database_read_only_check_via_service=true", "database_write=false",
+        "migration_executed=false", "production_database_write=false",
+        "decision=" + HOLD,
+        "ALL PASS: PMAI-P0-04 deployment isolation evidence governance",
+    ):
         print(line)
     return 0
 

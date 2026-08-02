@@ -7,7 +7,7 @@ stage_name=Treatment Framework Signed Review State Persistence Migration 0010 St
 stage_type=staging_migration_apply_governance_preparation
 PACKAGE_INITIALIZED=true
 STAGE_STATUS=IN_PROGRESS
-EVIDENCE_COMPLETENESS=PENDING_DEPLOYMENT_ISOLATION_BACKUP_REHEARSAL_AND_EXTERNAL_EXECUTION
+EVIDENCE_COMPLETENESS=PENDING_FRESH_BACKUP_REHEARSAL_AND_EXTERNAL_EXECUTION
 P0_03_PREREQUISITE_COMPLETE=true
 P0_04_ENTRY_AUTHORIZED=true
 P0_04_GOVERNANCE_PREPARATION_COMPLETE=true
@@ -113,15 +113,29 @@ authorize editing, copying, activation, deployment, database access, or Alembic.
 
 production_backend_service=pet-med-ai-backend
 production_auto_deploy_trigger=commit
-staging_only_branch_or_commit_pin_verified=false
+staging_only_branch_or_commit_pin_verified=true
 production_deployment_freeze_verified=false
-production_target_excluded=false
+production_target_excluded=true
 
-`render.yaml` records production backend auto-deploy on commit. Therefore an
-active 0010 migration must not be introduced on `main` during this stage.
-Before any execution can be authorized, evidence must prove either an isolated
-staging-only branch/commit pin or an effective production deployment freeze,
-and must prove that production cannot receive the candidate artifact.
+deployment_isolation_evidence_document=TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DEPLOYMENT_ISOLATION_EVIDENCE_V1.md
+deployment_isolation_evidence_sha256=67fe12a4dc32e8edf91217693bf5ad85a7ab17fee107111aeafde66fabd4525b
+isolated_staging_branch=pmai-p0-04-staging-0010
+isolated_staging_branch_head_sha=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+deployment_isolation_verified=true
+manual_deploy_observed=true
+manual_deploy_commit_sha=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+manual_deploy_deviation_recorded=true
+manual_deploy_deviation_safely_verified=true
+candidate_migration_deployed=false
+postdeploy_readonly_verification_passed=true
+
+`render.yaml` records production backend auto-deploy on commit. The isolated
+candidate path is now the staging-only branch `pmai-p0-04-staging-0010`, while
+production continues to track `main`. `production_target_excluded=true` means
+only that production does not track the candidate branch; it is not a production
+freeze. Both dashboard manual deployments of the safe governance commit are
+truthfully recorded and were closed by post-deploy read-only verification at
+`0009_diag_data`. No candidate migration was deployed.
 
 ## Mandatory future evidence sequence
 
@@ -182,5 +196,5 @@ database output belong in this repository package.
 
 ## Current decision
 
-decision=HOLD_PMAI_P0_04_PENDING_DEPLOYMENT_ISOLATION_BACKUP_REHEARSAL_AND_EXTERNAL_EVIDENCE
-next_step=ESTABLISH_DEPLOYMENT_ISOLATION_THEN_CAPTURE_FRESH_BACKUP_AND_RUN_DISPOSABLE_REHEARSAL
+decision=HOLD_PMAI_P0_04_PENDING_FRESH_BACKUP_REHEARSAL_AND_EXTERNAL_EVIDENCE
+next_step=CAPTURE_FRESH_POST_P0_03_STAGING_BACKUP_THEN_RUN_DISPOSABLE_RESTORE_REHEARSAL

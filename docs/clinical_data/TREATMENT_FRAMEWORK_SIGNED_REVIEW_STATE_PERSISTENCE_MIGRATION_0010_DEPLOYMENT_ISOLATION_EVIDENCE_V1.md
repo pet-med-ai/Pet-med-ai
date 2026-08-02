@@ -1,0 +1,91 @@
+# Treatment Framework Signed Review State Persistence Migration 0010 Deployment Isolation Evidence V1
+
+## Evidence identity
+
+stage_id=PMAI-P0-04
+evidence_type=DEPLOYMENT_ISOLATION_AND_SAFE_MANUAL_DEPLOY_READBACK
+evidence_artifact_sha256=67fe12a4dc32e8edf91217693bf5ad85a7ab17fee107111aeafde66fabd4525b
+captured_at_utc=2026-07-31T23:11:22+00:00
+evidence_secret_safety=PASS
+render_configuration_observation_type=OPERATOR_ATTESTED_POINT_IN_TIME_DASHBOARD_OBSERVATION
+render_configuration_observation_confirmed=true
+
+## Isolated candidate path
+
+baseline_commit_sha=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+isolated_branch=pmai-p0-04-staging-0010
+isolated_branch_head_sha=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+origin_isolated_branch_head_sha=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+staging_service=pet-med-ai-backend-staging-ohio
+staging_branch=pmai-p0-04-staging-0010
+staging_auto_deploy=false
+staging_only_branch_or_commit_pin_verified=true
+production_service=pet-med-ai-backend
+production_branch=main
+production_auto_deploy_trigger=commit
+production_target_excluded=true
+production_deployment_freeze_verified=false
+
+`production_target_excluded=true` is narrow: the production service does not
+track the isolated candidate branch. It is not a production freeze and it does
+not claim that no safe governance commit was manually deployed to production.
+
+## Recorded manual-deploy deviation and closure
+
+manual_deploy_observed=true
+manual_deploy_commit_sha=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+staging_manual_deploy_observed=true
+production_manual_deploy_observed=true
+manual_deploy_deviation_recorded=true
+manual_deploy_deviation_safely_verified=true
+candidate_migration_deployed=false
+staging_deploy_live=true
+production_deploy_live=true
+postdeploy_readonly_verification_passed=true
+
+Both dashboard manual deployments used the already reviewed safe governance
+commit. This evidence records the deviation rather than asserting that manual
+deployment did not occur. Read-only service verification after both deploys
+confirmed the `0009_diag_data` baseline and no active candidate migration.
+
+## Sanitized post-deploy state
+
+staging_database_revision=0009_diag_data
+staging_alembic_head=0009_diag_data
+staging_schema_ok=true
+staging_migration_errors=0
+staging_writes_database=false
+staging_exposes_database_url=false
+production_database_revision=0009_diag_data
+production_alembic_head=0009_diag_data
+production_schema_ok=true
+production_migration_errors=0
+production_writes_database=false
+production_exposes_database_url=false
+active_0010_migration_file_present=false
+network_access=true
+direct_database_connection=false
+database_read_only_check_via_service=true
+database_write=false
+migration_created=false
+migration_executed=false
+case_treatment_write=false
+prescription_write=false
+medication_detail_output=false
+production_database_write=false
+
+## Boundary and decision
+
+deployment_isolation_verified=true
+deployment_isolation_verified_as_point_in_time=true
+fresh_post_p0_03_staging_backup_verified=false
+disposable_restore_rehearsal_complete=false
+corrected_migration_implementation_authorized=false
+runner_execution_enabled=false
+runner_executed_by_ci=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+staging_0010_migration_executed=false
+production_migration_authorized=false
+production_migration_executed=false
+decision=HOLD_PMAI_P0_04_PENDING_FRESH_BACKUP_REHEARSAL_AND_EXTERNAL_EVIDENCE
