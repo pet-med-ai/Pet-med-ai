@@ -1,0 +1,60 @@
+# PMAI-P0-04 Disposable Restore Rehearsal Governance V1
+
+stage_id=PMAI-P0-04
+governance_scope=REPOSITORY_ONLY_NO_EXTERNAL_EXECUTION
+baseline_commit_sha=d659aefbdec6f4d212f6804dd1e600199ddd065b
+isolated_branch=pmai-p0-04-staging-0010
+isolated_branch_commit=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+fresh_backup_evidence_sha256=a7af6ca2c0cba862bb7f6073f0866ef6dafcb20364ae64db6c9693fe622798e1
+fresh_backup_artifact_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+disposable_restore_governance_preparation_complete=true
+disposable_target_provisioning_governance_ready=true
+disposable_restore_target_provisioning_authorized=false
+disposable_restore_execution_authorized=false
+disposable_restore_database_created=false
+disposable_restore_database_write_authorized=false
+restore_runner_created=false
+restore_runner_execution_enabled=false
+restore_runner_executed_by_ci=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+corrected_migration_implementation_authorized=false
+active_0010_migration_file_created=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+production_auto_deploy_verified=false
+
+## Append-only operator observation
+
+observation_status=OPERATOR_OBSERVATION_UNPROMOTED
+new_manual_deploy_deviation_observed=true
+cumulative_observed_manual_deploy_count=3
+manual_deploy_deviation_service=production
+manual_deploy_deviation_commit=d659aefbdec6f4d212f6804dd1e600199ddd065b
+manual_deploy_deviation_postdeploy_readonly_verified=true
+production_database_revision=0009_diag_data
+staging_database_revision=0009_diag_data
+candidate_migration_deployed=false
+
+This observation does not rewrite the earlier point-in-time deployment-isolation
+evidence and is not execution evidence or authorization.
+
+## Required future gate order
+
+1. Separately authorize disposable-target provisioning.
+2. Prove the target identity, emptiness, PostgreSQL compatibility, and isolation.
+3. Restore only the pinned backup into that disposable target and verify 0009.
+4. Independently promote sanitized restore evidence.
+5. Separately implement and hash-review corrected 0010.
+6. Separately authorize exact-target upgrade, zero-row downgrade, return to 0009,
+   and disposable-target deletion.
+
+network_access=false
+direct_database_connection=false
+database_write=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+production_database_write=false
+decision=HOLD_PMAI_P0_04_PENDING_DISPOSABLE_TARGET_PROVISIONING_RESTORE_REHEARSAL_AND_EXTERNAL_EVIDENCE
+next_step=RUN_LOCAL_VALIDATOR_AND_CI_STATIC_GUARDS_THEN_COMMIT_GOVERNANCE_PREPARATION

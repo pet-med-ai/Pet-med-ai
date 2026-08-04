@@ -7,10 +7,11 @@ stage_name=Treatment Framework Signed Review State Persistence Migration 0010 St
 stage_type=staging_migration_apply_governance_preparation
 PACKAGE_INITIALIZED=true
 STAGE_STATUS=IN_PROGRESS
-EVIDENCE_COMPLETENESS=PENDING_DISPOSABLE_RESTORE_REHEARSAL_AND_EXTERNAL_EXECUTION
+EVIDENCE_COMPLETENESS=PENDING_DISPOSABLE_TARGET_PROVISIONING_RESTORE_REHEARSAL_AND_EXTERNAL_EXECUTION
 P0_03_PREREQUISITE_COMPLETE=true
 P0_04_ENTRY_AUTHORIZED=true
 P0_04_GOVERNANCE_PREPARATION_COMPLETE=true
+DISPOSABLE_RESTORE_REHEARSAL_GOVERNANCE_PREPARATION_COMPLETE=true
 P0_04_EXECUTION_AUTHORIZED=false
 STAGING_0010_APPLY_AUTHORIZED=false
 ACTIVE_0010_MIGRATION_FILE_CREATED=false
@@ -182,6 +183,29 @@ sanitized pre/post schema snapshots, critical-table row parity, zero rows in
 the newly created table, and read-only proof that production remains at
 `0009_diag_data`.
 
+## Disposable restore rehearsal governance preparation
+
+disposable_restore_governance_document=TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_REHEARSAL_GOVERNANCE_V1.md
+disposable_restore_governance_preparation_complete=true
+disposable_target_provisioning_governance_ready=true
+disposable_restore_target_provisioning_authorized=false
+disposable_restore_execution_authorized=false
+disposable_restore_database_created=false
+disposable_restore_database_write_authorized=false
+restore_runner_created=false
+restore_runner_execution_enabled=false
+restore_runner_executed_by_ci=false
+production_auto_deploy_verified=false
+third_manual_deploy_observation_status=OPERATOR_OBSERVATION_UNPROMOTED
+new_manual_deploy_deviation_observed=true
+cumulative_observed_manual_deploy_count=3
+manual_deploy_deviation_service=production
+manual_deploy_deviation_commit_sha=d659aefbdec6f4d212f6804dd1e600199ddd065b
+manual_deploy_deviation_postdeploy_readonly_verified=true
+
+This repository-only step records the future gate sequence. It creates no target,
+restores no backup, and does not authorize any runner or migration execution.
+
 ## Safety boundary
 
 future_confirmation_token=PMAI-P0-04-0010-STAGING-MIGRATION-APPLY
@@ -204,5 +228,5 @@ database output belong in this repository package.
 
 ## Current decision
 
-decision=HOLD_PMAI_P0_04_PENDING_DISPOSABLE_RESTORE_REHEARSAL_AND_EXTERNAL_EVIDENCE
-next_step=PREPARE_DISPOSABLE_RESTORE_REHEARSAL_UNDER_SEPARATE_GOVERNANCE
+decision=HOLD_PMAI_P0_04_PENDING_DISPOSABLE_TARGET_PROVISIONING_RESTORE_REHEARSAL_AND_EXTERNAL_EVIDENCE
+next_step=RUN_LOCAL_VALIDATOR_AND_CI_STATIC_GUARDS_THEN_COMMIT_GOVERNANCE_PREPARATION
