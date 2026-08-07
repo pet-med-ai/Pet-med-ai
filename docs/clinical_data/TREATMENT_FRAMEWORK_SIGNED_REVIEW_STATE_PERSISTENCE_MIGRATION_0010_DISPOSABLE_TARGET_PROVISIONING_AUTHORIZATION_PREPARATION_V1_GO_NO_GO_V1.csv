@@ -1,0 +1,2 @@
+decision_id,scope,decision,authorized,reason,permitted_next_action,forbidden_actions
+PMAI-P0-04-DTPA-GNG-001,disposable_target_provisioning_authorization_preparation,HOLD_PMAI_P0_04_PENDING_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW,false,preparation package only; target identity compatibility expiry credential handling and separate approval remain pending,repository-only dry-run review validation and separate authorization review preparation,provision restore connect deploy migrate write stage commit push or expose secrets

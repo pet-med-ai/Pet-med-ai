@@ -1,0 +1,21 @@
+test_id,area,assertion,method,expected,stop_condition
+PMAI-P0-04-DTPA-T001,git,branch and exact main refs,local git read-only,main and trusted hashes,any mismatch
+PMAI-P0-04-DTPA-T002,git,repository clean before apply,git status porcelain v1,empty,any tracked or untracked change
+PMAI-P0-04-DTPA-T003,isolation,isolated refs preserved,local git ref read-only,8d1dc8814ed8f80d8bc965b494c1c320fc08f228,any mismatch
+PMAI-P0-04-DTPA-T004,runner,locked runner integrity,SHA-256 read-only,c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f,missing or mismatch
+PMAI-P0-04-DTPA-T005,migration,no active backend 0010 file,repository glob,zero matches,any match
+PMAI-P0-04-DTPA-T006,scope,exact planned files only,git changed-path comparison,six exact paths,extra or missing path
+PMAI-P0-04-DTPA-T007,authorization,all dangerous authorizations false,validator exact markers,false,missing duplicate or true marker
+PMAI-P0-04-DTPA-T008,secrets,no connection URL or secret assignment,validator regex,zero matches,any match
+PMAI-P0-04-DTPA-T009,commands,no executable restore SQL or migration line,validator regex,zero matches,any match
+PMAI-P0-04-DTPA-T010,validator,validator compiles and passes,Python compile and execution,PASS,nonzero
+PMAI-P0-04-DTPA-T011,ci,fail-closed CI command present once,exact line check,one occurrence,missing duplicate or not fail-closed
+PMAI-P0-04-DTPA-T012,ci,shell syntax valid,bash syntax check,zero,nonzero
+PMAI-P0-04-DTPA-T013,diff,no whitespace errors,git diff check plus generated-content scan,zero,any error
+PMAI-P0-04-DTPA-T014,dry_run,reviewed bundle identity required for apply,SHA-256 confirmation,exact match,missing or stale hash
+PMAI-P0-04-DTPA-T015,runtime,no network runtime claim,document marker,baseline only,fresh verification claimed
+PMAI-P0-04-DTPA-T016,compatibility,prior CI hash matches HEAD and protected baseline,local git blob and SHA-256,27579b1d054a50223f76590c15bf310c4cc950341d1018e89c54a4849f62d0c2,missing or mismatch
+PMAI-P0-04-DTPA-T017,target_scope,CI and prior validator contain the same extended targets,AST literal and shell block comparison,exact equality,extra missing duplicate or reordered path
+PMAI-P0-04-DTPA-T018,hash_scope,new package and final CI are protected by prior HASHES,AST literal and SHA-256 comparison,all protected hashes exact,missing extra or mismatch
+PMAI-P0-04-DTPA-T019,ci_execution,CI executes only two approved validators,prior py_lines invariant,old validator then authorization preparation validator,missing extra or reordered command
+PMAI-P0-04-DTPA-T020,authorization,hash rollover does not authorize external execution,document checklist and Go/No-Go validation,all database restore migration and provisioning flags false,any authorization true
