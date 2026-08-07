@@ -1,0 +1,208 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Disposable Target Provisioning Evidence & Restore Execution Authorization Preparation V1
+
+This consolidated package closes the control-plane provisioning evidence
+gate and prepares a later, separate restore-execution authorization review.
+It does not authorize or execute restore and does not connect to either the
+source or disposable database.
+
+## 1. Canonical stage state
+
+~~~text
+stage_id=PMAI-P0-04
+substage=DISPOSABLE_TARGET_PROVISIONING_EVIDENCE_AND_RESTORE_EXECUTION_AUTHORIZATION_PREPARATION_V1
+stage_status=IN_PROGRESS
+package_status=EVIDENCE_COMPLETE_PREPARATION_ONLY
+evidence_completeness=COMPLETE_FOR_PROVISIONING_PENDING_RESTORE_EXECUTION_AUTHORIZATION
+disposable_restore_target_provisioning_authorized=true
+disposable_restore_database_created=true
+provisioning_execution_performed=true
+provisioning_evidence_complete=true
+restore_execution_authorization_preparation_complete=true
+ready_for_restore_execution_authorization_review=true
+disposable_restore_execution_authorized=false
+decision=HOLD_PMAI_P0_04_PENDING_SEPARATE_RESTORE_EXECUTION_AUTHORIZATION_REVIEW
+next_action=PREPARE_SEPARATE_RESTORE_EXECUTION_AUTHORIZATION_REVIEW
+~~~
+
+## 2. Repository and deployment baseline
+
+~~~text
+local_main=9cf311610aae72537c1c57d98ff9e5c8b60edb94
+origin_main=9cf311610aae72537c1c57d98ff9e5c8b60edb94
+main_parent=b47d455aeeecb7dac9654d9e1dbf3df399573d5b
+github_ci_gate_number=187
+github_ci_gate_status=PASS
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+production_auto_deploy_verified=false
+final_ci_sha256=26944102de1c64805425675dc4eedc06f150feb6bc0e57d26319028ae6618311
+baseline_freshness=REPOSITORY_AND_SCREENSHOT_EVIDENCE_ONLY_NO_RUNTIME_NETWORK_RECHECK
+~~~
+
+GitHub CI is not Render Auto-Deploy evidence. No deploy action belongs to
+this package.
+
+## 3. Provisioned target evidence
+
+~~~text
+target_logical_name=pet-med-ai-db-p0-04-disposable-restore-ohio
+target_provider=Render
+target_status=Available
+target_available=true
+target_region=Ohio (US East)
+target_postgresql_major_version=18
+target_instance_type=Basic-256mb
+target_memory_mb=256
+target_cpu=0.1
+target_storage_gb=1
+target_storage_autoscaling=false
+target_read_replica_count=0
+target_high_availability=false
+target_datadog_api_key_configured=false
+target_application_attachment_count=0
+target_isolated_control_plane_verified=true
+target_new_service_control_plane_evidence=true
+target_empty_application_data_verified=false
+target_empty_state_basis=NEW_SERVICE_CONTROL_PLANE_INFERENCE_NOT_DATABASE_CONTENT_READBACK
+target_content_readback_performed=false
+application_traffic_disabled=true
+pgadmin_deployed=false
+pghero_deployed=false
+connect_action_invoked=false
+recovery_action_invoked=false
+connection_value_captured=false
+raw_service_identifier_recorded=false
+target_service_identifier_repository_value=NOT_RECORDED
+~~~
+
+The Apps page showed only optional deployment cards, not attached or
+deployed applications. The control plane proves application isolation but
+cannot prove database contents are empty. That distinction remains
+explicit and fail-closed.
+
+## 4. Hash-addressed external evidence
+
+~~~text
+provisioning_evidence_artifact_count=4
+provisioning_evidence_01_id=P04-DTP-E01
+provisioning_evidence_01_purpose=status_version_region
+provisioning_evidence_01_sha256=9789a602189d30d73f16ae9066d1ccd190facd52710db28bcd1d1d4d5c53654b
+provisioning_evidence_02_id=P04-DTP-E02
+provisioning_evidence_02_purpose=read_replica_autoscaling_datadog
+provisioning_evidence_02_sha256=eb81514e212b3f4f1a633eec165aa9d42e9bc8ad1671767e1bd850be13351298
+provisioning_evidence_03_id=P04-DTP-E03
+provisioning_evidence_03_purpose=instance_storage_high_availability
+provisioning_evidence_03_sha256=f5628589735be8f1356e7a7871ae89938029164a0e5c082fca8d2cbc55f456a9
+provisioning_evidence_04_id=P04-DTP-E04
+provisioning_evidence_04_purpose=application_isolation
+provisioning_evidence_04_sha256=0afda6cc8243a817a89e79e9919ef235eabe66383ead5ef2e3bcd2d5ca887695
+provisioning_evidence_set_canonicalization=EVIDENCE_ID_EQUALS_SHA256_NEWLINE_ASCENDING_ID
+provisioning_evidence_set_sha256=f2bc5bb7337bcfcd7b50df207f036e4c91dc78d9cdfca7084e1ebf7b112c7eb3
+provisioning_evidence_sha256_set_verified=true
+external_evidence_custody=EXTERNAL_OPERATOR_SCREENSHOTS_NOT_REPOSITORY
+external_evidence_content_copied=false
+external_evidence_artifact_committed=false
+~~~
+
+Only SHA-256 values and sanitized facts are committed. Screenshots,
+dashboard paths, the raw service identifier, and connection values remain
+outside the repository.
+
+## 5. Lifetime, cost, and cleanup
+
+~~~text
+target_created_at_observed=2026-08-08T00:08_OPERATOR_SCREENSHOT_LOCAL_APPROXIMATE
+target_operational_delete_deadline_local=2026-08-11T00:00_OPERATOR_SCREENSHOT_LOCAL_TIME
+target_hard_expiry_not_later_than_local=2026-08-11T00:08_OPERATOR_SCREENSHOT_LOCAL_TIME
+target_max_lifetime_hours=72
+target_delete_within_hours_after_restore_evidence=24
+target_cost_ceiling_usd=1.00
+deletion_owner=PROJECT_OWNER_OPERATOR
+target_deleted=false
+cleanup_evidence_required=true
+cleanup_evidence_complete=false
+~~~
+
+Delete at the earlier of 24 hours after restore evidence completion or
+the hard expiry. If restore never receives authorization, delete by the
+operational deadline without connecting to the target.
+
+## 6. Execution boundary retained
+
+~~~text
+repository_only=true
+network_access=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+restore_runner_created=false
+restore_runner_execution_enabled=false
+restore_runner_executed_by_ci=false
+disposable_restore_database_write_authorized=false
+restore_execution_authorization_requested=false
+explicit_restore_execution_approval_present=false
+restore_command_reviewed=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+corrected_migration_implementation_authorized=false
+active_0010_migration_file_created=false
+staging_0010_migration_executed=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+production_migration_authorized=false
+production_migration_executed=false
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+~~~
+
+## 7. Production and clinical hard gates
+
+~~~text
+database_revision=0009_diag_data
+alembic_head=0009_diag_data
+schema_ok=true
+migration_errors=[]
+writes_database=false
+exposes_database_url=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~
+
+## 8. Separate restore-authorization review requirements
+
+A later review must independently approve the exact restore scope,
+operator, backup SHA-256, client version, target identifier handling,
+credential channel, command form, timeout, error policy, evidence capture,
+abort conditions, cleanup timing, and confirmation that production and
+staging source are excluded from all writes.
+
+Passing this preparation package means only that those questions may now
+be reviewed. It grants no restore, connection, SQL, migration, or runner
+authority.
+
+## 9. Stop conditions
+
+Stop and retain HOLD if any protected hash or Git baseline differs; the
+target is unavailable, attached, resized, replicated, or outside Ohio;
+screenshot hashes differ; a raw identifier, URL, credential, or screenshot
+is proposed for the repository; the deletion deadline is lost; restore
+approval is inferred from provisioning approval; or any connection,
+restore, SQL, migration, deployment, clinical write, or locked runner
+execution is requested before a separate authorization record.
