@@ -21,7 +21,7 @@ EVIDENCE_PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_st
 RESTORE_AUTH_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = 'ee5b75fe566218490ca1edef2405596309a6302879ec486249b435ae07832cde'
+EXPECTED_CI_SHA256 = '779d896e877ade28ca67e4115d61de3309deff25cf79e137c8d9dab47720ec98'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_V2_RUNNER_SHA256 = 'e36c62f2a69c97c03c97cf9b76edb42759f4bdea5ae987acc34b9c6f4c356cf5'
 EXPECTED_BACKUP_SHA256 = 'ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7'
@@ -34,21 +34,25 @@ EXPECTED_EVIDENCE = (('P04-V2A-E01', '2521d0971ace653f644749fddee20e2a49ea5d768a
  ('P04-V2A-E05', '1413b1eb0ba65457dcd483439a4dbd6a92695b81327ff4960d4e05b0304c05ba', 'third_final_call_pre_execution_abort_terminal'),
  ('P04-V2A-E06', '6294ce472ca7b3b32a7c292b40afd35ac3f51031ae6687abbaada2f44b8d3482', 'post_abort_target_available_status'),
  ('P04-V2A-E07', 'd80fce477cb7d19462ac4d7a6dc90a0448e6c20c24fbb932f77ceb9cd7c51e49', 'post_abort_storage_autoscaling_connection_pool_instance'))
-EXPECTED_COMMANDS = ['python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py',
+EXPECTED_COMMANDS = ['python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_preparation_v1.py '
  '|| exit 1',
  'python3 '
- 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_review_v1.py || '
- 'exit 1',
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_review_v1.py '
+ '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_evidence_and_restore_execution_authorization_preparation_v1.py '
  '|| exit 1',
  'python3 '
- 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py || '
- 'exit 1',
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py '
+ '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_external_disposable_restore_v2_pre_execution_abort_evidence_and_disposable_target_retirement_preparation_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_retirement_authorization_review_v1.py '
  '|| exit 1']
 HASH_EXTRA_PATHS = {'backend/models.py',
  'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md',

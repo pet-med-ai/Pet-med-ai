@@ -19,7 +19,7 @@ PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persi
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
 
-EXPECTED_CI_SHA256 = 'ee5b75fe566218490ca1edef2405596309a6302879ec486249b435ae07832cde'
+EXPECTED_CI_SHA256 = '779d896e877ade28ca67e4115d61de3309deff25cf79e137c8d9dab47720ec98'
 AUTHORIZATION_RECORD_CI_SHA256 = 'f224dd3ed069a198613ad3ddbace564245586528acddab54e1eb835921ffea2f'
 HISTORICAL_CI_SHA256 = '8068312d6aa24e667f344b3eea9082f0a9b3688bc664dee0984d3e3dd251f25c'
 EXPECTED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
@@ -27,18 +27,25 @@ APPROVAL_STATEMENT = '批准以上参数，仅授权 disposable target provision
 APPROVAL_STATEMENT_SHA256 = '2afe7b8c5a9701b972fd81c15c67759a16c84d9658f7613583e5a7162a06d92b'
 FALSE_MARKERS = ('network_access', 'database_connection', 'database_write', 'restore_execution', 'pg_restore_invoked', 'psql_invoked', 'alembic_invoked', 'migration_created', 'migration_executed', 'restore_runner_created', 'restore_runner_execution_enabled', 'restore_runner_executed_by_ci', 'disposable_restore_database_created', 'disposable_restore_database_write_authorized', 'disposable_restore_execution_authorized', 'backup_restoreability_verified', 'disposable_restore_rehearsal_complete', 'corrected_migration_implementation_authorized', 'active_0010_migration_file_created', 'staging_0010_migration_executed', 'p0_04_execution_authorized', 'staging_0010_apply_authorized', 'production_migration_authorized', 'production_migration_executed', 'candidate_migration_deployed', 'production_auto_deploy_verified', 'provisioning_execution_performed', 'target_created_by_package', 'ENABLE_EMR_REAL_IMPORT', 'ENABLE_EMR_IMPORT_CASE_UPDATE', 'ENABLE_EMR_ATTACHMENT_DOWNLOAD', 'ENABLE_PREVENTIVE_AUTO_DELIVERY', 'ENABLE_PREVENTIVE_SMS_DELIVERY', 'ENABLE_PREVENTIVE_WECHAT_DELIVERY', 'ENABLE_PREVENTIVE_EMAIL_DELIVERY', 'ENABLE_PRESCRIPTION_STRUCTURED_WRITE', 'ENABLE_DEVICE_REAL_INGEST', 'ENABLE_BILLING_REAL_WRITE')
 HASH_EXTRA_PATHS = set(('docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md', 'backend/models.py', 'docs/ops/ALEMBIC_RELEASE_GUARDRAILS.md', 'render.yaml'))
-EXPECTED_COMMANDS = ['python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py',
- 'python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_preparation_v1.py '
+EXPECTED_COMMANDS = ['python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_preparation_v1.py '
  '|| exit 1',
- 'python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_review_v1.py || '
- 'exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_review_v1.py '
+ '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_evidence_and_restore_execution_authorization_preparation_v1.py '
  '|| exit 1',
- 'python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py || exit '
- '1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py '
+ '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_external_disposable_restore_v2_pre_execution_abort_evidence_and_disposable_target_retirement_preparation_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_retirement_authorization_review_v1.py '
  '|| exit 1']
 
 

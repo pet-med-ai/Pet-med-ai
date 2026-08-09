@@ -1,0 +1,252 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Disposable Target Retirement Authorization Review V1
+
+This review authorizes retirement of one exact disposable Render PostgreSQL
+service after fresh control-plane verification. It records authorization only;
+this repository package does not delete the service, connect to a database,
+run recovery or restore tooling, execute a migration, or deploy an application.
+
+## 1. Canonical review decision
+
+~~~text
+stage_id=PMAI-P0-04
+substage=DISPOSABLE_TARGET_RETIREMENT_AUTHORIZATION_REVIEW_V1
+stage_status=IN_PROGRESS
+review_status=APPROVED_DISPOSABLE_TARGET_RETIREMENT_ONLY
+authorization_record_id=PMAI-P0-04-DTRAR-V1-20260809
+authorization_scope=ONE_EXACT_DISPOSABLE_RENDER_POSTGRES_SERVICE_CONTROL_PLANE_DELETE_ONLY
+approval_statement_sha256=525efdddd4f15257e1211ef3e0b7c5215ef5bf54aa6560f07e1e26c6ed8ea6f8
+disposable_target_retirement_authorized=true
+disposable_target_deletion_authorized=true
+target_retirement_execution_authorized=true
+retirement_authorization_single_use=true
+retirement_authorization_expires_at_local=2026-08-11T00:08+08:00
+retirement_execution_performed=false
+render_delete_action_invoked=false
+target_deleted=false
+cleanup_evidence_complete=false
+repository_authorization_record_only=true
+decision=GO_TO_EXTERNAL_DISPOSABLE_TARGET_RETIREMENT_EXECUTION_ONLY
+next_action=FRESH_CONTROL_PLANE_RECHECK_THEN_ONE_MANUAL_TARGET_DELETE_AND_SANITIZED_AFTER_EVIDENCE
+~~~
+
+The approval statement must be supplied verbatim outside this document before
+the authorization package is applied. Entering the review stage, preparing
+this package, or running a dry-run does not itself authorize deletion.
+
+## 2. Repository and CI baseline
+
+~~~text
+local_main=07446387f551aa5c544ddf8531d076c78c44a204
+origin_main=07446387f551aa5c544ddf8531d076c78c44a204
+main_parent=4232a17e5060cee2dd313f330d93f84e8018533b
+github_ci_gate_number=190
+github_ci_gate_status=PASS
+github_ci_gate_commit=07446387f551aa5c544ddf8531d076c78c44a204
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+prior_ci_sha256=ee5b75fe566218490ca1edef2405596309a6302879ec486249b435ae07832cde
+final_ci_sha256=779d896e877ade28ca67e4115d61de3309deff25cf79e137c8d9dab47720ec98
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+active_0010_migration_file_created=false
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+production_auto_deploy_verified=false
+repository_clean_before_review=true
+~~~
+
+GitHub CI Gate #190 confirms the repository package at the named commit. It is
+not Render deployment evidence and does not change either application runtime.
+
+## 3. Entry evidence and terminal restore state
+
+~~~text
+abort_preparation_document_committed_sha256=c1d44d9652ff7fc14fafa2747572716d1d7aaf3b87052008eb2dda6cded658eb
+abort_preparation_document_current_sha256=8b789b523a14667b65dd3f3272eb79a18064b5d74ee04d25ee87b94d63fbe686
+abort_evidence_set_sha256=dc725fccd01d4a15f2faaa327cb3ebdfe9d833465a831be5171e6b589043fef1
+external_v2_runner_sha256=e36c62f2a69c97c03c97cf9b76edb42759f4bdea5ae987acc34b9c6f4c356cf5
+approved_backup_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+third_and_final_external_runner_call_status=PRE_EXECUTION_ABORT
+third_and_final_external_runner_stop_code=BACKUP_DIRECTORY_ROOT_MISMATCH
+external_runner_execute_call_count=3
+technical_restore_attempt_reserved=false
+external_v2_database_connection=false
+external_v2_database_write=false
+external_v2_restore_execution=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+fourth_external_runner_call_authorized=false
+fourth_external_runner_call_permitted=false
+v2_runner_execution_authorized=false
+v3_runner_preparation_authorized=false
+no_further_restore_retry=true
+~~~
+
+The restore chain is terminal for this target. Retirement authorization does
+not revive the V1 or V2 runner, authorize V3, create a fourth call, or establish
+backup restoreability.
+
+## 4. Exact retirement target
+
+~~~text
+target_logical_name=pet-med-ai-db-p0-04-disposable-restore-ohio
+target_service_identifier_sha256=fcd569994776e091f001f7213cd02432339e172e51889b2acf0a3987e0be7b48
+target_service_identifier_repository_value=HASH_ONLY
+target_environment_class=DISPOSABLE_RESTORE_REHEARSAL_ONLY
+target_region=Ohio (US East)
+target_postgresql_major_version=18
+target_instance_type=Basic-256mb
+target_storage_gb=1
+target_storage_autoscaling_expected=false
+target_connection_pooling_expected=false
+target_high_availability_expected=false
+target_apps_expected=0
+target_cost_ceiling_usd=1.00
+target_retirement_operational_deadline_local=2026-08-11T00:00+08:00
+target_retirement_hard_deadline_local=2026-08-11T00:08+08:00
+production_target_excluded=true
+staging_source_target_excluded=true
+~~~
+
+The logical name and approved identity hash must both match. A visual name
+match alone is insufficient if another service, dependency, or ambiguous
+dashboard context is present.
+
+## 5. Mandatory fresh pre-delete gate
+
+The operator must recheck all of the following immediately before deletion.
+The sanitized evidence should be captured within five minutes of the delete
+confirmation.
+
+~~~text
+fresh_recheck_max_age_minutes=5
+fresh_target_identity_match_required=true
+fresh_target_logical_name_match_required=true
+fresh_target_status_available_required=true
+fresh_target_region_match_required=true
+fresh_target_postgresql_version_match_required=true
+fresh_target_instance_type_match_required=true
+fresh_target_storage_match_required=true
+fresh_target_autoscaling_disabled_required=true
+fresh_target_connection_pool_disabled_required=true
+fresh_target_high_availability_disabled_required=true
+fresh_target_apps_zero_required=true
+fresh_target_dependency_absence_required=true
+fresh_external_restore_runner_process_absence_required=true
+fresh_attempt_state_absence_required=true
+fresh_execution_evidence_absence_required=true
+fresh_repository_clean_required=true
+fresh_main_origin_match_required=true
+fresh_ci_gate_190_pass_required=true
+fresh_locked_runner_hash_match_required=true
+fresh_active_0010_absence_required=true
+fresh_cost_ceiling_check_required=true
+fresh_hard_deadline_check_required=true
+fresh_pre_delete_gate_completed=false
+~~~
+
+If any predicate differs, cannot be observed, or is ambiguous, deletion must
+stop. An expired authorization cannot be extended by interpreting this record.
+
+## 6. Authorized external action
+
+~~~text
+retirement_execution_channel=RENDER_DASHBOARD_MANUAL_CONTROL_PLANE_ONLY
+retirement_action=DELETE_EXACT_DISPOSABLE_POSTGRES_SERVICE
+retirement_action_count_limit=1
+retirement_operator=PROJECT_OWNER_OPERATOR
+retirement_exact_name_confirmation_required=true
+retirement_irreversible_effect_acknowledgement_required=true
+retirement_before_sanitized_evidence_required=true
+retirement_after_absence_evidence_required=true
+retirement_post_action_service_absence_verification_required=true
+retirement_post_action_dependency_absence_verification_required=true
+retirement_raw_service_identifier_recording_allowed=false
+retirement_connection_value_required=false
+retirement_database_connection_required=false
+retirement_database_write_required=false
+retirement_restore_action_required=false
+retirement_runner_created=false
+retirement_api_automation_authorized=false
+retirement_cli_automation_authorized=false
+~~~
+
+Only the service-level Delete action for the exact disposable target is in
+scope. Restore Database, Recovery, connection details, pgAdmin, PgHero, SQL,
+API automation, and deletion of any application or source database remain out
+of scope.
+
+## 7. Repository-package boundary
+
+~~~text
+repository_only=true
+network_access=false
+database_connection=false
+database_write=false
+restore_execution=false
+package_pg_restore_invoked=false
+package_psql_invoked=false
+package_alembic_invoked=false
+migration_created=false
+migration_executed=false
+restore_runner_created=false
+restore_runner_modified=false
+locked_runner_invoked=false
+application_deployment=false
+target_retirement_script_created=false
+package_external_target_mutated=false
+package_render_delete_action_invoked=false
+package_retirement_execution_performed=false
+package_target_deleted=false
+corrected_migration_implementation_authorized=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+production_migration_authorized=false
+production_migration_executed=false
+~~~
+
+## 8. Production and clinical hard gates retained
+
+~~~text
+database_revision=0009_diag_data
+alembic_head=0009_diag_data
+schema_ok=true
+migration_errors=[]
+writes_database=false
+exposes_database_url=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~
+
+## 9. Stop conditions
+
+Keep HOLD and do not delete if the approval statement is absent or differs;
+the repository/CI/locked-runner baseline differs; the exact target identity is
+uncertain; the target is not Available; Apps or dependencies are present; a
+restore runner, attempt state, or execution evidence is present; the action is
+after the hard deadline; the cost ceiling is exceeded; or before/after
+sanitized evidence cannot be obtained.
+
+Stop if the UI path is Restore Database or Recovery rather than service-level
+Delete, if credentials or a connection value are requested, or if production,
+staging source, an application service, another database, Alembic, migration
+0010, the locked runner, or deployment could be affected.
+
+## 10. Exit evidence required
+
+After the authorized manual deletion, a separate repository-only evidence
+package must record sanitized before/after hashes, deletion time, exact logical
+target name, approved identity hash, service absence, dependency absence,
+repository integrity, and unchanged production/staging hard gates. Until that
+package is complete, `cleanup_evidence_complete=false` and PMAI-P0-04 remains
+on HOLD.

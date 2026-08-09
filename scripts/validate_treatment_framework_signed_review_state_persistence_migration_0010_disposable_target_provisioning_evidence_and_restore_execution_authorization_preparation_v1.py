@@ -20,7 +20,7 @@ AUTH_REVIEW_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_stat
 AUTH_REVIEW_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V1.md'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = 'ee5b75fe566218490ca1edef2405596309a6302879ec486249b435ae07832cde'
+EXPECTED_CI_SHA256 = '779d896e877ade28ca67e4115d61de3309deff25cf79e137c8d9dab47720ec98'
 EVIDENCE_PREPARATION_RECORD_CI_SHA256 = '26944102de1c64805425675dc4eedc06f150feb6bc0e57d26319028ae6618311'
 AUTHORIZATION_REVIEW_RECORD_CI_SHA256 = 'f224dd3ed069a198613ad3ddbace564245586528acddab54e1eb835921ffea2f'
 EXPECTED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
@@ -28,18 +28,25 @@ FALSE_MARKERS = ('network_access', 'database_connection', 'database_write', 'res
 HASH_EXTRA_PATHS = set(('docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_IMPLEMENTATION_ALEMBIC_0010_DRAFT.py.txt', 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md', 'backend/models.py', 'docs/ops/ALEMBIC_RELEASE_GUARDRAILS.md', 'render.yaml'))
 EVIDENCE_HASHES = (('P04-DTP-E01', '9789a602189d30d73f16ae9066d1ccd190facd52710db28bcd1d1d4d5c53654b', 'status_version_region'), ('P04-DTP-E02', 'eb81514e212b3f4f1a633eec165aa9d42e9bc8ad1671767e1bd850be13351298', 'read_replica_autoscaling_datadog'), ('P04-DTP-E03', 'f5628589735be8f1356e7a7871ae89938029164a0e5c082fca8d2cbc55f456a9', 'instance_storage_high_availability'), ('P04-DTP-E04', '0afda6cc8243a817a89e79e9919ef235eabe66383ead5ef2e3bcd2d5ca887695', 'application_isolation'))
 EVIDENCE_SET_SHA256 = 'f2bc5bb7337bcfcd7b50df207f036e4c91dc78d9cdfca7084e1ebf7b112c7eb3'
-EXPECTED_COMMANDS = ['python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py',
- 'python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_preparation_v1.py '
+EXPECTED_COMMANDS = ['python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_preparation_v1.py '
  '|| exit 1',
- 'python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_review_v1.py || '
- 'exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_review_v1.py '
+ '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_evidence_and_restore_execution_authorization_preparation_v1.py '
  '|| exit 1',
- 'python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py || exit '
- '1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py '
+ '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_external_disposable_restore_v2_pre_execution_abort_evidence_and_disposable_target_retirement_preparation_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_retirement_authorization_review_v1.py '
  '|| exit 1']
 
 
