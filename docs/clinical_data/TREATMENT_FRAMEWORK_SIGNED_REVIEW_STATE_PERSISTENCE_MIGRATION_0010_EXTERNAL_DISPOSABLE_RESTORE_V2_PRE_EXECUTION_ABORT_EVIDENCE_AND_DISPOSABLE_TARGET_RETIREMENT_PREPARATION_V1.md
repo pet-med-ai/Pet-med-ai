@@ -1,0 +1,276 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## External Disposable Restore V2 Pre-Execution Abort Evidence & Disposable Target Retirement Preparation V1
+
+This package records the third and final external-runner call as a
+pre-execution abort and prepares a separate disposable-target retirement
+review. It does not authorize a fourth restore call, another runner, target
+deletion, database access, migration, deployment, or clinical write.
+
+## 1. Canonical stage state
+
+~~~text
+stage_id=PMAI-P0-04
+substage=EXTERNAL_DISPOSABLE_RESTORE_V2_PRE_EXECUTION_ABORT_EVIDENCE_AND_DISPOSABLE_TARGET_RETIREMENT_PREPARATION_V1
+stage_status=IN_PROGRESS
+package_status=PRE_EXECUTION_ABORT_EVIDENCE_COMPLETE_RETIREMENT_PREPARATION_ONLY
+evidence_completeness=COMPLETE_FOR_V2_PRE_EXECUTION_ABORT_PENDING_SEPARATE_TARGET_RETIREMENT_AUTHORIZATION
+third_and_final_external_runner_call_status=PRE_EXECUTION_ABORT
+third_and_final_external_runner_stop_code=BACKUP_DIRECTORY_ROOT_MISMATCH
+third_and_final_external_runner_exit_code=2
+third_and_final_external_runner_call_consumed=true
+technical_restore_attempt_reserved=false
+restore_execution_started=false
+restore_execution_completed=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+fourth_external_runner_call_authorized=false
+fourth_external_runner_call_permitted=false
+v2_runner_execution_authorized=false
+v3_runner_preparation_authorized=false
+no_further_restore_retry=true
+disposable_target_retirement_preparation_complete=true
+ready_for_separate_disposable_target_retirement_authorization_review=true
+disposable_target_retirement_authorized=false
+disposable_target_deletion_authorized=false
+disposable_target_deleted=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+decision=HOLD_PMAI_P0_04_NO_FURTHER_RESTORE_CALLS_PENDING_DISPOSABLE_TARGET_RETIREMENT_AUTHORIZATION_AND_FRESH_RESTORE_GOVERNANCE_DECISION
+next_action=SEPARATE_DISPOSABLE_TARGET_RETIREMENT_AUTHORIZATION_REVIEW_ONLY
+~~~
+
+`BACKUP_DIRECTORY_ROOT_MISMATCH` is recorded as a runner validation
+incompatibility, not as proof that the backup is corrupt. Because the call
+stopped before attempt reservation and before database connection, it does
+not establish backup restoreability.
+
+## 2. Repository and authorization baseline
+
+~~~text
+local_main=4232a17e5060cee2dd313f330d93f84e8018533b
+origin_main=4232a17e5060cee2dd313f330d93f84e8018533b
+main_parent=9bae479760bb9a5f5940e9aa3cbb41ddfe46acc3
+github_ci_gate_number=189
+github_ci_gate_status=PASS
+github_ci_gate_commit=4232a17e5060cee2dd313f330d93f84e8018533b
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+production_auto_deploy_verified=false
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+external_v1_runner_sha256=0604c2fadd3345d2d808a7ab90dd887dfc312d128897c90c373bebfa3e74a8bb
+external_v2_runner_sha256=e36c62f2a69c97c03c97cf9b76edb42759f4bdea5ae987acc34b9c6f4c356cf5
+approved_backup_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+approved_backup_toc_sha256=6a1b20417a90fe9a5d954c4451e6fd3ebc7072407bc031e68b44c2b824e1ee1c
+final_ci_sha256=ee5b75fe566218490ca1edef2405596309a6302879ec486249b435ae07832cde
+baseline_source=OPERATOR_OUTPUT_AND_HASH_ADDRESSED_EXTERNAL_SCREENSHOT_EVIDENCE_NO_PACKAGE_NETWORK_RECHECK
+~~~
+
+GitHub CI is not Render Auto-Deploy evidence. This package neither checks
+nor changes either application runtime.
+
+## 3. Three-call chronology and abort boundary
+
+~~~text
+external_runner_execute_call_count=3
+first_call_runner_version=V1
+first_call_stop_code=CONTROL_PLANE_RECHECK_NOT_FRESH
+first_call_classification=PRE_EXECUTION_ABORT
+second_call_runner_version=V1
+second_call_stop_code=BACKUP_ARCHIVE_PATH_UNSAFE
+second_call_classification=PRE_EXECUTION_ABORT
+third_call_runner_version=V2
+third_call_control_plane_rechecked_at_utc=2026-08-09T12:47:54Z
+third_call_stop_code=BACKUP_DIRECTORY_ROOT_MISMATCH
+third_call_classification=PRE_EXECUTION_ABORT
+external_runner_process_present_after_abort=false
+exact_attempt_state_present=false
+exact_execution_evidence_present=false
+recursive_attempt_state_count=0
+recursive_execution_evidence_count=0
+temporary_restore_directory_count=0
+automatic_retry=false
+original_backup_modified=false
+original_backup_repacked=false
+pg_restore_version_check_invoked=true
+psql_version_check_invoked=true
+pg_restore_list_invoked=false
+pg_restore_restore_invoked=false
+psql_database_invoked=false
+external_v2_database_connection=false
+external_v2_database_write=false
+external_v2_restore_execution=false
+~~~
+
+The local client version checks are not database-facing restore or query
+execution. No hidden credential prompt was reached, no libpq service file
+was prepared, and no attempt-state or execution-evidence file was created.
+
+## 4. Hash-addressed external evidence
+
+~~~text
+abort_evidence_artifact_count=7
+abort_evidence_01_id=P04-V2A-E01
+abort_evidence_01_purpose=fresh_pre_execution_status_version_region
+abort_evidence_01_sha256=2521d0971ace653f644749fddee20e2a49ea5d768a5b5a358d86b6e6bdac3c40
+abort_evidence_02_id=P04-V2A-E02
+abort_evidence_02_purpose=fresh_pre_execution_storage_autoscaling_connection_pool
+abort_evidence_02_sha256=2c6f0a725cdb9d91d1a069f77e79bb085d9d1ed732b14457585386768ddcc37d
+abort_evidence_03_id=P04-V2A-E03
+abort_evidence_03_purpose=fresh_pre_execution_instance_and_high_availability
+abort_evidence_03_sha256=35ef0c19546c2759a5a3458e807e0ec8f1bb6ac55b436e5b2b2de02c53222ed2
+abort_evidence_04_id=P04-V2A-E04
+abort_evidence_04_purpose=fresh_pre_execution_application_isolation
+abort_evidence_04_sha256=f61f0192db3d919a3bda0f6c31810e9582500cdd6fd20a2aed82cca85d3e48e9
+abort_evidence_05_id=P04-V2A-E05
+abort_evidence_05_purpose=third_final_call_pre_execution_abort_terminal
+abort_evidence_05_sha256=1413b1eb0ba65457dcd483439a4dbd6a92695b81327ff4960d4e05b0304c05ba
+abort_evidence_06_id=P04-V2A-E06
+abort_evidence_06_purpose=post_abort_target_available_status
+abort_evidence_06_sha256=6294ce472ca7b3b32a7c292b40afd35ac3f51031ae6687abbaada2f44b8d3482
+abort_evidence_07_id=P04-V2A-E07
+abort_evidence_07_purpose=post_abort_storage_autoscaling_connection_pool_instance
+abort_evidence_07_sha256=d80fce477cb7d19462ac4d7a6dc90a0448e6c20c24fbb932f77ceb9cd7c51e49
+abort_evidence_set_canonicalization=EVIDENCE_ID_EQUALS_SHA256_NEWLINE_ASCENDING_ID
+abort_evidence_set_sha256=dc725fccd01d4a15f2faaa327cb3ebdfe9d833465a831be5171e6b589043fef1
+abort_evidence_sha256_set_verified=true
+external_evidence_custody=EXTERNAL_OPERATOR_SCREENSHOTS_NOT_REPOSITORY
+external_evidence_content_copied=false
+external_evidence_artifact_committed=false
+~~~
+
+Only SHA-256 values and sanitized facts enter this package. Screenshots,
+raw dashboard identifiers, credentials, connection values, state JSON, and
+the backup remain outside the repository.
+
+## 5. Post-abort target state
+
+~~~text
+target_logical_name=pet-med-ai-db-p0-04-disposable-restore-ohio
+target_service_identifier_sha256=fcd569994776e091f001f7213cd02432339e172e51889b2acf0a3987e0be7b48
+target_service_identifier_repository_value=HASH_ONLY
+post_abort_target_observed_at_local=2026-08-09T20:53_OPERATOR_SCREENSHOT_LOCAL_TIME
+post_abort_target_status=Available
+post_abort_target_available=true
+post_abort_target_region=Ohio (US East)
+post_abort_target_postgresql_major_version=18
+post_abort_target_instance_type=Basic-256mb
+post_abort_target_storage_gb=1
+post_abort_target_storage_used_percent=9.9
+post_abort_target_storage_autoscaling=false
+post_abort_target_connection_pooling=false
+post_abort_application_attachment_count_reverified=false
+post_abort_high_availability_reverified=false
+post_abort_database_content_readback_performed=false
+post_abort_target_mutation_detected=false
+production_target_excluded=true
+staging_source_target_excluded=true
+~~~
+
+The post-abort screenshots establish that the exact disposable service was
+still Available with the observed instance and storage settings. Apps and
+high-availability must be rechecked immediately before any later retirement
+action; this package does not infer a fresh value for fields not visible in
+the post-abort screenshots.
+
+## 6. Disposable-target retirement preparation
+
+~~~text
+target_retirement_scope=ONE_EXACT_DISPOSABLE_RENDER_POSTGRES_SERVICE_ONLY
+target_retirement_mode=CONTROL_PLANE_DELETE_ONLY_AFTER_SEPARATE_AUTHORIZATION
+target_retirement_owner=PROJECT_OWNER_OPERATOR
+target_retirement_operational_deadline_local=2026-08-11T00:00+08:00
+target_retirement_hard_deadline_local=2026-08-11T00:08+08:00
+target_cost_ceiling_usd=1.00
+fresh_target_identity_recheck_required=true
+fresh_target_available_recheck_required=true
+fresh_target_apps_zero_recheck_required=true
+fresh_target_dependency_recheck_required=true
+fresh_target_restore_process_absence_recheck_required=true
+retirement_confirmation_exact_target_name_required=true
+retirement_sanitized_before_after_evidence_required=true
+retirement_raw_service_identifier_recording_allowed=false
+retirement_connection_value_required=false
+retirement_database_connection_required=false
+retirement_database_write_required=false
+retirement_restore_action_required=false
+target_retirement_authorization_requested=false
+target_retirement_authorization_present=false
+target_retirement_execution_authorized=false
+render_delete_action_invoked=false
+cleanup_evidence_complete=false
+~~~
+
+Retirement preparation is not deletion authority. A later authorization
+must identify only the exact disposable service by logical name and approved
+identity hash, require a fresh control-plane recheck, and prohibit database
+connection, Restore/Recovery actions, application deployment, or changes to
+production and staging source.
+
+## 7. Repository-package boundary
+
+~~~text
+repository_only=true
+network_access=false
+database_connection=false
+database_write=false
+restore_execution=false
+package_pg_restore_invoked=false
+package_psql_invoked=false
+package_alembic_invoked=false
+migration_created=false
+migration_executed=false
+restore_runner_created=false
+restore_runner_modified=false
+restore_runner_execution_enabled=false
+locked_runner_invoked=false
+application_deployment=false
+target_retirement_script_created=false
+package_disposable_target_retirement_authorized=false
+package_disposable_target_deletion_authorized=false
+package_render_delete_action_invoked=false
+corrected_migration_implementation_authorized=false
+active_0010_migration_file_created=false
+staging_0010_migration_executed=false
+production_migration_authorized=false
+production_migration_executed=false
+~~~
+
+## 8. Production and clinical hard gates retained
+
+~~~text
+database_revision=0009_diag_data
+alembic_head=0009_diag_data
+schema_ok=true
+migration_errors=[]
+writes_database=false
+exposes_database_url=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~
+
+## 9. Mandatory stop conditions
+
+Keep HOLD and perform no retirement action if the repository baseline,
+protected hashes, exact target identity, fresh target state, zero-app and
+dependency predicates, runner-process absence, deadline, cost ceiling, or
+operator confirmation differs or is ambiguous. Stop if any fourth restore
+call, V2 execution, V3 preparation, Restore/Recovery action, database
+connection, SQL, migration, locked runner, deployment, clinical write,
+secret capture, raw identifier capture, evidence-file commit, or broader
+target scope is proposed.
+
+After the hard deadline, do not reinterpret this preparation as authority;
+escalate the overdue disposable resource for a new, explicit retirement
+decision. No authority over production or staging source is created here.
