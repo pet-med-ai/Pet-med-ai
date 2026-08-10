@@ -1,0 +1,31 @@
+control_id,control,expected,current,status,evidence_source,stop_if
+PMAI-P0-04-FRGD-001,repository_only,true,true,PASS,decision_package,not true
+PMAI-P0-04-FRGD-002,route_a_evaluated,true,true,PASS,decision_package,false or missing
+PMAI-P0-04-FRGD-003,route_b_evaluated,true,true,PASS,decision_package,false or missing
+PMAI-P0-04-FRGD-004,selected_route,ROUTE_B_REBUILD_FRESH_RESTORE_GOVERNANCE_CHAIN_FROM_ZERO,ROUTE_B_REBUILD_FRESH_RESTORE_GOVERNANCE_CHAIN_FROM_ZERO,PASS,decision_package,mismatch
+PMAI-P0-04-FRGD-005,fresh_restore_governance_route_b_approved,true,true,PASS,user_direction,false or missing
+PMAI-P0-04-FRGD-006,legacy_external_runner_call_count,3,3,PASS,prior_evidence,mismatch
+PMAI-P0-04-FRGD-007,legacy_third_call_stop_code,BACKUP_DIRECTORY_ROOT_MISMATCH,BACKUP_DIRECTORY_ROOT_MISMATCH,PASS,prior_evidence,mismatch
+PMAI-P0-04-FRGD-008,retired_target_reuse_allowed,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-009,legacy_runner_v1_reuse_allowed,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-010,legacy_runner_v2_reuse_allowed,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-011,legacy_authorization_reuse_allowed,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-012,legacy_fourth_external_runner_call_authorized,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-013,archive_root_contract_investigation_authorized,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-014,backup_archive_listing_invoked,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-015,backup_archive_extracted,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-016,backup_archive_modified,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-017,backup_archive_repackaged,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-018,new_restore_runner_authorized,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-019,new_disposable_target_authorized,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-020,new_restore_execution_authorized,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-021,database_connection,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-022,restore_execution,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-023,migration_created,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-024,staging_0010_apply_authorized,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-025,application_deployment,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-026,backup_restoreability_verified,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-027,disposable_restore_rehearsal_complete,false,false,PASS,decision_package,true
+PMAI-P0-04-FRGD-028,locked_runner_sha256,c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f,c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f,PASS,repository_hash,mismatch
+PMAI-P0-04-FRGD-029,active_0010_migration_file_count,0,0,PASS,repository_scan,nonzero
+PMAI-P0-04-FRGD-030,next_action,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_PREPARATION_V1,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_PREPARATION_V1,PASS,decision_package,mismatch

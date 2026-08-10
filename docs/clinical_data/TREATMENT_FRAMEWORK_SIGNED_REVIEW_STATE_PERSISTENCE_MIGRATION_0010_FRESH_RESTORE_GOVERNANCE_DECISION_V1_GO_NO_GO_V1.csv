@@ -1,0 +1,2 @@
+decision_id,scope,selected_route,governance_route_authorized,external_execution_authorized,decision,permitted_next_action,forbidden_actions
+PMAI-P0-04-FRGD-GNG-001,fresh_restore_governance_decision,ROUTE_B_REBUILD_FRESH_RESTORE_GOVERNANCE_CHAIN_FROM_ZERO,true,false,GO_TO_PMAI_P0_04_FRESH_RESTORE_GOVERNANCE_CHAIN_PREPARATION,separate repository-only archive root contract investigation preparation review,apply;stage;commit;push;list;extract;modify;repackage;target;runner;restore;database;migration;deploy;delete;secret exposure

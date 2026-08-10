@@ -1,0 +1,25 @@
+test_id,area,assertion,method,expected,stop_condition
+PMAI-P0-04-FRGD-T001,git,exact main baseline,local git read-only,0bc76d10af7a0168048fb007dff9e156341b9b4f,any mismatch
+PMAI-P0-04-FRGD-T002,git,repository clean before authoritative apply,git status porcelain v1,empty,any change
+PMAI-P0-04-FRGD-T003,isolation,isolated local and remote refs preserved,git ref read-only,8d1dc8814ed8f80d8bc965b494c1c320fc08f228,any mismatch
+PMAI-P0-04-FRGD-T004,ci,entry CI gate retained,document exact marker,Gate 192 PASS,missing or mismatch
+PMAI-P0-04-FRGD-T005,route,both routes evaluated,document and checklist,true for both,missing or false
+PMAI-P0-04-FRGD-T006,route,Route B selected exactly,document checklist and Go No-Go,ROUTE_B_REBUILD_FRESH_RESTORE_GOVERNANCE_CHAIN_FROM_ZERO,mismatch
+PMAI-P0-04-FRGD-T007,scope,route approval is governance only,Go No-Go,governance true and external false,external true
+PMAI-P0-04-FRGD-T008,retirement,completed target remains retired,prior evidence reference,true,missing or reuse proposed
+PMAI-P0-04-FRGD-T009,legacy,three legacy calls remain consumed,document exact marker,3,mismatch
+PMAI-P0-04-FRGD-T010,legacy,old target runner and authorizations cannot be reused,document and checklist,all false,any true
+PMAI-P0-04-FRGD-T011,archive,no listing performed by package,document and checklist,false,true
+PMAI-P0-04-FRGD-T012,archive,no extraction modification or repackaging,document and checklist,all false,any true
+PMAI-P0-04-FRGD-T013,runner,no new runner authority or creation,document and checklist,false,true
+PMAI-P0-04-FRGD-T014,target,no new target authority or creation,document and checklist,false,true
+PMAI-P0-04-FRGD-T015,restore,no restore execution authority,document and checklist,false,true
+PMAI-P0-04-FRGD-T016,database,no database connection or write,validator exact markers,false,true
+PMAI-P0-04-FRGD-T017,migration,no active 0010 and no Alembic,repository glob and markers,zero and false,match or true
+PMAI-P0-04-FRGD-T018,runner,locked runner integrity,SHA-256 read-only,c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f,mismatch
+PMAI-P0-04-FRGD-T019,secrets,no URL credential or secret assignment,validator regex,zero matches,any match
+PMAI-P0-04-FRGD-T020,ci,new validator present once and fail closed,exact command and shell syntax,one occurrence and PASS,missing duplicate or nonzero
+PMAI-P0-04-FRGD-T021,protection,root targets and hashes protect full package,AST literals and SHA-256,exact equality,missing extra or mismatch
+PMAI-P0-04-FRGD-T022,compatibility,prior validators roll to final CI and command list,AST literals,exact equality,missing or mismatch
+PMAI-P0-04-FRGD-T023,diff,planned files only and no whitespace errors,changed path comparison and git diff check,exact planned set and zero errors,extra missing or error
+PMAI-P0-04-FRGD-T024,next_gate,next action remains separately authorized preparation,document and Go No-Go,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_PREPARATION_V1,external action inferred
