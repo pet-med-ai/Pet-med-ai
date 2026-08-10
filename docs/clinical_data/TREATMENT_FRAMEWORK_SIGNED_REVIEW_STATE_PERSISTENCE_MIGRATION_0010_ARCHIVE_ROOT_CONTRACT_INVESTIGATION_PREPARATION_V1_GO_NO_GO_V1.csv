@@ -1,0 +1,2 @@
+gate_id,scope,preparation_complete,investigation_authorized,listing_invoked,external_execution_authorized,decision,next_action,forbidden_actions
+PMAI-P0-04-ARCIP-GNG-001,archive_root_contract_investigation_preparation,true,false,false,false,GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_AUTHORIZATION_REVIEW_V1,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_AUTHORIZATION_REVIEW_V1,list;header read;payload read;extract;copy;upload;modify;repackage;target;runner;restore;database;migration;deploy;delete;secret exposure

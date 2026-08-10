@@ -26,7 +26,7 @@ ABORT_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTE
 RETIREMENT_AUTH_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_TARGET_RETIREMENT_AUTHORIZATION_REVIEW_V1.md'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = 'e09532f6b3069ab07e7f6d155457791ccad1844617999b95cee2cad7dea4d508'
+EXPECTED_CI_SHA256 = 'a1684935365edfbe4db7ac08aa9b08e264d9dde533ca15685cd8bbb122b5f248'
 EXPECTED_PRIOR_CI_SHA256 = '779d896e877ade28ca67e4115d61de3309deff25cf79e137c8d9dab47720ec98'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_EVIDENCE_SET_SHA256 = '61d630c697bdf937e59e9f992105c9aa7a00726a03d1fcc3924524e64fc9ae77'
@@ -55,6 +55,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_restore_governance_decision_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_preparation_v1.py '
  '|| exit 1']
 EXPECTED_EVIDENCE = (
     ('P04-DTR-E01', '35b0687c5a3b5873a1e33f5889b7a0272595c9dde3cdc3c9449af5b63b548126', 'pre_delete_identity_status_version_region'),

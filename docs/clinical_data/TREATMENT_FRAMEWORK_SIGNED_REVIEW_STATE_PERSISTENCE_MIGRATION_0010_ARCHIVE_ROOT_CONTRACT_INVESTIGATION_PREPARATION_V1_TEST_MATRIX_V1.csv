@@ -1,0 +1,31 @@
+test_id,area,assertion,method,expected,stop_condition
+PMAI-P0-04-ARCIP-T001,git,exact main baseline,read-only repository inspection,65e51ab64845083f47a2e397abf0f0a739c51a72,any mismatch
+PMAI-P0-04-ARCIP-T002,git,exact parent baseline,read-only repository inspection,0bc76d10af7a0168048fb007dff9e156341b9b4f,any mismatch
+PMAI-P0-04-ARCIP-T003,ci,entry Gate retained,document marker,193 PASS,missing or mismatch
+PMAI-P0-04-ARCIP-T004,isolation,isolated refs retained,document marker,8d1dc8814ed8f80d8bc965b494c1c320fc08f228,mismatch
+PMAI-P0-04-ARCIP-T005,route,Route B remains approved,decision marker,true,false or missing
+PMAI-P0-04-ARCIP-T006,scope,preparation only,document and Go No-Go,repository only and external false,scope expansion
+PMAI-P0-04-ARCIP-T007,archive,no archive opened,document and checklist,false,true
+PMAI-P0-04-ARCIP-T008,archive,no listing invoked,document and checklist,false,true
+PMAI-P0-04-ARCIP-T009,archive,no header metadata read,document and checklist,false,true
+PMAI-P0-04-ARCIP-T010,archive,no member payload read,document and checklist,false,true
+PMAI-P0-04-ARCIP-T011,archive,no extraction copy upload modification or repackaging,document and checklist,all false,any true
+PMAI-P0-04-ARCIP-T012,evidence,approved artifact hash retained,document and checklist,exact approved SHA-256,mismatch
+PMAI-P0-04-ARCIP-T013,evidence,prior structural counts treated as context,document markers,29 members and one benign root,mismatch
+PMAI-P0-04-ARCIP-T014,evidence,TOC anchor retained,document marker,433 entries and exact hash,mismatch
+PMAI-P0-04-ARCIP-T015,contract,root contract remains unresolved,document and checklist,false,true
+PMAI-P0-04-ARCIP-T016,contract,future question set fixed,document markers,15 structural questions,missing or extra
+PMAI-P0-04-ARCIP-T017,privacy,common root stored as hash only,document and checklist,HASH_ONLY,plaintext output
+PMAI-P0-04-ARCIP-T018,privacy,raw listing forbidden from repository,document and checklist,FORBIDDEN,raw listing present
+PMAI-P0-04-ARCIP-T019,safety,future metadata-only boundary fixed,document markers,payload and extraction forbidden,mismatch
+PMAI-P0-04-ARCIP-T020,safety,future path safety predicates fixed,document text,fail closed on unsafe members,missing predicate
+PMAI-P0-04-ARCIP-T021,decision,preparation exits only to authorization review,document and Go No-Go,separate authorization review,mismatch
+PMAI-P0-04-ARCIP-T022,legacy,old runners and calls quarantined,document and checklist,all reuse false,any reuse
+PMAI-P0-04-ARCIP-T023,runner,no runner design or creation authority,document and checklist,false,true
+PMAI-P0-04-ARCIP-T024,target,no target authority or creation,document and checklist,false,true
+PMAI-P0-04-ARCIP-T025,database,no database connection or write,document markers,false,true
+PMAI-P0-04-ARCIP-T026,restore,no restore execution,document markers,false,true
+PMAI-P0-04-ARCIP-T027,migration,no active 0010 and no Alembic,repository glob and markers,zero and false,nonzero or true
+PMAI-P0-04-ARCIP-T028,protection,locked runner unchanged,SHA-256,c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f,mismatch
+PMAI-P0-04-ARCIP-T029,ci,new validator is single approved command,CI parser,one command and one marker,missing or duplicate
+PMAI-P0-04-ARCIP-T030,protection,cumulative targets and hashes cover full package,AST and SHA-256,exact equality,missing extra or mismatch

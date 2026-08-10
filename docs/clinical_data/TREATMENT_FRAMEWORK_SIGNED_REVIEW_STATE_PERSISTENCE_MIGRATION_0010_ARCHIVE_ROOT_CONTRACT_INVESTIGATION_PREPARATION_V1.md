@@ -1,0 +1,348 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Archive Root Contract Investigation Preparation V1
+
+This repository-only package prepares the governance contract for one future
+archive/root investigation. It does not open, list, extract, copy, upload,
+modify, or repackage the backup. It does not create a target or restore runner,
+connect to a database, execute a restore, create migration 0010, deploy an
+application, or delete a resource.
+
+## 1. Canonical preparation state
+
+~~~text
+stage_id=PMAI-P0-04
+substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_PREPARATION_V1
+stage_status=IN_PROGRESS
+package_status=INVESTIGATION_PREPARATION_ONLY
+preparation_record_id=PMAI-P0-04-ARCIP-V1-20260810
+preparation_authority_source=EXPLICIT_USER_AUTHORIZATION_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_PREPARATION_DESIGN_AND_DRY_RUN_20260810
+fresh_restore_governance_route_b_approved=true
+archive_root_contract_investigation_preparation_complete=true
+ready_for_separate_archive_root_contract_investigation_authorization_review=true
+archive_root_contract_investigation_authorized=false
+archive_root_contract_investigation_execution_authorized=false
+archive_listing_attempt_budget=1
+archive_listing_attempt_authorized=false
+decision=GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_AUTHORIZATION_REVIEW_V1
+next_action=SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_AUTHORIZATION_REVIEW_V1
+~~~
+
+Preparation readiness is not investigation authority. A later authorization
+review must bind one exact artifact, one reviewed investigation implementation,
+one implementation hash, one sanitized evidence contract, and one list-only
+attempt before any external archive metadata is read.
+
+## 2. Trusted entry baseline
+
+~~~text
+local_main=65e51ab64845083f47a2e397abf0f0a739c51a72
+origin_main=65e51ab64845083f47a2e397abf0f0a739c51a72
+main_parent=0bc76d10af7a0168048fb007dff9e156341b9b4f
+github_ci_gate_number=193
+github_ci_gate_status=PASS
+github_ci_gate_commit=65e51ab64845083f47a2e397abf0f0a739c51a72
+prior_ci_sha256=e09532f6b3069ab07e7f6d155457791ccad1844617999b95cee2cad7dea4d508
+final_ci_sha256=a1684935365edfbe4db7ac08aa9b08e264d9dde533ca15685cd8bbb122b5f248
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_at_entry=true
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+production_auto_deploy_verified=false
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+active_0010_migration_file_count=0
+baseline_source=OPERATOR_PUSH_OUTPUT_GITHUB_CI_GATE_193_SCREENSHOT_AND_REPOSITORY_BASELINE_NO_RUNTIME_RECHECK
+~~~
+
+Gate 193 proves only the repository commit. Production and staging runtime and
+database values are retained handoff baselines and are not freshly checked by
+this package.
+
+## 3. Completed Route B decision retained
+
+~~~text
+completed_substage=FRESH_RESTORE_GOVERNANCE_DECISION_V1
+completed_commit=65e51ab64845083f47a2e397abf0f0a739c51a72
+completed_ci_gate=193
+completed_ci_status=PASS
+selected_route=ROUTE_B_REBUILD_FRESH_RESTORE_GOVERNANCE_CHAIN_FROM_ZERO
+fresh_restore_governance_decision_complete=true
+completed_fresh_restore_governance_route_b_approved=true
+retired_target_reuse_allowed=false
+legacy_runner_v1_reuse_allowed=false
+legacy_runner_v2_reuse_allowed=false
+legacy_authorization_reuse_allowed=false
+legacy_fourth_external_runner_call_authorized=false
+fresh_chain_restore_attempt_budget=1
+fresh_chain_restore_attempt_authorized=false
+~~~
+
+The former target, both former external runners, all three previous call
+authorizations, and their attempt state remain quarantined. This preparation
+does not reopen that lifecycle.
+
+## 4. Existing backup evidence is context, not a resolved root contract
+
+~~~text
+approved_backup_file_name=2026-08-02T15_16Z.dir.tar.gz
+approved_backup_file_size_bytes=22299
+approved_backup_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+approved_backup_sanitized_evidence_sha256=a7af6ca2c0cba862bb7f6073f0866ef6dafcb20364ae64db6c9693fe622798e1
+approved_backup_toc_sha256=6a1b20417a90fe9a5d954c4451e6fd3ebc7072407bc031e68b44c2b824e1ee1c
+approved_backup_toc_entry_count=433
+approved_backup_pg_restore_version=18.4
+prior_archive_member_type_safety=PASS
+prior_archive_path_safety=PASS
+prior_archive_member_count=29
+prior_archive_uncompressed_size_bytes=196874
+prior_benign_root_directory_entries=1
+prior_pg_restore_list_mode=PASS
+prior_temporary_extraction_cleaned=true
+legacy_third_call_stop_code=BACKUP_DIRECTORY_ROOT_MISMATCH
+prior_root_contract_resolution_reusable=false
+root_contract_resolved=false
+archive_wrapper_depth_verified=false
+archive_common_root_verified=false
+toc_location_relative_to_root_verified=false
+directory_format_member_layout_verified=false
+restore_input_kind_verified=false
+~~~
+
+The prior list-only evidence proves readability and a stable TOC for the exact
+artifact. It does not answer which filesystem object a corrected restore runner
+must receive. The later investigation must independently resolve the wrapper,
+common root, TOC-relative layout, and restore-input kind without treating the
+legacy runner expectation as truth.
+
+## 5. Future investigation question set
+
+The separately reviewed investigation may answer only these structural
+questions:
+
+~~~text
+question_01=OUTER_CONTAINER_CLASSIFICATION
+question_02=CANONICAL_MEMBER_COUNT
+question_03=MEMBER_TYPE_COUNTS
+question_04=UNSAFE_OR_SPECIAL_MEMBER_COUNT
+question_05=NORMALIZED_PATH_VIOLATION_COUNT
+question_06=DUPLICATE_NORMALIZED_MEMBER_COUNT
+question_07=CASE_COLLISION_COUNT
+question_08=TOP_LEVEL_COMPONENT_COUNT
+question_09=SINGLE_COMMON_ROOT_PRESENT
+question_10=COMMON_ROOT_HASH
+question_11=WRAPPER_DEPTH
+question_12=TOC_DAT_CANDIDATE_COUNT
+question_13=TOC_DAT_RELATION_TO_COMMON_ROOT
+question_14=ALL_MEMBERS_CONTAINED_BY_COMMON_ROOT
+question_15=RESTORE_INPUT_KIND_CLASSIFICATION
+~~~
+
+No clinical row, archive member payload, table content, connection value,
+credential, raw external path, or plaintext common-root/member name belongs in
+the investigation result.
+
+## 6. Planned list-only safety contract
+
+~~~text
+planned_future_operation=ARCHIVE_MEMBER_METADATA_LIST_ONLY_AFTER_SEPARATE_AUTHORIZATION
+planned_member_header_read_scope=METADATA_ONLY
+planned_member_payload_read_scope=FORBIDDEN
+planned_member_extraction_scope=FORBIDDEN
+planned_archive_write_scope=FORBIDDEN
+planned_archive_repackage_scope=FORBIDDEN
+planned_archive_upload_scope=FORBIDDEN
+planned_database_scope=NONE
+planned_restore_scope=NONE
+planned_network_scope=NONE
+planned_automatic_retry=false
+planned_shell_interpolation=false
+planned_raw_member_list_output=false
+planned_raw_common_root_output=false
+planned_raw_external_path_output=false
+planned_sanitized_summary_only=true
+~~~
+
+The reviewed implementation must normalize every member name in memory and
+fail closed on absolute paths, parent traversal, empty components, control
+characters, platform separator ambiguity, duplicate normalized names, case
+collisions, links, devices, sockets, FIFOs, or any member outside the single
+candidate root. These checks are a future contract, not results of this
+preparation package.
+
+## 7. Sanitized evidence schema for the future review
+
+~~~text
+evidence_field_01=investigation_record_id
+evidence_field_02=approved_archive_sha256_match
+evidence_field_03=investigation_implementation_sha256
+evidence_field_04=listing_tool_identity
+evidence_field_05=listing_tool_version
+evidence_field_06=archive_member_count
+evidence_field_07=archive_uncompressed_size_bytes
+evidence_field_08=regular_file_count
+evidence_field_09=directory_entry_count
+evidence_field_10=unsafe_or_special_member_count
+evidence_field_11=normalized_path_violation_count
+evidence_field_12=duplicate_normalized_member_count
+evidence_field_13=case_collision_count
+evidence_field_14=top_level_component_count
+evidence_field_15=single_common_root_present
+evidence_field_16=common_root_sha256
+evidence_field_17=wrapper_depth
+evidence_field_18=toc_dat_candidate_count
+evidence_field_19=toc_dat_relation_category
+evidence_field_20=all_members_contained_by_common_root
+evidence_field_21=restore_input_kind_classification
+evidence_field_22=raw_member_names_emitted
+evidence_field_23=raw_external_path_emitted
+evidence_field_24=member_payload_read
+evidence_field_25=member_extraction_performed
+evidence_field_26=archive_modified
+evidence_field_27=decision
+evidence_field_28=stop_code
+common_root_repository_value=HASH_ONLY
+member_names_repository_value=COUNTS_AND_HASHES_ONLY
+raw_archive_listing_repository_value=FORBIDDEN
+raw_external_evidence_repository_value=FORBIDDEN
+~~~
+
+The future evidence must remain outside Git until a separate sanitized evidence
+review approves only fixed hashes, counts, booleans, classifications, and stop
+codes for repository recording.
+
+## 8. Future classification and decision contract
+
+~~~text
+permitted_success_classification=SINGLE_SAFE_GZIP_TAR_WRAPPED_PG_DIRECTORY_ROOT
+permitted_hold_classification=AMBIGUOUS_UNSAFE_OR_UNSUPPORTED
+success_requires_approved_archive_sha256_match=true
+success_requires_archive_member_count=29
+success_requires_unsafe_or_special_member_count=0
+success_requires_normalized_path_violation_count=0
+success_requires_duplicate_normalized_member_count=0
+success_requires_case_collision_count=0
+success_requires_top_level_component_count=1
+success_requires_single_common_root_present=true
+success_requires_toc_dat_candidate_count=1
+success_requires_toc_dat_relation_category=IMMEDIATE_CHILD_OF_COMMON_ROOT
+success_requires_all_members_contained_by_common_root=true
+success_requires_raw_member_names_emitted=false
+success_requires_raw_external_path_emitted=false
+success_requires_member_payload_read=false
+success_requires_member_extraction_performed=false
+success_requires_archive_modified=false
+future_success_next_gate=SEPARATE_CORRECTED_RESTORE_RUNNER_DESIGN_PREPARATION_V1
+future_non_success_decision=HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED
+~~~
+
+The values above are acceptance predicates, not observed results. Any mismatch,
+ambiguity, timeout, tool failure, unsupported type, or evidence leak must retain
+HOLD. It must not consume a restore attempt or authorize automatic retry.
+
+## 9. Current package execution boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+archive_file_opened=false
+backup_archive_listing_invoked=false
+backup_archive_member_headers_read=false
+backup_archive_member_payload_read=false
+backup_archive_extracted=false
+backup_archive_copied=false
+backup_archive_uploaded=false
+backup_archive_modified=false
+backup_archive_repackaged=false
+raw_archive_listing_printed=false
+raw_external_path_printed=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+restore_runner_created=false
+restore_runner_modified=false
+locked_runner_invoked=false
+new_restore_runner_design_authorized=false
+new_restore_runner_authorized=false
+new_disposable_target_authorized=false
+new_restore_execution_authorized=false
+render_target_created=false
+render_target_deleted=false
+application_deployment=false
+resource_deleted=false
+repository_apply_authorized=false
+git_stage_authorized=false
+git_commit_authorized=false
+git_push_authorized=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+corrected_migration_implementation_authorized=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+## 10. Production and clinical hard gates retained
+
+~~~text
+database_revision=0009_diag_data
+alembic_head=0009_diag_data
+schema_ok=true
+migration_errors=[]
+writes_database=false
+exposes_database_url=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~
+
+## 11. Mandatory stop conditions
+
+Stop if the Git baseline, isolated refs, Gate 193, protected hashes, CI hash,
+locked runner hash, or active migration absence differs. Stop if this
+preparation is treated as permission to read archive metadata or if any raw
+path, member name, listing, archive bytes, clinical data, credential, or secret
+would enter repository files, terminal output, logs, or shell history.
+
+Stop on any archive open, list, extraction, copy, upload, modification,
+repackaging, member-payload read, database connection, restore or SQL tooling,
+runner creation or modification, target provisioning, migration, deployment,
+resource deletion, legacy runner reuse, fourth legacy call, automatic retry,
+or inference that the backup is restorable.
+
+## 12. Exit meaning
+
+Passing this preparation means only:
+
+~~~text
+exit_archive_root_contract_investigation_preparation_complete=true
+exit_ready_for_separate_archive_root_contract_investigation_authorization_review=true
+exit_archive_root_contract_investigation_authorized=false
+exit_archive_root_contract_investigation_execution_authorized=false
+exit_backup_archive_listing_invoked=false
+exit_root_contract_resolved=false
+exit_new_restore_runner_design_authorized=false
+exit_new_disposable_target_authorized=false
+exit_new_restore_execution_authorized=false
+exit_backup_restoreability_verified=false
+exit_disposable_restore_rehearsal_complete=false
+exit_p0_04_execution_authorized=false
+exit_staging_0010_apply_authorized=false
+~~~
+
+The only next action is a separately authorized repository-only investigation
+authorization review. No archive listing or external action is authorized by
+this preparation record.
