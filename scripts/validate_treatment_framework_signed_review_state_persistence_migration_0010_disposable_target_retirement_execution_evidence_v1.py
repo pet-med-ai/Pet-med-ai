@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate PMAI-P0-04 disposable-target retirement authorization review."""
+"""Validate PMAI-P0-04 disposable target retirement execution evidence V1."""
 
 from __future__ import annotations
 
@@ -12,24 +12,24 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_TARGET_RETIREMENT_AUTHORIZATION_REVIEW_V1.md'
-VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_retirement_authorization_review_v1.py'
-ABORT_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_EXTERNAL_DISPOSABLE_RESTORE_V2_PRE_EXECUTION_ABORT_EVIDENCE_AND_DISPOSABLE_TARGET_RETIREMENT_PREPARATION_V1.md'
-ABORT_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_external_disposable_restore_v2_pre_execution_abort_evidence_and_disposable_target_retirement_preparation_v1.py'
+DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_TARGET_RETIREMENT_EXECUTION_EVIDENCE_V1.md'
+VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_retirement_execution_evidence_v1.py'
 ROOT_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
 AUTH_PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_preparation_v1.py'
 AUTH_REVIEW_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_review_v1.py'
 EVIDENCE_PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_evidence_and_restore_execution_authorization_preparation_v1.py'
 RESTORE_AUTH_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py'
+ABORT_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_external_disposable_restore_v2_pre_execution_abort_evidence_and_disposable_target_retirement_preparation_v1.py'
+RETIREMENT_AUTH_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_retirement_authorization_review_v1.py'
+RESTORE_AUTH_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_EXECUTION_AUTHORIZATION_REVIEW_V1.md'
+ABORT_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_EXTERNAL_DISPOSABLE_RESTORE_V2_PRE_EXECUTION_ABORT_EVIDENCE_AND_DISPOSABLE_TARGET_RETIREMENT_PREPARATION_V1.md'
+RETIREMENT_AUTH_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_TARGET_RETIREMENT_AUTHORIZATION_REVIEW_V1.md'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
 EXPECTED_CI_SHA256 = 'ccbed9cc605d145450a7a01deb5294799e284d5cbc694741cc95ebd18a095d4d'
-EXPECTED_PRIOR_CI_SHA256 = 'ee5b75fe566218490ca1edef2405596309a6302879ec486249b435ae07832cde'
+EXPECTED_PRIOR_CI_SHA256 = '779d896e877ade28ca67e4115d61de3309deff25cf79e137c8d9dab47720ec98'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
-EXPECTED_ABORT_DOC_COMMITTED_SHA256 = 'c1d44d9652ff7fc14fafa2747572716d1d7aaf3b87052008eb2dda6cded658eb'
-EXPECTED_ABORT_DOC_CURRENT_SHA256 = '58c47a035e75d8f641b10b58fdf822db896029d4545add79dafd627174f6f3e6'
-EXPECTED_APPROVAL_STATEMENT = '批准 PMAI-P0-04 仅对 pet-med-ai-db-p0-04-disposable-restore-ohio 执行一次控制面删除并完成退休留证；删除前必须重新核验目标身份、Available、Apps=0、无依赖且无外部 restore runner 进程，并须在 2026-08-11 00:08 +08:00 前完成；不授权 production、staging source、数据库连接、Restore/Recovery、pg_restore、psql、Alembic、0010 migration、locked runner 或任何应用部署。'
-EXPECTED_APPROVAL_STATEMENT_SHA256 = '525efdddd4f15257e1211ef3e0b7c5215ef5bf54aa6560f07e1e26c6ed8ea6f8'
+EXPECTED_EVIDENCE_SET_SHA256 = '61d630c697bdf937e59e9f992105c9aa7a00726a03d1fcc3924524e64fc9ae77'
 EXPECTED_COMMANDS = ['python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py',
  'python3 '
@@ -53,6 +53,20 @@ EXPECTED_COMMANDS = ['python3 '
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_retirement_execution_evidence_v1.py '
  '|| exit 1']
+EXPECTED_EVIDENCE = (
+    ('P04-DTR-E01', '35b0687c5a3b5873a1e33f5889b7a0272595c9dde3cdc3c9449af5b63b548126', 'pre_delete_identity_status_version_region'),
+    ('P04-DTR-E02', '3ace6cb4a6e0bf151e72a70cba7247d015da23762e6eddad16a2fe841b4ff277', 'pre_delete_storage_autoscaling_pool'),
+    ('P04-DTR-E03', 'f356bf7b8ddd9d42927834f5212714157d69b33708a1d7e99d2988e1bf7dd4f0', 'pre_delete_instance_high_availability'),
+    ('P04-DTR-E04', 'ba6b6173aa918cfff395b840ea52d69dec46b965a55f1b1f8c1720c4b60546f5', 'pre_delete_apps_absent'),
+    ('P04-DTR-E05', 'e918c4d5ac43e4093c4890e3ad603ebe892cce057f6f63c8d23fa35931bb1b3f', 'pre_delete_repository_process_gate'),
+    ('P04-DTR-E06', '91cab1ec577e9e4c83a7ccc77160638a700128a8836ddf509eab28ae3abf73ed', 'pre_delete_identity_hash_and_process_gate'),
+    ('P04-DTR-E07', 'd435032682d75814cbad4d1475b0011781ab44eaecb900a6d8276ff6945dfe8c', 'pre_delete_fresh_window_valid'),
+    ('P04-DTR-E08', '2b63b70d3af6c21270e886598327f5b8ec07e4978962907c40199c596739dacc', 'post_delete_active_exact_search_absence'),
+    ('P04-DTR-E09', '91c934395f313ed7b9d15a7252fe054e9387a9fa61ff2336fa7bdc9e1a19076f', 'post_delete_operator_action_summary'),
+    ('P04-DTR-E10', 'bba14dd86fb85015387f49f148bc76702f90aa3e952bb930d48df53760cf4826', 'post_delete_all_services_context'),
+    ('P04-DTR-E11', '96e94c9475ec9275538efd4612c359648dcd38e558e90dd1cd55cee23769c04a', 'post_delete_all_exact_search_absence'),
+    ('P04-DTR-E12', '90df658e1b7e5e490d8a3b8d0fff44fcbbb89d34415ddd6b61f742ef281a2346', 'post_delete_suspended_scope_absence'),
+)
 HASH_EXTRA_PATHS = {
     'backend/models.py',
     'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md',
@@ -61,48 +75,32 @@ HASH_EXTRA_PATHS = {
     'render.yaml',
 }
 FALSE_MARKERS = (
-    'retirement_execution_performed',
-    'render_delete_action_invoked',
-    'target_deleted',
-    'cleanup_evidence_complete',
-    'fresh_pre_delete_gate_completed',
-    'technical_restore_attempt_reserved',
+    'backup_restoreability_verified',
+    'disposable_restore_rehearsal_complete',
+    'delete_retry_authorized',
+    'delete_retry_performed',
     'database_connection',
     'database_write',
     'restore_execution',
-    'backup_restoreability_verified',
-    'disposable_restore_rehearsal_complete',
-    'fourth_external_runner_call_authorized',
-    'fourth_external_runner_call_permitted',
-    'v2_runner_execution_authorized',
-    'v3_runner_preparation_authorized',
-    'retirement_connection_value_required',
-    'retirement_database_connection_required',
-    'retirement_database_write_required',
-    'retirement_restore_action_required',
-    'retirement_runner_created',
-    'retirement_api_automation_authorized',
-    'retirement_cli_automation_authorized',
-    'package_pg_restore_invoked',
-    'package_psql_invoked',
-    'package_alembic_invoked',
+    'pg_restore_invoked',
+    'psql_invoked',
+    'alembic_invoked',
     'migration_created',
     'migration_executed',
     'restore_runner_created',
     'restore_runner_modified',
     'locked_runner_invoked',
     'application_deployment',
-    'target_retirement_script_created',
-    'package_external_target_mutated',
-    'package_render_delete_action_invoked',
-    'package_retirement_execution_performed',
-    'package_target_deleted',
-    'corrected_migration_implementation_authorized',
-    'active_0010_migration_file_created',
+    'render_delete_action_invoked_by_package',
+    'retirement_execution_performed_by_package',
+    'external_target_mutated_by_package',
     'p0_04_execution_authorized',
     'staging_0010_apply_authorized',
     'production_migration_authorized',
     'production_migration_executed',
+    'fourth_external_runner_call_authorized',
+    'new_disposable_target_authorized',
+    'fresh_restore_governance_approved',
     'production_auto_deploy_verified',
     'ENABLE_EMR_REAL_IMPORT',
     'ENABLE_EMR_IMPORT_CASE_UPDATE',
@@ -175,66 +173,83 @@ def python_lines(value: str) -> list[str]:
 
 def main() -> int:
     doc = read_text(DOC)
-    source = read_text(VALIDATOR)
-    abort_doc = read_text(ABORT_DOC)
-    abort_source = read_text(ABORT_VALIDATOR)
     root_source = read_text(ROOT_VALIDATOR)
-    prep_source = read_text(AUTH_PREP_VALIDATOR)
-    auth_source = read_text(AUTH_REVIEW_VALIDATOR)
-    evidence_source = read_text(EVIDENCE_PREP_VALIDATOR)
-    restore_source = read_text(RESTORE_AUTH_VALIDATOR)
     ci = read_text(CI)
     read_text(LOCKED_RUNNER)
+    previous_docs = [read_text(path) for path in (RESTORE_AUTH_DOC, ABORT_DOC, RETIREMENT_AUTH_DOC)]
+    prep_source = read_text(AUTH_PREP_VALIDATOR)
+    previous_sources = [
+        read_text(path)
+        for path in (
+            AUTH_REVIEW_VALIDATOR,
+            EVIDENCE_PREP_VALIDATOR,
+            RESTORE_AUTH_VALIDATOR,
+            ABORT_VALIDATOR,
+            RETIREMENT_AUTH_VALIDATOR,
+        )
+    ]
 
     required = {
         'stage_id': 'PMAI-P0-04',
-        'substage': 'DISPOSABLE_TARGET_RETIREMENT_AUTHORIZATION_REVIEW_V1',
-        'review_status': 'APPROVED_DISPOSABLE_TARGET_RETIREMENT_ONLY',
-        'authorization_record_id': 'PMAI-P0-04-DTRAR-V1-20260809',
-        'authorization_scope': 'ONE_EXACT_DISPOSABLE_RENDER_POSTGRES_SERVICE_CONTROL_PLANE_DELETE_ONLY',
-        'approval_statement_sha256': EXPECTED_APPROVAL_STATEMENT_SHA256,
-        'disposable_target_retirement_authorized': 'true',
-        'disposable_target_deletion_authorized': 'true',
-        'target_retirement_execution_authorized': 'true',
-        'retirement_authorization_single_use': 'true',
-        'retirement_authorization_expires_at_local': '2026-08-11T00:08+08:00',
-        'repository_authorization_record_only': 'true',
-        'local_main': '07446387f551aa5c544ddf8531d076c78c44a204',
-        'origin_main': '07446387f551aa5c544ddf8531d076c78c44a204',
-        'github_ci_gate_number': '190',
+        'substage': 'DISPOSABLE_TARGET_RETIREMENT_EXECUTION_EVIDENCE_V1',
+        'evidence_status': 'COMPLETE_DISPOSABLE_TARGET_RETIREMENT',
+        'evidence_record_id': 'PMAI-P0-04-DTREE-V1-20260809',
+        'retirement_execution_performed': 'true',
+        'render_delete_action_invoked': 'true',
+        'render_delete_action_count': '1',
+        'target_deleted': 'true',
+        'disposable_target_retirement_complete': 'true',
+        'cleanup_evidence_complete': 'true',
+        'retirement_authorization_consumed': 'true',
+        'target_absent_from_active': 'true',
+        'target_absent_from_suspended': 'true',
+        'target_absent_from_all_services': 'true',
+        'target_absence_verified': 'true',
+        'authorization_commit': 'aa045118ed52ddbf54e44a6f2924d1f6afe7498b',
+        'github_ci_gate_number': '191',
         'github_ci_gate_status': 'PASS',
         'prior_ci_sha256': EXPECTED_PRIOR_CI_SHA256,
         'final_ci_sha256': EXPECTED_CI_SHA256,
         'locked_runner_sha256': EXPECTED_LOCKED_RUNNER_SHA256,
-        'abort_preparation_document_committed_sha256': EXPECTED_ABORT_DOC_COMMITTED_SHA256,
-        'abort_preparation_document_current_sha256': EXPECTED_ABORT_DOC_CURRENT_SHA256,
-        'third_and_final_external_runner_call_status': 'PRE_EXECUTION_ABORT',
-        'third_and_final_external_runner_stop_code': 'BACKUP_DIRECTORY_ROOT_MISMATCH',
-        'external_runner_execute_call_count': '3',
-        'no_further_restore_retry': 'true',
+        'active_0010_migration_file_count': '0',
         'target_logical_name': 'pet-med-ai-db-p0-04-disposable-restore-ohio',
         'target_service_identifier_sha256': 'fcd569994776e091f001f7213cd02432339e172e51889b2acf0a3987e0be7b48',
-        'target_retirement_hard_deadline_local': '2026-08-11T00:08+08:00',
-        'fresh_recheck_max_age_minutes': '5',
-        'retirement_execution_channel': 'RENDER_DASHBOARD_MANUAL_CONTROL_PLANE_ONLY',
-        'retirement_action': 'DELETE_EXACT_DISPOSABLE_POSTGRES_SERVICE',
-        'retirement_action_count_limit': '1',
-        'decision': 'GO_TO_EXTERNAL_DISPOSABLE_TARGET_RETIREMENT_EXECUTION_ONLY',
+        'retirement_action_recorded_at_local': '2026-08-09T23:05:25+08:00',
+        'retirement_action_recorded_at_utc': '2026-08-09T15:05:25Z',
+        'retirement_completed_before_hard_deadline': 'true',
+        'fresh_pre_delete_gate_completed': 'true',
+        'fresh_target_identity_match': 'true',
+        'fresh_target_status_available': 'true',
+        'fresh_target_apps_zero': 'true',
+        'fresh_target_dependency_absence': 'true',
+        'fresh_external_restore_runner_process_count': '0',
+        'fresh_retirement_window_valid': 'true',
+        'retirement_external_evidence_artifact_count': str(len(EXPECTED_EVIDENCE)),
+        'retirement_evidence_set_sha256': EXPECTED_EVIDENCE_SET_SHA256,
+        'post_delete_active_exact_search_result_count': '0',
+        'post_delete_suspended_target_result_count': '0',
+        'post_delete_all_exact_search_result_count': '0',
+        'post_delete_active_absence_verified': 'true',
+        'post_delete_suspended_absence_verified': 'true',
+        'post_delete_all_services_absence_verified': 'true',
+        'post_delete_target_absence_unambiguous': 'true',
+        'decision': 'HOLD_PMAI_P0_04_RESTORE_REHEARSAL_INCOMPLETE_PENDING_FRESH_RESTORE_GOVERNANCE_DECISION',
     }
     for key, expected in required.items():
         need(marker(doc, key) == expected, 'document marker ' + key)
     for key in FALSE_MARKERS:
         need(marker(doc, key) == 'false', 'required false marker ' + key)
 
-    need(
-        hashlib.sha256(EXPECTED_APPROVAL_STATEMENT.encode('utf-8')).hexdigest()
-        == EXPECTED_APPROVAL_STATEMENT_SHA256,
-        'approval statement digest',
+    canonical = ''.join(
+        evidence_id + '=' + digest + '\n'
+        for evidence_id, digest, _purpose in EXPECTED_EVIDENCE
     )
-    need(sha256_path(ROOT / ABORT_DOC) == EXPECTED_ABORT_DOC_CURRENT_SHA256, 'abort preparation document current hash')
-    need(marker(abort_doc, 'third_and_final_external_runner_call_status') == 'PRE_EXECUTION_ABORT', 'abort entry status')
-    need(marker(abort_doc, 'fourth_external_runner_call_authorized') == 'false', 'no fourth call entry gate')
-    need(marker(abort_doc, 'disposable_target_retirement_authorized') == 'false', 'separate prior authorization boundary')
+    need(hashlib.sha256(canonical.encode('utf-8')).hexdigest() == EXPECTED_EVIDENCE_SET_SHA256, 'evidence set digest')
+    for index, (evidence_id, digest, purpose) in enumerate(EXPECTED_EVIDENCE, 1):
+        prefix = 'retirement_evidence_{:02d}_'.format(index)
+        need(marker(doc, prefix + 'id') == evidence_id, 'evidence id')
+        need(marker(doc, prefix + 'purpose') == purpose, 'evidence purpose')
+        need(marker(doc, prefix + 'sha256') == digest, 'evidence hash')
 
     forbidden = (
         r'(?i)postgres(?:ql)?://\S+',
@@ -264,15 +279,19 @@ def main() -> int:
 
     need(ci_targets(ci) == targets, 'CI/root target equality')
     need(python_lines(ci) == EXPECTED_COMMANDS, 'CI approved validators')
-    marker_line = '# PMAI-P0-04 disposable target retirement authorization review v1'
+    marker_line = '# PMAI-P0-04 disposable target retirement execution evidence v1'
     command_line = 'python3 ' + VALIDATOR + ' || exit 1'
     need(ci.splitlines().count(marker_line) == 1, 'CI marker count')
     need(ci.splitlines().count(command_line) == 1, 'CI command count')
 
     need(literal(prep_source, 'EXPECTED_FINAL_CI_SHA256') == EXPECTED_CI_SHA256, 'auth-prep CI rollover')
-    for previous in (auth_source, evidence_source, restore_source, abort_source):
+    for previous in previous_sources:
         need(literal(previous, 'EXPECTED_CI_SHA256') == EXPECTED_CI_SHA256, 'prior CI rollover')
         need(literal(previous, 'EXPECTED_COMMANDS') == EXPECTED_COMMANDS, 'prior command rollover')
+    for previous_doc in previous_docs:
+        need(marker(previous_doc, 'final_ci_sha256') == EXPECTED_CI_SHA256, 'prior document CI rollover')
+    need(marker(previous_docs[2], 'retirement_execution_performed') == 'false', 'authorization record stays point-in-time')
+    need(marker(previous_docs[2], 'target_deleted') == 'false', 'authorization record target state stays point-in-time')
 
     unsafe_suffixes = ('.png', '.jpg', '.jpeg', '.json', '.tar', '.tar.gz')
     need(not any(path.lower().endswith(unsafe_suffixes) for path in targets), 'raw evidence target')
@@ -281,27 +300,26 @@ def main() -> int:
         need(value.endswith('\n'), 'final newline ' + rel)
         for line_no, line in enumerate(value.splitlines(), 1):
             need(line == line.rstrip(), 'trailing whitespace {}:{}'.format(rel, line_no))
-    need('target_retirement_script_created=false' in doc, 'no delete script')
 
-    print('PASS: PMAI-P0-04 Disposable Target Retirement Authorization Review V1')
+    print('PASS: PMAI-P0-04 Disposable Target Retirement Execution Evidence V1')
     print('stage_id=PMAI-P0-04')
-    print('review_status=APPROVED_DISPOSABLE_TARGET_RETIREMENT_ONLY')
-    print('authorization_scope=ONE_EXACT_DISPOSABLE_RENDER_POSTGRES_SERVICE_CONTROL_PLANE_DELETE_ONLY')
-    print('disposable_target_retirement_authorized=true')
-    print('disposable_target_deletion_authorized=true')
-    print('target_retirement_execution_authorized=true')
-    print('repository_only=true')
-    print('network_access=false')
+    print('evidence_status=COMPLETE_DISPOSABLE_TARGET_RETIREMENT')
+    print('retirement_execution_performed=true')
+    print('render_delete_action_invoked=true')
+    print('render_delete_action_count=1')
+    print('target_deleted=true')
+    print('target_absent_from_active=true')
+    print('target_absent_from_suspended=true')
+    print('target_absent_from_all_services=true')
+    print('cleanup_evidence_complete=true')
+    print('delete_retry_authorized=false')
     print('database_connection=false')
-    print('database_write=false')
     print('restore_execution=false')
-    print('retirement_execution_performed=false')
-    print('render_delete_action_invoked=false')
-    print('target_deleted=false')
-    print('fourth_external_runner_call_authorized=false')
+    print('backup_restoreability_verified=false')
+    print('disposable_restore_rehearsal_complete=false')
     print('p0_04_execution_authorized=false')
     print('staging_0010_apply_authorized=false')
-    print('decision=GO_TO_EXTERNAL_DISPOSABLE_TARGET_RETIREMENT_EXECUTION_ONLY')
+    print('decision=HOLD_PMAI_P0_04_RESTORE_REHEARSAL_INCOMPLETE_PENDING_FRESH_RESTORE_GOVERNANCE_DECISION')
     return 0
 
 
