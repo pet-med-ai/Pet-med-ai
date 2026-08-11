@@ -1,0 +1,2 @@
+gate_id,scope,scope_record_proposed,current_investigation_authorized,execution_authorized,listing_authorized,decision,next_action,forbidden_actions
+PMAI-P0-04-ARCI-AUTH-GNG-001,archive_root_contract_investigation_authorization_review,true,false,false,false,GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY,REQUEST_SEPARATE_REPOSITORY_APPLY_AUTHORIZATION_FOR_EXACT_BUNDLE,archive access;list;header read;payload read;extract;copy;upload;modify;repackage;target;runner;database;restore;migration;deploy;delete;stage;commit;push

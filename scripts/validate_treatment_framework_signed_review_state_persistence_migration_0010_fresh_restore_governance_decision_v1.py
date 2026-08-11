@@ -41,18 +41,41 @@ EXPECTED_HEAD = '0bc76d10af7a0168048fb007dff9e156341b9b4f'
 EXPECTED_PARENT = 'aa045118ed52ddbf54e44a6f2924d1f6afe7498b'
 EXPECTED_ISOLATED = '8d1dc8814ed8f80d8bc965b494c1c320fc08f228'
 EXPECTED_PRIOR_CI_SHA256 = 'ccbed9cc605d145450a7a01deb5294799e284d5cbc694741cc95ebd18a095d4d'
-EXPECTED_FINAL_CI_SHA256 = 'a1684935365edfbe4db7ac08aa9b08e264d9dde533ca15685cd8bbb122b5f248'
+EXPECTED_FINAL_CI_SHA256 = 'cfc3619b6847018a074a06fd0020a06c9443595e0fdf3f670d462f9c4dfe6560'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 CI_COMMAND = 'python3 ' + VALIDATOR + ' || exit 1'
-EXPECTED_COMMANDS = [
-    'python3 ' + ROOT_VALIDATOR,
-    'python3 ' + AUTH_PREP_VALIDATOR + ' || exit 1',
-    *['python3 ' + path + ' || exit 1' for path in PREVIOUS_VALIDATORS],
-    CI_COMMAND,
-    'python3 '
-    'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_preparation_v1.py '
-    '|| exit 1',
-]
+EXPECTED_COMMANDS = ['python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_preparation_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_review_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_evidence_and_restore_execution_authorization_preparation_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_external_disposable_restore_v2_pre_execution_abort_evidence_and_disposable_target_retirement_preparation_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_retirement_authorization_review_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_retirement_execution_evidence_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_restore_governance_decision_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_preparation_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_authorization_review_v1.py '
+ '|| exit 1']
 PACKAGE_PATHS = {DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX, VALIDATOR}
 HASH_EXTRA_PATHS = {
     'backend/models.py',

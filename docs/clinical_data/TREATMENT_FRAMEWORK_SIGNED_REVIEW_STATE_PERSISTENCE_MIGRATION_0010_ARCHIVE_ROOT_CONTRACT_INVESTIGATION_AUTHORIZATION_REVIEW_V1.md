@@ -1,0 +1,346 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Archive Root Contract Investigation Authorization Review V1
+
+This repository-only review defines a proposed, bounded authorization record
+for one future metadata-only archive/root investigation. The package itself
+does not open or list the backup, read member headers or payloads, extract,
+copy, upload, modify, or repackage anything. It does not create a target or
+restore runner, connect to a database, execute a restore, create migration
+0010, deploy an application, or delete a resource.
+
+## 1. Canonical review record
+
+~~~text
+stage_id=PMAI-P0-04
+substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_AUTHORIZATION_REVIEW_V1
+stage_status=IN_PROGRESS
+package_status=AUTHORIZATION_REVIEW_RECORD_ONLY
+review_status=PROPOSED_APPROVE_BOUNDED_METADATA_ONLY_INVESTIGATION
+authorization_record_id=PMAI-P0-04-ARCI-AUTH-V1-20260811
+authorization_recorded_date=2026-08-11
+design_dry_run_authority_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260811
+approver_role=PROJECT_OWNER_OPERATOR
+operator_role=PROJECT_OWNER_OPERATOR
+authorization_scope=ONE_EXACT_ARCHIVE_ONE_METADATA_ONLY_ATTEMPT
+authorization_record_effective_gate=EXACT_PACKAGE_APPLIED_COMMITTED_PUSHED_GITHUB_CI_PASS_AND_SEPARATE_ONE_TIME_EXECUTION_CONFIRMATION
+authorization_scope_recorded=true
+current_archive_root_contract_investigation_authorized=false
+post_effective_gate_archive_root_contract_investigation_authorized=true
+archive_root_contract_investigation_execution_authorized=false
+archive_listing_attempt_authorized=false
+one_time_execution_confirmation_present=false
+decision=GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY
+next_action=REQUEST_SEPARATE_REPOSITORY_APPLY_AUTHORIZATION_FOR_EXACT_BUNDLE
+~~~
+
+The proposed post-gate value is not current authority. It becomes meaningful
+only if the exact reviewed bundle is separately approved for apply, committed,
+pushed, passes GitHub CI, and then receives a new one-time execution
+confirmation. No authority is inherited from this design or dry-run.
+
+## 2. Trusted entry baseline
+
+~~~text
+local_main=f521520f96ab28f1a6e696b60fc8f06e4a2eda69
+origin_main=f521520f96ab28f1a6e696b60fc8f06e4a2eda69
+main_parent=65e51ab64845083f47a2e397abf0f0a739c51a72
+github_ci_gate_number=194
+github_ci_gate_status=PASS
+github_ci_gate_commit=f521520f96ab28f1a6e696b60fc8f06e4a2eda69
+prior_ci_sha256=a1684935365edfbe4db7ac08aa9b08e264d9dde533ca15685cd8bbb122b5f248
+final_ci_sha256=cfc3619b6847018a074a06fd0020a06c9443595e0fdf3f670d462f9c4dfe6560
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_at_entry=true
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+production_auto_deploy_verified=false
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+active_0010_migration_file_count=0
+baseline_source=OPERATOR_PUSH_OUTPUT_GITHUB_CI_GATE_194_SCREENSHOT_AND_REPOSITORY_BASELINE_NO_RUNTIME_RECHECK
+~~~
+
+Gate 194 proves only the repository commit. Runtime and database values are
+retained handoff baselines and are not rechecked by this package.
+
+## 3. Completed preparation retained
+
+~~~text
+completed_substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_PREPARATION_V1
+completed_commit=f521520f96ab28f1a6e696b60fc8f06e4a2eda69
+completed_ci_gate=194
+completed_ci_status=PASS
+selected_route=ROUTE_B_REBUILD_FRESH_RESTORE_GOVERNANCE_CHAIN_FROM_ZERO
+fresh_restore_governance_route_b_approved=true
+archive_root_contract_investigation_preparation_complete=true
+ready_for_separate_archive_root_contract_investigation_authorization_review=true
+legacy_runner_v1_reuse_allowed=false
+legacy_runner_v2_reuse_allowed=false
+legacy_authorization_reuse_allowed=false
+legacy_fourth_external_runner_call_authorized=false
+fresh_chain_restore_attempt_authorized=false
+~~~
+
+Preparation completion does not supply archive access. The retired target,
+legacy runners, prior execution permissions, and all three prior calls remain
+quarantined.
+
+## 4. Exact archive identity binding
+
+~~~text
+approved_backup_file_name=2026-08-02T15_16Z.dir.tar.gz
+approved_backup_file_size_bytes=22299
+approved_backup_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+approved_backup_sanitized_evidence_sha256=a7af6ca2c0cba862bb7f6073f0866ef6dafcb20364ae64db6c9693fe622798e1
+approved_backup_toc_sha256=6a1b20417a90fe9a5d954c4451e6fd3ebc7072407bc031e68b44c2b824e1ee1c
+approved_backup_toc_entry_count=433
+approved_backup_pg_restore_version=18.4
+prior_archive_member_count=29
+prior_archive_uncompressed_size_bytes=196874
+prior_benign_root_directory_entries=1
+archive_external_path_repository_value=FORBIDDEN
+archive_bytes_repository_value=FORBIDDEN
+archive_hash_recheck_required_before_metadata_scan=true
+~~~
+
+Only the artifact with the exact approved SHA-256 can ever enter the proposed
+one-attempt investigation. A size, hash, container, or identity mismatch is a
+hard stop before member metadata is scanned.
+
+## 5. Reviewed inert investigation implementation
+
+~~~text
+investigation_implementation_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V1.py.txt
+investigation_implementation_format=INERT_PYTHON_SOURCE_TEXT
+investigation_implementation_sha256=2b99a7446fbd5509e22c9fa5f6cb18eca920711208aa37fb4af568fd21f6faab
+investigation_implementation_executable_in_repository=false
+investigation_implementation_executed_by_ci=false
+investigation_implementation_executed_by_package=false
+investigation_default_mode=CONTRACT_ONLY_NO_ARCHIVE_OPEN
+investigation_execute_flag_required=true
+investigation_authorization_record_id_required=true
+investigation_expected_archive_sha256_confirmation_required=true
+investigation_attempt_number_required=1
+investigation_path_input=HIDDEN_INTERACTIVE_PROMPT_NOT_COMMAND_LINE
+investigation_shell_interpolation=false
+investigation_automatic_retry=false
+investigation_output_contract=SANITIZED_JSON_COUNTS_BOOLEANS_CLASSIFICATIONS_AND_HASHES_ONLY
+~~~
+
+The `.py.txt` file is reviewable source, not a runner and not an executable CI
+target. Any byte change produces a different implementation hash and requires
+a new authorization review. The repository package validates its syntax and
+AST but never invokes its archive-access path.
+
+## 6. Proposed post-effective-gate operation boundary
+
+~~~text
+archive_listing_attempt_budget=1
+archive_listing_attempts_consumed=0
+post_effective_gate_operation=GZIP_TAR_MEMBER_METADATA_SCAN_ONLY
+member_header_read_scope=METADATA_ONLY
+member_payload_read_scope=FORBIDDEN
+member_extraction_scope=FORBIDDEN
+archive_copy_scope=FORBIDDEN
+archive_upload_scope=FORBIDDEN
+archive_write_scope=FORBIDDEN
+archive_repackage_scope=FORBIDDEN
+network_scope=NONE
+database_scope=NONE
+restore_scope=NONE
+target_scope=NONE
+restore_runner_scope=NONE
+migration_scope=NONE
+deployment_scope=NONE
+resource_deletion_scope=NONE
+raw_member_list_output=false
+raw_common_root_output=false
+raw_external_path_output=false
+sanitized_summary_only=true
+~~~
+
+The future implementation may read outer bytes only to verify the exact
+artifact hash and may scan member metadata only to classify structure. It must
+never call a member extraction or payload API and must never emit a member
+name, common-root text, or external path.
+
+## 7. Sanitized evidence contract
+
+~~~text
+evidence_field_01=authorization_record_id
+evidence_field_02=approved_archive_sha256_match
+evidence_field_03=investigation_implementation_sha256
+evidence_field_04=listing_tool_identity
+evidence_field_05=listing_tool_version
+evidence_field_06=archive_member_count
+evidence_field_07=archive_uncompressed_size_bytes
+evidence_field_08=regular_file_count
+evidence_field_09=directory_entry_count
+evidence_field_10=unsafe_or_special_member_count
+evidence_field_11=normalized_path_violation_count
+evidence_field_12=duplicate_normalized_member_count
+evidence_field_13=case_collision_count
+evidence_field_14=top_level_component_count
+evidence_field_15=single_common_root_present
+evidence_field_16=common_root_sha256
+evidence_field_17=wrapper_depth
+evidence_field_18=toc_dat_candidate_count
+evidence_field_19=toc_dat_relation_category
+evidence_field_20=all_members_contained_by_common_root
+evidence_field_21=restore_input_kind_classification
+evidence_field_22=raw_member_names_emitted
+evidence_field_23=raw_external_path_emitted
+evidence_field_24=member_payload_read
+evidence_field_25=member_extraction_performed
+evidence_field_26=archive_modified
+evidence_field_27=decision
+evidence_field_28=stop_code
+common_root_repository_value=HASH_ONLY
+member_names_repository_value=COUNTS_AND_HASHES_ONLY
+raw_archive_listing_repository_value=FORBIDDEN
+raw_external_evidence_repository_value=FORBIDDEN
+~~~
+
+Raw external evidence remains outside Git. A later repository evidence package
+may contain only the reviewed sanitized fields after a separate evidence
+review.
+
+## 8. Classification and decision predicates
+
+~~~text
+permitted_success_classification=SINGLE_SAFE_GZIP_TAR_WRAPPED_PG_DIRECTORY_ROOT
+permitted_hold_classification=AMBIGUOUS_UNSAFE_OR_UNSUPPORTED
+success_requires_approved_archive_sha256_match=true
+success_requires_archive_member_count=29
+success_requires_unsafe_or_special_member_count=0
+success_requires_normalized_path_violation_count=0
+success_requires_duplicate_normalized_member_count=0
+success_requires_case_collision_count=0
+success_requires_top_level_component_count=1
+success_requires_single_common_root_present=true
+success_requires_toc_dat_candidate_count=1
+success_requires_toc_dat_relation_category=IMMEDIATE_CHILD_OF_COMMON_ROOT
+success_requires_all_members_contained_by_common_root=true
+success_requires_raw_member_names_emitted=false
+success_requires_raw_external_path_emitted=false
+success_requires_member_payload_read=false
+success_requires_member_extraction_performed=false
+success_requires_archive_modified=false
+success_next_gate=SEPARATE_CORRECTED_RESTORE_RUNNER_DESIGN_PREPARATION_V1
+non_success_decision=HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED
+~~~
+
+Any mismatch, ambiguity, timeout, tool failure, unsupported member type,
+unsafe normalized path, duplicate, case collision, multiple top-level roots,
+missing or multiple `toc.dat` candidates, or evidence leak must retain HOLD.
+There is no retry authority.
+
+## 9. Current repository-package boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+archive_file_opened=false
+backup_archive_listing_invoked=false
+backup_archive_member_headers_read=false
+backup_archive_member_payload_read=false
+backup_archive_extracted=false
+backup_archive_copied=false
+backup_archive_uploaded=false
+backup_archive_modified=false
+backup_archive_repackaged=false
+raw_archive_listing_printed=false
+raw_external_path_printed=false
+root_contract_resolved=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+restore_runner_created=false
+restore_runner_modified=false
+locked_runner_invoked=false
+new_restore_runner_design_authorized=false
+new_restore_runner_authorized=false
+new_disposable_target_authorized=false
+new_restore_execution_authorized=false
+render_target_created=false
+render_target_deleted=false
+application_deployment=false
+resource_deleted=false
+repository_apply_authorized=false
+git_stage_authorized=false
+git_commit_authorized=false
+git_push_authorized=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+corrected_migration_implementation_authorized=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+## 10. Production and clinical hard gates retained
+
+~~~text
+database_revision=0009_diag_data
+alembic_head=0009_diag_data
+schema_ok=true
+migration_errors=[]
+writes_database=false
+exposes_database_url=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~
+
+## 11. Mandatory stop conditions
+
+Stop if the Git baseline, Gate 194, isolated refs, prior CI hash, locked runner
+hash, active migration absence, exact archive identity, implementation bytes or
+hash, one-attempt budget, metadata-only boundary, sanitized evidence schema,
+classification predicates, or target scope differs.
+
+Stop on any current archive open, list, header or payload read, extraction,
+copy, upload, modification, repackaging, raw member/path output, network call,
+database connection, restore or SQL tooling, target or runner creation,
+migration, deployment, deletion, legacy lifecycle reuse, automatic retry, or
+inference that preparation or dry-run grants execution authority.
+
+## 12. Exit meaning
+
+Passing this review dry-run means only:
+
+~~~text
+exit_authorization_review_bundle_designed=true
+exit_authorization_scope_record_proposed=true
+exit_current_archive_root_contract_investigation_authorized=false
+exit_archive_root_contract_investigation_execution_authorized=false
+exit_archive_listing_attempt_authorized=false
+exit_backup_archive_listing_invoked=false
+exit_root_contract_resolved=false
+exit_repository_apply_authorized=false
+exit_git_publication_authorized=false
+exit_one_time_execution_confirmation_present=false
+exit_backup_restoreability_verified=false
+exit_disposable_restore_rehearsal_complete=false
+exit_p0_04_execution_authorized=false
+exit_staging_0010_apply_authorized=false
+~~~
+
+The only immediate next action is review of the exact dry-run bundle and a
+separate repository apply authorization. Even after apply, publication and CI,
+one additional explicit one-time execution confirmation is required before the
+fixed implementation may inspect metadata from the fixed artifact.

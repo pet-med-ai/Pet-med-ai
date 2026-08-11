@@ -1,0 +1,37 @@
+test_id,area,assertion,method,expected,stop_condition
+PMAI-P0-04-ARCI-AUTH-T001,git,exact main baseline,read-only repository inspection,f521520f96ab28f1a6e696b60fc8f06e4a2eda69,any mismatch
+PMAI-P0-04-ARCI-AUTH-T002,git,exact parent baseline,read-only repository inspection,65e51ab64845083f47a2e397abf0f0a739c51a72,any mismatch
+PMAI-P0-04-ARCI-AUTH-T003,ci,entry Gate retained,document marker,194 PASS,missing or mismatch
+PMAI-P0-04-ARCI-AUTH-T004,isolation,isolated refs retained,document marker,8d1dc8814ed8f80d8bc965b494c1c320fc08f228,mismatch
+PMAI-P0-04-ARCI-AUTH-T005,route,Route B remains approved,document marker,true,false or missing
+PMAI-P0-04-ARCI-AUTH-T006,prerequisite,investigation preparation complete,document and checklist,true,false
+PMAI-P0-04-ARCI-AUTH-T007,scope,authorization review only,document and Go No-Go,repository only and external false,scope expansion
+PMAI-P0-04-ARCI-AUTH-T008,authority,current investigation authority remains false,document and checklist,false,true
+PMAI-P0-04-ARCI-AUTH-T009,authority,post-gate value is conditional,document text,apply publication CI and one-time confirmation required,missing gate
+PMAI-P0-04-ARCI-AUTH-T010,archive,no archive opened,document and checklist,false,true
+PMAI-P0-04-ARCI-AUTH-T011,archive,no listing invoked,document and checklist,false,true
+PMAI-P0-04-ARCI-AUTH-T012,archive,no header metadata read,document and checklist,false,true
+PMAI-P0-04-ARCI-AUTH-T013,archive,no payload read or extraction,document and checklist,all false,any true
+PMAI-P0-04-ARCI-AUTH-T014,archive,no copy upload modification or repackaging,document and checklist,all false,any true
+PMAI-P0-04-ARCI-AUTH-T015,binding,exact approved archive hash retained,document and checklist,exact SHA-256,mismatch
+PMAI-P0-04-ARCI-AUTH-T016,binding,exact inert implementation hash retained,SHA-256,2b99a7446fbd5509e22c9fa5f6cb18eca920711208aa37fb4af568fd21f6faab,mismatch
+PMAI-P0-04-ARCI-AUTH-T017,implementation,inert source syntax valid,AST compile,valid Python syntax,parse failure
+PMAI-P0-04-ARCI-AUTH-T018,implementation,repository and CI never execute implementation,path suffix AST and CI parser,.py.txt and no command,execution reference
+PMAI-P0-04-ARCI-AUTH-T019,implementation,no extraction API,AST call inspection,zero extract extractall or extractfile calls,any call
+PMAI-P0-04-ARCI-AUTH-T020,implementation,no network database restore or subprocess imports,AST import inspection,approved standard library only,extra import
+PMAI-P0-04-ARCI-AUTH-T021,attempt,one metadata attempt budget fixed,document and checklist,one and consumed zero,mismatch
+PMAI-P0-04-ARCI-AUTH-T022,evidence,sanitized evidence schema fixed,document markers,28 unique fields,missing or duplicate
+PMAI-P0-04-ARCI-AUTH-T023,privacy,common root stored as hash only,document and checklist,HASH_ONLY,plaintext output
+PMAI-P0-04-ARCI-AUTH-T024,privacy,raw member list and external path forbidden,document and implementation,false,raw output
+PMAI-P0-04-ARCI-AUTH-T025,safety,path normalization predicates present,reviewed inert source,absolute traversal separator control duplicate and case checks,missing predicate
+PMAI-P0-04-ARCI-AUTH-T026,classification,success predicate set fixed,document markers,exact structural predicates,mismatch
+PMAI-P0-04-ARCI-AUTH-T027,classification,any ambiguity retains HOLD,document and implementation,HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED,automatic GO
+PMAI-P0-04-ARCI-AUTH-T028,decision,success exits only to corrected runner design preparation,document and implementation,separate design preparation,mismatch
+PMAI-P0-04-ARCI-AUTH-T029,legacy,old runners and calls quarantined,document and checklist,all reuse false,any reuse
+PMAI-P0-04-ARCI-AUTH-T030,runner,no restore runner design creation or execution,document markers,false,true
+PMAI-P0-04-ARCI-AUTH-T031,target,no target authority or creation,document markers,false,true
+PMAI-P0-04-ARCI-AUTH-T032,database,no database connection write SQL or Alembic,document markers,false,true
+PMAI-P0-04-ARCI-AUTH-T033,restore,no restore execution,document and implementation,false,true
+PMAI-P0-04-ARCI-AUTH-T034,migration,no active 0010,repository glob and markers,zero and false,nonzero or true
+PMAI-P0-04-ARCI-AUTH-T035,protection,locked runner unchanged,SHA-256,c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f,mismatch
+PMAI-P0-04-ARCI-AUTH-T036,ci,new validator is single approved command,CI parser,one command and one marker,missing or duplicate

@@ -1,0 +1,275 @@
+#!/usr/bin/env python3
+"""Reviewed inert source for one future metadata-only archive investigation.
+
+This file is stored as .py.txt and is not executed by repository validation.
+Default invocation emits only the contract and does not request or open an
+archive. A future execution requires every explicit confirmation below and a
+separate one-time operator authorization after the repository gate is complete.
+"""
+
+from __future__ import annotations
+
+import argparse
+import getpass
+import hashlib
+import json
+from pathlib import Path
+import sys
+import tarfile
+
+
+AUTHORIZATION_RECORD_ID = "PMAI-P0-04-ARCI-AUTH-V1-20260811"
+EXPECTED_ARCHIVE_SHA256 = "ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7"
+EXPECTED_ARCHIVE_MEMBER_COUNT = 29
+EXECUTION_REQUIRES_EXPLICIT_FLAG = True
+MEMBER_PAYLOAD_READ_ALLOWED = False
+MEMBER_EXTRACTION_ALLOWED = False
+ARCHIVE_WRITE_ALLOWED = False
+AUTOMATIC_RETRY_ALLOWED = False
+
+
+class Hold(RuntimeError):
+    """A fixed, sanitized stop code with no raw path or member content."""
+
+
+def sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def emit(value: dict[str, object]) -> None:
+    print(json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+
+
+def contract_result() -> dict[str, object]:
+    return {
+        "archive_file_opened": False,
+        "archive_listing_attempt_consumed": False,
+        "archive_modified": False,
+        "authorization_record_id": AUTHORIZATION_RECORD_ID,
+        "automatic_retry": False,
+        "decision": "CONTRACT_ONLY_SEPARATE_ONE_TIME_EXECUTION_CONFIRMATION_REQUIRED",
+        "member_extraction_performed": False,
+        "member_payload_read": False,
+        "mode": "CONTRACT_ONLY",
+        "raw_external_path_emitted": False,
+        "raw_member_names_emitted": False,
+        "restore_execution": False,
+    }
+
+
+def normalized_parts(member: tarfile.TarInfo) -> tuple[str, ...] | None:
+    raw = member.name
+    if member.isdir() and raw.endswith("/"):
+        raw = raw[:-1]
+    if not raw or raw.startswith("/") or "\\" in raw:
+        return None
+    if any(ord(character) < 32 or ord(character) == 127 for character in raw):
+        return None
+    parts = tuple(raw.split("/"))
+    if any(not part or part in {".", ".."} for part in parts):
+        return None
+    if len(parts[0]) >= 2 and parts[0][1] == ":":
+        return None
+    return parts
+
+
+def structural_result(
+    members: list[tarfile.TarInfo],
+    implementation_sha256: str,
+) -> dict[str, object]:
+    normalized: list[tuple[tarfile.TarInfo, tuple[str, ...]]] = []
+    normalized_path_violation_count = 0
+    unsafe_or_special_member_count = 0
+    regular_file_count = 0
+    directory_entry_count = 0
+    uncompressed_size = 0
+
+    for member in members:
+        if member.isreg():
+            regular_file_count += 1
+            uncompressed_size += member.size
+        elif member.isdir():
+            directory_entry_count += 1
+        else:
+            unsafe_or_special_member_count += 1
+        parts = normalized_parts(member)
+        if parts is None:
+            normalized_path_violation_count += 1
+        else:
+            normalized.append((member, parts))
+
+    names = ["/".join(parts) for _member, parts in normalized]
+    duplicate_normalized_member_count = len(names) - len(set(names))
+    casefolded: dict[str, set[str]] = {}
+    for name in names:
+        casefolded.setdefault(name.casefold(), set()).add(name)
+    case_collision_count = sum(len(values) - 1 for values in casefolded.values())
+
+    top_level_components = {parts[0] for _member, parts in normalized}
+    single_common_root_present = (
+        normalized_path_violation_count == 0
+        and bool(normalized)
+        and len(top_level_components) == 1
+    )
+    common_root = next(iter(top_level_components)) if single_common_root_present else ""
+    common_root_sha256 = (
+        hashlib.sha256(common_root.encode("utf-8")).hexdigest()
+        if single_common_root_present
+        else ""
+    )
+    all_members_contained_by_common_root = (
+        single_common_root_present
+        and all(parts[0] == common_root for _member, parts in normalized)
+    )
+    toc_candidates = [
+        parts
+        for member, parts in normalized
+        if member.isreg() and parts[-1] == "toc.dat"
+    ]
+    toc_relation = "NONE_OR_AMBIGUOUS"
+    if (
+        single_common_root_present
+        and len(toc_candidates) == 1
+        and toc_candidates[0] == (common_root, "toc.dat")
+    ):
+        toc_relation = "IMMEDIATE_CHILD_OF_COMMON_ROOT"
+
+    success = all(
+        (
+            len(members) == EXPECTED_ARCHIVE_MEMBER_COUNT,
+            unsafe_or_special_member_count == 0,
+            normalized_path_violation_count == 0,
+            duplicate_normalized_member_count == 0,
+            case_collision_count == 0,
+            len(top_level_components) == 1,
+            single_common_root_present,
+            len(toc_candidates) == 1,
+            toc_relation == "IMMEDIATE_CHILD_OF_COMMON_ROOT",
+            all_members_contained_by_common_root,
+        )
+    )
+    member_name_set_sha256 = hashlib.sha256(
+        "".join(name + "\n" for name in sorted(set(names))).encode("utf-8")
+    ).hexdigest()
+
+    return {
+        "all_members_contained_by_common_root": all_members_contained_by_common_root,
+        "approved_archive_sha256_match": True,
+        "archive_member_count": len(members),
+        "archive_modified": False,
+        "archive_uncompressed_size_bytes": uncompressed_size,
+        "authorization_record_id": AUTHORIZATION_RECORD_ID,
+        "automatic_retry": False,
+        "case_collision_count": case_collision_count,
+        "common_root_sha256": common_root_sha256,
+        "decision": (
+            "GO_TO_SEPARATE_CORRECTED_RESTORE_RUNNER_DESIGN_PREPARATION_V1"
+            if success
+            else "HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED"
+        ),
+        "directory_entry_count": directory_entry_count,
+        "duplicate_normalized_member_count": duplicate_normalized_member_count,
+        "investigation_implementation_sha256": implementation_sha256,
+        "listing_tool_identity": "PYTHON_STDLIB_TARFILE_METADATA_SCAN",
+        "listing_tool_version": "{}.{}.{}".format(*sys.version_info[:3]),
+        "member_extraction_performed": False,
+        "member_name_set_sha256": member_name_set_sha256,
+        "member_payload_read": False,
+        "normalized_path_violation_count": normalized_path_violation_count,
+        "outer_container_classification": "GZIP_TAR",
+        "raw_external_path_emitted": False,
+        "raw_member_names_emitted": False,
+        "regular_file_count": regular_file_count,
+        "restore_execution": False,
+        "restore_input_kind_classification": (
+            "PG_DIRECTORY_ROOT" if success else "AMBIGUOUS_OR_UNSUPPORTED"
+        ),
+        "root_contract_resolved": success,
+        "single_common_root_present": single_common_root_present,
+        "stop_code": "NONE" if success else "STRUCTURAL_PREDICATE_MISMATCH",
+        "toc_dat_candidate_count": len(toc_candidates),
+        "toc_dat_relation_category": toc_relation,
+        "top_level_component_count": len(top_level_components),
+        "unsafe_or_special_member_count": unsafe_or_special_member_count,
+        "wrapper_depth": 1 if single_common_root_present else 0,
+    }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--authorization-record-id")
+    parser.add_argument("--confirm-archive-sha256")
+    parser.add_argument("--attempt-number", type=int)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if not args.execute:
+        emit(contract_result())
+        return 0
+
+    try:
+        if args.authorization_record_id != AUTHORIZATION_RECORD_ID:
+            raise Hold("AUTHORIZATION_RECORD_MISMATCH")
+        if args.confirm_archive_sha256 != EXPECTED_ARCHIVE_SHA256:
+            raise Hold("ARCHIVE_CONFIRMATION_HASH_MISMATCH")
+        if args.attempt_number != 1:
+            raise Hold("ATTEMPT_NUMBER_MISMATCH")
+
+        archive_value = getpass.getpass("Archive path (not echoed): ")
+        archive_path = Path(archive_value).expanduser().resolve()
+        if not archive_path.is_file() or archive_path.is_symlink():
+            raise Hold("ARCHIVE_PATH_UNSAFE_OR_MISSING")
+        if sha256_path(archive_path) != EXPECTED_ARCHIVE_SHA256:
+            raise Hold("ARCHIVE_SHA256_MISMATCH")
+        with archive_path.open("rb") as handle:
+            if handle.read(2) != b"\x1f\x8b":
+                raise Hold("OUTER_CONTAINER_NOT_GZIP")
+
+        implementation_sha256 = sha256_path(Path(__file__).resolve())
+        with tarfile.open(archive_path, mode="r:gz") as archive:
+            members = archive.getmembers()
+        emit(structural_result(members, implementation_sha256))
+        return 0
+    except Hold as exc:
+        emit(
+            {
+                "archive_modified": False,
+                "authorization_record_id": AUTHORIZATION_RECORD_ID,
+                "automatic_retry": False,
+                "decision": "HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED",
+                "member_extraction_performed": False,
+                "member_payload_read": False,
+                "raw_external_path_emitted": False,
+                "raw_member_names_emitted": False,
+                "restore_execution": False,
+                "stop_code": str(exc),
+            }
+        )
+        return 2
+    except (OSError, tarfile.TarError):
+        emit(
+            {
+                "archive_modified": False,
+                "authorization_record_id": AUTHORIZATION_RECORD_ID,
+                "automatic_retry": False,
+                "decision": "HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED",
+                "member_extraction_performed": False,
+                "member_payload_read": False,
+                "raw_external_path_emitted": False,
+                "raw_member_names_emitted": False,
+                "restore_execution": False,
+                "stop_code": "SANITIZED_ARCHIVE_TOOL_FAILURE",
+            }
+        )
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
