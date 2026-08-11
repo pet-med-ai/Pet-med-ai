@@ -1,0 +1,31 @@
+test_id,category,test,method,expected,hard_stop
+PMAI-P0-04-ARCI-EXEC-EVID-T001,baseline,exact main and parent,document markers,7e5e400 parent f521520,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T002,baseline,GitHub CI gate,document and checklist,Gate 195 PASS,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T003,authorization,authorization record identity,document JSON and checklist,exact authorization record,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T004,attempt,attempt budget and consumption,document and checklist,budget one consumed one remaining zero,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T005,retry,automatic and manual retry forbidden,document and checklist,false,true
+PMAI-P0-04-ARCI-EXEC-EVID-T006,artifact,approved archive hash,document and JSON,exact approved SHA match,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T007,implementation,investigator hash,document JSON and repository file,exact reviewed SHA,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T008,evidence,sanitized JSON canonical hash,JSON parse and canonical serialization,c8c68cbe digest,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T009,evidence,sanitized JSON field count,JSON parse,36,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T010,classification,archive member count,JSON and document,29,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T011,classification,regular and directory counts,JSON and document,26 and 3,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T012,classification,all entries rejected by fixed normalization,JSON and document,29 violations,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T013,classification,no normalized top level,JSON and document,zero top level components,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T014,classification,no accepted toc candidate,JSON and document,zero candidates,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T015,decision,root contract remains unresolved,JSON document and Go No-Go,false,true
+PMAI-P0-04-ARCI-EXEC-EVID-T016,decision,stop code retained,JSON document and Go No-Go,STRUCTURAL_PREDICATE_MISMATCH,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T017,decision,HOLD retained,JSON document and Go No-Go,HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED,not_hold
+PMAI-P0-04-ARCI-EXEC-EVID-T018,safety,no member payload read,JSON and checklist,false,true
+PMAI-P0-04-ARCI-EXEC-EVID-T019,safety,no extraction modification or repackage,JSON and document,false,true
+PMAI-P0-04-ARCI-EXEC-EVID-T020,privacy,no raw member names or external path,JSON document and regex,false,true
+PMAI-P0-04-ARCI-EXEC-EVID-T021,inference,no corruption conclusion,document markers,false,true
+PMAI-P0-04-ARCI-EXEC-EVID-T022,inference,leading dot explanation remains hypothesis,document marker,UNVERIFIED_INFERENCE_ONLY,promoted_to_fact
+PMAI-P0-04-ARCI-EXEC-EVID-T023,package,no archive access by evidence package,document markers,false,true
+PMAI-P0-04-ARCI-EXEC-EVID-T024,package,no new investigator,document markers and changed paths,false,true
+PMAI-P0-04-ARCI-EXEC-EVID-T025,package,no network database restore SQL or Alembic,document validator and changed paths,false,true
+PMAI-P0-04-ARCI-EXEC-EVID-T026,runner,locked runner unchanged,hash validation,c5000289 mismatch forbidden,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T027,migration,no active 0010 migration,glob check,zero,true
+PMAI-P0-04-ARCI-EXEC-EVID-T028,scope,no raw evidence artifact targets,target suffix validation,no png json tar database,true
+PMAI-P0-04-ARCI-EXEC-EVID-T029,cumulative,all prior validators retained,CI command equality,exact ordered commands,mismatch
+PMAI-P0-04-ARCI-EXEC-EVID-T030,next_gate,no corrected predicate selected,document markers,false,true

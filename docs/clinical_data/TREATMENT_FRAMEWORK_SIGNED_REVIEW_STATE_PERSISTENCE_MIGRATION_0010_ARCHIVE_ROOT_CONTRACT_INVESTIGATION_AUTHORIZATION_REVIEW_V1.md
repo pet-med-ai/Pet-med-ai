@@ -48,7 +48,7 @@ github_ci_gate_number=194
 github_ci_gate_status=PASS
 github_ci_gate_commit=f521520f96ab28f1a6e696b60fc8f06e4a2eda69
 prior_ci_sha256=a1684935365edfbe4db7ac08aa9b08e264d9dde533ca15685cd8bbb122b5f248
-final_ci_sha256=cfc3619b6847018a074a06fd0020a06c9443595e0fdf3f670d462f9c4dfe6560
+final_ci_sha256=80bd7f4e5186a33c3420fe4804a636c90e954d2d9349330803d0bb90bebc0870
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 repository_clean_at_entry=true
@@ -344,3 +344,25 @@ The only immediate next action is review of the exact dry-run bundle and a
 separate repository apply authorization. Even after apply, publication and CI,
 one additional explicit one-time execution confirmation is required before the
 fixed implementation may inspect metadata from the fixed artifact.
+
+## 13. Subsequent single-attempt evidence pointer
+
+This section is a later point-in-time pointer and does not alter the original
+authorization-review decision above.
+
+~~~text
+subsequent_authorization_review_commit=7e5e4008ed3613b566aebcf1fc0d12e527ac816c
+subsequent_authorization_review_ci_gate=195
+subsequent_authorization_review_ci_status=PASS
+subsequent_one_time_execution_confirmation_received=true
+subsequent_archive_listing_attempts_consumed=1
+subsequent_archive_listing_attempts_remaining=0
+subsequent_root_contract_resolved=false
+subsequent_stop_code=STRUCTURAL_PREDICATE_MISMATCH
+subsequent_decision=HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED
+subsequent_evidence_package=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_EXECUTION_EVIDENCE_V1
+subsequent_retry_authorized=false
+~~~
+
+The authorization is consumed and cannot be reused. This pointer does not
+authorize another archive access or a corrected investigator.

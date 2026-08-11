@@ -1,0 +1,21 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-001,exact authorization review commit,7e5e4008ed3613b566aebcf1fc0d12e527ac816c,7e5e4008ed3613b566aebcf1fc0d12e527ac816c,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-002,authorization review GitHub CI gate,PASS,PASS,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-003,exact archive hash match,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-004,exact investigator hash match,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-005,one authorized attempt completed,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-006,attempts consumed,1,1,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-007,attempts remaining,0,0,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-008,automatic retry forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-009,member payload read forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-010,member extraction forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-011,raw member names emitted forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-012,raw external path emitted forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-013,normalized path violations required for success,0,29,HOLD,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-014,top level component count required for success,1,0,HOLD,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-015,single common root required for success,true,false,HOLD,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-016,toc candidate count required for success,1,0,HOLD,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-017,root contract resolved required for runner design,true,false,HOLD,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-018,backup restoreability verified required for migration,true,false,HOLD,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-019,execution evidence disposition,HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED,HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED,PASS,HOLD
+PMAI-P0-04-ARCI-EXEC-EVID-GNG-020,next governance subject,SEPARATE_STRUCTURAL_PREDICATE_REVIEW_GOVERNANCE_DECISION_REQUIRED_BEFORE_ANY_NEW_INVESTIGATION,SEPARATE_STRUCTURAL_PREDICATE_REVIEW_GOVERNANCE_DECISION_REQUIRED_BEFORE_ANY_NEW_INVESTIGATION,PASS,HOLD
