@@ -21,7 +21,7 @@ EVIDENCE_PREP_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_
 EVIDENCE_PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_evidence_and_restore_execution_authorization_preparation_v1.py'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = '80bd7f4e5186a33c3420fe4804a636c90e954d2d9349330803d0bb90bebc0870'
+EXPECTED_CI_SHA256 = '39a1f75ecfe5a79dc9293d93b1f562f07146664ad020a03c8cb79a42306ff3bf'
 EVIDENCE_PREPARATION_RECORD_CI_SHA256 = '26944102de1c64805425675dc4eedc06f150feb6bc0e57d26319028ae6618311'
 EXPECTED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 APPROVAL_STATEMENT = '批准 PMAI-P0-04 仅对 pet-med-ai-db-p0-04-disposable-restore-ohio 执行一次受控备份恢复演练；不授权 production、staging source、Alembic、0010 migration、locked runner 或任何应用部署。'
@@ -69,6 +69,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_execution_evidence_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_structural_predicate_review_governance_decision_v1.py '
  '|| exit 1']
 
 

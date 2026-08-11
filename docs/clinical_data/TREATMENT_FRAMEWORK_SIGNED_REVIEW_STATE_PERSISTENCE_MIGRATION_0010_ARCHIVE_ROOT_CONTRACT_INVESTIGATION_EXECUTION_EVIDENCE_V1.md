@@ -49,7 +49,7 @@ github_ci_gate_number=195
 github_ci_gate_status=PASS
 github_ci_gate_commit=7e5e4008ed3613b566aebcf1fc0d12e527ac816c
 prior_ci_sha256=cfc3619b6847018a074a06fd0020a06c9443595e0fdf3f670d462f9c4dfe6560
-final_ci_sha256=80bd7f4e5186a33c3420fe4804a636c90e954d2d9349330803d0bb90bebc0870
+final_ci_sha256=39a1f75ecfe5a79dc9293d93b1f562f07146664ad020a03c8cb79a42306ff3bf
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 repository_clean_before_investigation=true
@@ -243,7 +243,21 @@ p0_04_execution_authorized=false
 staging_0010_apply_authorized=false
 ~~~
 
-## 10. Production and clinical hard gates retained
+## 10. Subsequent structural-predicate review pointer
+
+This point-in-time evidence remains unchanged. A later repository-only review
+uses the published aggregate result and the inert V1 source without reopening
+the backup or reusing the consumed authorization.
+
+~~~text
+subsequent_structural_predicate_review_entry_commit=992976b033f115f6872e53f9144c56387c4c4ecf
+subsequent_structural_predicate_review_ci_gate=196
+subsequent_structural_predicate_review_ci_status=PASS
+subsequent_structural_predicate_review_selected_route=ROUTE_B_REBUILD_CORRECTED_METADATA_INVESTIGATION_CHAIN_V2
+subsequent_new_investigation_authorized=false
+~~~
+
+## 11. Production and clinical hard gates retained
 
 ~~~text
 production_runtime_baseline=d659aefb
@@ -269,7 +283,7 @@ ENABLE_DEVICE_REAL_INGEST=false
 ENABLE_BILLING_REAL_WRITE=false
 ~~~
 
-## 11. Mandatory stop conditions and next gate
+## 12. Mandatory stop conditions and next gate
 
 The completed attempt must not be rerun. Keep HOLD on any proposal to reuse the
 authorization, invoke the V1 investigator again, inspect raw member names,

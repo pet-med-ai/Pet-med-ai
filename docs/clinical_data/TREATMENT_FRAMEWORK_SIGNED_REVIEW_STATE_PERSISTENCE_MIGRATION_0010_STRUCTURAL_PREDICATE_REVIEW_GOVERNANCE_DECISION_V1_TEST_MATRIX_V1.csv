@@ -1,0 +1,41 @@
+test_id,category,test,expected,status
+PMAI-P0-04-SPR-GOV-T001,baseline,evidence commit exact,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T002,baseline,evidence CI 196 PASS,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T003,baseline,isolated branch unchanged,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T004,baseline,locked runner hash unchanged,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T005,evidence,attempt consumed one,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T006,evidence,attempt remaining zero,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T007,evidence,root contract remains false,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T008,evidence,HOLD remains controlling,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T009,static,V1 source hash exact,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T010,static,normalized_parts reviewed without import,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T011,static,V1 rejects leading dot component,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T012,static,V1 rejects parent component,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T013,static,V1 has no leading dot prefix canonicalization,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T014,static,V1 requires common wrapper root,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T015,static,V1 requires toc under wrapper,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T016,synthetic,wrapped root toc path accepted by V1 model,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T017,synthetic,leading dot toc path rejected by V1 model,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T018,synthetic,leading dot wrapped path rejected by V1 model,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T019,synthetic,internal dot path rejected,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T020,synthetic,parent traversal rejected,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T021,synthetic,absolute path rejected,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T022,synthetic,backslash path rejected,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T023,inference,leading dot hypothesis remains unverified,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T024,inference,toc absence not inferred,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T025,inference,corruption not inferred,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T026,route,Route A rejected at this gate,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T027,route,Route B approved governance only,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T028,route,Route C rejected,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T029,route,Route D rejected,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T030,scope,no archive access,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T031,scope,no investigator execution,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T032,scope,no target runner database restore,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T033,scope,no migration deployment deletion,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T034,scope,no stage commit push,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T035,CI,new validator command exactly once,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T036,CI,root target and hash protection,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T037,next,V2 preparation only,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T038,negative,active 0010 absent,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T039,negative,unsafe artifact suffix absent,PASS,DESIGNED
+PMAI-P0-04-SPR-GOV-T040,negative,secrets and raw paths absent,PASS,DESIGNED
