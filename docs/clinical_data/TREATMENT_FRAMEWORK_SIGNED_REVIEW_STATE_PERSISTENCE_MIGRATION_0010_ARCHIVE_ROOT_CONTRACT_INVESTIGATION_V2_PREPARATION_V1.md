@@ -35,7 +35,7 @@ github_ci_gate_number=197
 github_ci_gate_status=PASS
 github_ci_gate_commit=b5eaeb7b1a36b5fcb54734bda5886d93d56576e3
 prior_ci_sha256=39a1f75ecfe5a79dc9293d93b1f562f07146664ad020a03c8cb79a42306ff3bf
-final_ci_sha256=0ddbb7e54bfdeaad96fa11911b747a0a17dd146fb72d6ed11ff9fb70942e2800
+final_ci_sha256=73d3665a7e7645f2fbd7acf043f76094cf1b05527a9500e1565a03b3ced1e0f2
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
@@ -246,7 +246,21 @@ p0_04_execution_authorized=false
 staging_0010_apply_authorized=false
 ~~~
 
-## 10. Production and clinical hard gates retained
+## 10. Subsequent V2 authorization review handoff
+
+~~~text
+subsequent_v2_authorization_review_entry_commit=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
+subsequent_v2_authorization_review_ci_gate=198
+subsequent_v2_authorization_review_ci_status=PASS
+subsequent_v2_authorized_candidate_sha256=ce4b0fc1421624b29309f8eeae750d712601821529102620faf5c1b2b75be4f6
+subsequent_current_v2_investigation_authorized=false
+~~~
+
+This pointer records only the separately designed authorization-review entry
+package. It does not modify this preparation's inert source, consume an attempt,
+activate the reviewed candidate, or grant execution authority.
+
+## 11. Production and clinical hard gates retained
 
 ~~~text
 production_runtime_baseline=d659aefb
@@ -272,7 +286,7 @@ ENABLE_DEVICE_REAL_INGEST=false
 ENABLE_BILLING_REAL_WRITE=false
 ~~~
 
-## 11. Mandatory stop conditions and next gate
+## 12. Mandatory stop conditions and next gate
 
 Keep HOLD on any proposal to execute or activate the V2 source, access the
 backup, reuse V1 authorization, create a target or runner, connect to a

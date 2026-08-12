@@ -1,0 +1,370 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Archive Root Contract Investigation V2 Authorization Review V1
+
+This repository-only review defines a proposed, bounded authorization record
+for one future V2 metadata-only archive/root investigation. The package itself
+does not open or list the backup, read member headers or payloads, extract,
+copy, upload, modify, or repackage anything. It does not activate or execute
+the V2 candidate, create a target or runner, connect to a database, restore,
+create or execute migration 0010, deploy, delete, stage, commit, or push.
+
+## 1. Canonical review record
+
+~~~text
+stage_id=PMAI-P0-04
+substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW_V1
+stage_status=IN_PROGRESS
+package_status=AUTHORIZATION_REVIEW_RECORD_ONLY
+review_status=PROPOSED_APPROVE_BOUNDED_METADATA_ONLY_V2_INVESTIGATION
+authorization_record_id=PMAI-P0-04-ARCI-V2-AUTH-V1-20260812
+authorization_recorded_date=2026-08-12
+design_dry_run_authority_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260812
+approver_role=PROJECT_OWNER_OPERATOR
+operator_role=PROJECT_OWNER_OPERATOR
+authorization_scope=ONE_EXACT_ARCHIVE_ONE_V2_METADATA_ONLY_ATTEMPT
+authorization_record_effective_gate=EXACT_PACKAGE_APPLIED_COMMITTED_PUSHED_GITHUB_CI_PASS_AND_SEPARATE_ONE_TIME_EXECUTION_CONFIRMATION
+authorization_scope_recorded=true
+current_v2_investigation_authorized=false
+post_effective_gate_v2_investigation_authorized=true
+v2_investigation_execution_authorized=false
+v2_archive_listing_attempt_authorized=false
+one_time_execution_confirmation_present=false
+decision=GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY
+next_action=REQUEST_SEPARATE_REPOSITORY_APPLY_AUTHORIZATION_FOR_EXACT_BUNDLE
+~~~
+
+The proposed post-effective-gate value is not current authority. It becomes
+meaningful only if the exact reviewed bundle is separately approved for apply,
+committed, pushed, passes GitHub CI, and then receives a new one-time execution
+confirmation. No authority is inherited from this design or dry-run.
+
+## 2. Trusted entry baseline
+
+~~~text
+local_main=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
+origin_main=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
+main_parent=b5eaeb7b1a36b5fcb54734bda5886d93d56576e3
+github_ci_gate_number=198
+github_ci_gate_status=PASS
+github_ci_gate_commit=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
+prior_ci_sha256=0ddbb7e54bfdeaad96fa11911b747a0a17dd146fb72d6ed11ff9fb70942e2800
+final_ci_sha256=73d3665a7e7645f2fbd7acf043f76094cf1b05527a9500e1565a03b3ced1e0f2
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_at_entry=true
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+production_auto_deploy_entry_baseline=false
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+prepared_v2_source_sha256=0d6303b0a5fc63d8231669b8a5d396d67b645120f9ac5421977cb79f3f6e8837
+authorized_candidate_v2_source_sha256=ce4b0fc1421624b29309f8eeae750d712601821529102620faf5c1b2b75be4f6
+sanitized_v1_result_sha256=c8c68cbe00ebeff2eae75fb6c1b375af8e867b869e68378e43b9188b1a2b6893
+active_0010_migration_file_count=0
+baseline_source=OPERATOR_PUSH_OUTPUT_GITHUB_CI_GATE_198_SCREENSHOT_AND_REPOSITORY_BASELINE_NO_RUNTIME_RECHECK
+~~~
+
+Gate 198 proves only the repository commit. Runtime and database values are
+retained handoff baselines and are not rechecked by this package.
+
+## 3. Completed V2 preparation and unresolved V1 evidence
+
+~~~text
+completed_substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1
+completed_commit=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
+completed_ci_gate=198
+completed_ci_status=PASS
+selected_route=ROUTE_B_REBUILD_CORRECTED_METADATA_INVESTIGATION_CHAIN_V2
+v2_preparation_complete=true
+prepared_v2_source_retained_unchanged=true
+v1_archive_listing_attempts_consumed=1
+v1_archive_listing_attempts_remaining=0
+v1_root_contract_resolved=false
+v1_normalized_path_violation_count=29
+v1_stop_code=STRUCTURAL_PREDICATE_MISMATCH
+v1_decision=HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED
+observed_archive_leading_dot_prefix_confirmed=false
+observed_archive_unwrapped_pg_directory_root_confirmed=false
+toc_dat_absence_established=false
+backup_corruption_established=false
+structural_predicate_mismatch_cause_resolved=false
+legacy_v1_authorization_reuse_allowed=false
+~~~
+
+The V1 attempt remains consumed and cannot be retried. V2 is a separately
+reviewed attempt with a distinct authorization record and implementation hash.
+The candidate design does not convert a plausible archive explanation into an
+observed fact.
+
+## 4. Exact archive identity binding
+
+~~~text
+approved_backup_file_name=2026-08-02T15_16Z.dir.tar.gz
+approved_backup_file_size_bytes=22299
+approved_backup_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+approved_backup_sanitized_evidence_sha256=a7af6ca2c0cba862bb7f6073f0866ef6dafcb20364ae64db6c9693fe622798e1
+approved_backup_toc_sha256=6a1b20417a90fe9a5d954c4451e6fd3ebc7072407bc031e68b44c2b824e1ee1c
+approved_backup_toc_entry_count=433
+approved_backup_pg_restore_version=18.4
+prior_v1_archive_member_count=29
+prior_v1_archive_uncompressed_size_bytes=196874
+archive_external_path_repository_value=FORBIDDEN
+archive_bytes_repository_value=FORBIDDEN
+archive_hash_recheck_required_before_metadata_scan=true
+~~~
+
+Only the artifact with the exact approved SHA-256 can ever enter the proposed
+V2 attempt. A size, hash, container, or identity mismatch is a hard stop before
+member metadata is scanned.
+
+## 5. Prepared source and reviewed authorization candidate separation
+
+~~~text
+prepared_v2_source_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V2.py.txt
+prepared_v2_source_format=INERT_PYTHON_SOURCE_TEXT
+prepared_v2_source_execution_enabled=false
+prepared_v2_source_executed_by_ci=false
+prepared_v2_source_executed_by_package=false
+authorized_candidate_v2_source_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V2_AUTHORIZED_CANDIDATE.py.txt
+authorized_candidate_v2_source_format=INERT_PYTHON_SOURCE_TEXT
+authorized_candidate_v2_source_storage_suffix=.py.txt
+authorized_candidate_v2_source_repository_executable=false
+authorized_candidate_v2_source_executed_by_ci=false
+authorized_candidate_v2_source_executed_by_package=false
+authorized_candidate_v2_source_activation_authorized=false
+authorized_candidate_execution_gate_literal=true
+authorized_candidate_default_mode=CONTRACT_ONLY_NO_ARCHIVE_OPEN
+authorized_candidate_execute_flag_required=true
+authorized_candidate_authorization_record_id_required=true
+authorized_candidate_expected_archive_sha256_confirmation_required=true
+authorized_candidate_v2_attempt_number_required=1
+authorized_candidate_cumulative_attempt_number=2
+authorized_candidate_path_input=HIDDEN_INTERACTIVE_PROMPT_NOT_COMMAND_LINE
+authorized_candidate_shell_interpolation=false
+authorized_candidate_automatic_retry=false
+authorized_candidate_output_contract=SANITIZED_JSON_COUNTS_BOOLEANS_CLASSIFICATIONS_REASON_COUNTERS_AND_HASHES_ONLY
+~~~
+
+The candidate's `EXECUTION_ENABLED=true` literal is reviewable text inside a
+non-executable `.py.txt` artifact. It does not activate anything in the
+repository. Any byte change produces a different hash and requires a new
+authorization review. Repository validation parses the candidate's AST and
+source but never imports or executes it.
+
+## 6. Proposed V2 attempt budget
+
+~~~text
+v1_attempt_budget=1
+v1_attempts_consumed=1
+v1_attempts_remaining=0
+v2_attempt_budget=1
+v2_attempts_consumed=0
+v2_attempts_remaining_pre_effective_gate=0
+v2_attempts_remaining_post_effective_gate=1
+v2_attempt_number=1
+cumulative_archive_listing_attempt_number_if_executed=2
+automatic_retry_allowed=false
+manual_retry_allowed=false
+authorization_reuse_allowed=false
+additional_attempt_requires_new_governance_chain=true
+~~~
+
+The proposed V2 budget cannot be consumed by this review package. It becomes
+eligible only after all effective gates and the separate one-time execution
+confirmation. Any call, including a sanitized hold or tool failure after the
+approved scan begins, consumes the one V2 attempt.
+
+## 7. Proposed post-effective-gate operation boundary
+
+~~~text
+post_effective_gate_operation=EXACT_ARCHIVE_HASH_CHECK_AND_GZIP_TAR_MEMBER_METADATA_SCAN_ONLY
+member_header_read_scope=METADATA_ONLY
+member_payload_read_scope=FORBIDDEN
+member_extraction_scope=FORBIDDEN
+archive_copy_scope=FORBIDDEN
+archive_upload_scope=FORBIDDEN
+archive_write_scope=FORBIDDEN
+archive_repackage_scope=FORBIDDEN
+network_scope=NONE
+database_scope=NONE
+restore_scope=NONE
+target_scope=NONE
+restore_runner_scope=NONE
+migration_scope=NONE
+deployment_scope=NONE
+resource_deletion_scope=NONE
+raw_member_list_output=false
+raw_logical_root_output=false
+raw_external_path_output=false
+sanitized_summary_only=true
+~~~
+
+The future candidate may read outer bytes only to verify the exact artifact
+hash and may scan member metadata only to classify structure. It must never
+call extraction or payload APIs and must never emit member names, a logical
+root string, or an external path.
+
+## 8. Reviewed V2 predicate and classifications
+
+~~~text
+v2_allows_one_optional_leading_dot_prefix=true
+v2_allows_directory_root_marker=true
+v2_rejects_internal_dot_component=true
+v2_rejects_parent_component=true
+v2_rejects_absolute_path=true
+v2_rejects_backslash=true
+v2_rejects_control_character=true
+v2_rejects_empty_component=true
+v2_rejects_drive_prefix=true
+v2_rejects_special_member_for_success=true
+v2_wrapped_root_classification=PG_DIRECTORY_ROOT_WRAPPED
+v2_unwrapped_root_classification=PG_DIRECTORY_ROOT_UNWRAPPED
+v2_toc_relation_required=IMMEDIATE_CHILD_OF_LOGICAL_ROOT
+v2_toc_candidate_count_required=1
+v2_root_marker_count_maximum=1
+v2_duplicate_normalized_member_count_required=0
+v2_case_collision_count_required=0
+v2_unsafe_or_special_member_count_required=0
+v2_normalized_path_violation_count_required=0
+~~~
+
+A wrapped candidate succeeds only when every accepted non-marker member shares
+the wrapper containing `toc.dat`. An unwrapped candidate requires `toc.dat` at
+the logical root. All other or ambiguous layouts retain HOLD.
+
+## 9. Sanitized evidence contract
+
+~~~text
+evidence_field_01=authorization_record_id
+evidence_field_02=v2_attempt_number
+evidence_field_03=cumulative_archive_listing_attempt_number
+evidence_field_04=approved_archive_sha256_match
+evidence_field_05=implementation_sha256
+evidence_field_06=listing_tool_identity
+evidence_field_07=listing_tool_version
+evidence_field_08=archive_member_count
+evidence_field_09=archive_uncompressed_size_bytes
+evidence_field_10=regular_file_count
+evidence_field_11=directory_entry_count
+evidence_field_12=unsafe_or_special_member_count
+evidence_field_13=normalization_reason_counts
+evidence_field_14=normalized_path_violation_count
+evidence_field_15=leading_dot_prefix_member_count
+evidence_field_16=root_marker_count
+evidence_field_17=duplicate_normalized_member_count
+evidence_field_18=case_collision_count
+evidence_field_19=root_layout_classification
+evidence_field_20=logical_root_fingerprint_sha256
+evidence_field_21=wrapper_depth
+evidence_field_22=toc_dat_candidate_count
+evidence_field_23=toc_dat_relation_category
+evidence_field_24=all_members_contained_by_logical_root
+evidence_field_25=member_name_set_sha256
+evidence_field_26=restore_input_kind_classification
+evidence_field_27=raw_member_names_emitted
+evidence_field_28=raw_external_path_emitted
+evidence_field_29=member_payload_read
+evidence_field_30=member_extraction_performed
+evidence_field_31=archive_modified
+evidence_field_32=decision
+evidence_field_33=stop_code
+logical_root_repository_value=HASH_ONLY
+member_names_repository_value=COUNTS_REASON_COUNTERS_AND_HASHES_ONLY
+raw_archive_listing_repository_value=FORBIDDEN
+raw_external_evidence_repository_value=FORBIDDEN
+~~~
+
+Raw external evidence remains outside Git. A later repository evidence package
+may contain only the reviewed sanitized fields after separate evidence review.
+
+## 10. Current repository-package boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+archive_file_opened=false
+backup_archive_listing_invoked=false
+backup_archive_member_headers_read=false
+backup_archive_member_payload_read=false
+backup_archive_extracted=false
+backup_archive_copied=false
+backup_archive_uploaded=false
+backup_archive_modified=false
+backup_archive_repackaged=false
+investigation_retry=false
+automatic_retry=false
+manual_retry_authorized=false
+additional_archive_listing_attempt_authorized=false
+current_authorization_reuse_allowed=false
+current_package_v2_investigation_authorized=false
+current_package_v2_investigation_execution_authorized=false
+current_package_v2_archive_listing_attempt_authorized=false
+current_package_one_time_execution_confirmation_present=false
+active_v2_investigator_created=false
+authorized_candidate_v2_source_activated=false
+authorized_candidate_v2_source_executed=false
+root_contract_resolved=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+restore_runner_created=false
+restore_runner_modified=false
+locked_runner_invoked=false
+render_target_created=false
+render_target_deleted=false
+application_deployment=false
+resource_deleted=false
+repository_apply_authorized=false
+git_stage_authorized=false
+git_commit_authorized=false
+git_push_authorized=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+corrected_migration_implementation_authorized=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+## 11. Production and clinical hard gates retained
+
+~~~text
+database_revision=0009_diag_data
+alembic_head=0009_diag_data
+schema_ok=true
+migration_errors=[]
+writes_database=false
+exposes_database_url=false
+production_auto_deploy_verified=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~
+
+## 12. Mandatory stop conditions
+
+Stop if the Git baseline, Gate 198, isolated refs, prior CI hash, locked runner
+hash, active migration absence, exact archive identity, prepared or candidate
+source bytes or hash, V2 attempt budget, metadata-only boundary, sanitized
+evidence schema, predicate requirements, classification rules, or target scope
+differs.
+
+Stop on any current archive open, listing, header or payload read, extraction,
+copy, upload, modification, repackaging, raw member/path output, retry, candidate
+activation or execution, network call, database connection, restore or SQL
+tooling, target or runner creation, migration, deployment, deletion, stage,
+commit, push, legacy authorization reuse, or inference that this design or
+dry-run grants execution authority.

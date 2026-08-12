@@ -1,0 +1,30 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-ARCI-V2-AUTH-GNG-001,entry commit,abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce,abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-002,entry CI gate,PASS,PASS,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-003,Route B retained,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-004,V2 preparation complete,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-005,prepared source hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-006,candidate source hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-007,candidate source inert suffix,.py.txt,.py.txt,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-008,candidate repository executable,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-009,candidate executed during review,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-010,current V2 investigation authorization,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-011,post effective gate V2 authorization,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-012,one time execution confirmation,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-013,V1 attempts remaining,0,0,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-014,V2 attempt budget,1,1,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-015,V2 current attempts remaining,0,0,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-016,V2 post gate attempts remaining,1,1,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-017,automatic retry allowed,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-018,exact archive binding,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-019,metadata only boundary,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-020,payload read allowed,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-021,member extraction allowed,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-022,raw member output allowed,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-023,wrapped and unwrapped predicate coverage,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-024,archive access during review,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-025,target runner restore authorization,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-026,database migration deployment authorization,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-027,stage commit push authorization,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-028,next governance subject,SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY,SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY,PASS,HOLD
+PMAI-P0-04-ARCI-V2-AUTH-GNG-029,review disposition,GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY,GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY,PASS,HOLD

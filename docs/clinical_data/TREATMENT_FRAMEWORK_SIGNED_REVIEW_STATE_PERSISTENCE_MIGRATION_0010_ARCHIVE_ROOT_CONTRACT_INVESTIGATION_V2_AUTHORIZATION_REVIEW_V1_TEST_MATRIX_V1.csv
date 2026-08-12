@@ -1,0 +1,54 @@
+test_id,category,test,expected,status
+PMAI-P0-04-ARCI-V2-AUTH-T001,baseline,entry commit exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T002,baseline,CI Gate 198 PASS,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T003,baseline,isolated branch unchanged,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T004,baseline,locked runner hash unchanged,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T005,source,prepared V2 source hash exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T006,source,candidate V2 source hash exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T007,source,candidate suffix py txt,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T008,source,candidate AST parses without import,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T009,source,candidate not executed by CI,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T010,source,candidate not executed by package,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T011,source,authorization record exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T012,source,archive hash binding exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T013,source,V2 attempt number exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T014,source,cumulative attempt number exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T015,source,automatic retry false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T016,source,payload extraction write flags false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T017,source,default invocation contract only,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T018,source,execute flag required before prompt,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T019,predicate,one optional leading dot accepted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T020,predicate,root marker directory only,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T021,predicate,internal dot rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T022,predicate,parent component rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T023,predicate,absolute path rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T024,predicate,backslash rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T025,predicate,control character rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T026,predicate,empty component rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T027,predicate,drive prefix rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T028,predicate,special member prevents success,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T029,classification,wrapped logical root recognized,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T030,classification,unwrapped logical root recognized,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T031,classification,missing toc holds,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T032,classification,multiple toc holds,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T033,classification,wrapper escape holds,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T034,classification,normalized duplicate holds,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T035,evidence,reason counters fixed keys,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T036,evidence,raw member names suppressed,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T037,evidence,raw external path suppressed,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T038,evidence,logical root hash only,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T039,authority,current V2 authorization false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T040,authority,post gate proposal distinct,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T041,authority,one time confirmation absent,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T042,authority,no V1 authorization reuse,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T043,scope,no archive access,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T044,scope,no candidate activation or execution,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T045,scope,no target runner database restore,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T046,scope,no migration deployment delete,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T047,scope,no stage commit push,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T048,CI,new validator exactly once,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T049,CI,root target hash protection,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T050,negative,active 0010 absent,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T051,negative,unsafe artifact suffix absent,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T052,negative,secrets and raw archive path absent,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-AUTH-T053,next,separate repository apply review only,PASS,DESIGNED
