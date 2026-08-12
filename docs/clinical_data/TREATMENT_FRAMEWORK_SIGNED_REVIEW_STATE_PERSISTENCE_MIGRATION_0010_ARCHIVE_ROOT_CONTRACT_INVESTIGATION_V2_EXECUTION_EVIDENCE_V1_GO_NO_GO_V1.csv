@@ -1,0 +1,26 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-001,exact authorization review commit,9f00393543ec435353d5deadc6c74972aed4f6c2,9f00393543ec435353d5deadc6c74972aed4f6c2,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-002,authorization review GitHub CI gate,PASS,PASS,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-003,exact archive hash match,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-004,exact V2 investigator hash match,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-005,one authorized V2 attempt completed,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-006,V2 attempts consumed,1,1,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-007,V2 attempts remaining,0,0,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-008,cumulative attempts consumed,2,2,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-009,automatic retry forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-010,member payload read forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-011,member extraction forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-012,raw member names emitted forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-013,raw external path emitted forbidden,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-014,normalized path violations required for success,0,0,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-015,toc candidate count required for success,1,1,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-016,toc relation required for success,IMMEDIATE_CHILD_OF_LOGICAL_ROOT,NONE_OR_AMBIGUOUS,HOLD,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-017,root layout classification required for success,PG_DIRECTORY_ROOT_WRAPPED_OR_UNWRAPPED,NONE_OR_AMBIGUOUS,HOLD,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-018,all members contained by logical root required,true,false,HOLD,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-019,root contract resolved required for runner design,true,false,HOLD,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-020,backup restoreability verified required for migration,true,false,HOLD,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-021,no hidden layout inference,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-022,no new governance route selected,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-023,no additional archive access authorized,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-024,execution evidence disposition,HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED,HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED,PASS,HOLD
+PMAI-P0-04-ARCI-V2-EXEC-EVID-GNG-025,next governance subject,SEPARATE_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_REQUIRED_BEFORE_ANY_NEW_INVESTIGATION,SEPARATE_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_REQUIRED_BEFORE_ANY_NEW_INVESTIGATION,PASS,HOLD

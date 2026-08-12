@@ -48,7 +48,7 @@ github_ci_gate_number=198
 github_ci_gate_status=PASS
 github_ci_gate_commit=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
 prior_ci_sha256=0ddbb7e54bfdeaad96fa11911b747a0a17dd146fb72d6ed11ff9fb70942e2800
-final_ci_sha256=73d3665a7e7645f2fbd7acf043f76094cf1b05527a9500e1565a03b3ced1e0f2
+final_ci_sha256=7cba5137d959d9f37a5e4f7a70798ff5090fc130ead6ce9d124c457c9a682811
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 repository_clean_at_entry=true
@@ -332,7 +332,28 @@ p0_04_execution_authorized=false
 staging_0010_apply_authorized=false
 ~~~
 
-## 11. Production and clinical hard gates retained
+## 11. Subsequent V2 execution-evidence pointer
+
+The authorization review remains point-in-time evidence. The fields below only
+record the later, separately authorized execution outcome; they do not rewrite
+the original review state or permit another call.
+
+~~~text
+subsequent_v2_execution_evidence_entry_commit=9f00393543ec435353d5deadc6c74972aed4f6c2
+subsequent_v2_execution_evidence_ci_gate=199
+subsequent_v2_execution_evidence_ci_status=PASS
+subsequent_v2_execution_implementation_sha256=ce4b0fc1421624b29309f8eeae750d712601821529102620faf5c1b2b75be4f6
+subsequent_v2_sanitized_result_sha256=3eef22eeab17779b4e5499f53c22caf22fd5d0fd7c107cdaca6cbb8926ebf028
+subsequent_v2_archive_listing_attempts_consumed=1
+subsequent_cumulative_archive_listing_attempts_consumed=2
+subsequent_archive_listing_attempts_remaining=0
+subsequent_v2_root_contract_resolved=false
+subsequent_v2_stop_code=V2_STRUCTURAL_PREDICATE_MISMATCH
+subsequent_v2_decision=HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED
+subsequent_v2_retry_authorized=false
+~~~
+
+## 12. Production and clinical hard gates retained
 
 ~~~text
 database_revision=0009_diag_data
@@ -354,7 +375,7 @@ ENABLE_DEVICE_REAL_INGEST=false
 ENABLE_BILLING_REAL_WRITE=false
 ~~~
 
-## 12. Mandatory stop conditions
+## 13. Mandatory stop conditions
 
 Stop if the Git baseline, Gate 198, isolated refs, prior CI hash, locked runner
 hash, active migration absence, exact archive identity, prepared or candidate
