@@ -1,0 +1,27 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-ARCI-V2-PREP-GNG-001,decision commit,b5eaeb7b1a36b5fcb54734bda5886d93d56576e3,b5eaeb7b1a36b5fcb54734bda5886d93d56576e3,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-002,decision CI gate,PASS,PASS,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-003,Route B retained,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-004,V1 attempts remaining,0,0,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-005,V1 root contract resolved,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-006,V2 source inert suffix,.py.txt,.py.txt,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-007,V2 source hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-008,V2 execution enabled,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-009,V2 authorization record effective,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-010,V2 source executed in preparation,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-011,leading dot coverage,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-012,internal dot rejection,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-013,parent rejection,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-014,unsafe path rejection,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-015,wrapped classification design,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-016,unwrapped classification design,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-017,synthetic fixtures pass,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-018,synthetic fixtures are archive evidence,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-019,raw member names allowed,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-020,member payload read allowed,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-021,archive access during preparation,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-022,new V2 attempt authorization,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-023,target runner restore authorization,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-024,database migration deployment authorization,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-025,next governance subject,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW_REQUIRED,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW_REQUIRED,PASS,HOLD
+PMAI-P0-04-ARCI-V2-PREP-GNG-026,preparation disposition,GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW,GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW,PASS,HOLD

@@ -1,0 +1,47 @@
+test_id,category,test,expected,status
+PMAI-P0-04-ARCI-V2-PREP-T001,baseline,decision commit exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T002,baseline,CI Gate 197 PASS,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T003,baseline,isolated branch unchanged,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T004,baseline,locked runner hash unchanged,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T005,source,V2 file suffix py txt,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T006,source,V2 source hash exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T007,source,V2 AST parses without import,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T008,source,execution enabled literal false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T009,source,authorization record pending,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T010,source,execute stops before archive prompt,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T011,source,payload extraction write retry false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T012,predicate,canonical relative accepted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T013,predicate,one leading dot prefix accepted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T014,predicate,directory root marker accepted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T015,predicate,root marker regular file rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T016,predicate,internal dot rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T017,predicate,repeated leading dot rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T018,predicate,parent component rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T019,predicate,absolute path rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T020,predicate,backslash rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T021,predicate,empty component rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T022,predicate,drive prefix rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T023,predicate,control character rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T024,layout,wrapped canonical fixture classified,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T025,layout,wrapped leading dot fixture classified,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T026,layout,unwrapped canonical fixture classified,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T027,layout,unwrapped leading dot fixture classified,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T028,layout,toc absent fixture held,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T029,layout,multiple toc fixture held,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T030,layout,wrapped escape fixture held,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T031,layout,duplicate normalized fixture held,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T032,privacy,reason counters fixed keys,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T033,privacy,raw member names suppressed,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T034,privacy,raw external path suppressed,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T035,inference,synthetic result not archive fact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T036,scope,no archive access,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T037,scope,no investigator execution,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T038,scope,no target runner database restore,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T039,scope,no migration deployment delete,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T040,scope,no stage commit push,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T041,CI,new validator exactly once,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T042,CI,root target hash protection,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T043,negative,active 0010 absent,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T044,negative,unsafe artifact suffix absent,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T045,negative,secrets and raw archive path absent,PASS,DESIGNED
+PMAI-P0-04-ARCI-V2-PREP-T046,next,V2 authorization review only,PASS,DESIGNED

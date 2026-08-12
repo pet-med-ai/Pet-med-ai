@@ -34,7 +34,7 @@ github_ci_gate_number=196
 github_ci_gate_status=PASS
 github_ci_gate_commit=992976b033f115f6872e53f9144c56387c4c4ecf
 prior_ci_sha256=80bd7f4e5186a33c3420fe4804a636c90e954d2d9349330803d0bb90bebc0870
-final_ci_sha256=39a1f75ecfe5a79dc9293d93b1f562f07146664ad020a03c8cb79a42306ff3bf
+final_ci_sha256=0ddbb7e54bfdeaad96fa11911b747a0a17dd146fb72d6ed11ff9fb70942e2800
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
@@ -261,7 +261,20 @@ p0_04_execution_authorized=false
 staging_0010_apply_authorized=false
 ~~~
 
-## 9. Production and clinical hard gates retained
+## 9. Subsequent V2 preparation pointer
+
+The later preparation package starts from this published decision and remains
+repository-only. These markers are a forward pointer, not an execution grant.
+
+~~~text
+subsequent_v2_preparation_entry_commit=b5eaeb7b1a36b5fcb54734bda5886d93d56576e3
+subsequent_v2_preparation_ci_gate=197
+subsequent_v2_preparation_ci_status=PASS
+subsequent_v2_inert_source_sha256=0d6303b0a5fc63d8231669b8a5d396d67b645120f9ac5421977cb79f3f6e8837
+subsequent_v2_investigation_authorized=false
+~~~
+
+## 10. Production and clinical hard gates retained
 
 ~~~text
 production_runtime_baseline=d659aefb
@@ -287,7 +300,7 @@ ENABLE_DEVICE_REAL_INGEST=false
 ENABLE_BILLING_REAL_WRITE=false
 ~~~
 
-## 10. Mandatory stop conditions and next gate
+## 11. Mandatory stop conditions and next gate
 
 Keep HOLD on any attempt to access the backup, list headers, read payloads,
 reuse V1, create or execute V2, create a target or runner, connect to a
