@@ -1,0 +1,56 @@
+test_id,category,test,expected,status
+PMAI-P0-04-V2-POST-SPR-GOV-T001,baseline,evidence commit exact,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T002,baseline,evidence CI 200 PASS,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T003,baseline,isolated branch unchanged,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T004,baseline,locked runner hash unchanged,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T005,evidence,V1 attempt consumed one,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T006,evidence,V2 attempt consumed one,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T007,evidence,cumulative attempts consumed two,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T008,evidence,attempts remaining zero,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T009,evidence,archive identity matched,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T010,evidence,normalized violations zero,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T011,evidence,toc candidate count one,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T012,evidence,toc relation ambiguous,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T013,evidence,root layout ambiguous,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T014,evidence,root contract remains false,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T015,evidence,HOLD remains controlling,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T016,static,V2 source hash exact,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T017,static,V2 source parsed without import,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T018,static,leading dot normalization present,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T019,static,root marker policy present,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T020,static,internal dot rejection retained,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T021,static,parent traversal rejection retained,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T022,static,unwrapped root classifier present,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T023,static,single wrapper classifier present,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T024,static,deep wrapper classifier absent,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T025,static,mixed top level classifier absent,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T026,static,toc normalized depth output absent,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T027,static,shared prefix depth output absent,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T028,static,member depth range output absent,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T029,inference,toc presence established,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T030,inference,toc logical root relation not inferred,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T031,inference,deep wrapper remains unverified,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T032,inference,mixed top level remains unverified,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T033,inference,corruption not inferred,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T034,inference,restoreability not inferred,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T035,route,Route A rejected at this gate,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T036,route,Route B rejected,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T037,route,Route C approved governance only,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T038,route,Route D rejected,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T039,requirements,V3 toc depth metric required,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T040,requirements,V3 shared prefix depth metric required,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T041,requirements,V3 top level count required,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T042,requirements,V3 deep wrapper fixture required,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T043,requirements,V3 mixed top level fixture required,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T044,requirements,V3 separate authorization required,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T045,scope,no archive access,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T046,scope,no investigator creation activation execution,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T047,scope,no target runner database restore,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T048,scope,no migration deployment deletion,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T049,scope,no stage commit push,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T050,CI,new validator command exactly once,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T051,CI,root target and hash protection,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T052,CI,all approved validators remain ordered,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T053,negative,active 0010 absent,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T054,negative,unsafe artifact suffix absent,PASS,DESIGNED
+PMAI-P0-04-V2-POST-SPR-GOV-T055,negative,secrets raw paths and raw names absent,PASS,DESIGNED

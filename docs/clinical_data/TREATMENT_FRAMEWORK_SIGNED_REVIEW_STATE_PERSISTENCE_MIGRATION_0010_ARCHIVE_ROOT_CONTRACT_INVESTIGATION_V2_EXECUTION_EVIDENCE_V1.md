@@ -51,7 +51,7 @@ github_ci_gate_number=199
 github_ci_gate_status=PASS
 github_ci_gate_commit=9f00393543ec435353d5deadc6c74972aed4f6c2
 prior_ci_sha256=73d3665a7e7645f2fbd7acf043f76094cf1b05527a9500e1565a03b3ced1e0f2
-final_ci_sha256=7cba5137d959d9f37a5e4f7a70798ff5090fc130ead6ce9d124c457c9a682811
+final_ci_sha256=e0497f7ba925d753728cc8ae364efcec95e995b2212648c2eda4ed57a4f4fccb
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 repository_clean_before_investigation=true
@@ -300,3 +300,16 @@ stage, commit, or push without the corresponding separate gate.
 The only proposed next governance subject is a separate V2 post-execution
 structural review decision. This evidence package selects neither a new route
 nor a corrected predicate and grants no additional archive access.
+
+## 12. Subsequent V2 post-execution structural review pointer
+
+This later pointer records a separately reviewed governance decision. It
+does not alter the point-in-time V2 result or authorize V3 execution.
+
+~~~text
+subsequent_v2_post_execution_structural_review_entry_commit=da837e6eb35819457b340d9fe9fd3a4336dc6673
+subsequent_v2_post_execution_structural_review_ci_gate=200
+subsequent_v2_post_execution_structural_review_ci_status=PASS
+subsequent_v2_post_execution_structural_review_selected_route=ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3
+subsequent_v3_investigation_authorized=false
+~~~

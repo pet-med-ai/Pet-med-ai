@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate PMAI-P0-04 Archive Root Contract Investigation V2 Preparation V1."""
+"""Validate the PMAI-P0-04 V2 post-execution structural review decision."""
 
 from __future__ import annotations
 
@@ -13,14 +13,13 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1.md'
-CHECKLIST = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1_CHECKLIST_V1.csv'
-GO_NO_GO = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1_GO_NO_GO_V1.csv'
-TEST_MATRIX = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1_TEST_MATRIX_V1.csv'
-STRUCTURAL_DECISION_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STRUCTURAL_PREDICATE_REVIEW_GOVERNANCE_DECISION_V1.md'
-V1_SOURCE = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V1.py.txt'
-V2_SOURCE = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V2.py.txt'
-VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v2_preparation_v1.py'
+DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_V1.md'
+CHECKLIST = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_V1_CHECKLIST_V1.csv'
+GO_NO_GO = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_V1_GO_NO_GO_V1.csv'
+TEST_MATRIX = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_V1_TEST_MATRIX_V1.csv'
+EVIDENCE_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_EXECUTION_EVIDENCE_V1.md'
+IMPLEMENTATION = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V2_AUTHORIZED_CANDIDATE.py.txt'
+VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v2_post_execution_structural_review_governance_decision_v1.py'
 ROOT_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
 AUTH_PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_preparation_v1.py'
 LEGACY_VALIDATORS = (
@@ -35,13 +34,19 @@ FRESH_DECISION_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_s
 V1_PREPARATION_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_preparation_v1.py'
 V1_AUTHORIZATION_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_authorization_review_v1.py'
 V1_EVIDENCE_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_execution_evidence_v1.py'
-STRUCTURAL_DECISION_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_structural_predicate_review_governance_decision_v1.py'
+V1_STRUCTURAL_DECISION_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_structural_predicate_review_governance_decision_v1.py'
+V2_PREPARATION_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v2_preparation_v1.py'
+V2_AUTHORIZATION_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v2_authorization_review_v1.py'
+V2_EVIDENCE_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v2_execution_evidence_v1.py'
 ROLLING_VALIDATORS = (
     FRESH_DECISION_VALIDATOR,
     V1_PREPARATION_VALIDATOR,
     V1_AUTHORIZATION_VALIDATOR,
     V1_EVIDENCE_VALIDATOR,
-    STRUCTURAL_DECISION_VALIDATOR,
+    V1_STRUCTURAL_DECISION_VALIDATOR,
+    V2_PREPARATION_VALIDATOR,
+    V2_AUTHORIZATION_VALIDATOR,
+    V2_EVIDENCE_VALIDATOR,
 )
 ROLLING_DOCS = (
     'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_EXECUTION_AUTHORIZATION_REVIEW_V1.md',
@@ -52,21 +57,25 @@ ROLLING_DOCS = (
     'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_PREPARATION_V1.md',
     'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_AUTHORIZATION_REVIEW_V1.md',
     'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_EXECUTION_EVIDENCE_V1.md',
-    STRUCTURAL_DECISION_DOC,
+    'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STRUCTURAL_PREDICATE_REVIEW_GOVERNANCE_DECISION_V1.md',
+    'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1.md',
+    'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW_V1.md',
+    EVIDENCE_DOC,
 )
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_HEAD = 'b5eaeb7b1a36b5fcb54734bda5886d93d56576e3'
-EXPECTED_PARENT = '992976b033f115f6872e53f9144c56387c4c4ecf'
+EXPECTED_HEAD = 'da837e6eb35819457b340d9fe9fd3a4336dc6673'
+EXPECTED_PARENT = '9f00393543ec435353d5deadc6c74972aed4f6c2'
 EXPECTED_ISOLATED = '8d1dc8814ed8f80d8bc965b494c1c320fc08f228'
-EXPECTED_PRIOR_CI_SHA256 = '39a1f75ecfe5a79dc9293d93b1f562f07146664ad020a03c8cb79a42306ff3bf'
+EXPECTED_PRIOR_CI_SHA256 = '7cba5137d959d9f37a5e4f7a70798ff5090fc130ead6ce9d124c457c9a682811'
 EXPECTED_FINAL_CI_SHA256 = 'e0497f7ba925d753728cc8ae364efcec95e995b2212648c2eda4ed57a4f4fccb'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
-EXPECTED_V1_SOURCE_SHA256 = '2b99a7446fbd5509e22c9fa5f6cb18eca920711208aa37fb4af568fd21f6faab'
-EXPECTED_V2_SOURCE_SHA256 = '0d6303b0a5fc63d8231669b8a5d396d67b645120f9ac5421977cb79f3f6e8837'
-EXPECTED_RESULT_SHA256 = 'c8c68cbe00ebeff2eae75fb6c1b375af8e867b869e68378e43b9188b1a2b6893'
-PREPARATION_RECORD_ID = 'PMAI-P0-04-ARCI-V2-PREP-V1-20260812'
-SELECTED_ROUTE = 'ROUTE_B_REBUILD_CORRECTED_METADATA_INVESTIGATION_CHAIN_V2'
+EXPECTED_IMPLEMENTATION_SHA256 = 'ce4b0fc1421624b29309f8eeae750d712601821529102620faf5c1b2b75be4f6'
+EXPECTED_V1_RESULT_SHA256 = 'c8c68cbe00ebeff2eae75fb6c1b375af8e867b869e68378e43b9188b1a2b6893'
+EXPECTED_V2_RESULT_SHA256 = '3eef22eeab17779b4e5499f53c22caf22fd5d0fd7c107cdaca6cbb8926ebf028'
+DECISION_RECORD_ID = 'PMAI-P0-04-V2-POST-SPR-GOV-DEC-V1-20260812'
+PRIOR_ROUTE = 'ROUTE_B_REBUILD_CORRECTED_METADATA_INVESTIGATION_CHAIN_V2'
+SELECTED_ROUTE = 'ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3'
 CI_COMMAND = 'python3 ' + VALIDATOR + ' || exit 1'
 EXPECTED_COMMANDS = ['python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py',
@@ -118,8 +127,8 @@ EXPECTED_COMMANDS = ['python3 '
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v2_post_execution_structural_review_governance_decision_v1.py '
  '|| exit 1']
-PACKAGE_PATHS = {DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX, V2_SOURCE, VALIDATOR}
-REQUIRED_PROTECTED_PATHS = PACKAGE_PATHS | {STRUCTURAL_DECISION_DOC, V1_SOURCE}
+PACKAGE_PATHS = {DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX, VALIDATOR}
+REQUIRED_PROTECTED_PATHS = PACKAGE_PATHS | {EVIDENCE_DOC, IMPLEMENTATION}
 HASH_EXTRA_PATHS = {
     'backend/models.py',
     'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md',
@@ -128,51 +137,70 @@ HASH_EXTRA_PATHS = {
     'render.yaml',
 }
 TRUE_MARKERS = (
-    'v1_investigation_execution_performed',
-    'v1_predicate_coverage_gap_confirmed',
-    'v2_inert_design_created',
-    'v2_source_contains_dormant_archive_access_path',
-    'v2_execution_requires_explicit_flag',
-    'v2_allows_one_optional_leading_dot_prefix',
-    'v2_allows_directory_root_marker',
-    'v2_rejects_internal_dot_component',
-    'v2_rejects_parent_component',
-    'v2_rejects_absolute_path',
-    'v2_rejects_backslash',
-    'v2_rejects_control_character',
-    'v2_rejects_empty_component',
-    'v2_rejects_drive_prefix',
-    'v2_rejects_special_member_for_success',
-    'v2_general_normpath_forbidden',
-    'v2_sanitized_reason_counters_required',
-    'v2_member_name_set_sha256_required',
-    'v2_logical_root_fingerprint_sha256_required',
     'repository_only',
-    'schema_ok',
+    'investigation_execution_performed',
+    'approved_archive_sha256_match',
+    'toc_dat_presence_established',
+    'v2_static_source_review_performed',
+    'v2_normalization_coverage_gap_resolved',
+    'v2_optional_leading_dot_prefix_policy_present',
+    'v2_explicit_root_marker_policy_present',
+    'v2_unwrapped_root_classification_present',
+    'v2_single_wrapper_classification_present',
+    'v2_structural_observability_gap_confirmed',
+    'v3_require_exactly_one_optional_leading_dot_prefix_policy',
+    'v3_require_explicit_root_marker_policy',
+    'v3_require_internal_dot_component_rejection',
+    'v3_require_parent_component_rejection',
+    'v3_require_absolute_path_rejection',
+    'v3_require_backslash_rejection',
+    'v3_require_control_character_rejection',
+    'v3_require_empty_component_rejection',
+    'v3_require_drive_prefix_rejection',
+    'v3_require_special_member_rejection',
+    'v3_require_toc_dat_normalized_depth_metric',
+    'v3_require_shared_prefix_depth_metric',
+    'v3_require_top_level_component_count_metric',
+    'v3_require_member_depth_min_max_metrics',
+    'v3_require_unwrapped_root_classification',
+    'v3_require_single_wrapper_classification',
+    'v3_require_deep_wrapper_classification',
+    'v3_require_mixed_top_level_classification',
+    'v3_require_toc_dat_at_logical_root',
+    'v3_require_bounded_numeric_outputs',
+    'v3_require_sanitized_enum_outputs',
+    'v3_require_raw_member_names_suppressed',
+    'v3_require_raw_external_path_suppressed',
+    'v3_require_member_payload_read_false',
+    'v3_require_extraction_false',
+    'v3_require_archive_write_false',
+    'v3_require_automatic_retry_false',
+    'v3_require_synthetic_depth_zero_fixture',
+    'v3_require_synthetic_depth_one_fixture',
+    'v3_require_synthetic_deep_wrapper_fixture',
+    'v3_require_synthetic_mixed_top_level_fixture',
+    'v3_require_separate_implementation_hash_review',
+    'v3_require_separate_one_time_execution_authorization',
+    'v3_require_explicit_single_attempt_budget',
+    'v3_predicate_requirements_selected',
 )
 FALSE_MARKERS = (
-    'v1_root_contract_resolved',
-    'observed_archive_leading_dot_prefix_confirmed',
-    'observed_archive_unwrapped_pg_directory_root_confirmed',
-    'toc_dat_absence_established',
+    'root_contract_resolved',
+    'v2_investigator_executed_during_review',
+    'v2_deep_wrapper_classification_present',
+    'v2_mixed_top_level_classification_present',
+    'v2_toc_normalized_depth_emitted',
+    'v2_shared_prefix_depth_emitted',
+    'v2_top_level_component_count_emitted',
+    'v2_member_depth_range_emitted',
+    'aggregate_result_causal_attribution_possible',
+    'toc_dat_at_logical_root_established',
+    'actual_archive_layout_cause_resolved',
     'backup_corruption_established',
-    'structural_predicate_mismatch_cause_resolved',
-    'active_v2_investigator_created',
-    'v2_source_execution_enabled',
-    'v2_source_executed_during_preparation',
-    'v2_authorization_record_effective',
-    'v2_member_payload_read_allowed',
-    'v2_member_extraction_allowed',
-    'v2_archive_write_allowed',
-    'v2_automatic_retry_allowed',
-    'synthetic_fixtures_are_archive_evidence',
-    'v2_raw_member_names_output_allowed',
-    'v2_raw_external_path_output_allowed',
-    'v2_archive_path_echo_allowed',
-    'v2_member_payload_read_allowed_in_future',
-    'v2_member_extraction_allowed_in_future',
-    'v2_archive_modification_allowed_in_future',
-    'v2_restore_execution_allowed_in_future',
+    'backup_safety_established',
+    'backup_restoreability_established',
+    'v2_structural_predicate_mismatch_cause_resolved',
+    'v3_predicate_implementation_selected',
     'network_access',
     'external_execution',
     'archive_file_opened',
@@ -189,12 +217,12 @@ FALSE_MARKERS = (
     'manual_retry_authorized',
     'additional_archive_listing_attempt_authorized',
     'authorization_reuse_allowed',
-    'v2_investigation_authorized',
-    'v2_archive_listing_attempt_authorized',
-    'v2_operator_command_authorized',
-    'v2_source_activation_authorized',
-    'new_active_investigator_created',
+    'new_investigator_created',
+    'new_investigator_activated',
     'new_investigator_executed',
+    'investigator_v3_creation_authorized',
+    'investigator_v3_activation_authorized',
+    'investigator_v3_execution_authorized',
     'database_connection',
     'database_write',
     'restore_execution',
@@ -216,8 +244,6 @@ FALSE_MARKERS = (
     'git_push_authorized',
     'p0_04_execution_authorized',
     'staging_0010_apply_authorized',
-    'writes_database',
-    'exposes_database_url',
     'production_auto_deploy_verified',
     'ENABLE_EMR_REAL_IMPORT',
     'ENABLE_EMR_IMPORT_CASE_UPDATE',
@@ -231,8 +257,8 @@ FALSE_MARKERS = (
     'ENABLE_BILLING_REAL_WRITE',
 )
 REQUIRED_TEST_IDS = {
-    'PMAI-P0-04-ARCI-V2-PREP-T{:03d}'.format(number)
-    for number in range(1, 47)
+    'PMAI-P0-04-V2-POST-SPR-GOV-T{:03d}'.format(number)
+    for number in range(1, 56)
 }
 
 
@@ -297,104 +323,45 @@ def python_lines(value: str) -> list[str]:
 
 
 def function_source(source: str, name: str) -> str:
-    tree = ast.parse(source)
-    nodes = [node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == name]
+    nodes = [
+        node
+        for node in ast.parse(source).body
+        if isinstance(node, ast.FunctionDef) and node.name == name
+    ]
     need(len(nodes) == 1, 'function count ' + name)
     value = ast.get_source_segment(source, nodes[0])
     need(value is not None, 'function source ' + name)
     return value
 
 
-def reference_normalize(raw: str, is_directory: bool = False):
-    if is_directory and raw.endswith('/'):
-        raw = raw[:-1]
-    if not raw:
-        return None, 'REJECT_EMPTY_PATH'
-    if raw.startswith('/'):
-        return None, 'REJECT_ABSOLUTE_PATH'
-    if '\\' in raw:
-        return None, 'REJECT_BACKSLASH'
-    if any(ord(character) < 32 or ord(character) == 127 for character in raw):
-        return None, 'REJECT_CONTROL_CHARACTER'
-    parts = list(raw.split('/'))
-    if parts == ['.']:
-        if is_directory:
-            return (), 'ACCEPTED_ROOT_MARKER'
-        return None, 'REJECT_ROOT_MARKER_NON_DIRECTORY'
-    leading_dot = bool(parts and parts[0] == '.')
-    if leading_dot:
-        parts = parts[1:]
-    if not parts or any(part == '' for part in parts):
-        return None, 'REJECT_EMPTY_COMPONENT'
-    if any(part == '..' for part in parts):
-        return None, 'REJECT_PARENT_COMPONENT'
-    if any(part == '.' for part in parts):
-        return None, 'REJECT_INTERNAL_DOT_COMPONENT'
-    if len(parts[0]) >= 2 and parts[0][1] == ':':
-        return None, 'REJECT_DRIVE_PREFIX'
-    return tuple(parts), (
-        'ACCEPTED_LEADING_DOT_PREFIX' if leading_dot else 'ACCEPTED_CANONICAL_RELATIVE'
-    )
-
-
-def reference_layout(entries: list[tuple[str, str]]) -> str:
-    """Classify synthetic (name, kind) entries without reading an archive."""
-    normalized: list[tuple[tuple[str, ...], str]] = []
-    root_markers = 0
-    rejected = 0
-    special = 0
-    for raw, kind in entries:
-        parts, reason = reference_normalize(raw, kind == 'dir')
-        if reason == 'ACCEPTED_ROOT_MARKER':
-            root_markers += 1
-        elif parts is None:
-            rejected += 1
-        elif parts:
-            normalized.append((parts, kind))
-        if kind not in {'file', 'dir'}:
-            special += 1
-    names = ['/'.join(parts) for parts, _kind in normalized]
-    duplicates = len(names) - len(set(names))
-    folded: dict[str, set[str]] = {}
-    for name in names:
-        folded.setdefault(name.casefold(), set()).add(name)
-    collisions = sum(len(values) - 1 for values in folded.values())
-    toc = [parts for parts, kind in normalized if kind == 'file' and parts[-1] == 'toc.dat']
-    base_ok = rejected == special == duplicates == collisions == 0 and root_markers <= 1
-    if base_ok and len(toc) == 1 and toc[0] == ('toc.dat',):
-        return 'PG_DIRECTORY_ROOT_UNWRAPPED'
-    if base_ok and len(toc) == 1 and len(toc[0]) == 2:
-        wrapper = toc[0][0]
-        if normalized and all(parts[0] == wrapper for parts, _kind in normalized):
-            return 'PG_DIRECTORY_ROOT_WRAPPED'
-    return 'HOLD'
-
-
 def main() -> int:
     doc = read_text(DOC)
-    decision_doc = read_text(STRUCTURAL_DECISION_DOC)
-    v1_source = read_text(V1_SOURCE)
-    v2_source = read_text(V2_SOURCE)
-    package_text = '\n'.join(read_text(path) for path in (DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX))
+    evidence_doc = read_text(EVIDENCE_DOC)
+    implementation = read_text(IMPLEMENTATION)
+    package_text = '\n'.join(
+        read_text(rel)
+        for rel in (DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX)
+    )
     ci = read_text(CI)
     root_source = read_text(ROOT_VALIDATOR)
 
     required = {
         'stage_id': 'PMAI-P0-04',
-        'substage': 'ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1',
-        'package_status': 'V2_INERT_DESIGN_PREPARATION_ONLY',
-        'preparation_record_id': PREPARATION_RECORD_ID,
-        'current_substage': 'STRUCTURAL_PREDICATE_REVIEW_GOVERNANCE_DECISION_V1',
-        'proposed_substage': 'ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1',
+        'substage': 'ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_V1',
+        'package_status': 'GOVERNANCE_DECISION_ONLY',
+        'decision_record_id': DECISION_RECORD_ID,
+        'current_substage': 'ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_EXECUTION_EVIDENCE_V1',
+        'proposed_substage': 'ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_V1',
+        'prior_route': PRIOR_ROUTE,
         'selected_route': SELECTED_ROUTE,
-        'selected_route_status': 'RETAINED',
-        'decision': 'GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW',
-        'next_action': 'SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW_REQUIRED',
-        'structural_predicate_decision_commit': EXPECTED_HEAD,
-        'structural_predicate_decision_parent': EXPECTED_PARENT,
-        'local_main_at_preparation_entry': EXPECTED_HEAD,
-        'origin_main_at_preparation_entry': EXPECTED_HEAD,
-        'github_ci_gate_number': '197',
+        'selected_route_status': 'APPROVED_GOVERNANCE_ONLY',
+        'decision': 'GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION',
+        'next_action': 'SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION_REQUIRED',
+        'evidence_commit': EXPECTED_HEAD,
+        'evidence_commit_parent': EXPECTED_PARENT,
+        'local_main_at_decision_entry': EXPECTED_HEAD,
+        'origin_main_at_decision_entry': EXPECTED_HEAD,
+        'github_ci_gate_number': '200',
         'github_ci_gate_status': 'PASS',
         'github_ci_gate_commit': EXPECTED_HEAD,
         'prior_ci_sha256': EXPECTED_PRIOR_CI_SHA256,
@@ -402,21 +369,38 @@ def main() -> int:
         'local_isolated_branch': EXPECTED_ISOLATED,
         'remote_isolated_branch': EXPECTED_ISOLATED,
         'locked_runner_sha256': EXPECTED_LOCKED_RUNNER_SHA256,
-        'inert_investigator_v1_sha256': EXPECTED_V1_SOURCE_SHA256,
-        'inert_investigator_v2_sha256': EXPECTED_V2_SOURCE_SHA256,
-        'sanitized_v1_result_sha256': EXPECTED_RESULT_SHA256,
+        'authorized_investigator_v2_sha256': EXPECTED_IMPLEMENTATION_SHA256,
+        'sanitized_v1_investigation_result_sha256': EXPECTED_V1_RESULT_SHA256,
+        'sanitized_v2_investigation_result_sha256': EXPECTED_V2_RESULT_SHA256,
         'active_0010_migration_file_count': '0',
-        'user_direction_source': 'EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260812',
+        'user_direction_source': 'EXPLICIT_USER_AUTHORIZATION_TO_CONTINUE_FOLLOWUP_GOVERNANCE_20260812',
+        'investigation_exit_code': '0',
         'v1_archive_listing_attempts_consumed': '1',
-        'v1_archive_listing_attempts_remaining': '0',
-        'v1_normalized_path_violation_count': '29',
-        'v1_stop_code': 'STRUCTURAL_PREDICATE_MISMATCH',
-        'v1_decision': 'HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED',
-        'v2_source_storage_suffix': '.py.txt',
-        'v2_source_default_mode': 'CONTRACT_ONLY',
-        'v2_authorization_record_id': 'PENDING_SEPARATE_V2_AUTHORIZATION_REVIEW',
-        'synthetic_fixture_set_id': 'PMAI-P0-04-ARCI-V2-PREP-SYNTH-V1',
-        'synthetic_fixture_count': '13',
+        'v2_archive_listing_attempt_budget': '1',
+        'v2_archive_listing_attempts_consumed': '1',
+        'v2_archive_listing_attempts_remaining': '0',
+        'cumulative_archive_listing_attempts_consumed': '2',
+        'cumulative_archive_listing_attempts_remaining': '0',
+        'archive_member_count': '29',
+        'accepted_leading_dot_prefix_count': '28',
+        'accepted_root_marker_count': '1',
+        'normalized_path_violation_count': '0',
+        'toc_dat_candidate_count': '1',
+        'toc_dat_relation_category': 'NONE_OR_AMBIGUOUS',
+        'root_layout_classification': 'NONE_OR_AMBIGUOUS',
+        'wrapper_depth': '-1',
+        'stop_code': 'V2_STRUCTURAL_PREDICATE_MISMATCH',
+        'evidence_decision': 'HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED',
+        'deep_wrapper_layout_hypothesis_status': 'PLAUSIBLE_BUT_UNVERIFIED',
+        'mixed_top_level_layout_hypothesis_status': 'PLAUSIBLE_BUT_UNVERIFIED',
+        'route_a': 'ROUTE_A_DECLARE_BACKUP_INVALID_OR_REPLACE',
+        'route_a_status': 'REJECTED_AT_THIS_GATE',
+        'route_b': 'ROUTE_B_DIRECT_RUNNER_OR_RESTORE',
+        'route_b_status': 'REJECTED',
+        'route_c': SELECTED_ROUTE,
+        'route_c_status': 'APPROVED_GOVERNANCE_ONLY',
+        'route_d': 'ROUTE_D_REUSE_OR_RERUN_V2',
+        'route_d_status': 'REJECTED',
         'database_revision': '0009_diag_data',
         'alembic_head': '0009_diag_data',
     }
@@ -427,77 +411,32 @@ def main() -> int:
     for key in FALSE_MARKERS:
         need(marker(doc, key) == 'false', 'required false marker ' + key)
 
-    need(V2_SOURCE.endswith('.py.txt'), 'V2 source must remain inert text')
-    need(sha256_path(ROOT / V1_SOURCE) == EXPECTED_V1_SOURCE_SHA256, 'V1 source hash changed')
-    need(sha256_path(ROOT / V2_SOURCE) == EXPECTED_V2_SOURCE_SHA256, 'V2 source hash changed')
-    ast.parse(v2_source)
-    source_literals = {
-        'AUTHORIZATION_RECORD_ID': 'PENDING_SEPARATE_V2_AUTHORIZATION_REVIEW',
-        'EXPECTED_ARCHIVE_MEMBER_COUNT': 29,
-        'EXECUTION_ENABLED': False,
-        'EXECUTION_REQUIRES_EXPLICIT_FLAG': True,
-        'MEMBER_PAYLOAD_READ_ALLOWED': False,
-        'MEMBER_EXTRACTION_ALLOWED': False,
-        'ARCHIVE_WRITE_ALLOWED': False,
-        'AUTOMATIC_RETRY_ALLOWED': False,
-    }
-    for name, expected in source_literals.items():
-        need(literal(v2_source, name) == expected, 'V2 literal ' + name)
-    normalize_source = function_source(v2_source, 'normalize_member')
-    structural_source = function_source(v2_source, 'structural_result')
-    main_source = function_source(v2_source, 'main')
-    need("parts = list(raw.split(\"/\"))" in normalize_source, 'V2 explicit split')
-    need("parts[0] == \".\"" in normalize_source, 'V2 optional leading dot')
-    need("any(part == \".\" for part in parts)" in normalize_source, 'V2 internal dot rejection')
-    need("any(part == \"..\" for part in parts)" in normalize_source, 'V2 parent rejection')
-    need('normpath' not in normalize_source and 'resolve(' not in normalize_source, 'V2 general normalization forbidden')
+    need(sha256_path(ROOT / IMPLEMENTATION) == EXPECTED_IMPLEMENTATION_SHA256, 'V2 source hash changed')
+    need(IMPLEMENTATION not in '\n'.join(python_lines(ci)), 'V2 source executed by CI')
+    ast.parse(implementation)
+    normalize_source = function_source(implementation, 'normalize_member')
+    structural_source = function_source(implementation, 'structural_result')
+    need('parts == ["."]' in normalize_source, 'V2 root marker policy')
+    need('leading_dot_prefix = bool(parts and parts[0] == ".")' in normalize_source, 'V2 leading dot policy')
+    need('parts = parts[1:]' in normalize_source, 'V2 leading dot removal')
+    need('any(part == ".." for part in parts)' in normalize_source, 'V2 parent rejection')
+    need('any(part == "." for part in parts)' in normalize_source, 'V2 internal dot rejection')
+    need('parts[-1] == "toc.dat"' in structural_source, 'V2 toc candidate rule')
+    need('toc_candidates[0] == ("toc.dat",)' in structural_source, 'V2 unwrapped rule')
+    need('len(toc_candidates[0]) == 2' in structural_source, 'V2 single wrapper rule')
     need('PG_DIRECTORY_ROOT_UNWRAPPED' in structural_source, 'V2 unwrapped classification')
-    need('PG_DIRECTORY_ROOT_WRAPPED' in structural_source, 'V2 wrapped classification')
-    need('normalization_reason_counts' in structural_source, 'V2 sanitized reason counters')
-    stop_at = main_source.index('if not EXECUTION_ENABLED')
-    prompt_at = main_source.index('getpass.getpass')
-    archive_open_at = main_source.index('archive_path.open')
-    tar_at = main_source.index('tarfile.open')
-    need(stop_at < prompt_at < archive_open_at < tar_at, 'V2 fail-closed order')
-    approved_python = '\n'.join(python_lines(ci))
-    need(V2_SOURCE not in approved_python, 'V2 source executed by CI')
-    validator_tree = ast.parse(read_text(VALIDATOR))
-    imported_modules = {
-        node.names[0].name.split('.')[0]
-        for node in validator_tree.body
-        if isinstance(node, ast.Import)
-    } | {
-        (node.module or '').split('.')[0]
-        for node in validator_tree.body
-        if isinstance(node, ast.ImportFrom)
-    }
-    need(imported_modules <= {'__future__', 'ast', 'csv', 'glob', 'hashlib', 'pathlib', 're', 'sys'}, 'validator import allowlist')
-
-    normalize_cases = {
-        ('root/toc.dat', False): (('root', 'toc.dat'), 'ACCEPTED_CANONICAL_RELATIVE'),
-        ('./root/toc.dat', False): (('root', 'toc.dat'), 'ACCEPTED_LEADING_DOT_PREFIX'),
-        ('./', True): ((), 'ACCEPTED_ROOT_MARKER'),
-        ('.', False): (None, 'REJECT_ROOT_MARKER_NON_DIRECTORY'),
-        ('root/./toc.dat', False): (None, 'REJECT_INTERNAL_DOT_COMPONENT'),
-        ('././toc.dat', False): (None, 'REJECT_INTERNAL_DOT_COMPONENT'),
-        ('../toc.dat', False): (None, 'REJECT_PARENT_COMPONENT'),
-        ('/toc.dat', False): (None, 'REJECT_ABSOLUTE_PATH'),
-        ('root\\toc.dat', False): (None, 'REJECT_BACKSLASH'),
-        ('root//toc.dat', False): (None, 'REJECT_EMPTY_COMPONENT'),
-        ('C:/toc.dat', False): (None, 'REJECT_DRIVE_PREFIX'),
-        ('root/\x01toc.dat', False): (None, 'REJECT_CONTROL_CHARACTER'),
-    }
-    for case, expected in normalize_cases.items():
-        need(reference_normalize(*case) == expected, 'synthetic normalize ' + repr(case))
-    need(reference_layout([('root/toc.dat', 'file'), ('root/data/1.dat', 'file')]) == 'PG_DIRECTORY_ROOT_WRAPPED', 'synthetic wrapped canonical')
-    need(reference_layout([('./root/toc.dat', 'file'), ('./root/data/1.dat', 'file')]) == 'PG_DIRECTORY_ROOT_WRAPPED', 'synthetic wrapped leading dot')
-    need(reference_layout([('toc.dat', 'file'), ('data/1.dat', 'file')]) == 'PG_DIRECTORY_ROOT_UNWRAPPED', 'synthetic unwrapped canonical')
-    need(reference_layout([('./toc.dat', 'file'), ('./data/1.dat', 'file')]) == 'PG_DIRECTORY_ROOT_UNWRAPPED', 'synthetic unwrapped leading dot')
-    need(reference_layout([('data/1.dat', 'file')]) == 'HOLD', 'synthetic missing toc')
-    need(reference_layout([('toc.dat', 'file'), ('x/toc.dat', 'file')]) == 'HOLD', 'synthetic multiple toc')
-    need(reference_layout([('root/toc.dat', 'file'), ('outside/1.dat', 'file')]) == 'HOLD', 'synthetic wrapper escape')
-    need(reference_layout([('toc.dat', 'file'), ('toc.dat', 'file')]) == 'HOLD', 'synthetic duplicate')
-    need(reference_layout([('toc.dat', 'file'), ('device', 'special')]) == 'HOLD', 'synthetic special member')
+    need('PG_DIRECTORY_ROOT_WRAPPED' in structural_source, 'V2 wrapper classification')
+    missing_v2_outputs = (
+        'toc_dat_normalized_depth',
+        'shared_prefix_depth',
+        'top_level_component_count',
+        'member_depth_min',
+        'member_depth_max',
+        'PG_DIRECTORY_ROOT_DEEP_WRAPPED',
+        'MIXED_TOP_LEVEL',
+    )
+    for token in missing_v2_outputs:
+        need(token not in structural_source, 'unexpected V2 depth-aware output ' + token)
 
     forbidden_patterns = (
         r'(?i)postgres(?:ql)?://\S+',
@@ -511,22 +450,23 @@ def main() -> int:
         need(re.search(pattern, package_text) is None, 'forbidden secret path or identifier')
 
     checklist = read_csv(CHECKLIST)
-    need(len(checklist) == 76, 'checklist row count')
+    need(len(checklist) == 84, 'checklist row count')
     by_control = {row.get('control', ''): row for row in checklist}
     need(len(by_control) == len(checklist), 'checklist unique controls')
     checklist_expected = {
-        'github_ci_gate_number': '197',
+        'v2_archive_listing_attempts_consumed': '1',
+        'v2_archive_listing_attempts_remaining': '0',
+        'cumulative_archive_listing_attempts_consumed': '2',
+        'root_contract_resolved': 'false',
+        'v2_structural_observability_gap_confirmed': 'true',
+        'toc_dat_at_logical_root_established': 'false',
+        'backup_corruption_established': 'false',
+        'route_c_status': 'APPROVED_GOVERNANCE_ONLY',
         'selected_route': SELECTED_ROUTE,
-        'v1_attempts_consumed': '1',
-        'v1_attempts_remaining': '0',
-        'v1_root_contract_resolved': 'false',
-        'v2_source_hash': EXPECTED_V2_SOURCE_SHA256,
-        'v2_execution_enabled': 'false',
-        'archive_file_opened': 'false',
-        'v2_investigation_authorized': 'false',
+        'v3_predicate_implementation_selected': 'false',
+        'new_investigator_created': 'false',
         'restore_execution': 'false',
-        'staging_0010_apply_authorized': 'false',
-        'next_action': 'SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW_REQUIRED',
+        'next_action': 'SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION_REQUIRED',
     }
     for control, expected in checklist_expected.items():
         row = by_control.get(control)
@@ -535,12 +475,17 @@ def main() -> int:
         need(row.get('status') == 'PASS', 'checklist status ' + control)
 
     decisions = read_csv(GO_NO_GO)
-    need(len(decisions) == 26, 'Go/No-Go row count')
+    need(len(decisions) == 28, 'Go/No-Go row count')
     by_gate = {row.get('gate', ''): row for row in decisions}
     need(len(by_gate) == len(decisions), 'Go/No-Go unique gates')
-    need(by_gate['V2 source inert suffix']['current'] == '.py.txt', 'V2 inert source decision')
-    need(by_gate['new V2 attempt authorization']['current'] == 'false', 'V2 attempt authority')
-    need(by_gate['preparation disposition']['current'] == 'GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW', 'preparation disposition')
+    need(by_gate['Route C depth aware V3 chain']['current'] == 'APPROVED_GOVERNANCE_ONLY', 'Route C decision')
+    need(by_gate['Route B direct runner restore']['current'] == 'REJECTED', 'Route B decision')
+    need(by_gate['archive access authorization']['current'] == 'false', 'archive authority')
+    need(
+        by_gate['decision disposition']['current']
+        == 'GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION',
+        'decision disposition',
+    )
 
     tests = read_csv(TEST_MATRIX)
     need({row.get('test_id', '') for row in tests} == REQUIRED_TEST_IDS, 'test matrix exact IDs')
@@ -554,7 +499,7 @@ def main() -> int:
     hashes = literal(root_source, 'HASHES')
     need(isinstance(targets, list) and len(targets) == len(set(targets)), 'root TARGETS')
     need(isinstance(hashes, dict), 'root HASHES')
-    need(REQUIRED_PROTECTED_PATHS.issubset(set(targets)), 'V2 preparation package protection')
+    need(REQUIRED_PROTECTED_PATHS.issubset(set(targets)), 'decision package protection')
     need(set(hashes) == (set(targets) - {ROOT_VALIDATOR}) | HASH_EXTRA_PATHS, 'protected hash scope')
     for rel, expected_hash in hashes.items():
         path = ROOT / rel
@@ -563,7 +508,7 @@ def main() -> int:
 
     need(ci_targets(ci) == targets, 'CI/root target equality')
     need(python_lines(ci) == EXPECTED_COMMANDS, 'CI approved validators')
-    marker_line = '# PMAI-P0-04 archive root contract investigation V2 preparation v1'
+    marker_line = '# PMAI-P0-04 V2 post-execution structural review governance decision v1'
     need(ci.splitlines().count(marker_line) == 1, 'CI marker count')
     need(ci.splitlines().count(CI_COMMAND) == 1, 'CI command count')
 
@@ -580,17 +525,17 @@ def main() -> int:
     for rel in ROLLING_DOCS:
         need(marker(read_text(rel), 'final_ci_sha256') == EXPECTED_FINAL_CI_SHA256, 'rolling document CI hash ' + rel)
 
-    decision_pointer = {
-        'subsequent_v2_preparation_entry_commit': EXPECTED_HEAD,
-        'subsequent_v2_preparation_ci_gate': '197',
-        'subsequent_v2_preparation_ci_status': 'PASS',
-        'subsequent_v2_inert_source_sha256': EXPECTED_V2_SOURCE_SHA256,
-        'subsequent_v2_investigation_authorized': 'false',
+    evidence_pointer = {
+        'subsequent_v2_post_execution_structural_review_entry_commit': EXPECTED_HEAD,
+        'subsequent_v2_post_execution_structural_review_ci_gate': '200',
+        'subsequent_v2_post_execution_structural_review_ci_status': 'PASS',
+        'subsequent_v2_post_execution_structural_review_selected_route': SELECTED_ROUTE,
+        'subsequent_v3_investigation_authorized': 'false',
     }
-    for key, expected in decision_pointer.items():
-        need(marker(decision_doc, key) == expected, 'decision pointer ' + key)
-    need(marker(decision_doc, 'archive_listing_attempts_consumed') == '1', 'V1 attempt count changed')
-    need(marker(decision_doc, 'root_contract_resolved') == 'false', 'V1 root result changed')
+    for key, expected in evidence_pointer.items():
+        need(marker(evidence_doc, key) == expected, 'evidence pointer ' + key)
+    need(marker(evidence_doc, 'v2_archive_listing_attempts_consumed') == '1', 'V2 attempt count changed')
+    need(marker(evidence_doc, 'root_contract_resolved') == 'false', 'V2 result changed')
 
     unsafe_suffixes = ('.png', '.jpg', '.jpeg', '.json', '.tar', '.tar.gz', '.db', '.bak', '.save')
     need(not any(path.lower().endswith(unsafe_suffixes) for path in targets), 'raw or unsafe target')
@@ -600,21 +545,25 @@ def main() -> int:
         for line_no, line in enumerate(value.splitlines(), 1):
             need(line == line.rstrip(), 'trailing whitespace {}:{}'.format(rel, line_no))
 
-    print('PASS: PMAI-P0-04 Archive Root Contract Investigation V2 Preparation V1')
+    print('PASS: PMAI-P0-04 Archive Root Contract Investigation V2 Post-Execution Structural Review Governance Decision V1')
     print('stage_id=PMAI-P0-04')
-    print('substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1')
-    print('package_status=V2_INERT_DESIGN_PREPARATION_ONLY')
-    print('v2_inert_design_created=true')
-    print('v2_source_sha256=' + EXPECTED_V2_SOURCE_SHA256)
-    print('v2_source_execution_enabled=false')
-    print('v2_source_executed_during_preparation=false')
-    print('archive_listing_attempts_remaining=0')
+    print('substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_V1')
+    print('package_status=GOVERNANCE_DECISION_ONLY')
+    print('v2_structural_observability_gap_confirmed=true')
+    print('toc_dat_presence_established=true')
+    print('actual_archive_layout_cause_resolved=false')
+    print('backup_corruption_established=false')
+    print('v2_archive_listing_attempts_consumed=1')
+    print('cumulative_archive_listing_attempts_consumed=2')
+    print('additional_archive_listing_attempts_remaining=0')
     print('root_contract_resolved=false')
-    print('v2_investigation_authorized=false')
+    print('selected_route=' + SELECTED_ROUTE)
+    print('new_investigator_created=false')
+    print('new_investigation_authorized=false')
     print('restore_execution=false')
     print('p0_04_execution_authorized=false')
     print('staging_0010_apply_authorized=false')
-    print('decision=GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW')
+    print('decision=GO_TO_SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION')
     return 0
 
 

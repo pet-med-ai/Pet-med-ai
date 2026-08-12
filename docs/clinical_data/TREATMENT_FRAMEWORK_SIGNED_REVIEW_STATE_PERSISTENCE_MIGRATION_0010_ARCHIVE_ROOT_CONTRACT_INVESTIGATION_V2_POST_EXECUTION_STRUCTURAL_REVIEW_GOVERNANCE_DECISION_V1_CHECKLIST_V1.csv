@@ -1,0 +1,85 @@
+control_id,control,expected,current,status,evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-001,stage_id,PMAI-P0-04,PMAI-P0-04,PASS,decision document
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-002,substage,ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_V1,ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_POST_EXECUTION_STRUCTURAL_REVIEW_GOVERNANCE_DECISION_V1,PASS,decision document
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-003,evidence_commit,da837e6eb35819457b340d9fe9fd3a4336dc6673,da837e6eb35819457b340d9fe9fd3a4336dc6673,PASS,published baseline
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-004,evidence_parent,9f00393543ec435353d5deadc6c74972aed4f6c2,9f00393543ec435353d5deadc6c74972aed4f6c2,PASS,published baseline
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-005,github_ci_gate_number,200,200,PASS,published CI
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-006,github_ci_gate_status,PASS,PASS,PASS,published CI
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-007,repository_only,true,true,PASS,scope
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-008,prior_route,ROUTE_B_REBUILD_CORRECTED_METADATA_INVESTIGATION_CHAIN_V2,ROUTE_B_REBUILD_CORRECTED_METADATA_INVESTIGATION_CHAIN_V2,PASS,prior governance
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-009,selected_route,ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3,ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3,PASS,route decision
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-010,active_0010_migration_file_count,0,0,PASS,repository guard
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-011,locked_runner_unchanged,true,true,PASS,hash guard
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-012,investigation_execution_performed,true,true,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-013,investigation_exit_code,0,0,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-014,v1_archive_listing_attempts_consumed,1,1,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-015,v2_archive_listing_attempt_budget,1,1,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-016,v2_archive_listing_attempts_consumed,1,1,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-017,v2_archive_listing_attempts_remaining,0,0,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-018,cumulative_archive_listing_attempts_consumed,2,2,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-019,approved_archive_sha256_match,true,true,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-020,archive_member_count,29,29,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-021,accepted_leading_dot_prefix_count,28,28,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-022,accepted_root_marker_count,1,1,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-023,normalized_path_violation_count,0,0,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-024,toc_dat_candidate_count,1,1,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-025,toc_dat_relation_category,NONE_OR_AMBIGUOUS,NONE_OR_AMBIGUOUS,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-026,root_layout_classification,NONE_OR_AMBIGUOUS,NONE_OR_AMBIGUOUS,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-027,wrapper_depth,-1,-1,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-028,root_contract_resolved,false,false,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-029,evidence_decision,HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED,HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-030,v2_static_source_review_performed,true,true,PASS,repository source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-031,v2_investigator_executed_during_review,false,false,PASS,scope guard
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-032,v2_normalization_coverage_gap_resolved,true,true,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-033,v2_unwrapped_root_classification_present,true,true,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-034,v2_single_wrapper_classification_present,true,true,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-035,v2_deep_wrapper_classification_present,false,false,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-036,v2_mixed_top_level_classification_present,false,false,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-037,v2_toc_normalized_depth_emitted,false,false,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-038,v2_shared_prefix_depth_emitted,false,false,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-039,v2_top_level_component_count_emitted,false,false,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-040,v2_member_depth_range_emitted,false,false,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-041,v2_structural_observability_gap_confirmed,true,true,PASS,static source review
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-042,aggregate_result_causal_attribution_possible,false,false,PASS,inference boundary
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-043,toc_dat_presence_established,true,true,PASS,published evidence
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-044,toc_dat_at_logical_root_established,false,false,PASS,inference boundary
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-045,deep_wrapper_layout_hypothesis_status,PLAUSIBLE_BUT_UNVERIFIED,PLAUSIBLE_BUT_UNVERIFIED,PASS,inference boundary
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-046,mixed_top_level_layout_hypothesis_status,PLAUSIBLE_BUT_UNVERIFIED,PLAUSIBLE_BUT_UNVERIFIED,PASS,inference boundary
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-047,actual_archive_layout_cause_resolved,false,false,PASS,inference boundary
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-048,backup_corruption_established,false,false,PASS,no corruption proof
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-049,backup_safety_established,false,false,PASS,no safety proof
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-050,backup_restoreability_established,false,false,PASS,no restore rehearsal
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-051,route_a_status,REJECTED_AT_THIS_GATE,REJECTED_AT_THIS_GATE,PASS,route decision
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-052,route_b_status,REJECTED,REJECTED,PASS,route decision
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-053,route_c_status,APPROVED_GOVERNANCE_ONLY,APPROVED_GOVERNANCE_ONLY,PASS,route decision
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-054,route_d_status,REJECTED,REJECTED,PASS,route decision
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-055,v3_predicate_requirements_selected,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-056,v3_predicate_implementation_selected,false,false,PASS,no V3 implementation
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-057,v3_toc_depth_metric_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-058,v3_shared_prefix_depth_metric_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-059,v3_top_level_component_count_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-060,v3_member_depth_range_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-061,v3_deep_wrapper_classification_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-062,v3_mixed_top_level_classification_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-063,v3_raw_member_names_suppressed,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-064,v3_payload_read_false_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-065,v3_automatic_retry_false_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-066,v3_separate_authorization_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-067,v3_single_attempt_budget_required,true,true,PASS,V3 preparation contract
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-068,archive_file_opened,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-069,backup_archive_listing_invoked,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-070,investigation_retry,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-071,new_investigator_created,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-072,new_investigator_activated,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-073,new_investigator_executed,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-074,database_connection,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-075,restore_execution,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-076,migration_created,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-077,render_target_created,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-078,restore_runner_created,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-079,application_deployment,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-080,resource_deleted,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-081,git_stage_authorized,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-082,git_commit_authorized,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-083,git_push_authorized,false,false,PASS,current package
+PMAI-P0-04-V2-POST-SPR-GOV-CHK-084,next_action,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION_REQUIRED,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION_REQUIRED,PASS,next gate
