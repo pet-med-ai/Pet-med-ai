@@ -1,0 +1,71 @@
+test_id,category,test,expected,status
+PMAI-P0-04-ARCI-V3-PREP-T001,baseline,decision commit exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T002,baseline,CI Gate 201 PASS,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T003,baseline,isolated branch unchanged,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T004,baseline,locked runner hash unchanged,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T005,baseline,prior CI hash exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T006,evidence,V1 attempt count retained,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T007,evidence,V2 attempt count retained,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T008,evidence,cumulative attempt count retained,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T009,evidence,root contract remains unresolved,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T010,evidence,toc.dat presence boundary retained,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T011,source,V3 source stored as py.txt,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T012,source,V3 EXECUTION_ENABLED false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T013,source,default contract-only mode,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T014,source,execute stops before archive prompt,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T015,source,candidate parsed by AST only,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T016,source,candidate never imported,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T017,source,candidate never executed,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T018,normalization,canonical relative path accepted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T019,normalization,single leading dot accepted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T020,normalization,root marker directory accepted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T021,normalization,internal dot rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T022,normalization,repeated leading dot rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T023,normalization,parent component rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T024,normalization,absolute path rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T025,normalization,backslash rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T026,normalization,control character rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T027,normalization,empty component rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T028,normalization,drive prefix rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T029,normalization,excessive component depth rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T030,normalization,excessive name bytes rejected,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T031,classification,unwrapped depth zero classified,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T032,classification,single wrapper depth one classified,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T033,classification,deep wrapper depth two classified,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T034,classification,deep wrapper ancestor directories accepted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T035,classification,mixed top level classified,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T036,classification,shared top divergent subtree classified,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T037,classification,missing toc remains ambiguous,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T038,classification,duplicate toc remains ambiguous,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T039,classification,file ancestor prevents containment,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T040,metrics,toc normalized depth emitted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T041,metrics,shared regular-file prefix depth emitted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T042,metrics,top-level component count emitted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T043,metrics,member min depth emitted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T044,metrics,member max depth emitted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T045,metrics,wrapper depth emitted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T046,metrics,count metrics bounded,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T047,metrics,size metric bounded,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T048,metrics,numeric saturation flag emitted,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T049,privacy,raw member names suppressed,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T050,privacy,raw root prefix suppressed,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T051,privacy,raw external path suppressed,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T052,privacy,member payload read false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T053,privacy,member extraction false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T054,privacy,archive write false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T055,authorization,new attempt not authorized,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T056,authorization,authorization reuse false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T057,authorization,automatic retry false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T058,authorization,V3 activation false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T059,authorization,V3 execution false,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T060,scope,no database operation,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T061,scope,no target or runner,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T062,scope,no restore,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T063,scope,no migration 0010,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T064,scope,no deploy or deletion,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T065,scope,no stage commit push,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T066,ci,V3 package added to protected targets,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T067,ci,V3 validator added once,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T068,ci,root hash map exact,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T069,ci,all rolling validator contracts synchronized,PASS,DESIGNED
+PMAI-P0-04-ARCI-V3-PREP-T070,decision,next gate is separate V3 authorization review,PASS,DESIGNED

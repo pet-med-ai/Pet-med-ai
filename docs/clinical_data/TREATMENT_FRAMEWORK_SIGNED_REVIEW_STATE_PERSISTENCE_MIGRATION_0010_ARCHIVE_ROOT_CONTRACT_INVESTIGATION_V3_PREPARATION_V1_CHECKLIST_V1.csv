@@ -1,0 +1,103 @@
+control_id,control,expected,current,status,evidence
+PMAI-P0-04-ARCI-V3-PREP-CHK-001,stage_id,PMAI-P0-04,PMAI-P0-04,PASS,preparation document
+PMAI-P0-04-ARCI-V3-PREP-CHK-002,substage,ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION_V1,ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION_V1,PASS,preparation document
+PMAI-P0-04-ARCI-V3-PREP-CHK-003,decision_commit,98fe4d902d4b24bf13837aaf0ea7e5f7bdc9d1f3,98fe4d902d4b24bf13837aaf0ea7e5f7bdc9d1f3,PASS,published baseline
+PMAI-P0-04-ARCI-V3-PREP-CHK-004,decision_parent,da837e6eb35819457b340d9fe9fd3a4336dc6673,da837e6eb35819457b340d9fe9fd3a4336dc6673,PASS,published baseline
+PMAI-P0-04-ARCI-V3-PREP-CHK-005,github_ci_gate,201,201,PASS,published baseline
+PMAI-P0-04-ARCI-V3-PREP-CHK-006,github_ci_gate_status,PASS,PASS,PASS,published baseline
+PMAI-P0-04-ARCI-V3-PREP-CHK-007,selected_route,ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3,ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3,PASS,decision record
+PMAI-P0-04-ARCI-V3-PREP-CHK-008,selected_route_status,RETAINED,RETAINED,PASS,decision record
+PMAI-P0-04-ARCI-V3-PREP-CHK-009,v1_archive_listing_attempts_consumed,1,1,PASS,published evidence
+PMAI-P0-04-ARCI-V3-PREP-CHK-010,v2_archive_listing_attempts_consumed,1,1,PASS,published evidence
+PMAI-P0-04-ARCI-V3-PREP-CHK-011,cumulative_archive_listing_attempts_consumed,2,2,PASS,published evidence
+PMAI-P0-04-ARCI-V3-PREP-CHK-012,cumulative_archive_listing_attempts_remaining,0,0,PASS,published evidence
+PMAI-P0-04-ARCI-V3-PREP-CHK-013,root_contract_resolved,false,false,PASS,published evidence
+PMAI-P0-04-ARCI-V3-PREP-CHK-014,toc_dat_presence_established,true,true,PASS,published decision
+PMAI-P0-04-ARCI-V3-PREP-CHK-015,actual_archive_layout_cause_resolved,false,false,PASS,published decision
+PMAI-P0-04-ARCI-V3-PREP-CHK-016,backup_corruption_established,false,false,PASS,published decision
+PMAI-P0-04-ARCI-V3-PREP-CHK-017,v3_inert_design_created,true,true,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-018,active_v3_investigator_created,false,false,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-019,v3_source_storage_suffix,.py.txt,.py.txt,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-020,v3_source_execution_enabled,false,false,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-021,v3_source_default_mode,CONTRACT_ONLY,CONTRACT_ONLY,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-022,v3_source_executed_during_preparation,false,false,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-023,v3_authorization_record_effective,false,false,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-024,v3_execution_requires_explicit_flag,true,true,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-025,v3_member_payload_read_allowed,false,false,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-026,v3_member_extraction_allowed,false,false,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-027,v3_archive_write_allowed,false,false,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-028,v3_automatic_retry_allowed,false,false,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-029,v3_candidate_design_selected_for_authorization_review,true,true,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-030,v3_implementation_authorized,false,false,PASS,inert source contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-031,v3_allows_one_optional_leading_dot_prefix,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-032,v3_allows_directory_root_marker,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-033,v3_rejects_internal_dot_component,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-034,v3_rejects_parent_component,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-035,v3_rejects_absolute_path,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-036,v3_rejects_backslash,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-037,v3_rejects_control_character,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-038,v3_rejects_empty_component,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-039,v3_rejects_drive_prefix,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-040,v3_rejects_special_member_for_success,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-041,v3_rejects_excessive_component_depth,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-042,v3_rejects_excessive_member_name_bytes,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-043,v3_general_normpath_forbidden,true,true,PASS,path contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-044,v3_max_normalized_component_depth,64,64,PASS,bounded metrics
+PMAI-P0-04-ARCI-V3-PREP-CHK-045,v3_max_member_name_utf8_bytes,4096,4096,PASS,bounded metrics
+PMAI-P0-04-ARCI-V3-PREP-CHK-046,v3_toc_dat_normalized_depth_metric,true,true,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-047,v3_shared_prefix_depth_metric,true,true,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-048,v3_top_level_component_count_metric,true,true,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-049,v3_member_depth_min_metric,true,true,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-050,v3_member_depth_max_metric,true,true,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-051,v3_wrapper_depth_metric,true,true,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-052,v3_numeric_metrics_bounded,true,true,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-053,v3_numeric_saturation_flag_required,true,true,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-054,v3_max_sanitized_count,30,30,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-055,v3_max_sanitized_uncompressed_size_bytes,1073741824,1073741824,PASS,depth contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-056,v3_unwrapped_root_classification,PG_DIRECTORY_ROOT_UNWRAPPED,PG_DIRECTORY_ROOT_UNWRAPPED,PASS,classification contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-057,v3_single_wrapper_classification,PG_DIRECTORY_ROOT_WRAPPED,PG_DIRECTORY_ROOT_WRAPPED,PASS,classification contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-058,v3_deep_wrapper_classification,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PASS,classification contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-059,v3_mixed_top_level_classification,MIXED_TOP_LEVEL,MIXED_TOP_LEVEL,PASS,classification contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-060,v3_divergent_subtree_classification,SHARED_TOP_LEVEL_DIVERGENT_SUBTREE,SHARED_TOP_LEVEL_DIVERGENT_SUBTREE,PASS,classification contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-061,v3_ambiguous_classification,NONE_OR_AMBIGUOUS,NONE_OR_AMBIGUOUS,PASS,classification contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-062,v3_all_members_contained_by_identified_root_required,true,true,PASS,classification contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-063,synthetic_fixtures_are_archive_evidence,false,false,PASS,synthetic fixtures
+PMAI-P0-04-ARCI-V3-PREP-CHK-064,v3_raw_member_names_output_allowed,false,false,PASS,sanitized output
+PMAI-P0-04-ARCI-V3-PREP-CHK-065,v3_raw_external_path_output_allowed,false,false,PASS,sanitized output
+PMAI-P0-04-ARCI-V3-PREP-CHK-066,v3_archive_path_echo_allowed,false,false,PASS,sanitized output
+PMAI-P0-04-ARCI-V3-PREP-CHK-067,v3_member_payload_read_allowed_in_future,false,false,PASS,sanitized output
+PMAI-P0-04-ARCI-V3-PREP-CHK-068,v3_member_extraction_allowed_in_future,false,false,PASS,sanitized output
+PMAI-P0-04-ARCI-V3-PREP-CHK-069,v3_archive_modification_allowed_in_future,false,false,PASS,sanitized output
+PMAI-P0-04-ARCI-V3-PREP-CHK-070,v3_restore_execution_allowed_in_future,false,false,PASS,sanitized output
+PMAI-P0-04-ARCI-V3-PREP-CHK-071,v3_single_attempt_budget_required,true,true,PASS,future authorization contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-072,v3_expected_attempt_number,1,1,PASS,future authorization contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-073,v3_expected_cumulative_attempt_number,3,3,PASS,future authorization contract
+PMAI-P0-04-ARCI-V3-PREP-CHK-074,repository_only,true,true,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-075,network_access,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-076,external_execution,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-077,archive_file_opened,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-078,backup_archive_listing_invoked,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-079,backup_archive_member_headers_read,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-080,backup_archive_member_payload_read,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-081,investigation_retry,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-082,additional_archive_listing_attempt_authorized,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-083,authorization_reuse_allowed,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-084,v3_investigation_authorized,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-085,v3_archive_listing_attempt_authorized,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-086,v3_source_activation_authorized,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-087,new_active_investigator_created,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-088,new_investigator_executed,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-089,database_connection,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-090,restore_execution,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-091,migration_created,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-092,migration_executed,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-093,restore_runner_created,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-094,locked_runner_invoked,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-095,application_deployment,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-096,resource_deleted,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-097,git_stage_authorized,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-098,git_commit_authorized,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-099,git_push_authorized,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-100,p0_04_execution_authorized,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-101,staging_0010_apply_authorized,false,false,PASS,authorization state
+PMAI-P0-04-ARCI-V3-PREP-CHK-102,next_action,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_AUTHORIZATION_REVIEW_REQUIRED,SEPARATE_ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_AUTHORIZATION_REVIEW_REQUIRED,PASS,decision record

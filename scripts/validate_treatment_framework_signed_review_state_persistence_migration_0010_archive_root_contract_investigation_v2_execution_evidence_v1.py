@@ -66,7 +66,7 @@ EXPECTED_HEAD = '9f00393543ec435353d5deadc6c74972aed4f6c2'
 EXPECTED_PARENT = 'abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce'
 EXPECTED_ISOLATED = '8d1dc8814ed8f80d8bc965b494c1c320fc08f228'
 EXPECTED_PRIOR_CI_SHA256 = '73d3665a7e7645f2fbd7acf043f76094cf1b05527a9500e1565a03b3ced1e0f2'
-EXPECTED_FINAL_CI_SHA256 = 'e0497f7ba925d753728cc8ae364efcec95e995b2212648c2eda4ed57a4f4fccb'
+EXPECTED_FINAL_CI_SHA256 = 'd6cae61ff10138ae48be1832291aeefc19442ac68b323d4153939d1fbf19ea2d'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_ARCHIVE_SHA256 = 'ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7'
 EXPECTED_CANDIDATE_SHA256 = 'ce4b0fc1421624b29309f8eeae750d712601821529102620faf5c1b2b75be4f6'
@@ -124,6 +124,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v2_post_execution_structural_review_governance_decision_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v3_preparation_v1.py '
  '|| exit 1']
 PACKAGE_PATHS = {DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX, VALIDATOR}
 REQUIRED_PROTECTED_PATHS = PACKAGE_PATHS | {AUTHORIZATION_DOC, CANDIDATE}
@@ -517,7 +520,7 @@ def main() -> int:
 
     targets = literal(root_source, 'TARGETS')
     hashes = literal(root_source, 'HASHES')
-    need(isinstance(targets, list) and len(targets) == 78 and len(targets) == len(set(targets)), 'root TARGETS')
+    need(isinstance(targets, list) and len(targets) == 84 and len(targets) == len(set(targets)), 'root TARGETS')
     need(isinstance(hashes, dict), 'root HASHES')
     need(REQUIRED_PROTECTED_PATHS.issubset(set(targets)), 'evidence package protection')
     need(set(hashes) == (set(targets) - {ROOT_VALIDATOR}) | HASH_EXTRA_PATHS, 'protected hash scope')

@@ -20,7 +20,7 @@ AUTH_REVIEW_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_stat
 AUTH_REVIEW_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V1.md'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = 'e0497f7ba925d753728cc8ae364efcec95e995b2212648c2eda4ed57a4f4fccb'
+EXPECTED_CI_SHA256 = 'd6cae61ff10138ae48be1832291aeefc19442ac68b323d4153939d1fbf19ea2d'
 EVIDENCE_PREPARATION_RECORD_CI_SHA256 = '26944102de1c64805425675dc4eedc06f150feb6bc0e57d26319028ae6618311'
 AUTHORIZATION_REVIEW_RECORD_CI_SHA256 = 'f224dd3ed069a198613ad3ddbace564245586528acddab54e1eb835921ffea2f'
 EXPECTED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
@@ -77,6 +77,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v2_post_execution_structural_review_governance_decision_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v3_preparation_v1.py '
  '|| exit 1']
 
 

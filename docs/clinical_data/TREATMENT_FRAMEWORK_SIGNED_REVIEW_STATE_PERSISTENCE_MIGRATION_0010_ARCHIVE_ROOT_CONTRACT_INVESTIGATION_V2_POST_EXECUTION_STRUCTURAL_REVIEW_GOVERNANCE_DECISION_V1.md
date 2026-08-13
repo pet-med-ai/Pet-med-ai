@@ -37,7 +37,7 @@ github_ci_gate_number=200
 github_ci_gate_status=PASS
 github_ci_gate_commit=da837e6eb35819457b340d9fe9fd3a4336dc6673
 prior_ci_sha256=7cba5137d959d9f37a5e4f7a70798ff5090fc130ead6ce9d124c457c9a682811
-final_ci_sha256=e0497f7ba925d753728cc8ae364efcec95e995b2212648c2eda4ed57a4f4fccb
+final_ci_sha256=d6cae61ff10138ae48be1832291aeefc19442ac68b323d4153939d1fbf19ea2d
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
@@ -317,3 +317,16 @@ commit, or push without the corresponding separate authorization.
 The only proposed next subject is Archive Root Contract Investigation V3
 Preparation V1. This decision provides route selection and design requirements
 only.
+
+## 11. Subsequent V3 preparation pointer
+
+This later pointer records a separately reviewed repository-only inert design.
+It does not alter the V2 evidence or authorize V3 archive access or execution.
+
+~~~text
+subsequent_v3_preparation_entry_commit=98fe4d902d4b24bf13837aaf0ea7e5f7bdc9d1f3
+subsequent_v3_preparation_ci_gate=201
+subsequent_v3_preparation_ci_status=PASS
+subsequent_v3_preparation_selected_route=ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3
+subsequent_v3_investigation_authorized=false
+~~~

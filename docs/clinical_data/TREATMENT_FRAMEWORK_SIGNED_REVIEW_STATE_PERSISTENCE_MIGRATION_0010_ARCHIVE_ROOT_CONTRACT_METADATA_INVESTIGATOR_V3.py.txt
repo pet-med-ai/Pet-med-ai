@@ -1,0 +1,466 @@
+#!/usr/bin/env python3
+"""Inert V3 design for a future depth-aware metadata-only investigation.
+
+This source is stored as .py.txt. EXECUTION_ENABLED is false. Default use emits
+only a contract. Even if copied to a .py file, --execute stops before asking for
+or opening an archive. A separate review must lock an implementation hash,
+authorization record, exact archive, and one-time attempt budget.
+"""
+
+from __future__ import annotations
+
+import argparse
+import getpass
+import hashlib
+import json
+from pathlib import Path
+import sys
+import tarfile
+
+
+AUTHORIZATION_RECORD_ID = "PENDING_SEPARATE_V3_AUTHORIZATION_REVIEW"
+EXPECTED_ARCHIVE_SHA256 = "ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7"
+EXPECTED_ARCHIVE_MEMBER_COUNT = 29
+EXPECTED_V3_ATTEMPT_NUMBER = 1
+EXPECTED_CUMULATIVE_ATTEMPT_NUMBER = 3
+EXECUTION_ENABLED = False
+EXECUTION_REQUIRES_EXPLICIT_FLAG = True
+MEMBER_PAYLOAD_READ_ALLOWED = False
+MEMBER_EXTRACTION_ALLOWED = False
+ARCHIVE_WRITE_ALLOWED = False
+AUTOMATIC_RETRY_ALLOWED = False
+MAX_NORMALIZED_COMPONENT_DEPTH = 64
+MAX_MEMBER_NAME_UTF8_BYTES = 4096
+MAX_SANITIZED_COUNT = 30
+MAX_SANITIZED_UNCOMPRESSED_SIZE_BYTES = 1_073_741_824
+
+REASON_KEYS = (
+    "ACCEPTED_CANONICAL_RELATIVE",
+    "ACCEPTED_LEADING_DOT_PREFIX",
+    "ACCEPTED_ROOT_MARKER",
+    "REJECT_ABSOLUTE_PATH",
+    "REJECT_BACKSLASH",
+    "REJECT_CONTROL_CHARACTER",
+    "REJECT_DRIVE_PREFIX",
+    "REJECT_EMPTY_COMPONENT",
+    "REJECT_EMPTY_PATH",
+    "REJECT_EXCESSIVE_COMPONENT_DEPTH",
+    "REJECT_EXCESSIVE_NAME_BYTES",
+    "REJECT_INTERNAL_DOT_COMPONENT",
+    "REJECT_PARENT_COMPONENT",
+    "REJECT_ROOT_MARKER_NON_DIRECTORY",
+)
+
+SUCCESS_LAYOUTS = {
+    "PG_DIRECTORY_ROOT_UNWRAPPED",
+    "PG_DIRECTORY_ROOT_WRAPPED",
+    "PG_DIRECTORY_ROOT_DEEP_WRAPPED",
+}
+
+
+class Hold(RuntimeError):
+    """Fixed sanitized stop code with no raw path or member content."""
+
+
+def sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def emit(value: dict[str, object]) -> None:
+    print(json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+
+
+def contract_result() -> dict[str, object]:
+    return {
+        "archive_file_opened": False,
+        "archive_listing_attempt_consumed": False,
+        "archive_modified": False,
+        "authorization_record_id": AUTHORIZATION_RECORD_ID,
+        "automatic_retry": False,
+        "decision": "V3_CONTRACT_ONLY_SEPARATE_AUTHORIZATION_REVIEW_REQUIRED",
+        "execution_enabled": EXECUTION_ENABLED,
+        "member_extraction_performed": False,
+        "member_payload_read": False,
+        "mode": "CONTRACT_ONLY",
+        "raw_external_path_emitted": False,
+        "raw_member_names_emitted": False,
+        "restore_execution": False,
+    }
+
+
+def normalize_member(member: tarfile.TarInfo) -> tuple[tuple[str, ...] | None, str]:
+    raw = member.name
+    if member.isdir() and raw.endswith("/"):
+        raw = raw[:-1]
+    if not raw:
+        return None, "REJECT_EMPTY_PATH"
+    if len(raw.encode("utf-8", errors="surrogatepass")) > MAX_MEMBER_NAME_UTF8_BYTES:
+        return None, "REJECT_EXCESSIVE_NAME_BYTES"
+    if raw.startswith("/"):
+        return None, "REJECT_ABSOLUTE_PATH"
+    if "\\" in raw:
+        return None, "REJECT_BACKSLASH"
+    if any(ord(character) < 32 or ord(character) == 127 for character in raw):
+        return None, "REJECT_CONTROL_CHARACTER"
+
+    parts = list(raw.split("/"))
+    if parts == ["."]:
+        if member.isdir():
+            return (), "ACCEPTED_ROOT_MARKER"
+        return None, "REJECT_ROOT_MARKER_NON_DIRECTORY"
+
+    leading_dot_prefix = bool(parts and parts[0] == ".")
+    if leading_dot_prefix:
+        parts = parts[1:]
+    if not parts or any(part == "" for part in parts):
+        return None, "REJECT_EMPTY_COMPONENT"
+    if any(part == ".." for part in parts):
+        return None, "REJECT_PARENT_COMPONENT"
+    if any(part == "." for part in parts):
+        return None, "REJECT_INTERNAL_DOT_COMPONENT"
+    if len(parts[0]) >= 2 and parts[0][1] == ":":
+        return None, "REJECT_DRIVE_PREFIX"
+    if len(parts) > MAX_NORMALIZED_COMPONENT_DEPTH:
+        return None, "REJECT_EXCESSIVE_COMPONENT_DEPTH"
+    return tuple(parts), (
+        "ACCEPTED_LEADING_DOT_PREFIX"
+        if leading_dot_prefix
+        else "ACCEPTED_CANONICAL_RELATIVE"
+    )
+
+
+def common_prefix_depth(paths: list[tuple[str, ...]]) -> int:
+    if not paths:
+        return 0
+    limit = min(len(parts) for parts in paths)
+    depth = 0
+    while depth < limit and len({parts[depth] for parts in paths}) == 1:
+        depth += 1
+    return depth
+
+
+def bounded_nonnegative(value: int, maximum: int) -> int:
+    return min(max(value, 0), maximum)
+
+
+def contained_by_root(
+    member: tarfile.TarInfo,
+    parts: tuple[str, ...],
+    root_prefix: tuple[str, ...],
+) -> bool:
+    if not root_prefix:
+        return True
+    if len(parts) >= len(root_prefix):
+        return parts[: len(root_prefix)] == root_prefix
+    return member.isdir() and parts == root_prefix[: len(parts)]
+
+
+def structural_result(
+    members: list[tarfile.TarInfo],
+    implementation_sha256: str,
+) -> dict[str, object]:
+    normalized: list[tuple[tarfile.TarInfo, tuple[str, ...]]] = []
+    reason_counts = {key: 0 for key in REASON_KEYS}
+    unsafe_or_special_member_count = 0
+    regular_file_count = 0
+    directory_entry_count = 0
+    uncompressed_size = 0
+
+    for member in members:
+        if member.isreg():
+            regular_file_count += 1
+            uncompressed_size += member.size
+        elif member.isdir():
+            directory_entry_count += 1
+        else:
+            unsafe_or_special_member_count += 1
+        parts, reason = normalize_member(member)
+        reason_counts[reason] += 1
+        if parts is not None and parts:
+            normalized.append((member, parts))
+
+    accepted_count = sum(
+        reason_counts[key]
+        for key in (
+            "ACCEPTED_CANONICAL_RELATIVE",
+            "ACCEPTED_LEADING_DOT_PREFIX",
+            "ACCEPTED_ROOT_MARKER",
+        )
+    )
+    normalized_path_violation_count = len(members) - accepted_count
+    root_marker_count = reason_counts["ACCEPTED_ROOT_MARKER"]
+    leading_dot_prefix_member_count = reason_counts["ACCEPTED_LEADING_DOT_PREFIX"]
+
+    names = ["/".join(parts) for _member, parts in normalized]
+    duplicate_normalized_member_count = len(names) - len(set(names))
+    casefolded: dict[str, set[str]] = {}
+    for name in names:
+        casefolded.setdefault(name.casefold(), set()).add(name)
+    case_collision_count = sum(len(values) - 1 for values in casefolded.values())
+
+    regular_paths = [parts for member, parts in normalized if member.isreg()]
+    toc_candidates = [
+        parts
+        for member, parts in normalized
+        if member.isreg() and parts[-1] == "toc.dat"
+    ]
+    member_depths = [len(parts) for _member, parts in normalized]
+    member_depth_min = min(member_depths) if member_depths else -1
+    member_depth_max = max(member_depths) if member_depths else -1
+    shared_prefix_depth = common_prefix_depth(regular_paths)
+    top_level_component_count = len({parts[0] for _member, parts in normalized})
+
+    toc_dat_normalized_depth = -1
+    wrapper_depth = -1
+    root_layout_classification = "NONE_OR_AMBIGUOUS"
+    toc_relation = "NONE_OR_AMBIGUOUS"
+    logical_root_fingerprint_sha256 = ""
+    all_members_contained_by_logical_root = False
+
+    if len(toc_candidates) == 1:
+        toc_parts = toc_candidates[0]
+        root_prefix = toc_parts[:-1]
+        toc_dat_normalized_depth = len(root_prefix)
+        wrapper_depth = len(root_prefix)
+        all_members_contained_by_logical_root = bool(normalized) and all(
+            contained_by_root(member, parts, root_prefix)
+            for member, parts in normalized
+        )
+        if all_members_contained_by_logical_root:
+            toc_relation = "IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT"
+            if wrapper_depth == 0:
+                root_layout_classification = "PG_DIRECTORY_ROOT_UNWRAPPED"
+                fingerprint_source = b"UNWRAPPED_LOGICAL_ROOT"
+            elif wrapper_depth == 1:
+                root_layout_classification = "PG_DIRECTORY_ROOT_WRAPPED"
+                fingerprint_source = "/".join(root_prefix).encode("utf-8")
+            else:
+                root_layout_classification = "PG_DIRECTORY_ROOT_DEEP_WRAPPED"
+                fingerprint_source = "/".join(root_prefix).encode("utf-8")
+            logical_root_fingerprint_sha256 = hashlib.sha256(fingerprint_source).hexdigest()
+        elif top_level_component_count > 1:
+            root_layout_classification = "MIXED_TOP_LEVEL"
+        else:
+            root_layout_classification = "SHARED_TOP_LEVEL_DIVERGENT_SUBTREE"
+
+    success = all(
+        (
+            len(members) == EXPECTED_ARCHIVE_MEMBER_COUNT,
+            unsafe_or_special_member_count == 0,
+            normalized_path_violation_count == 0,
+            root_marker_count <= 1,
+            bool(normalized),
+            duplicate_normalized_member_count == 0,
+            case_collision_count == 0,
+            len(toc_candidates) == 1,
+            toc_relation == "IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT",
+            root_layout_classification in SUCCESS_LAYOUTS,
+            all_members_contained_by_logical_root,
+        )
+    )
+    member_name_set_sha256 = hashlib.sha256(
+        "".join(name + "\n" for name in sorted(set(names))).encode("utf-8")
+    ).hexdigest()
+    count_metrics = (
+        len(members),
+        case_collision_count,
+        directory_entry_count,
+        duplicate_normalized_member_count,
+        leading_dot_prefix_member_count,
+        normalized_path_violation_count,
+        regular_file_count,
+        root_marker_count,
+        len(toc_candidates),
+        top_level_component_count,
+        unsafe_or_special_member_count,
+        *reason_counts.values(),
+    )
+    numeric_metric_saturation_detected = (
+        any(value > MAX_SANITIZED_COUNT for value in count_metrics)
+        or uncompressed_size > MAX_SANITIZED_UNCOMPRESSED_SIZE_BYTES
+        or member_depth_max > MAX_NORMALIZED_COMPONENT_DEPTH
+        or shared_prefix_depth > MAX_NORMALIZED_COMPONENT_DEPTH
+        or toc_dat_normalized_depth > MAX_NORMALIZED_COMPONENT_DEPTH
+        or wrapper_depth > MAX_NORMALIZED_COMPONENT_DEPTH
+    )
+    bounded_reason_counts = {
+        key: bounded_nonnegative(value, MAX_SANITIZED_COUNT)
+        for key, value in reason_counts.items()
+    }
+
+    return {
+        "all_members_contained_by_logical_root": all_members_contained_by_logical_root,
+        "approved_archive_sha256_match": True,
+        "archive_member_count": bounded_nonnegative(len(members), MAX_SANITIZED_COUNT),
+        "archive_modified": False,
+        "archive_uncompressed_size_bytes": bounded_nonnegative(
+            uncompressed_size,
+            MAX_SANITIZED_UNCOMPRESSED_SIZE_BYTES,
+        ),
+        "authorization_record_id": AUTHORIZATION_RECORD_ID,
+        "automatic_retry": False,
+        "case_collision_count": bounded_nonnegative(case_collision_count, MAX_SANITIZED_COUNT),
+        "cumulative_archive_listing_attempt_number": EXPECTED_CUMULATIVE_ATTEMPT_NUMBER,
+        "decision": (
+            "GO_TO_SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3"
+            if success
+            else "HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED"
+        ),
+        "directory_entry_count": bounded_nonnegative(directory_entry_count, MAX_SANITIZED_COUNT),
+        "duplicate_normalized_member_count": bounded_nonnegative(
+            duplicate_normalized_member_count,
+            MAX_SANITIZED_COUNT,
+        ),
+        "implementation_sha256": implementation_sha256,
+        "leading_dot_prefix_member_count": bounded_nonnegative(
+            leading_dot_prefix_member_count,
+            MAX_SANITIZED_COUNT,
+        ),
+        "listing_tool_identity": "PYTHON_STDLIB_TARFILE_METADATA_SCAN",
+        "listing_tool_version": "{}.{}.{}".format(*sys.version_info[:3]),
+        "logical_root_fingerprint_sha256": logical_root_fingerprint_sha256,
+        "member_depth_max": (
+            -1
+            if member_depth_max < 0
+            else bounded_nonnegative(member_depth_max, MAX_NORMALIZED_COMPONENT_DEPTH)
+        ),
+        "member_depth_min": (
+            -1
+            if member_depth_min < 0
+            else bounded_nonnegative(member_depth_min, MAX_NORMALIZED_COMPONENT_DEPTH)
+        ),
+        "member_extraction_performed": False,
+        "member_name_set_sha256": member_name_set_sha256,
+        "member_payload_read": False,
+        "normalization_reason_counts": bounded_reason_counts,
+        "normalized_path_violation_count": bounded_nonnegative(
+            normalized_path_violation_count,
+            MAX_SANITIZED_COUNT,
+        ),
+        "numeric_metric_saturation_detected": numeric_metric_saturation_detected,
+        "outer_container_classification": "GZIP_TAR",
+        "raw_external_path_emitted": False,
+        "raw_member_names_emitted": False,
+        "regular_file_count": bounded_nonnegative(regular_file_count, MAX_SANITIZED_COUNT),
+        "restore_execution": False,
+        "restore_input_kind_classification": (
+            root_layout_classification if success else "AMBIGUOUS_OR_UNSUPPORTED"
+        ),
+        "root_contract_resolved": success,
+        "root_layout_classification": root_layout_classification,
+        "root_marker_count": bounded_nonnegative(root_marker_count, MAX_SANITIZED_COUNT),
+        "shared_prefix_depth": bounded_nonnegative(
+            shared_prefix_depth,
+            MAX_NORMALIZED_COMPONENT_DEPTH,
+        ),
+        "stop_code": "NONE" if success else "V3_STRUCTURAL_PREDICATE_MISMATCH",
+        "toc_dat_candidate_count": bounded_nonnegative(
+            len(toc_candidates),
+            MAX_SANITIZED_COUNT,
+        ),
+        "toc_dat_normalized_depth": (
+            -1
+            if toc_dat_normalized_depth < 0
+            else bounded_nonnegative(toc_dat_normalized_depth, MAX_NORMALIZED_COMPONENT_DEPTH)
+        ),
+        "toc_dat_relation_category": toc_relation,
+        "top_level_component_count": bounded_nonnegative(
+            top_level_component_count,
+            MAX_SANITIZED_COUNT,
+        ),
+        "unsafe_or_special_member_count": bounded_nonnegative(
+            unsafe_or_special_member_count,
+            MAX_SANITIZED_COUNT,
+        ),
+        "v3_attempt_number": EXPECTED_V3_ATTEMPT_NUMBER,
+        "wrapper_depth": (
+            -1
+            if wrapper_depth < 0
+            else bounded_nonnegative(wrapper_depth, MAX_NORMALIZED_COMPONENT_DEPTH)
+        ),
+    }
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--authorization-record-id")
+    parser.add_argument("--confirm-archive-sha256")
+    parser.add_argument("--v3-attempt-number", type=int)
+    parser.add_argument("--cumulative-attempt-number", type=int)
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if not args.execute:
+        emit(contract_result())
+        return 0
+
+    try:
+        if not EXECUTION_ENABLED:
+            raise Hold("V3_EXECUTION_NOT_ENABLED")
+        if args.authorization_record_id != AUTHORIZATION_RECORD_ID:
+            raise Hold("AUTHORIZATION_RECORD_MISMATCH")
+        if args.confirm_archive_sha256 != EXPECTED_ARCHIVE_SHA256:
+            raise Hold("ARCHIVE_CONFIRMATION_HASH_MISMATCH")
+        if args.v3_attempt_number != EXPECTED_V3_ATTEMPT_NUMBER:
+            raise Hold("V3_ATTEMPT_NUMBER_MISMATCH")
+        if args.cumulative_attempt_number != EXPECTED_CUMULATIVE_ATTEMPT_NUMBER:
+            raise Hold("CUMULATIVE_ATTEMPT_NUMBER_MISMATCH")
+
+        archive_value = getpass.getpass("Archive path (not echoed): ")
+        archive_path = Path(archive_value).expanduser().resolve()
+        if not archive_path.is_file() or archive_path.is_symlink():
+            raise Hold("ARCHIVE_PATH_UNSAFE_OR_MISSING")
+        if sha256_path(archive_path) != EXPECTED_ARCHIVE_SHA256:
+            raise Hold("ARCHIVE_SHA256_MISMATCH")
+        with archive_path.open("rb") as handle:
+            if handle.read(2) != b"\x1f\x8b":
+                raise Hold("OUTER_CONTAINER_NOT_GZIP")
+
+        implementation_sha256 = sha256_path(Path(__file__).resolve())
+        with tarfile.open(archive_path, mode="r:gz") as archive:
+            members = archive.getmembers()
+        emit(structural_result(members, implementation_sha256))
+        return 0
+    except Hold as exc:
+        emit(
+            {
+                "archive_modified": False,
+                "authorization_record_id": AUTHORIZATION_RECORD_ID,
+                "automatic_retry": False,
+                "decision": "HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED",
+                "member_extraction_performed": False,
+                "member_payload_read": False,
+                "raw_external_path_emitted": False,
+                "raw_member_names_emitted": False,
+                "restore_execution": False,
+                "stop_code": str(exc),
+            }
+        )
+        return 2
+    except (OSError, tarfile.TarError):
+        emit(
+            {
+                "archive_modified": False,
+                "authorization_record_id": AUTHORIZATION_RECORD_ID,
+                "automatic_retry": False,
+                "decision": "HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED",
+                "member_extraction_performed": False,
+                "member_payload_read": False,
+                "raw_external_path_emitted": False,
+                "raw_member_names_emitted": False,
+                "restore_execution": False,
+                "stop_code": "SANITIZED_ARCHIVE_TOOL_FAILURE",
+            }
+        )
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
