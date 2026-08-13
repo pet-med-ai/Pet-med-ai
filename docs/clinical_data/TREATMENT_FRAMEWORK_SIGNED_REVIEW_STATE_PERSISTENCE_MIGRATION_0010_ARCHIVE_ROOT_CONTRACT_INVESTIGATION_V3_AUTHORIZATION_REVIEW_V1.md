@@ -1,33 +1,34 @@
 # Treatment Framework Signed Review State Persistence Migration 0010
-## Archive Root Contract Investigation V2 Authorization Review V1
+## Archive Root Contract Investigation V3 Authorization Review V1
 
 This repository-only review defines a proposed, bounded authorization record
-for one future V2 metadata-only archive/root investigation. The package itself
-does not open or list the backup, read member headers or payloads, extract,
-copy, upload, modify, or repackage anything. It does not activate or execute
-the V2 candidate, create a target or runner, connect to a database, restore,
-create or execute migration 0010, deploy, delete, stage, commit, or push.
+for one future V3 depth-aware metadata-only archive/root investigation. The
+package itself does not open or list the backup, read member headers or
+payloads, extract, copy, upload, modify, or repackage anything. It does not
+activate or execute the V3 candidate, create a target or runner, connect to a
+database, restore, create or execute migration 0010, deploy, delete, stage,
+commit, or push.
 
 ## 1. Canonical review record
 
 ~~~text
 stage_id=PMAI-P0-04
-substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_AUTHORIZATION_REVIEW_V1
+substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_AUTHORIZATION_REVIEW_V1
 stage_status=IN_PROGRESS
 package_status=AUTHORIZATION_REVIEW_RECORD_ONLY
-review_status=PROPOSED_APPROVE_BOUNDED_METADATA_ONLY_V2_INVESTIGATION
-authorization_record_id=PMAI-P0-04-ARCI-V2-AUTH-V1-20260812
-authorization_recorded_date=2026-08-12
-design_dry_run_authority_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260812
+review_status=PROPOSED_APPROVE_BOUNDED_DEPTH_AWARE_METADATA_ONLY_V3_INVESTIGATION
+authorization_record_id=PMAI-P0-04-ARCI-V3-AUTH-V1-20260813
+authorization_recorded_date=2026-08-13
+design_dry_run_authority_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260813
 approver_role=PROJECT_OWNER_OPERATOR
 operator_role=PROJECT_OWNER_OPERATOR
-authorization_scope=ONE_EXACT_ARCHIVE_ONE_V2_METADATA_ONLY_ATTEMPT
+authorization_scope=ONE_EXACT_ARCHIVE_ONE_V3_DEPTH_AWARE_METADATA_ONLY_ATTEMPT
 authorization_record_effective_gate=EXACT_PACKAGE_APPLIED_COMMITTED_PUSHED_GITHUB_CI_PASS_AND_SEPARATE_ONE_TIME_EXECUTION_CONFIRMATION
 authorization_scope_recorded=true
-current_v2_investigation_authorized=false
-post_effective_gate_v2_investigation_authorized=true
-v2_investigation_execution_authorized=false
-v2_archive_listing_attempt_authorized=false
+current_v3_investigation_authorized=false
+post_effective_gate_v3_investigation_authorized=true
+v3_investigation_execution_authorized=false
+v3_archive_listing_attempt_authorized=false
 one_time_execution_confirmation_present=false
 decision=GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY
 next_action=REQUEST_SEPARATE_REPOSITORY_APPLY_AUTHORIZATION_FOR_EXACT_BUNDLE
@@ -41,13 +42,13 @@ confirmation. No authority is inherited from this design or dry-run.
 ## 2. Trusted entry baseline
 
 ~~~text
-local_main=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
-origin_main=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
-main_parent=b5eaeb7b1a36b5fcb54734bda5886d93d56576e3
-github_ci_gate_number=198
+local_main=0e6dfdd876227d88003bebc9edd966f0821c0b41
+origin_main=0e6dfdd876227d88003bebc9edd966f0821c0b41
+main_parent=98fe4d902d4b24bf13837aaf0ea7e5f7bdc9d1f3
+github_ci_gate_number=202
 github_ci_gate_status=PASS
-github_ci_gate_commit=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
-prior_ci_sha256=0ddbb7e54bfdeaad96fa11911b747a0a17dd146fb72d6ed11ff9fb70942e2800
+github_ci_gate_commit=0e6dfdd876227d88003bebc9edd966f0821c0b41
+prior_ci_sha256=d6cae61ff10138ae48be1832291aeefc19442ac68b323d4153939d1fbf19ea2d
 final_ci_sha256=27171bf84096af25dc25ff3f0153516108b92b22fec878b1afc9184df5c2dece
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
@@ -58,44 +59,52 @@ production_database_revision_baseline=0009_diag_data
 staging_database_revision_baseline=0009_diag_data
 production_auto_deploy_entry_baseline=false
 locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
-prepared_v2_source_sha256=0d6303b0a5fc63d8231669b8a5d396d67b645120f9ac5421977cb79f3f6e8837
+prepared_v3_source_sha256=52fc4310065b0877152f592b4394c5f74d27e4812a6a30d71eb50cd94d0f4b55
+authorized_candidate_v3_source_sha256=6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14
 authorized_candidate_v2_source_sha256=ce4b0fc1421624b29309f8eeae750d712601821529102620faf5c1b2b75be4f6
 sanitized_v1_result_sha256=c8c68cbe00ebeff2eae75fb6c1b375af8e867b869e68378e43b9188b1a2b6893
+sanitized_v2_result_sha256=3eef22eeab17779b4e5499f53c22caf22fd5d0fd7c107cdaca6cbb8926ebf028
 active_0010_migration_file_count=0
-baseline_source=OPERATOR_PUSH_OUTPUT_GITHUB_CI_GATE_198_SCREENSHOT_AND_REPOSITORY_BASELINE_NO_RUNTIME_RECHECK
+baseline_source=OPERATOR_PUSH_OUTPUT_GITHUB_CI_GATE_202_SCREENSHOT_AND_REPOSITORY_BASELINE_NO_RUNTIME_RECHECK
 ~~~
 
-Gate 198 proves only the repository commit. Runtime and database values are
+Gate 202 proves only the repository commit. Runtime and database values are
 retained handoff baselines and are not rechecked by this package.
 
-## 3. Completed V2 preparation and unresolved V1 evidence
+## 3. Completed V3 preparation and unresolved evidence
 
 ~~~text
-completed_substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V2_PREPARATION_V1
-completed_commit=abeec6d7f1f5a592fc1435b4a370bd6cffb3a4ce
-completed_ci_gate=198
+completed_substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_PREPARATION_V1
+completed_commit=0e6dfdd876227d88003bebc9edd966f0821c0b41
+completed_ci_gate=202
 completed_ci_status=PASS
-selected_route=ROUTE_B_REBUILD_CORRECTED_METADATA_INVESTIGATION_CHAIN_V2
-v2_preparation_complete=true
-prepared_v2_source_retained_unchanged=true
+selected_route=ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3
+v3_preparation_complete=true
+prepared_v3_source_retained_unchanged=true
 v1_archive_listing_attempts_consumed=1
-v1_archive_listing_attempts_remaining=0
+v2_archive_listing_attempts_consumed=1
+cumulative_archive_listing_attempts_consumed=2
+cumulative_archive_listing_attempts_remaining=0
 v1_root_contract_resolved=false
-v1_normalized_path_violation_count=29
-v1_stop_code=STRUCTURAL_PREDICATE_MISMATCH
-v1_decision=HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED
-observed_archive_leading_dot_prefix_confirmed=false
-observed_archive_unwrapped_pg_directory_root_confirmed=false
-toc_dat_absence_established=false
+v2_root_contract_resolved=false
+root_contract_resolved=false
+v2_toc_dat_candidate_count=1
+v2_toc_dat_relation_category=NONE_OR_AMBIGUOUS
+v2_root_layout_classification=NONE_OR_AMBIGUOUS
+v2_wrapper_depth=-1
+v2_stop_code=V2_STRUCTURAL_PREDICATE_MISMATCH
+v2_decision=HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED
+toc_dat_presence_established=true
+actual_archive_layout_cause_resolved=false
 backup_corruption_established=false
-structural_predicate_mismatch_cause_resolved=false
 legacy_v1_authorization_reuse_allowed=false
+legacy_v2_authorization_reuse_allowed=false
 ~~~
 
-The V1 attempt remains consumed and cannot be retried. V2 is a separately
-reviewed attempt with a distinct authorization record and implementation hash.
-The candidate design does not convert a plausible archive explanation into an
-observed fact.
+Both earlier attempts remain consumed and cannot be retried. V3 is a distinct,
+separately reviewed attempt with a distinct authorization record and exact
+implementation hash. Synthetic fixtures prove only the predicate contract and
+are not evidence about the real archive.
 
 ## 4. Exact archive identity binding
 
@@ -107,43 +116,43 @@ approved_backup_sanitized_evidence_sha256=a7af6ca2c0cba862bb7f6073f0866ef6dafcb2
 approved_backup_toc_sha256=6a1b20417a90fe9a5d954c4451e6fd3ebc7072407bc031e68b44c2b824e1ee1c
 approved_backup_toc_entry_count=433
 approved_backup_pg_restore_version=18.4
-prior_v1_archive_member_count=29
-prior_v1_archive_uncompressed_size_bytes=196874
+prior_archive_member_count=29
+prior_archive_uncompressed_size_bytes=196874
 archive_external_path_repository_value=FORBIDDEN
 archive_bytes_repository_value=FORBIDDEN
 archive_hash_recheck_required_before_metadata_scan=true
 ~~~
 
 Only the artifact with the exact approved SHA-256 can ever enter the proposed
-V2 attempt. A size, hash, container, or identity mismatch is a hard stop before
+V3 attempt. A size, hash, container, or identity mismatch is a hard stop before
 member metadata is scanned.
 
 ## 5. Prepared source and reviewed authorization candidate separation
 
 ~~~text
-prepared_v2_source_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V2.py.txt
-prepared_v2_source_format=INERT_PYTHON_SOURCE_TEXT
-prepared_v2_source_execution_enabled=false
-prepared_v2_source_executed_by_ci=false
-prepared_v2_source_executed_by_package=false
-authorized_candidate_v2_source_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V2_AUTHORIZED_CANDIDATE.py.txt
-authorized_candidate_v2_source_format=INERT_PYTHON_SOURCE_TEXT
-authorized_candidate_v2_source_storage_suffix=.py.txt
-authorized_candidate_v2_source_repository_executable=false
-authorized_candidate_v2_source_executed_by_ci=false
-authorized_candidate_v2_source_executed_by_package=false
-authorized_candidate_v2_source_activation_authorized=false
+prepared_v3_source_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V3.py.txt
+prepared_v3_source_format=INERT_PYTHON_SOURCE_TEXT
+prepared_v3_source_execution_enabled=false
+prepared_v3_source_executed_by_ci=false
+prepared_v3_source_executed_by_package=false
+authorized_candidate_v3_source_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V3_AUTHORIZED_CANDIDATE.py.txt
+authorized_candidate_v3_source_format=INERT_PYTHON_SOURCE_TEXT
+authorized_candidate_v3_source_storage_suffix=.py.txt
+authorized_candidate_v3_source_repository_executable=false
+authorized_candidate_v3_source_executed_by_ci=false
+authorized_candidate_v3_source_executed_by_package=false
+authorized_candidate_v3_source_activation_authorized=false
 authorized_candidate_execution_gate_literal=true
 authorized_candidate_default_mode=CONTRACT_ONLY_NO_ARCHIVE_OPEN
 authorized_candidate_execute_flag_required=true
 authorized_candidate_authorization_record_id_required=true
 authorized_candidate_expected_archive_sha256_confirmation_required=true
-authorized_candidate_v2_attempt_number_required=1
-authorized_candidate_cumulative_attempt_number=2
+authorized_candidate_v3_attempt_number_required=1
+authorized_candidate_cumulative_attempt_number=3
 authorized_candidate_path_input=HIDDEN_INTERACTIVE_PROMPT_NOT_COMMAND_LINE
 authorized_candidate_shell_interpolation=false
 authorized_candidate_automatic_retry=false
-authorized_candidate_output_contract=SANITIZED_JSON_COUNTS_BOOLEANS_CLASSIFICATIONS_REASON_COUNTERS_AND_HASHES_ONLY
+authorized_candidate_output_contract=SANITIZED_BOUNDED_JSON_COUNTS_BOOLEANS_CLASSIFICATIONS_REASON_COUNTERS_AND_HASHES_ONLY
 ~~~
 
 The candidate's `EXECUTION_ENABLED=true` literal is reviewable text inside a
@@ -152,28 +161,31 @@ repository. Any byte change produces a different hash and requires a new
 authorization review. Repository validation parses the candidate's AST and
 source but never imports or executes it.
 
-## 6. Proposed V2 attempt budget
+## 6. Proposed V3 attempt budget
 
 ~~~text
 v1_attempt_budget=1
 v1_attempts_consumed=1
 v1_attempts_remaining=0
 v2_attempt_budget=1
-v2_attempts_consumed=0
-v2_attempts_remaining_pre_effective_gate=0
-v2_attempts_remaining_post_effective_gate=1
-v2_attempt_number=1
-cumulative_archive_listing_attempt_number_if_executed=2
+v2_attempts_consumed=1
+v2_attempts_remaining=0
+v3_attempt_budget=1
+v3_attempts_consumed=0
+v3_attempts_remaining_pre_effective_gate=0
+v3_attempts_remaining_post_effective_gate=1
+v3_attempt_number=1
+cumulative_archive_listing_attempt_number_if_executed=3
 automatic_retry_allowed=false
 manual_retry_allowed=false
 authorization_reuse_allowed=false
 additional_attempt_requires_new_governance_chain=true
 ~~~
 
-The proposed V2 budget cannot be consumed by this review package. It becomes
+The proposed V3 budget cannot be consumed by this review package. It becomes
 eligible only after all effective gates and the separate one-time execution
 confirmation. Any call, including a sanitized hold or tool failure after the
-approved scan begins, consumes the one V2 attempt.
+approved scan begins, consumes the one V3 attempt.
 
 ## 7. Proposed post-effective-gate operation boundary
 
@@ -205,39 +217,59 @@ hash and may scan member metadata only to classify structure. It must never
 call extraction or payload APIs and must never emit member names, a logical
 root string, or an external path.
 
-## 8. Reviewed V2 predicate and classifications
+## 8. Reviewed V3 depth-aware predicate and bounded classifications
 
 ~~~text
-v2_allows_one_optional_leading_dot_prefix=true
-v2_allows_directory_root_marker=true
-v2_rejects_internal_dot_component=true
-v2_rejects_parent_component=true
-v2_rejects_absolute_path=true
-v2_rejects_backslash=true
-v2_rejects_control_character=true
-v2_rejects_empty_component=true
-v2_rejects_drive_prefix=true
-v2_rejects_special_member_for_success=true
-v2_wrapped_root_classification=PG_DIRECTORY_ROOT_WRAPPED
-v2_unwrapped_root_classification=PG_DIRECTORY_ROOT_UNWRAPPED
-v2_toc_relation_required=IMMEDIATE_CHILD_OF_LOGICAL_ROOT
-v2_toc_candidate_count_required=1
-v2_root_marker_count_maximum=1
-v2_duplicate_normalized_member_count_required=0
-v2_case_collision_count_required=0
-v2_unsafe_or_special_member_count_required=0
-v2_normalized_path_violation_count_required=0
+v3_allows_one_optional_leading_dot_prefix=true
+v3_allows_directory_root_marker=true
+v3_rejects_internal_dot_component=true
+v3_rejects_parent_component=true
+v3_rejects_absolute_path=true
+v3_rejects_backslash=true
+v3_rejects_control_character=true
+v3_rejects_empty_component=true
+v3_rejects_drive_prefix=true
+v3_rejects_special_member_for_success=true
+v3_rejects_excessive_component_depth=true
+v3_rejects_excessive_member_name_bytes=true
+v3_general_normpath_forbidden=true
+v3_max_normalized_component_depth=64
+v3_max_member_name_utf8_bytes=4096
+v3_max_sanitized_count=30
+v3_max_sanitized_uncompressed_size_bytes=1073741824
+v3_unwrapped_root_classification=PG_DIRECTORY_ROOT_UNWRAPPED
+v3_single_wrapper_classification=PG_DIRECTORY_ROOT_WRAPPED
+v3_deep_wrapper_classification=PG_DIRECTORY_ROOT_DEEP_WRAPPED
+v3_mixed_top_level_classification=MIXED_TOP_LEVEL
+v3_divergent_subtree_classification=SHARED_TOP_LEVEL_DIVERGENT_SUBTREE
+v3_ambiguous_classification=NONE_OR_AMBIGUOUS
+v3_toc_relation_success=IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT
+v3_toc_dat_normalized_depth_metric=true
+v3_shared_prefix_depth_metric=true
+v3_top_level_component_count_metric=true
+v3_member_depth_min_metric=true
+v3_member_depth_max_metric=true
+v3_wrapper_depth_metric=true
+v3_numeric_metrics_bounded=true
+v3_numeric_saturation_flag_required=true
+v3_logical_root_fingerprint_sha256_required=true
+v3_member_name_set_sha256_required=true
+v3_all_members_contained_by_identified_root_required=true
+v3_sanitized_reason_counters_required=true
+v3_sanitized_fixed_layout_enum_required=true
 ~~~
 
-A wrapped candidate succeeds only when every accepted non-marker member shares
-the wrapper containing `toc.dat`. An unwrapped candidate requires `toc.dat` at
-the logical root. All other or ambiguous layouts retain HOLD.
+Success requires exactly one regular-file `toc.dat`, safe normalized names,
+zero duplicate or case-colliding names, no special members, and containment by
+the identified logical root at depth zero, one, or greater. Ambiguous layouts
+retain HOLD. Numeric evidence is saturated at fixed bounds and includes an
+explicit saturation flag.
 
 ## 9. Sanitized evidence contract
 
 ~~~text
 evidence_field_01=authorization_record_id
-evidence_field_02=v2_attempt_number
+evidence_field_02=v3_attempt_number
 evidence_field_03=cumulative_archive_listing_attempt_number
 evidence_field_04=approved_archive_sha256_match
 evidence_field_05=implementation_sha256
@@ -258,17 +290,23 @@ evidence_field_19=root_layout_classification
 evidence_field_20=logical_root_fingerprint_sha256
 evidence_field_21=wrapper_depth
 evidence_field_22=toc_dat_candidate_count
-evidence_field_23=toc_dat_relation_category
-evidence_field_24=all_members_contained_by_logical_root
-evidence_field_25=member_name_set_sha256
-evidence_field_26=restore_input_kind_classification
-evidence_field_27=raw_member_names_emitted
-evidence_field_28=raw_external_path_emitted
-evidence_field_29=member_payload_read
-evidence_field_30=member_extraction_performed
-evidence_field_31=archive_modified
-evidence_field_32=decision
-evidence_field_33=stop_code
+evidence_field_23=toc_dat_normalized_depth
+evidence_field_24=toc_dat_relation_category
+evidence_field_25=all_members_contained_by_logical_root
+evidence_field_26=shared_prefix_depth
+evidence_field_27=top_level_component_count
+evidence_field_28=member_depth_min
+evidence_field_29=member_depth_max
+evidence_field_30=numeric_metric_saturation_detected
+evidence_field_31=member_name_set_sha256
+evidence_field_32=restore_input_kind_classification
+evidence_field_33=raw_member_names_emitted
+evidence_field_34=raw_external_path_emitted
+evidence_field_35=member_payload_read
+evidence_field_36=member_extraction_performed
+evidence_field_37=archive_modified
+evidence_field_38=decision
+evidence_field_39=stop_code
 logical_root_repository_value=HASH_ONLY
 member_names_repository_value=COUNTS_REASON_COUNTERS_AND_HASHES_ONLY
 raw_archive_listing_repository_value=FORBIDDEN
@@ -298,14 +336,13 @@ automatic_retry=false
 manual_retry_authorized=false
 additional_archive_listing_attempt_authorized=false
 current_authorization_reuse_allowed=false
-current_package_v2_investigation_authorized=false
-current_package_v2_investigation_execution_authorized=false
-current_package_v2_archive_listing_attempt_authorized=false
+current_package_v3_investigation_authorized=false
+current_package_v3_investigation_execution_authorized=false
+current_package_v3_archive_listing_attempt_authorized=false
 current_package_one_time_execution_confirmation_present=false
-active_v2_investigator_created=false
-authorized_candidate_v2_source_activated=false
-authorized_candidate_v2_source_executed=false
-root_contract_resolved=false
+active_v3_investigator_created=false
+authorized_candidate_v3_source_activated=false
+authorized_candidate_v3_source_executed=false
 database_connection=false
 database_write=false
 restore_execution=false
@@ -332,28 +369,7 @@ p0_04_execution_authorized=false
 staging_0010_apply_authorized=false
 ~~~
 
-## 11. Subsequent V2 execution-evidence pointer
-
-The authorization review remains point-in-time evidence. The fields below only
-record the later, separately authorized execution outcome; they do not rewrite
-the original review state or permit another call.
-
-~~~text
-subsequent_v2_execution_evidence_entry_commit=9f00393543ec435353d5deadc6c74972aed4f6c2
-subsequent_v2_execution_evidence_ci_gate=199
-subsequent_v2_execution_evidence_ci_status=PASS
-subsequent_v2_execution_implementation_sha256=ce4b0fc1421624b29309f8eeae750d712601821529102620faf5c1b2b75be4f6
-subsequent_v2_sanitized_result_sha256=3eef22eeab17779b4e5499f53c22caf22fd5d0fd7c107cdaca6cbb8926ebf028
-subsequent_v2_archive_listing_attempts_consumed=1
-subsequent_cumulative_archive_listing_attempts_consumed=2
-subsequent_archive_listing_attempts_remaining=0
-subsequent_v2_root_contract_resolved=false
-subsequent_v2_stop_code=V2_STRUCTURAL_PREDICATE_MISMATCH
-subsequent_v2_decision=HOLD_PMAI_P0_04_ARCHIVE_ROOT_CONTRACT_UNRESOLVED
-subsequent_v2_retry_authorized=false
-~~~
-
-## 12. Production and clinical hard gates retained
+## 11. Production and clinical hard gates retained
 
 ~~~text
 database_revision=0009_diag_data
@@ -375,17 +391,17 @@ ENABLE_DEVICE_REAL_INGEST=false
 ENABLE_BILLING_REAL_WRITE=false
 ~~~
 
-## 13. Mandatory stop conditions
+## 12. Mandatory stop conditions
 
-Stop if the Git baseline, Gate 198, isolated refs, prior CI hash, locked runner
+Stop if the Git baseline, Gate 202, isolated refs, prior CI hash, locked runner
 hash, active migration absence, exact archive identity, prepared or candidate
-source bytes or hash, V2 attempt budget, metadata-only boundary, sanitized
-evidence schema, predicate requirements, classification rules, or target scope
-differs.
+source bytes or hash, V3 attempt budget, metadata-only boundary, bounded and
+sanitized evidence schema, depth-aware predicate requirements, classification
+rules, or target scope differs.
 
 Stop on any current archive open, listing, header or payload read, extraction,
-copy, upload, modification, repackaging, raw member/path output, retry, candidate
-activation or execution, network call, database connection, restore or SQL
-tooling, target or runner creation, migration, deployment, deletion, stage,
-commit, push, legacy authorization reuse, or inference that this design or
-dry-run grants execution authority.
+copy, upload, modification, repackaging, raw member/path output, retry,
+candidate activation or execution, network call, database connection, restore
+or SQL tooling, target or runner creation, migration, deployment, deletion,
+stage, commit, push, legacy authorization reuse, or inference that this design
+or dry-run grants execution authority.

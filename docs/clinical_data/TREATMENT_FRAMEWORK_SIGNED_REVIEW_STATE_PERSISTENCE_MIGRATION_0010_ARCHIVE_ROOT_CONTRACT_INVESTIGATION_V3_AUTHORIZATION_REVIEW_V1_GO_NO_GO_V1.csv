@@ -1,0 +1,39 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-ARCI-V3-AUTH-GNG-001,entry commit,0e6dfdd876227d88003bebc9edd966f0821c0b41,0e6dfdd876227d88003bebc9edd966f0821c0b41,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-002,entry CI gate,PASS,PASS,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-003,Route C retained,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-004,prepared V3 hash,52fc4310065b0877152f592b4394c5f74d27e4812a6a30d71eb50cd94d0f4b55,52fc4310065b0877152f592b4394c5f74d27e4812a6a30d71eb50cd94d0f4b55,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-005,candidate V3 hash,6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14,6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-006,candidate inert suffix,.py.txt,.py.txt,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-007,current V3 investigation authorization,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-008,post effective gate V3 authorization,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-009,one-time execution confirmation,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-010,cumulative prior attempts,2,2,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-011,V3 budget,1,1,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-012,V3 current attempts remaining,0,0,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-013,root contract resolved,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-014,exact archive identity bound,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-015,explicit execution flag,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-016,authorization record confirmation,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-017,archive hash confirmation,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-018,attempt number confirmation,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-019,cumulative attempt confirmation,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-020,hidden path prompt,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-021,deep wrapper classification,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-022,mixed layout hold classification,MIXED_TOP_LEVEL,MIXED_TOP_LEVEL,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-023,divergent layout hold classification,SHARED_TOP_LEVEL_DIVERGENT_SUBTREE,SHARED_TOP_LEVEL_DIVERGENT_SUBTREE,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-024,numeric outputs bounded,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-025,raw names suppressed,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-026,member payload forbidden,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-027,archive extraction forbidden,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-028,automatic retry,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-029,authorization reuse,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-030,target creation,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-031,runner creation,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-032,database connection,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-033,restore execution,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-034,migration 0010 creation,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-035,deployment,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-036,resource deletion,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-037,git publication,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-AUTH-GNG-038,review disposition,GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY,GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY,PASS,HOLD

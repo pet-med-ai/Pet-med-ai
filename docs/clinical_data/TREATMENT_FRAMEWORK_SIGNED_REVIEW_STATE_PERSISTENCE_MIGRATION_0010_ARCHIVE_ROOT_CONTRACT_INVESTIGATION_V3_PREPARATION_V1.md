@@ -37,7 +37,7 @@ github_ci_gate_number=201
 github_ci_gate_status=PASS
 github_ci_gate_commit=98fe4d902d4b24bf13837aaf0ea7e5f7bdc9d1f3
 prior_ci_sha256=e0497f7ba925d753728cc8ae364efcec95e995b2212648c2eda4ed57a4f4fccb
-final_ci_sha256=d6cae61ff10138ae48be1832291aeefc19442ac68b323d4153939d1fbf19ea2d
+final_ci_sha256=27171bf84096af25dc25ff3f0153516108b92b22fec878b1afc9184df5c2dece
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
@@ -323,3 +323,16 @@ commit, or push without the corresponding separate authorization.
 The only proposed next subject after publication is a separate V3 Authorization
 Review V1. That review may accept, reject, or require changes to this inert
 candidate; this preparation does not predetermine execution authorization.
+
+## 13. Subsequent V3 authorization-review pointer
+
+This later pointer records a separately reviewed repository-only authorization record.
+It does not alter the preparation facts or grant current archive access or execution.
+
+~~~text
+subsequent_v3_authorization_review_entry_commit=0e6dfdd876227d88003bebc9edd966f0821c0b41
+subsequent_v3_authorization_review_ci_gate=202
+subsequent_v3_authorization_review_ci_status=PASS
+subsequent_v3_authorized_candidate_sha256=6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14
+subsequent_current_v3_investigation_authorized=false
+~~~
