@@ -49,7 +49,7 @@ github_ci_gate_number=202
 github_ci_gate_status=PASS
 github_ci_gate_commit=0e6dfdd876227d88003bebc9edd966f0821c0b41
 prior_ci_sha256=d6cae61ff10138ae48be1832291aeefc19442ac68b323d4153939d1fbf19ea2d
-final_ci_sha256=27171bf84096af25dc25ff3f0153516108b92b22fec878b1afc9184df5c2dece
+final_ci_sha256=74b9b164ef72436c3989e7b2920b5114c7abda52fec7f601bb322c58ec358f8a
 local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
 repository_clean_at_entry=true
@@ -369,7 +369,31 @@ p0_04_execution_authorized=false
 staging_0010_apply_authorized=false
 ~~~
 
-## 11. Production and clinical hard gates retained
+## 11. Subsequent V3 execution-evidence pointer
+
+The authorization review remains point-in-time evidence. The fields below only
+record the later, separately authorized V3 execution outcome; they do not
+rewrite the original review state, permit another metadata call, or establish
+backup restoreability.
+
+~~~text
+subsequent_v3_execution_evidence_entry_commit=8f7a4a25908e874f406b08e9ae2d1dc9de69db26
+subsequent_v3_execution_evidence_ci_gate=203
+subsequent_v3_execution_evidence_ci_status=PASS
+subsequent_v3_execution_implementation_sha256=6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14
+subsequent_v3_sanitized_result_sha256=2d133850451ef0941443c4588f9f649aafa54f9a1d1e5670e54529f541429040
+subsequent_v3_archive_listing_attempts_consumed=1
+subsequent_cumulative_archive_listing_attempts_consumed=3
+subsequent_archive_listing_attempts_remaining=0
+subsequent_v3_root_contract_resolved=true
+subsequent_v3_root_layout_classification=PG_DIRECTORY_ROOT_DEEP_WRAPPED
+subsequent_v3_wrapper_depth=2
+subsequent_backup_restoreability_verified=false
+subsequent_v3_decision=GO_TO_SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3
+subsequent_v3_retry_authorized=false
+~~~
+
+## 12. Production and clinical hard gates retained
 
 ~~~text
 database_revision=0009_diag_data
@@ -391,7 +415,7 @@ ENABLE_DEVICE_REAL_INGEST=false
 ENABLE_BILLING_REAL_WRITE=false
 ~~~
 
-## 12. Mandatory stop conditions
+## 13. Mandatory stop conditions
 
 Stop if the Git baseline, Gate 202, isolated refs, prior CI hash, locked runner
 hash, active migration absence, exact archive identity, prepared or candidate

@@ -1,0 +1,36 @@
+test_id,category,test,method,expected,status,hard_stop
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T001,baseline,exact main and parent,document markers,8f7a4a2 parent 0e6dfdd,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T002,baseline,GitHub CI gate,document and checklist,Gate 203 PASS,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T003,authorization,authorization record identity,document JSON and checklist,exact V3 authorization record,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T004,attempt,V1 V2 and V3 accounting,document and checklist,one each cumulative three,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T005,retry,automatic manual and additional retry forbidden,document and checklist,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T006,implementation,V3 investigator hash,document JSON and repository file,exact 6800bc57 SHA,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T007,evidence,sanitized JSON canonical hash,JSON parse and canonical serialization,2d133850 digest,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T008,evidence,sanitized JSON field count,JSON parse,43,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T009,classification,archive member count,JSON and document,29,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T010,classification,no normalized path violations,JSON and document,zero,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T011,classification,no duplicate case collision or special member,JSON and document,zero,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T012,classification,single toc candidate,JSON and document,one,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T013,classification,toc relation immediate child,JSON and Go No-Go,IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T014,classification,deep wrapped layout,JSON and Go No-Go,PG_DIRECTORY_ROOT_DEEP_WRAPPED,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T015,classification,wrapper and toc depth,JSON and document,two,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T016,classification,logical root containment,JSON and document,true,DESIGNED,false
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T017,decision,root contract resolved,JSON document and Go No-Go,true,DESIGNED,false
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T018,decision,stop code,JSON document and Go No-Go,NONE,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T019,decision,next decision,JSON document and Go No-Go,GO_TO_SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T020,safety,no member payload read,JSON and checklist,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T021,safety,no extraction modification or repackage,JSON and document,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T022,privacy,no raw member names root or external path,JSON document and regex,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T023,bounds,no numeric metric saturation,JSON and checklist,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T024,inference,restoreability remains unverified,document marker,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T025,inference,restore rehearsal remains incomplete,document marker,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T026,package,no archive access by evidence package,document markers,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T027,package,no retry or new investigator,document markers and changed paths,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T028,package,no database target runner restore migration deploy delete,document and paths,false,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T029,runner,locked runner unchanged,hash validation,c5000289 exact,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T030,migration,no active 0010 migration,glob check,zero,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T031,scope,no raw evidence artifact targets,target suffix validation,no png json tar database,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T032,cumulative,all prior validators retained,CI command equality,exact ordered commands,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T033,pointer,V3 authorization review points to consumed result,document markers,exact commit gate hashes and GO,DESIGNED,mismatch
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T034,next_gate,runner design remains separate,document markers,not designed or authorized,DESIGNED,true
+PMAI-P0-04-ARCI-V3-EXEC-EVID-T035,publication,no stage commit or push by package,document markers,false,DESIGNED,true

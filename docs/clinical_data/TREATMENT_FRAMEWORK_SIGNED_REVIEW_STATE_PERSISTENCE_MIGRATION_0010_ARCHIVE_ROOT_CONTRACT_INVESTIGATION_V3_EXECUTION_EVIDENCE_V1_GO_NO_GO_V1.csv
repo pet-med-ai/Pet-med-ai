@@ -1,0 +1,23 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-001,exact authorization review commit,8f7a4a25908e874f406b08e9ae2d1dc9de69db26,8f7a4a25908e874f406b08e9ae2d1dc9de69db26,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-002,authorization review GitHub CI gate,PASS,PASS,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-003,one authorized V3 attempt completed,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-004,V3 attempts consumed,1,1,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-005,V3 attempts remaining,0,0,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-006,cumulative attempts consumed,3,3,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-007,no member payload read,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-008,no member extraction,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-009,no raw member or external path output,false,false,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-010,normalized path violations required,0,0,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-011,toc candidate count required,1,1,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-012,toc relation required,IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT,IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-013,logical root containment required,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-014,root contract resolved required,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-015,root layout classification,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-016,wrapper depth,2,2,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-017,backup restoreability verified required for migration,true,false,HOLD,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-018,restore rehearsal complete required for migration,true,false,HOLD,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-019,no retry or authorization reuse,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-020,no runner created or executed,true,true,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-021,execution evidence disposition,GO_TO_SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3,GO_TO_SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3,PASS,HOLD
+PMAI-P0-04-ARCI-V3-EXEC-EVID-GNG-022,next governance subject,SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3_REQUIRED,SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3_REQUIRED,PASS,HOLD

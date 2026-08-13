@@ -1,0 +1,306 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Archive Root Contract Investigation V3 Execution Evidence V1
+
+This repository-only package records the sanitized result of the already
+completed, single authorized V3 metadata-only archive/root investigation. It
+does not reopen, list, or read the backup, retry the investigation, create,
+activate, or execute an investigator, create a target or runner, connect to a
+database, restore, create or execute migration 0010, deploy, delete, stage,
+commit, or push.
+
+## 1. Canonical evidence decision
+
+~~~text
+stage_id=PMAI-P0-04
+substage=ARCHIVE_ROOT_CONTRACT_INVESTIGATION_V3_EXECUTION_EVIDENCE_V1
+stage_status=IN_PROGRESS
+package_status=V3_EXECUTION_EVIDENCE_RECORD_ONLY
+evidence_status=COMPLETE_SINGLE_V3_METADATA_ATTEMPT_ROOT_CONTRACT_RESOLVED
+evidence_record_id=PMAI-P0-04-ARCI-V3-EXEC-EVID-V1-20260813
+investigation_execution_performed=true
+investigation_process_completed=true
+investigation_exit_code=0
+v1_archive_listing_attempts_consumed=1
+v2_archive_listing_attempts_consumed=1
+v3_archive_listing_attempt_budget=1
+v3_archive_listing_attempts_consumed=1
+v3_archive_listing_attempts_remaining=0
+cumulative_archive_listing_attempts_consumed=3
+cumulative_archive_listing_attempts_remaining=0
+automatic_retry=false
+manual_retry_authorized=false
+additional_archive_listing_attempt_authorized=false
+root_contract_resolved=true
+root_layout_classification=PG_DIRECTORY_ROOT_DEEP_WRAPPED
+wrapper_depth=2
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+decision=GO_TO_SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3
+next_action=SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3_REQUIRED
+~~~
+
+Exit code zero means the reviewed candidate completed its metadata scan and
+emitted valid sanitized JSON. The V3 result resolves the archive/root contract;
+it does not verify restoreability and does not authorize runner creation or a
+restore.
+
+## 2. Repository and authorization baseline
+
+~~~text
+authorization_review_commit=8f7a4a25908e874f406b08e9ae2d1dc9de69db26
+authorization_review_commit_parent=0e6dfdd876227d88003bebc9edd966f0821c0b41
+local_main_at_evidence_entry=8f7a4a25908e874f406b08e9ae2d1dc9de69db26
+origin_main_at_evidence_entry=8f7a4a25908e874f406b08e9ae2d1dc9de69db26
+github_ci_gate_number=203
+github_ci_gate_status=PASS
+github_ci_gate_commit=8f7a4a25908e874f406b08e9ae2d1dc9de69db26
+prior_ci_sha256=27171bf84096af25dc25ff3f0153516108b92b22fec878b1afc9184df5c2dece
+final_ci_sha256=74b9b164ef72436c3989e7b2920b5114c7abda52fec7f601bb322c58ec358f8a
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_before_investigation=true
+repository_clean_after_investigation=true
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+active_0010_migration_file_count=0
+baseline_source=OPERATOR_COMMIT_PUSH_OUTPUT_GITHUB_CI_GATE_203_SCREENSHOT_AND_SANITIZED_V3_TERMINAL_RESULT
+~~~
+
+Gate 203 proves only the authorization-review repository commit. It is not
+runtime, database, restore, or restoreability evidence.
+
+## 3. Consumed V3 one-time authorization
+
+~~~text
+authorization_record_id=PMAI-P0-04-ARCI-V3-AUTH-V1-20260813
+execution_confirmation_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260813
+authorization_scope=ONE_EXACT_ARCHIVE_ONE_V3_DEPTH_AWARE_METADATA_ONLY_ATTEMPT
+v3_attempt_number=1
+cumulative_archive_listing_attempt_number=3
+execution_authorization_was_present=true
+execution_authorization_consumed=true
+one_time_execution_confirmation_was_present=true
+current_v3_investigation_authorized=false
+current_v3_investigation_execution_authorized=false
+current_v3_archive_listing_attempt_authorized=false
+authorization_reuse_allowed=false
+v3_investigator_reexecution_allowed=false
+restore_runner_design_authorized=false
+restore_runner_creation_authorized=false
+restore_execution_authorized=false
+~~~
+
+The one-time V3 confirmation cannot be reused. The successful root contract
+classification consumes the only approved V3 metadata attempt.
+
+## 4. Exact archive and implementation binding
+
+~~~text
+approved_backup_file_name=2026-08-02T15_16Z.dir.tar.gz
+approved_backup_file_size_bytes=22299
+approved_backup_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+approved_archive_sha256_match=true
+investigation_implementation_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ARCHIVE_ROOT_CONTRACT_METADATA_INVESTIGATOR_V3_AUTHORIZED_CANDIDATE.py.txt
+investigation_implementation_sha256=6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14
+listing_tool_identity=PYTHON_STDLIB_TARFILE_METADATA_SCAN
+listing_tool_version=3.9.6
+outer_container_classification=GZIP_TAR
+archive_external_path_repository_value=FORBIDDEN
+raw_archive_bytes_repository_value=FORBIDDEN
+raw_member_names_repository_value=FORBIDDEN
+raw_logical_root_repository_value=FORBIDDEN
+~~~
+
+The exact external path, archive bytes, raw member names, and raw logical root
+are not retained in Git. Only hashes, bounded metrics, and fixed classifications
+are admitted.
+
+## 5. Sanitized V3 investigation result
+
+~~~text
+sanitized_result_canonicalization=EXACT_UTF8_JSON_SORTED_KEYS_COMPACT_NO_TRAILING_NEWLINE
+sanitized_v3_investigation_result_sha256=2d133850451ef0941443c4588f9f649aafa54f9a1d1e5670e54529f541429040
+sanitized_v3_result_field_count=43
+prior_v1_sanitized_result_sha256=c8c68cbe00ebeff2eae75fb6c1b375af8e867b869e68378e43b9188b1a2b6893
+prior_v2_sanitized_result_sha256=3eef22eeab17779b4e5499f53c22caf22fd5d0fd7c107cdaca6cbb8926ebf028
+~~~
+
+~~~json
+{"all_members_contained_by_logical_root":true,"approved_archive_sha256_match":true,"archive_member_count":29,"archive_modified":false,"archive_uncompressed_size_bytes":196874,"authorization_record_id":"PMAI-P0-04-ARCI-V3-AUTH-V1-20260813","automatic_retry":false,"case_collision_count":0,"cumulative_archive_listing_attempt_number":3,"decision":"GO_TO_SEPARATE_RESTORE_RUNNER_DESIGN_PREPARATION_V3","directory_entry_count":3,"duplicate_normalized_member_count":0,"implementation_sha256":"6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14","leading_dot_prefix_member_count":28,"listing_tool_identity":"PYTHON_STDLIB_TARFILE_METADATA_SCAN","listing_tool_version":"3.9.6","logical_root_fingerprint_sha256":"fcded0b983602688dfdd29b9742cdea17d429d8a19567c01feca91387c7c6d47","member_depth_max":3,"member_depth_min":1,"member_extraction_performed":false,"member_name_set_sha256":"3a509a2084dd279e644c95d83d77babe555f21de76950c1c092421952a75e229","member_payload_read":false,"normalization_reason_counts":{"ACCEPTED_CANONICAL_RELATIVE":0,"ACCEPTED_LEADING_DOT_PREFIX":28,"ACCEPTED_ROOT_MARKER":1,"REJECT_ABSOLUTE_PATH":0,"REJECT_BACKSLASH":0,"REJECT_CONTROL_CHARACTER":0,"REJECT_DRIVE_PREFIX":0,"REJECT_EMPTY_COMPONENT":0,"REJECT_EMPTY_PATH":0,"REJECT_EXCESSIVE_COMPONENT_DEPTH":0,"REJECT_EXCESSIVE_NAME_BYTES":0,"REJECT_INTERNAL_DOT_COMPONENT":0,"REJECT_PARENT_COMPONENT":0,"REJECT_ROOT_MARKER_NON_DIRECTORY":0},"normalized_path_violation_count":0,"numeric_metric_saturation_detected":false,"outer_container_classification":"GZIP_TAR","raw_external_path_emitted":false,"raw_member_names_emitted":false,"regular_file_count":26,"restore_execution":false,"restore_input_kind_classification":"PG_DIRECTORY_ROOT_DEEP_WRAPPED","root_contract_resolved":true,"root_layout_classification":"PG_DIRECTORY_ROOT_DEEP_WRAPPED","root_marker_count":1,"shared_prefix_depth":2,"stop_code":"NONE","toc_dat_candidate_count":1,"toc_dat_normalized_depth":2,"toc_dat_relation_category":"IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT","top_level_component_count":1,"unsafe_or_special_member_count":0,"v3_attempt_number":1,"wrapper_depth":2}
+~~~
+
+## 6. V3 structural classification facts
+
+~~~text
+archive_member_count=29
+archive_uncompressed_size_bytes=196874
+regular_file_count=26
+directory_entry_count=3
+unsafe_or_special_member_count=0
+accepted_canonical_relative_count=0
+accepted_leading_dot_prefix_count=28
+accepted_root_marker_count=1
+normalized_path_violation_count=0
+duplicate_normalized_member_count=0
+case_collision_count=0
+leading_dot_prefix_member_count=28
+root_marker_count=1
+all_members_contained_by_logical_root=true
+logical_root_fingerprint_sha256=fcded0b983602688dfdd29b9742cdea17d429d8a19567c01feca91387c7c6d47
+wrapper_depth=2
+toc_dat_candidate_count=1
+toc_dat_normalized_depth=2
+toc_dat_relation_category=IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT
+root_layout_classification=PG_DIRECTORY_ROOT_DEEP_WRAPPED
+shared_prefix_depth=2
+top_level_component_count=1
+member_depth_min=1
+member_depth_max=3
+numeric_metric_saturation_detected=false
+member_name_set_sha256=3a509a2084dd279e644c95d83d77babe555f21de76950c1c092421952a75e229
+restore_input_kind_classification=PG_DIRECTORY_ROOT_DEEP_WRAPPED
+stop_code=NONE
+~~~
+
+The depth-aware metadata result establishes one safe logical root with two
+wrapper components, one immediate-child `toc.dat`, and containment of every
+accepted archive member. It emits only a logical-root fingerprint, not the root
+string.
+
+## 7. Evidence and inference boundary
+
+~~~text
+root_contract_resolved=true
+deep_wrapper_layout_established=true
+toc_dat_logical_depth_established=true
+all_members_contained_by_logical_root_established=true
+backup_corruption_established=false
+backup_safety_established=false
+backup_restoreability_established=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+restore_runner_contract_designed=false
+restore_runner_design_authorized=false
+restore_execution_authorized=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+Root-contract success is necessary input for a later runner design. It is not
+proof that `pg_restore` can consume the archive, that a database can be restored,
+or that migration 0010 may proceed.
+
+## 8. Recorded completed execution boundary
+
+~~~text
+investigation_archive_file_opened=true
+investigation_backup_archive_listing_invoked=true
+investigation_backup_archive_member_headers_read=true
+investigation_backup_archive_member_payload_read=false
+investigation_backup_archive_extracted=false
+investigation_backup_archive_copied=false
+investigation_backup_archive_uploaded=false
+investigation_backup_archive_modified=false
+investigation_backup_archive_repackaged=false
+investigation_raw_member_names_emitted=false
+investigation_raw_external_path_emitted=false
+investigation_network_access=false
+investigation_database_connection=false
+investigation_database_write=false
+investigation_restore_execution=false
+investigation_pg_restore_invoked=false
+investigation_psql_invoked=false
+investigation_alembic_invoked=false
+investigation_target_created=false
+investigation_runner_created=false
+investigation_runner_modified=false
+investigation_locked_runner_invoked=false
+investigation_migration_created=false
+investigation_migration_executed=false
+investigation_application_deployment=false
+investigation_resource_deleted=false
+~~~
+
+The three true access markers describe the completed authorized V3 metadata
+attempt. They never grant authority for another access.
+
+## 9. Repository evidence-package boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+package_archive_file_opened=false
+package_backup_archive_listing_invoked=false
+package_backup_archive_member_headers_read=false
+package_backup_archive_member_payload_read=false
+package_backup_archive_extracted=false
+package_backup_archive_copied=false
+package_backup_archive_uploaded=false
+package_backup_archive_modified=false
+package_backup_archive_repackaged=false
+investigation_retry=false
+new_investigator_created=false
+new_investigator_activated=false
+new_investigator_executed=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+restore_runner_created=false
+restore_runner_modified=false
+locked_runner_invoked=false
+render_target_created=false
+render_target_deleted=false
+application_deployment=false
+resource_deleted=false
+repository_apply_authorized=false
+git_stage_authorized=false
+git_commit_authorized=false
+git_push_authorized=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+## 10. Production and clinical hard gates retained
+
+~~~text
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+database_revision=0009_diag_data
+alembic_head=0009_diag_data
+schema_ok=true
+migration_errors=[]
+writes_database=false
+exposes_database_url=false
+production_auto_deploy_verified=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~
+
+## 11. Mandatory stop conditions and next gate
+
+The completed V3 attempt must not be rerun. Stop on any proposal to reuse its
+authorization, access the archive again, inspect raw member names or the raw
+logical root, perform another scan, infer restoreability, create or execute an
+investigator, create a target or runner, connect to a database, restore, create
+or execute migration 0010, deploy, delete, stage, commit, or push without the
+corresponding separate gate.
+
+The only proposed next governance subject is a separate Restore Runner Design
+Preparation V3. This evidence package does not design or create a runner and
+grants no archive, database, target, restore, migration, deployment, deletion,
+or publication authority.
