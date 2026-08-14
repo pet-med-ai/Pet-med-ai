@@ -1,0 +1,29 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-RR-V3-AUTH-GNG-001,entry commit,190de64deac0eef19c9ffcaafc8ecbdcc12f7278,190de64deac0eef19c9ffcaafc8ecbdcc12f7278,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-002,entry CI gate,PASS,PASS,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-003,Route C retained,true,true,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-004,runner design package complete,true,true,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-005,inert design candidate hash exact,true,true,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-006,root contract resolved,true,true,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-007,root layout deep wrapped,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-008,wrapper depth,2,2,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-009,review scope recorded,true,true,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-010,current implementation preparation authority,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-011,proposed implementation preparation authority,true,true,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-012,active runner created,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-013,runner activation authorized,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-014,runner execution authorized,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-015,archive access,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-016,target provisioning authorized,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-017,database connection,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-018,restore execution,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-019,migration 0010 creation,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-020,deployment,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-021,resource deletion,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-AUTH-GNG-022,repository apply authority,separate authorization required,false,HOLD,REQUEST_SEPARATE_APPLY_AUTHORIZATION
+PMAI-P0-04-RR-V3-AUTH-GNG-023,package publication authority,separate authorization required,false,HOLD,REQUEST_SEPARATE_PUBLICATION_AUTHORIZATION
+PMAI-P0-04-RR-V3-AUTH-GNG-024,inert implementation preparation,after effective gate,false,HOLD,COMPLETE_CURRENT_PUBLICATION_GATES
+PMAI-P0-04-RR-V3-AUTH-GNG-025,active runner implementation,separate later authorization required,false,HOLD,REQUEST_NEW_GOVERNANCE_REVIEW
+PMAI-P0-04-RR-V3-AUTH-GNG-026,fresh target authorization,separate later authorization required,false,HOLD,REQUEST_TARGET_AUTHORIZATION
+PMAI-P0-04-RR-V3-AUTH-GNG-027,one-time restore authorization,separate later authorization required,false,HOLD,REQUEST_EXECUTION_AUTHORIZATION
+PMAI-P0-04-RR-V3-AUTH-GNG-028,backup restoreability verified,true,false,HOLD,COMPLETE_SEPARATE_RESTORE_EVIDENCE_CHAIN

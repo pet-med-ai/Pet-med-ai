@@ -1,0 +1,41 @@
+test_id,category,test,expected,status
+PMAI-P0-04-RR-V3-AUTH-T001,baseline,entry commit exact,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T002,baseline,entry parent exact,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T003,baseline,CI Gate 205 PASS,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T004,baseline,repository clean preflight,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T005,baseline,isolated refs exact,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T006,identity,locked runner hash exact,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T007,identity,inert design candidate hash exact,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T008,identity,candidate .py.txt suffix,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T009,static,candidate AST parse only,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T010,static,candidate imports restricted,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T011,static,candidate forbidden calls absent,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T012,static,candidate execution flags false,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T013,contract,approved archive hash bound,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T014,contract,member set hash bound,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T015,contract,logical root fingerprint bound,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T016,contract,root contract resolved,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T017,contract,deep wrapped layout exact,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T018,contract,wrapper depth two,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T019,authorization,current preparation authority false,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T020,authorization,post-effective preparation authority proposed,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T021,authorization,implementation authority false,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T022,authorization,activation authority false,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T023,authorization,execution authority false,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T024,boundary,no active runner created,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T025,boundary,no archive access,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T026,boundary,no archive listing,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T027,boundary,no member payload read,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T028,boundary,no target creation,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T029,boundary,no database connection,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T030,boundary,no restore execution,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T031,boundary,no pg_restore invocation,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T032,boundary,no Alembic invocation,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T033,boundary,no migration creation,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T034,boundary,no deployment,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T035,boundary,no resource deletion,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T036,repository,no stage commit push,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T037,ci,new package paths exact,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T038,ci,new validator command last,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T039,governance,sole next subject exact,PASS,DESIGNED
+PMAI-P0-04-RR-V3-AUTH-T040,governance,restoreability remains false,PASS,DESIGNED

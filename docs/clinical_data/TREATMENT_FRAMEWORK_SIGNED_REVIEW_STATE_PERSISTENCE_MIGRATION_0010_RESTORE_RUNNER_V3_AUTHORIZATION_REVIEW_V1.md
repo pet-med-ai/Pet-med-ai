@@ -1,0 +1,301 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Restore Runner V3 Authorization Review V1
+
+This repository-only review records a proposed, bounded authorization for a
+future inert Restore Runner V3 implementation-preparation package. It binds the
+published design candidate and resolved V3 archive/root contract by exact hash.
+It does not access the backup, create or activate an active runner, create a
+target, connect to a database, restore, create or execute migration 0010,
+deploy, delete, stage, commit, or push.
+
+## 1. Canonical authorization review record
+
+~~~text
+stage_id=PMAI-P0-04
+substage=RESTORE_RUNNER_V3_AUTHORIZATION_REVIEW_V1
+stage_status=IN_PROGRESS
+package_status=AUTHORIZATION_REVIEW_AND_BOUNDARY_RECORD_ONLY
+review_status=PROPOSED_APPROVE_INERT_RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION_ONLY
+authorization_record_id=PMAI-P0-04-RR-V3-AUTH-V1-20260814
+authorization_recorded_date=2026-08-14
+design_dry_run_authority_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260814
+approver_role=PROJECT_OWNER_OPERATOR
+operator_role=PROJECT_OWNER_OPERATOR
+authorization_scope=ONE_EXACT_HASH_BOUND_INERT_RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION
+authorization_record_effective_gate=EXACT_PACKAGE_APPLIED_COMMITTED_PUSHED_AND_GITHUB_CI_PASS
+authorization_scope_recorded=true
+current_restore_runner_v3_implementation_preparation_authorized=false
+post_effective_gate_restore_runner_v3_implementation_preparation_authorized=true
+restore_runner_v3_implementation_authorized=false
+restore_runner_v3_activation_authorized=false
+restore_runner_v3_execution_authorized=false
+fresh_disposable_target_authorized=false
+one_time_restore_execution_authorized=false
+decision=GO_TO_SEPARATE_RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION_V1
+next_action=SEPARATE_RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION_V1_REQUIRED
+~~~
+
+The post-effective-gate value is proposed future repository authority only. It
+does not become current authority during design, dry-run, or repository apply.
+Even after publication and CI PASS, it permits only a new, separately reviewed
+inert implementation-preparation package; it never permits external execution.
+
+## 2. Trusted entry baseline
+
+~~~text
+local_main=190de64deac0eef19c9ffcaafc8ecbdcc12f7278
+origin_main=190de64deac0eef19c9ffcaafc8ecbdcc12f7278
+main_parent=959b15b2ea15f31f19564d553207ce31a31561ce
+github_ci_gate_number=205
+github_ci_gate_status=PASS
+github_ci_gate_commit=190de64deac0eef19c9ffcaafc8ecbdcc12f7278
+prior_ci_sha256=9d02f180ffac1f69ab4f93f0d160bf82cb18205003703d042720b5fda421c7c9
+final_ci_sha256=9a8c3a96466a783c576c28d66b6e7db3cc05c86c018bcd750343c3d99f323104
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_at_entry=true
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+baseline_source=OPERATOR_PUBLICATION_OUTPUT_AND_GITHUB_CI_GATE_205_SCREENSHOT_NO_RUNTIME_RECHECK
+~~~
+
+Gate 205 proves the published repository commit only. Runtime and database
+values above are retained baselines and were not rechecked by this package.
+
+## 3. Completed design package and exact identity binding
+
+~~~text
+completed_substage=RESTORE_RUNNER_DESIGN_PREPARATION_V3
+completed_commit=190de64deac0eef19c9ffcaafc8ecbdcc12f7278
+completed_parent=959b15b2ea15f31f19564d553207ce31a31561ce
+completed_ci_gate=205
+completed_ci_status=PASS
+selected_route=ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3
+restore_runner_design_preparation_complete=true
+inert_restore_runner_design_candidate_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3.py.txt
+inert_restore_runner_design_candidate_sha256=98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b
+inert_restore_runner_design_candidate_suffix=.py.txt
+inert_restore_runner_design_candidate_ast_valid=true
+inert_restore_runner_design_candidate_imported=false
+inert_restore_runner_design_candidate_executed=false
+inert_restore_runner_design_candidate_promoted_to_py=false
+candidate_hash_binding_required_for_future_preparation=true
+candidate_byte_change_requires_new_authorization_review=true
+~~~
+
+The bound candidate is a fail-closed design contract. It contains no archive
+opening, extraction, database connection, subprocess, or restore implementation.
+This review does not replace it with executable source and does not create an
+authorized implementation candidate.
+
+## 4. Resolved archive/root contract consumed from published evidence
+
+~~~text
+approved_archive_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+archive_member_count=29
+regular_file_count=26
+directory_entry_count=3
+normalized_path_violation_count=0
+member_name_set_sha256=3a509a2084dd279e644c95d83d77babe555f21de76950c1c092421952a75e229
+logical_root_fingerprint_sha256=fcded0b983602688dfdd29b9742cdea17d429d8a19567c01feca91387c7c6d47
+root_contract_resolved=true
+root_layout_classification=PG_DIRECTORY_ROOT_DEEP_WRAPPED
+wrapper_depth=2
+toc_dat_candidate_count=1
+toc_dat_normalized_depth=2
+toc_dat_relation_category=IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT
+all_members_contained_by_logical_root=true
+cumulative_archive_listing_attempts_consumed=3
+cumulative_archive_listing_attempts_remaining=0
+archive_contract_source=SANITIZED_V3_EXECUTION_EVIDENCE_ONLY
+archive_contract_rederived_by_review=false
+~~~
+
+The review consumes these facts from published evidence without opening or
+listing the backup. No previous metadata authorization or attempt budget is
+reused.
+
+## 5. Proposed inert implementation-preparation boundary
+
+~~~text
+future_preparation_repository_only=true
+future_preparation_candidate_storage_suffix=.py.txt
+future_preparation_candidate_repository_executable=false
+future_preparation_candidate_execution_enabled=false
+future_preparation_candidate_default_mode=CONTRACT_ONLY_NO_EXTERNAL_EXECUTION
+future_preparation_may_design_safe_extraction_logic=true
+future_preparation_may_design_target_preflight_logic=true
+future_preparation_may_design_restore_argv_logic=true
+future_preparation_may_design_sanitized_postcheck_logic=true
+future_preparation_may_execute_candidate=false
+future_preparation_may_access_archive=false
+future_preparation_may_create_target=false
+future_preparation_may_connect_database=false
+future_preparation_may_execute_restore=false
+future_preparation_may_create_0010=false
+future_preparation_may_execute_0010=false
+future_preparation_may_deploy=false
+future_preparation_may_delete_resource=false
+authorized_implementation_candidate_created=false
+active_restore_runner_created=false
+~~~
+
+The later implementation-preparation package may express reviewed logic only as
+inert source text plus validators. It must keep every activation, external
+access, and execution switch false. Any active `.py` runner, import, execution,
+or external call is outside this authorization.
+
+## 6. Mandatory implementation contract for the later preparation
+
+~~~text
+exact_design_candidate_sha256_required=true
+exact_archive_sha256_required=true
+exact_member_name_set_sha256_required=true
+exact_logical_root_fingerprint_sha256_required=true
+exact_root_layout_classification_required=PG_DIRECTORY_ROOT_DEEP_WRAPPED
+exact_wrapper_depth_required=2
+new_private_temporary_directory_required=true
+temporary_directory_mode_required=0700
+tarfile_extractall_forbidden=true
+normalized_relative_paths_only=true
+symlink_hardlink_device_fifo_socket_rejected=true
+duplicate_normalized_member_rejected=true
+case_collision_rejected=true
+overwrite_forbidden=true
+no_follow_required=true
+member_count_bounded=true
+name_bytes_bounded=true
+component_depth_bounded=true
+total_uncompressed_size_bounded=true
+toc_dat_immediate_child_required=true
+cleanup_on_success_failure_signal_timeout_required=true
+~~~
+
+These are design obligations, not permission to read archive metadata or
+payloads. A later execution authorization must bind the exact completed source
+hash and re-evaluate all external boundaries.
+
+## 7. Target, credential, and restore separation
+
+~~~text
+fresh_disposable_target_selected=false
+fresh_disposable_target_provisioned=false
+target_provisioning_authorized=false
+legacy_retired_target_reuse_forbidden=true
+production_target_excluded=true
+staging_source_target_excluded=true
+database_connection_authorized=false
+database_write_authorized=false
+credential_collection_authorized=false
+connection_value_repository_storage_forbidden=true
+raw_service_identifier_repository_storage_forbidden=true
+restore_command_execution_authorized=false
+pg_restore_invocation_authorized=false
+psql_invocation_authorized=false
+restore_attempt_reserved=false
+restore_attempt_started=false
+restore_attempt_completed=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+~~~
+
+Fresh-target provisioning, credentials, runner activation, and one-time restore
+execution each require later, explicit, separately scoped authorization. None
+may be inferred from the proposed implementation-preparation authorization.
+
+## 8. Ordered future gates retained
+
+~~~text
+future_gate_01=EXACT_INERT_IMPLEMENTATION_PACKAGE_PUBLISHED_AND_CI_PASS
+future_gate_02=SEPARATE_IMPLEMENTATION_AUTHORIZATION_EFFECTIVE
+future_gate_03=SEPARATE_FRESH_DISPOSABLE_TARGET_AUTHORIZATION_EFFECTIVE
+future_gate_04=SEPARATE_RUNNER_ACTIVATION_AND_ONE_TIME_EXECUTION_AUTHORIZATION_EFFECTIVE
+future_gate_05=EXACT_RUNNER_SOURCE_SHA256_MATCH
+future_gate_06=FRESH_TARGET_IDENTITY_AND_ISOLATION_RECHECK
+future_gate_07=APPROVED_ARCHIVE_SHA256_MATCH
+future_gate_08=SAFE_METADATA_CONTRACT_RECHECK
+future_gate_09=SAFE_EXTRACTION_TO_NEW_0700_TEMP_DIRECTORY
+future_gate_10=EXTRACTED_LOGICAL_ROOT_FINGERPRINT_MATCH
+future_gate_11=READ_ONLY_EMPTY_TARGET_PREFLIGHT
+future_gate_12=ONE_ATTEMPT_RESERVATION
+future_gate_13=SINGLE_TRANSACTION_PG_RESTORE
+future_gate_14=READ_ONLY_SANITIZED_POSTCHECK
+future_gate_15=SANITIZED_EVIDENCE_WRITE_AND_SECRET_EXTRACTION_CLEANUP
+~~~
+
+Failure or ambiguity at any gate is HOLD. Automatic retry and authorization
+reuse remain forbidden.
+
+## 9. Current repository-only boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+archive_file_opened=false
+backup_archive_listing_invoked=false
+backup_archive_member_headers_read=false
+backup_archive_member_payload_read=false
+backup_archive_extracted=false
+backup_archive_copied=false
+backup_archive_uploaded=false
+backup_archive_modified=false
+backup_archive_repackaged=false
+investigation_retry=false
+automatic_retry=false
+manual_retry_authorized=false
+active_restore_runner_created=false
+restore_runner_activated=false
+restore_runner_executed=false
+locked_runner_invoked=false
+render_target_created=false
+render_target_deleted=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+application_deployment=false
+resource_deleted=false
+files_staged=false
+files_committed=false
+files_pushed=false
+~~~
+
+## 10. Review outcome and sole next subject
+
+The review outcome is a proposed approval for one repository-only inert
+implementation-preparation package after this exact authorization-review bundle
+is separately applied, published, and passes GitHub CI. The sole next governance
+subject is `RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION_V1`.
+
+It is not authority to create or activate an active runner, access the archive,
+provision a target, collect credentials, connect to a database, execute restore,
+create or execute migration 0010, deploy, delete, or publish this package.
+
+## 11. Production and clinical hard gates retained
+
+~~~text
+active_0010_migration_file_created=false
+corrected_migration_implementation_authorized=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+production_migration_authorized=false
+production_migration_executed=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~

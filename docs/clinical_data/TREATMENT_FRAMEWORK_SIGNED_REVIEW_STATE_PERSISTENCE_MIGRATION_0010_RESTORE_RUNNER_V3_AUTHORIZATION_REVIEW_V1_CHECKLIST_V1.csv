@@ -1,0 +1,53 @@
+control_id,control,expected,current,status,evidence,on_failure
+PMAI-P0-04-RR-V3-AUTH-CHK-001,stage_id,PMAI-P0-04,PMAI-P0-04,PASS,authorization review document,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-002,substage,RESTORE_RUNNER_V3_AUTHORIZATION_REVIEW_V1,RESTORE_RUNNER_V3_AUTHORIZATION_REVIEW_V1,PASS,authorization review document,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-003,entry commit,190de64deac0eef19c9ffcaafc8ecbdcc12f7278,190de64deac0eef19c9ffcaafc8ecbdcc12f7278,PASS,published baseline,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-004,entry parent,959b15b2ea15f31f19564d553207ce31a31561ce,959b15b2ea15f31f19564d553207ce31a31561ce,PASS,published baseline,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-005,CI Gate 205,PASS,PASS,PASS,operator screenshot,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-006,repository clean at entry,true,true,PASS,operator publication output,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-007,isolated local ref,8d1dc8814ed8f80d8bc965b494c1c320fc08f228,8d1dc8814ed8f80d8bc965b494c1c320fc08f228,PASS,published baseline,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-008,isolated remote ref,8d1dc8814ed8f80d8bc965b494c1c320fc08f228,8d1dc8814ed8f80d8bc965b494c1c320fc08f228,PASS,published baseline,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-009,Route C retained,true,true,PASS,authorization review document,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-010,runner design preparation complete,true,true,PASS,published design package,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-011,inert design candidate hash,98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b,98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b,PASS,repository candidate,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-012,inert candidate suffix,.py.txt,.py.txt,PASS,repository candidate,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-013,inert candidate AST valid,true,true,PASS,static validator,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-014,inert candidate execution enabled,false,false,PASS,static validator,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-015,inert candidate archive access enabled,false,false,PASS,static validator,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-016,inert candidate database connection enabled,false,false,PASS,static validator,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-017,inert candidate restore execution enabled,false,false,PASS,static validator,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-018,approved archive hash bound,true,true,PASS,sanitized V3 evidence,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-019,member set hash bound,true,true,PASS,sanitized V3 evidence,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-020,logical root fingerprint bound,true,true,PASS,sanitized V3 evidence,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-021,root contract resolved,true,true,PASS,sanitized V3 evidence,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-022,root layout classification,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PASS,sanitized V3 evidence,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-023,wrapper depth,2,2,PASS,sanitized V3 evidence,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-024,cumulative listing attempts consumed,3,3,PASS,sanitized V3 evidence,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-025,current implementation preparation authority,false,false,PASS,authorization review document,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-026,proposed post-effective implementation preparation authority,true,true,PASS,authorization review document,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-027,active runner created,false,false,PASS,authorization review boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-028,runner activated,false,false,PASS,authorization review boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-029,runner executed,false,false,PASS,authorization review boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-030,authorized implementation candidate created,false,false,PASS,authorization review boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-031,archive opened,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-032,archive listed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-033,archive payload read,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-034,target created,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-035,target provisioning authorized,false,false,PASS,authorization review boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-036,database connection,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-037,database write,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-038,restore execution,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-039,one-time restore authority,false,false,PASS,authorization review boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-040,pg_restore invoked,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-041,psql invoked,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-042,Alembic invoked,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-043,migration created,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-044,migration executed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-045,deployment performed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-046,resource deleted,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-047,files staged,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-048,files committed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-049,files pushed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-050,backup restoreability verified,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-051,disposable restore rehearsal complete,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-AUTH-CHK-052,next action,SEPARATE_RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION_V1_REQUIRED,SEPARATE_RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION_V1_REQUIRED,PASS,authorization review document,HOLD
