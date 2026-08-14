@@ -1,0 +1,31 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-001,entry baseline,40f263be59d8732589ba78c4aa985d8c1b1b0a98,40f263be59d8732589ba78c4aa985d8c1b1b0a98,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-002,entry CI Gate,206 PASS,206 PASS,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-003,authorization review effective,true,true,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-004,design candidate hash,98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b,98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-005,implementation candidate hash locked,true,true,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-006,candidate stored inertly,.py.txt,.py.txt,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-007,candidate AST valid,true,true,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-008,candidate imported,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-009,candidate executed,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-010,active runner created,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-011,execution switches,all false,all false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-012,future bindings,UNBOUND,UNBOUND,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-013,archive access,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-014,target provisioning,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-015,database connection,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-016,restore execution,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-017,migration 0010,not created or executed,not created or executed,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-018,deployment,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-019,deletion,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-020,safe extraction implementation,static only,static only,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-021,target preflight implementation,static only,static only,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-022,restore argv implementation,static only,static only,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-023,postcheck implementation,static only,static only,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-024,automatic retry,false,false,PASS,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-025,backup restoreability,false,false,HOLD,REQUEST_SEPARATE_EVIDENCE
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-026,restore rehearsal complete,false,false,HOLD,REQUEST_SEPARATE_EVIDENCE
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-027,package repository apply,separate authorization required,false,HOLD,REQUEST_SEPARATE_APPLY_AUTHORIZATION
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-028,package publication,separate authorization required,false,HOLD,REQUEST_SEPARATE_PUBLICATION_AUTHORIZATION
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-029,implementation activation,separate authorization required,false,HOLD,REQUEST_SEPARATE_IMPLEMENTATION_AUTHORIZATION_REVIEW
+PMAI-P0-04-RR-V3-IMPL-PREP-GNG-030,sole next subject,RESTORE_RUNNER_V3_IMPLEMENTATION_AUTHORIZATION_REVIEW_V1,RESTORE_RUNNER_V3_IMPLEMENTATION_AUTHORIZATION_REVIEW_V1,PASS,HOLD

@@ -27,7 +27,7 @@ EXPECTED_HEAD = "190de64deac0eef19c9ffcaafc8ecbdcc12f7278"
 EXPECTED_PARENT = "959b15b2ea15f31f19564d553207ce31a31561ce"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
 EXPECTED_PRIOR_CI_SHA256 = "9d02f180ffac1f69ab4f93f0d160bf82cb18205003703d042720b5fda421c7c9"
-EXPECTED_FINAL_CI_SHA256 = "9a8c3a96466a783c576c28d66b6e7db3cc05c86c018bcd750343c3d99f323104"
+EXPECTED_FINAL_CI_SHA256 = "33d0cc12675211d7761ab1f1c7a909709c24df56854d31fad1d67638e555614f"
 EXPECTED_LOCKED_RUNNER_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f"
 EXPECTED_CANDIDATE_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_ARCHIVE_SHA256 = "ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7"
@@ -268,15 +268,16 @@ def main() -> int:
     need(all(row["status"] == "DESIGNED" for row in tests), "test matrix status")
 
     targets = ci_targets(ci)
-    need(len(targets) == 106 and len(targets) == len(set(targets)), "CI TARGETS canonical")
+    need(len(targets) == 112 and len(targets) == len(set(targets)), "CI TARGETS canonical")
     need(PACKAGE_PATHS.issubset(set(targets)), "authorization review package targets")
     command = "python3 " + VALIDATOR + " || exit 1"
+    implementation_preparation_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_restore_runner_v3_implementation_preparation_v1.py || exit 1"
     need(
         ci.splitlines().count("# PMAI-P0-04 restore runner V3 authorization review v1") == 1,
         "CI marker count",
     )
     need(ci.splitlines().count(command) == 1, "CI command count")
-    need(len(python_lines(ci)) == 22 and python_lines(ci)[-1] == command, "CI command order")
+    need(len(python_lines(ci)) == 23 and python_lines(ci)[-2:] == [command, implementation_preparation_command], "CI command order")
 
     unsafe_suffixes = (".png", ".jpg", ".jpeg", ".json", ".tar", ".tar.gz", ".db", ".bak", ".save")
     need(not any(path.lower().endswith(unsafe_suffixes) for path in targets), "raw or unsafe target")

@@ -1,0 +1,353 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Restore Runner V3 Implementation Preparation V1
+
+This repository-only package converts the exact authorized Restore Runner V3
+design into one hash-bound inert implementation candidate. The candidate is
+stored only as `.py.txt`; CI parses it as text and never imports or executes it.
+This package does not access the backup, create or activate an active runner,
+create a target, connect to a database, restore, create or execute migration
+0010, deploy, delete, stage, commit, or push.
+
+## 1. Canonical preparation record
+
+~~~text
+stage_id=PMAI-P0-04
+substage=RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION_V1
+stage_status=IN_PROGRESS
+package_status=INERT_IMPLEMENTATION_PREPARATION_ONLY
+preparation_record_id=PMAI-P0-04-RR-V3-IMPL-PREP-V1-20260814
+authorization_source=PUBLISHED_RESTORE_RUNNER_V3_AUTHORIZATION_REVIEW_V1_AND_EXPLICIT_USER_DIRECTION_20260814
+current_restore_runner_v3_implementation_preparation_authorized=true
+restore_runner_v3_implementation_preparation_complete=true
+inert_implementation_candidate_created=true
+active_restore_runner_created=false
+restore_runner_v3_implementation_authorized=false
+restore_runner_v3_activation_authorized=false
+restore_runner_v3_execution_authorized=false
+fresh_disposable_target_authorized=false
+one_time_restore_execution_authorized=false
+decision=GO_TO_SEPARATE_RESTORE_RUNNER_V3_IMPLEMENTATION_AUTHORIZATION_REVIEW_V1
+next_action=SEPARATE_RESTORE_RUNNER_V3_IMPLEMENTATION_AUTHORIZATION_REVIEW_V1_REQUIRED
+~~~
+
+The current authority ends with repository-only preparation. It does not
+authorize promoting the candidate to `.py`, importing it, executing it, opening
+the archive, obtaining target credentials, or making any external call.
+
+## 2. Trusted entry baseline
+
+~~~text
+local_main=40f263be59d8732589ba78c4aa985d8c1b1b0a98
+origin_main=40f263be59d8732589ba78c4aa985d8c1b1b0a98
+main_parent=190de64deac0eef19c9ffcaafc8ecbdcc12f7278
+github_ci_gate_number=206
+github_ci_gate_status=PASS
+github_ci_gate_commit=40f263be59d8732589ba78c4aa985d8c1b1b0a98
+prior_ci_sha256=9a8c3a96466a783c576c28d66b6e7db3cc05c86c018bcd750343c3d99f323104
+final_ci_sha256=33d0cc12675211d7761ab1f1c7a909709c24df56854d31fad1d67638e555614f
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_at_entry=true
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+baseline_source=OPERATOR_PUBLICATION_OUTPUT_AND_GITHUB_CI_GATE_206_SCREENSHOT_NO_RUNTIME_RECHECK
+~~~
+
+Gate 206 proves only the published repository state. The retained runtime and
+database values were not rechecked by this preparation.
+
+## 3. Authorization and immutable design bindings
+
+~~~text
+authorization_review_commit=40f263be59d8732589ba78c4aa985d8c1b1b0a98
+authorization_review_parent=190de64deac0eef19c9ffcaafc8ecbdcc12f7278
+authorization_review_ci_gate=206
+authorization_review_ci_status=PASS
+authorization_record_id=PMAI-P0-04-RR-V3-AUTH-V1-20260814
+selected_route=ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3
+design_candidate_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3.py.txt
+design_candidate_sha256=98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b
+design_candidate_modified_by_preparation=false
+design_candidate_imported=false
+design_candidate_executed=false
+archive_contract_source=SANITIZED_V3_EXECUTION_EVIDENCE_ONLY
+archive_contract_rederived=false
+~~~
+
+The published design candidate remains byte-for-byte unchanged. This package
+creates a separate implementation candidate and does not overwrite or promote
+the design record.
+
+## 4. Inert implementation candidate identity
+
+~~~text
+implementation_candidate_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3_IMPLEMENTATION_CANDIDATE_V1.py.txt
+implementation_candidate_sha256=91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081
+implementation_candidate_suffix=.py.txt
+implementation_candidate_repository_executable=false
+implementation_candidate_ast_valid=true
+implementation_candidate_imported=false
+implementation_candidate_executed=false
+implementation_candidate_promoted_to_py=false
+execution_enabled=false
+archive_access_enabled=false
+archive_listing_enabled=false
+member_header_read_enabled=false
+member_payload_read_enabled=false
+archive_extraction_enabled=false
+target_preflight_enabled=false
+database_connection_enabled=false
+database_write_enabled=false
+restore_process_enabled=false
+restore_execution_enabled=false
+pg_restore_invocation_enabled=false
+psql_invocation_enabled=false
+automatic_retry_enabled=false
+manual_retry_enabled=false
+migration_0010_enabled=false
+deployment_enabled=false
+resource_deletion_enabled=false
+~~~
+
+The source includes future implementation logic, but every external gate is a
+literal false and all future identity values remain `UNBOUND`. Its default path
+returns a sanitized HOLD result. The package validator uses AST inspection only.
+
+## 5. Resolved archive/root contract bound without archive access
+
+~~~text
+approved_archive_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+archive_member_count=29
+regular_file_count=26
+directory_entry_count=3
+member_name_set_sha256=3a509a2084dd279e644c95d83d77babe555f21de76950c1c092421952a75e229
+logical_root_fingerprint_sha256=fcded0b983602688dfdd29b9742cdea17d429d8a19567c01feca91387c7c6d47
+root_contract_resolved=true
+root_layout_classification=PG_DIRECTORY_ROOT_DEEP_WRAPPED
+wrapper_depth=2
+toc_dat_candidate_count=1
+toc_dat_normalized_depth=2
+toc_dat_relation_category=IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT
+cumulative_archive_listing_attempts_consumed=3
+cumulative_archive_listing_attempts_remaining=0
+archive_access_performed_by_preparation=false
+archive_listing_performed_by_preparation=false
+archive_member_headers_read_by_preparation=false
+archive_member_payload_read_by_preparation=false
+~~~
+
+No archive path, member name, member header, or payload is consumed by this
+package. The candidate contains constants copied only from sanitized evidence.
+
+## 6. Implemented future safe-extraction contract
+
+~~~text
+manual_member_normalization_implemented=true
+tarfile_extractall_used=false
+tarfile_extract_used=false
+absolute_parent_backslash_drive_control_paths_rejected=true
+new_private_temporary_directory_mode=0700
+output_file_mode=0600
+os_no_follow_required=true
+os_exclusive_create_required=true
+dir_fd_containment_required=true
+symlink_hardlink_device_fifo_socket_rejected=true
+duplicate_normalized_member_rejected=true
+case_collision_rejected=true
+member_count_limit=256
+member_name_utf8_byte_limit=4096
+component_depth_limit=64
+single_member_size_limit_bytes=268435456
+total_uncompressed_size_limit_bytes=1073741824
+exact_wrapper_depth_required=2
+toc_dat_immediate_child_required=true
+archive_pre_and_post_sha256_match_required=true
+cleanup_on_success_failure_signal_timeout_required=true
+~~~
+
+The candidate manually streams regular-file payloads into exclusive no-follow
+descriptors beneath a new private directory. The logic remains inert and is not
+tested against the real archive in this stage.
+
+## 7. Implemented future target and credential preflight
+
+~~~text
+fresh_target_identity_sha256_binding=UNBOUND
+production_identity_sha256_binding=UNBOUND
+staging_identity_sha256_binding=UNBOUND
+schema_manifest_sha256_binding=UNBOUND
+postgresql_major_version_required=18
+tls_required=true
+production_target_excluded=true
+staging_source_target_excluded=true
+application_attachment_count_required=0
+target_user_relation_count_required=0
+alembic_version_relation_absent_required=true
+credential_input=HIDDEN_INTERACTIVE_PROMPTS_ONLY
+database_url_used=false
+temporary_libpq_directory_mode=0700
+temporary_service_file_mode=0600
+temporary_pgpass_file_mode=0600
+connection_value_emitted=false
+raw_service_identifier_emitted=false
+temporary_secret_cleanup_required=true
+~~~
+
+Target identity and schema hashes deliberately remain unbound. A later
+authorization review must bind them before any activation can be considered.
+
+## 8. Implemented future one-attempt restore contract
+
+~~~text
+restore_argv_program=pg_restore
+restore_argv_service=pmai_p0_04_disposable_restore_v3
+restore_no_owner=true
+restore_no_privileges=true
+restore_no_tablespaces=true
+restore_no_publications=true
+restore_no_subscriptions=true
+restore_single_transaction=true
+restore_exit_on_error=true
+restore_verbose=true
+restore_no_password=true
+restore_jobs=1
+restore_clean=false
+restore_create=false
+shell_execution=false
+child_process_new_session=true
+child_timeout_seconds=900
+timeout_kill_process_group=true
+attempt_reservation_uses_exclusive_create=true
+restore_attempt_count_maximum=1
+automatic_retry=false
+manual_retry_authorized=false
+ambiguous_result_policy=HOLD_NO_RETRY
+~~~
+
+The source has no retry loop. Timeout and transport ambiguity are terminal HOLD
+conditions. The one-attempt reservation precedes the future restore call.
+
+## 9. Implemented future read-only postcheck and sanitized evidence
+
+~~~text
+postcheck_transaction_mode=READ_ONLY
+postcheck_database_revision_expected=0009_diag_data
+postcheck_schema_manifest_hash_required=true
+postcheck_raw_clinical_rows_read=false
+postcheck_raw_clinical_rows_emitted=false
+postcheck_database_write=false
+child_stdout_emitted=false
+child_stderr_emitted=false
+raw_archive_path_emitted=false
+raw_member_names_emitted=false
+raw_connection_values_emitted=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+separate_execution_evidence_review_required=true
+~~~
+
+Even a future zero exit code cannot set restoreability to true. Only a separate
+evidence review may change the two hard-gate values.
+
+## 10. Static and synthetic verification performed by this package
+
+~~~text
+candidate_ast_parsed=true
+candidate_imported=false
+candidate_executed=false
+critical_function_source_hash_scheme=SOURCE_LINES_UTF8_SHA256_V1
+critical_function_source_hashes_locked=true
+forbidden_top_level_side_effects_absent=true
+shell_true_absent=true
+tarfile_extractall_absent=true
+tarfile_extract_absent=true
+unsafe_dynamic_execution_absent=true
+reference_normalization_fixture_count=40
+reference_normalization_fixture_pass_count=40
+synthetic_archive_access=false
+synthetic_member_header_read=false
+synthetic_member_payload_read=false
+synthetic_database_connection=false
+synthetic_restore_execution=false
+~~~
+
+Synthetic cases exercise an independent reference model. They do not import or
+execute the candidate and do not open the backup.
+
+## 11. Current repository-only boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+archive_file_opened=false
+backup_archive_listing_invoked=false
+backup_archive_member_headers_read=false
+backup_archive_member_payload_read=false
+backup_archive_extracted=false
+backup_archive_copied=false
+backup_archive_uploaded=false
+backup_archive_modified=false
+backup_archive_repackaged=false
+active_restore_runner_created=false
+restore_runner_activated=false
+restore_runner_executed=false
+locked_runner_invoked=false
+fresh_disposable_target_selected=false
+fresh_disposable_target_authorized=false
+render_target_created=false
+render_target_deleted=false
+credential_collection_performed=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+application_deployment=false
+resource_deleted=false
+files_staged=false
+files_committed=false
+files_pushed=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+## 12. Preparation outcome and sole next subject
+
+This package prepares one exact inert implementation candidate and no active
+runner. After separate repository apply, publication, and GitHub CI PASS, the
+sole next governance subject is
+`RESTORE_RUNNER_V3_IMPLEMENTATION_AUTHORIZATION_REVIEW_V1`.
+
+This package is not authority to promote or execute the candidate, access the
+archive, provision or use a target, collect credentials, connect to a database,
+restore, create or execute migration 0010, deploy, delete, or publish itself.
+
+## 13. Production and clinical hard gates retained
+
+~~~text
+active_0010_migration_file_created=false
+corrected_migration_implementation_authorized=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+production_migration_authorized=false
+production_migration_executed=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~

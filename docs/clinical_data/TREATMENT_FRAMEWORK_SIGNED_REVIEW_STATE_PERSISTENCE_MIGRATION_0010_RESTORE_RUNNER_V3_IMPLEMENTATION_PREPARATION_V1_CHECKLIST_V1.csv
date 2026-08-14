@@ -1,0 +1,57 @@
+control_id,control,expected,current,status,evidence,on_failure
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-001,stage id,PMAI-P0-04,PMAI-P0-04,PASS,package document,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-002,substage,RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION_V1,RESTORE_RUNNER_V3_IMPLEMENTATION_PREPARATION_V1,PASS,package document,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-003,entry commit,40f263be59d8732589ba78c4aa985d8c1b1b0a98,40f263be59d8732589ba78c4aa985d8c1b1b0a98,PASS,published baseline,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-004,entry parent,190de64deac0eef19c9ffcaafc8ecbdcc12f7278,190de64deac0eef19c9ffcaafc8ecbdcc12f7278,PASS,published baseline,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-005,CI Gate 206,PASS,PASS,PASS,operator screenshot,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-006,repository clean at entry,true,true,PASS,operator publication output,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-007,authorization review effective,true,true,PASS,published review and CI,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-008,design candidate unchanged,98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b,98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b,PASS,hash,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-009,implementation candidate suffix,.py.txt,.py.txt,PASS,repository path,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-010,implementation candidate AST valid,true,true,PASS,static validator,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-011,implementation candidate imported,false,false,PASS,static boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-012,implementation candidate executed,false,false,PASS,static boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-013,implementation candidate promoted,false,false,PASS,repository path,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-014,execution enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-015,archive access enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-016,member payload read enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-017,archive extraction enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-018,target preflight enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-019,database connection enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-020,restore execution enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-021,pg_restore enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-022,psql enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-023,automatic retry enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-024,manual retry enabled,false,false,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-025,activation record binding,UNBOUND,UNBOUND,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-026,target identity binding,UNBOUND,UNBOUND,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-027,schema manifest binding,UNBOUND,UNBOUND,PASS,candidate literal,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-028,root contract resolved,true,true,PASS,published V3 evidence,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-029,root layout,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PG_DIRECTORY_ROOT_DEEP_WRAPPED,PASS,published V3 evidence,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-030,wrapper depth,2,2,PASS,published V3 evidence,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-031,manual safe extraction,implemented inertly,implemented inertly,PASS,AST review,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-032,tarfile extractall,absent,absent,PASS,AST review,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-033,no-follow exclusive writes,required,required,PASS,AST review,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-034,target empty preflight,required,required,PASS,AST review,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-035,TLS,required,required,PASS,AST review,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-036,single transaction restore,required,required,PASS,argv review,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-037,restore attempt maximum,1,1,PASS,source review,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-038,postcheck read only,true,true,PASS,SQL review,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-039,clinical payload output,false,false,PASS,source review,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-040,archive accessed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-041,active runner created,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-042,target created,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-043,database connected,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-044,restore executed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-045,0010 created,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-046,0010 executed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-047,deployment,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-048,resource deletion,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-049,files staged,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-050,files committed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-051,files pushed,false,false,PASS,repository-only boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-052,backup restoreability verified,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-053,restore rehearsal complete,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-054,P0-04 execution authorized,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-055,staging 0010 apply authorized,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-CHK-056,next subject,RESTORE_RUNNER_V3_IMPLEMENTATION_AUTHORIZATION_REVIEW_V1,RESTORE_RUNNER_V3_IMPLEMENTATION_AUTHORIZATION_REVIEW_V1,PASS,package outcome,HOLD

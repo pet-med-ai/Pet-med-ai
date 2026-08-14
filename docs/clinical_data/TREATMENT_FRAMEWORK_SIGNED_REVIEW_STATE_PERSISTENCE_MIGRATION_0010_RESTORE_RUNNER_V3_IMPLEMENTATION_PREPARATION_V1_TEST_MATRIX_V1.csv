@@ -1,0 +1,53 @@
+test_id,test,method,expected,status,on_failure
+PMAI-P0-04-RR-V3-IMPL-PREP-T001,candidate AST parses,parse candidate text,AST valid without import,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T002,candidate hash exact,hash candidate bytes,exact locked SHA-256,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T003,design candidate unchanged,hash design candidate,published hash retained,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T004,active candidate absent,check .py sibling,absent,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T005,candidate non-executable,check mode bits,no execute bits,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T006,execution flags false,inspect literal assignments,all external flags false,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T007,future bindings unbound,inspect literal assignments,all future bindings UNBOUND,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T008,top-level side effects absent,inspect AST module body,declarations and main guard only,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T009,dynamic execution absent,inspect calls,no eval exec compile importlib,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T010,shell execution absent,inspect subprocess calls,shell=False,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T011,extractall absent,inspect AST attributes,no extractall,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T012,tar extract absent,inspect AST attributes,no TarFile.extract,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T013,absolute path rejected,reference fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T014,parent path rejected,reference fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T015,backslash path rejected,reference fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T016,drive prefix rejected,reference fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T017,control character rejected,reference fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T018,empty component rejected,reference fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T019,internal dot rejected,reference fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T020,root marker file rejected,reference fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T021,root marker directory accepted,reference fixture,normalized root marker,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T022,leading dot prefix accepted,reference fixture,canonical relative tuple,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T023,canonical relative accepted,reference fixture,canonical relative tuple,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T024,name byte bound,reference fixture,oversize HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T025,component depth bound,reference fixture,oversize HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T026,unsafe member types rejected,inspect contract function,regular and directory only,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T027,duplicate paths rejected,inspect contract function,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T028,case collisions rejected,inspect contract function,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T029,wrapper depth exact,inspect contract constants,2,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T030,toc.dat relation exact,inspect contract constants,immediate child,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T031,member count bounded,inspect constants,256 maximum,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T032,total size bounded,inspect constants,1 GiB maximum,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T033,private temp directory,inspect execution function,0700,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T034,exclusive no-follow file writes,inspect extraction AST,O_EXCL and O_NOFOLLOW,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T035,manual payload streaming,inspect extraction AST,bounded chunks,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T036,target identity hashes,inspect preflight,expected and forbidden hashes required,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T037,production/staging exclusion,inspect preflight,both rejected,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T038,TLS required,inspect preflight,ssl on,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T039,empty target required,inspect preflight,zero user relations and no alembic,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T040,secret files private,inspect libpq writer,0600 and temporary,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T041,restore argv fixed,inspect tuple,reviewed flags only,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T042,single transaction,inspect argv,present,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T043,one attempt reservation,inspect reservation,exclusive create,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T044,timeout no retry,inspect child process,kill process group and HOLD,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T045,postcheck read only,inspect SQL,BEGIN READ ONLY and ROLLBACK,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T046,sanitized output,inspect result keys,no path/member/credential values,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T047,candidate not called by CI,inspect CI commands,validator only,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T048,locked runner unchanged,hash locked runner,exact published hash,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T049,active 0010 absent,glob migrations,absent,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T050,archive access during package,repository-only synthetic review,false,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T051,database connection during package,repository-only synthetic review,false,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-PREP-T052,restore execution during package,repository-only synthetic review,false,DESIGNED,HOLD

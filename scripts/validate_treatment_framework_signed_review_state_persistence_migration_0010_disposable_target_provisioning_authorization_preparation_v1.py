@@ -25,7 +25,7 @@ EXPECTED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4
 CI_COMMAND = 'python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_target_provisioning_authorization_preparation_v1.py || exit 1'
 EXPECTED_PRIOR_CI_SHA256 = '27579b1d054a50223f76590c15bf310c4cc950341d1018e89c54a4849f62d0c2'
 EXPECTED_PRE_ROLLOVER_CI_SHA256 = '9d07238bc0831d43c1b4ee7dfea73d2a92016eca68af4f5bdb210032ab071d50'
-EXPECTED_FINAL_CI_SHA256 = '9a8c3a96466a783c576c28d66b6e7db3cc05c86c018bcd750343c3d99f323104'
+EXPECTED_FINAL_CI_SHA256 = '33d0cc12675211d7761ab1f1c7a909709c24df56854d31fad1d67638e555614f'
 
 FALSE_KEYS = ('disposable_restore_target_provisioning_authorized', 'disposable_restore_execution_authorized', 'disposable_restore_database_created', 'disposable_restore_database_write_authorized', 'restore_runner_created', 'restore_runner_execution_enabled', 'restore_runner_executed_by_ci', 'backup_restoreability_verified', 'disposable_restore_rehearsal_complete', 'corrected_migration_implementation_authorized', 'p0_04_execution_authorized', 'staging_0010_apply_authorized', 'active_0010_migration_file_created', 'staging_0010_migration_executed', 'production_migration_authorized', 'production_migration_executed', 'network_access', 'database_connection', 'database_write', 'restore_execution', 'pg_restore_invoked', 'psql_invoked', 'alembic_invoked', 'migration_created', 'migration_executed')
 

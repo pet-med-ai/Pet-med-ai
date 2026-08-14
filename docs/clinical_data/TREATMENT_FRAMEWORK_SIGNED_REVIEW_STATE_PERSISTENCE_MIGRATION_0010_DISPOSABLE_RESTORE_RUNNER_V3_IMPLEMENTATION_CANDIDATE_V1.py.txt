@@ -1,0 +1,701 @@
+#!/usr/bin/env python3
+"""Inert PMAI-P0-04 Restore Runner V3 implementation candidate V1.
+
+This file is deliberately stored as ``.py.txt``.  The repository package and
+CI parse it as text and never import or execute it.  It contains a fail-closed
+future implementation for separately authorized review.  All archive, target,
+database, restore, migration, deployment, and deletion switches remain false.
+"""
+
+from __future__ import annotations
+
+import argparse
+import getpass
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import signal
+import stat
+import subprocess
+import sys
+import tarfile
+import tempfile
+from typing import Iterable, Optional, Sequence
+
+
+STAGE_ID = "PMAI-P0-04"
+IMPLEMENTATION_PREPARATION_ID = "PMAI-P0-04-RR-V3-IMPL-PREP-V1-20260814"
+IMPLEMENTATION_VERSION = "RESTORE_RUNNER_V3_IMPLEMENTATION_CANDIDATE_V1"
+
+EXECUTION_ENABLED = False
+ARCHIVE_ACCESS_ENABLED = False
+ARCHIVE_LISTING_ENABLED = False
+MEMBER_HEADER_READ_ENABLED = False
+MEMBER_PAYLOAD_READ_ENABLED = False
+ARCHIVE_EXTRACTION_ENABLED = False
+TARGET_PREFLIGHT_ENABLED = False
+DATABASE_CONNECTION_ENABLED = False
+DATABASE_WRITE_ENABLED = False
+RESTORE_PROCESS_ENABLED = False
+RESTORE_EXECUTION_ENABLED = False
+PG_RESTORE_INVOCATION_ENABLED = False
+PSQL_INVOCATION_ENABLED = False
+AUTOMATIC_RETRY_ENABLED = False
+MANUAL_RETRY_ENABLED = False
+MIGRATION_0010_ENABLED = False
+DEPLOYMENT_ENABLED = False
+RESOURCE_DELETION_ENABLED = False
+
+ACTIVATION_AUTHORIZATION_RECORD_ID = "UNBOUND"
+EXPECTED_ACTIVE_SOURCE_SHA256 = "UNBOUND"
+EXPECTED_TARGET_IDENTITY_SHA256 = "UNBOUND"
+FORBIDDEN_PRODUCTION_IDENTITY_SHA256 = "UNBOUND"
+FORBIDDEN_STAGING_IDENTITY_SHA256 = "UNBOUND"
+EXPECTED_SCHEMA_MANIFEST_SHA256 = "UNBOUND"
+
+EXPECTED_ARCHIVE_SHA256 = (
+    "ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7"
+)
+EXPECTED_MEMBER_NAME_SET_SHA256 = (
+    "3a509a2084dd279e644c95d83d77babe555f21de76950c1c092421952a75e229"
+)
+EXPECTED_LOGICAL_ROOT_FINGERPRINT_SHA256 = (
+    "fcded0b983602688dfdd29b9742cdea17d429d8a19567c01feca91387c7c6d47"
+)
+EXPECTED_ROOT_LAYOUT_CLASSIFICATION = "PG_DIRECTORY_ROOT_DEEP_WRAPPED"
+EXPECTED_WRAPPER_DEPTH = 2
+EXPECTED_ARCHIVE_MEMBER_COUNT = 29
+EXPECTED_REGULAR_FILE_COUNT = 26
+EXPECTED_DIRECTORY_ENTRY_COUNT = 3
+EXPECTED_TOC_DAT_CANDIDATE_COUNT = 1
+EXPECTED_TOC_DAT_NORMALIZED_DEPTH = 2
+EXPECTED_TOC_DAT_RELATION = "IMMEDIATE_CHILD_OF_IDENTIFIED_LOGICAL_ROOT"
+EXPECTED_POSTGRESQL_MAJOR_VERSION = 18
+EXPECTED_DATABASE_REVISION_AFTER_RESTORE = "0009_diag_data"
+
+MAX_ARCHIVE_MEMBER_COUNT = 256
+MAX_MEMBER_NAME_UTF8_BYTES = 4096
+MAX_NORMALIZED_COMPONENT_DEPTH = 64
+MAX_TOTAL_UNCOMPRESSED_SIZE_BYTES = 1_073_741_824
+MAX_SINGLE_MEMBER_SIZE_BYTES = 268_435_456
+COPY_CHUNK_BYTES = 1_048_576
+CHILD_TIMEOUT_SECONDS = 900
+TEMP_DIRECTORY_MODE = 0o700
+TEMP_FILE_MODE = 0o600
+
+RESTORE_SERVICE_NAME = "pmai_p0_04_disposable_restore_v3"
+RESTORE_ARGV_PREFIX = (
+    "pg_restore",
+    "--dbname=service=pmai_p0_04_disposable_restore_v3",
+    "--no-owner",
+    "--no-privileges",
+    "--no-tablespaces",
+    "--no-publications",
+    "--no-subscriptions",
+    "--single-transaction",
+    "--exit-on-error",
+    "--verbose",
+    "--no-password",
+)
+
+TARGET_PREFLIGHT_SQL = """
+BEGIN READ ONLY;
+SELECT current_database(),
+       COALESCE(inet_server_addr()::text, ''),
+       inet_server_port()::text,
+       current_setting('server_version_num'),
+       current_setting('ssl'),
+       pg_is_in_recovery()::text,
+       (SELECT count(*)::text FROM pg_stat_activity
+          WHERE datname = current_database() AND pid <> pg_backend_pid()),
+       (SELECT count(*)::text FROM pg_class c
+          JOIN pg_namespace n ON n.oid = c.relnamespace
+         WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+           AND n.nspname !~ '^pg_toast'
+           AND c.relkind IN ('r','p','v','m','S','f')),
+       (to_regclass('public.alembic_version') IS NULL)::text;
+ROLLBACK;
+"""
+
+POSTCHECK_SQL = """
+BEGIN READ ONLY;
+SELECT version_num FROM public.alembic_version;
+SELECT n.nspname || '.' || c.relname
+  FROM pg_class c
+  JOIN pg_namespace n ON n.oid = c.relnamespace
+ WHERE n.nspname NOT IN ('pg_catalog', 'information_schema')
+   AND n.nspname !~ '^pg_toast'
+   AND c.relkind IN ('r','p','v','m','S','f')
+ ORDER BY 1;
+ROLLBACK;
+"""
+
+
+class Hold(RuntimeError):
+    """A sanitized, fixed stop code; raw values must never enter the message."""
+
+
+def need(condition: bool, stop_code: str) -> None:
+    if not condition:
+        raise Hold(stop_code)
+
+
+def is_sha256(value: str) -> bool:
+    return re.fullmatch(r"[0-9a-f]{64}", value) is not None
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def sha256_path(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(COPY_CHUNK_BYTES), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def normalize_member_name(raw_name: str, is_directory: bool) -> tuple[str, ...]:
+    raw = raw_name[:-1] if is_directory and raw_name.endswith("/") else raw_name
+    need(bool(raw), "ARCHIVE_EMPTY_MEMBER_NAME")
+    need(
+        len(raw.encode("utf-8", errors="surrogatepass")) <= MAX_MEMBER_NAME_UTF8_BYTES,
+        "ARCHIVE_MEMBER_NAME_TOO_LONG",
+    )
+    need(not raw.startswith("/"), "ARCHIVE_ABSOLUTE_MEMBER_NAME")
+    need("\\" not in raw, "ARCHIVE_BACKSLASH_MEMBER_NAME")
+    need(
+        not any(ord(character) < 32 or ord(character) == 127 for character in raw),
+        "ARCHIVE_CONTROL_CHARACTER_MEMBER_NAME",
+    )
+    if raw == ".":
+        need(is_directory, "ARCHIVE_ROOT_MARKER_NOT_DIRECTORY")
+        return ()
+    parts = raw.split("/")
+    if parts and parts[0] == ".":
+        parts = parts[1:]
+    need(bool(parts), "ARCHIVE_EMPTY_NORMALIZED_MEMBER_NAME")
+    need(all(part != "" for part in parts), "ARCHIVE_EMPTY_PATH_COMPONENT")
+    need(all(part != "." for part in parts), "ARCHIVE_INTERNAL_DOT_COMPONENT")
+    need(all(part != ".." for part in parts), "ARCHIVE_PARENT_COMPONENT")
+    need(not (len(parts[0]) >= 2 and parts[0][1] == ":"), "ARCHIVE_DRIVE_PREFIX")
+    need(len(parts) <= MAX_NORMALIZED_COMPONENT_DEPTH, "ARCHIVE_COMPONENT_DEPTH_EXCEEDED")
+    return tuple(parts)
+
+
+def common_prefix_depth(paths: Sequence[tuple[str, ...]]) -> int:
+    need(bool(paths), "ARCHIVE_NO_REGULAR_FILES")
+    limit = min(len(parts) for parts in paths)
+    depth = 0
+    while depth < limit and len({parts[depth] for parts in paths}) == 1:
+        depth += 1
+    return depth
+
+
+def logical_root_contains(
+    parts: tuple[str, ...],
+    root_prefix: tuple[str, ...],
+    is_directory: bool,
+) -> bool:
+    if len(parts) >= len(root_prefix):
+        return parts[: len(root_prefix)] == root_prefix
+    return is_directory and parts == root_prefix[: len(parts)]
+
+
+def build_metadata_contract(members: Sequence[tarfile.TarInfo]) -> dict[str, object]:
+    need(len(members) <= MAX_ARCHIVE_MEMBER_COUNT, "ARCHIVE_MEMBER_COUNT_LIMIT")
+    normalized: list[tuple[tarfile.TarInfo, tuple[str, ...]]] = []
+    total_size = 0
+    regular_count = 0
+    directory_count = 0
+    root_marker_count = 0
+    for member in members:
+        need(member.isreg() or member.isdir(), "ARCHIVE_UNSAFE_MEMBER_TYPE")
+        parts = normalize_member_name(member.name, member.isdir())
+        if not parts:
+            root_marker_count += 1
+        else:
+            normalized.append((member, parts))
+        if member.isreg():
+            need(0 <= member.size <= MAX_SINGLE_MEMBER_SIZE_BYTES, "ARCHIVE_MEMBER_SIZE_LIMIT")
+            total_size += member.size
+            need(total_size <= MAX_TOTAL_UNCOMPRESSED_SIZE_BYTES, "ARCHIVE_TOTAL_SIZE_LIMIT")
+            regular_count += 1
+        else:
+            directory_count += 1
+    need(root_marker_count <= 1, "ARCHIVE_ROOT_MARKER_COUNT")
+    names = ["/".join(parts) for _member, parts in normalized]
+    need(len(names) == len(set(names)), "ARCHIVE_DUPLICATE_NORMALIZED_MEMBER")
+    need(len(names) == len({name.casefold() for name in names}), "ARCHIVE_CASE_COLLISION")
+    toc = [
+        parts
+        for member, parts in normalized
+        if member.isreg() and parts[-1] == "toc.dat"
+    ]
+    need(len(toc) == EXPECTED_TOC_DAT_CANDIDATE_COUNT, "ARCHIVE_TOC_DAT_COUNT")
+    root_prefix = toc[0][:-1]
+    need(len(root_prefix) == EXPECTED_WRAPPER_DEPTH, "ARCHIVE_WRAPPER_DEPTH")
+    need(
+        all(logical_root_contains(parts, root_prefix, member.isdir()) for member, parts in normalized),
+        "ARCHIVE_MEMBER_OUTSIDE_LOGICAL_ROOT",
+    )
+    regular_paths = [parts for member, parts in normalized if member.isreg()]
+    need(common_prefix_depth(regular_paths) == EXPECTED_WRAPPER_DEPTH, "ARCHIVE_SHARED_PREFIX_DEPTH")
+    member_name_set_sha256 = sha256_bytes(
+        "".join(name + "\n" for name in sorted(names)).encode("utf-8")
+    )
+    root_fingerprint_sha256 = sha256_bytes("/".join(root_prefix).encode("utf-8"))
+    need(len(members) == EXPECTED_ARCHIVE_MEMBER_COUNT, "ARCHIVE_MEMBER_COUNT_MISMATCH")
+    need(regular_count == EXPECTED_REGULAR_FILE_COUNT, "ARCHIVE_REGULAR_FILE_COUNT_MISMATCH")
+    need(directory_count == EXPECTED_DIRECTORY_ENTRY_COUNT, "ARCHIVE_DIRECTORY_COUNT_MISMATCH")
+    need(member_name_set_sha256 == EXPECTED_MEMBER_NAME_SET_SHA256, "ARCHIVE_MEMBER_SET_HASH_MISMATCH")
+    need(root_fingerprint_sha256 == EXPECTED_LOGICAL_ROOT_FINGERPRINT_SHA256, "ARCHIVE_ROOT_HASH_MISMATCH")
+    return {
+        "directory_entry_count": directory_count,
+        "logical_root_fingerprint_sha256": root_fingerprint_sha256,
+        "member_name_set_sha256": member_name_set_sha256,
+        "regular_file_count": regular_count,
+        "root_layout_classification": EXPECTED_ROOT_LAYOUT_CLASSIFICATION,
+        "root_prefix": root_prefix,
+        "toc_dat_normalized_depth": len(root_prefix),
+        "toc_dat_relation": EXPECTED_TOC_DAT_RELATION,
+        "total_uncompressed_size_bytes": total_size,
+        "wrapper_depth": len(root_prefix),
+    }
+
+
+def build_extraction_plan(
+    members: Sequence[tarfile.TarInfo],
+    root_prefix: tuple[str, ...],
+) -> list[tuple[tarfile.TarInfo, tuple[str, ...]]]:
+    plan: list[tuple[tarfile.TarInfo, tuple[str, ...]]] = []
+    for member in members:
+        parts = normalize_member_name(member.name, member.isdir())
+        if not parts or len(parts) < len(root_prefix):
+            need(member.isdir(), "ARCHIVE_PREFIX_MEMBER_NOT_DIRECTORY")
+            continue
+        need(parts[: len(root_prefix)] == root_prefix, "ARCHIVE_PLAN_ROOT_ESCAPE")
+        relative = parts[len(root_prefix) :]
+        if not relative:
+            need(member.isdir(), "ARCHIVE_LOGICAL_ROOT_NOT_DIRECTORY")
+            continue
+        plan.append((member, relative))
+    plan.sort(key=lambda item: (not item[0].isdir(), len(item[1]), item[1]))
+    relative_names = ["/".join(parts) for _member, parts in plan]
+    need(len(relative_names) == len(set(relative_names)), "EXTRACTION_PLAN_DUPLICATE")
+    need(len(relative_names) == len({name.casefold() for name in relative_names}), "EXTRACTION_PLAN_CASE_COLLISION")
+    return plan
+
+
+def open_private_directory(parent_fd: int, parts: Sequence[str]) -> int:
+    current_fd = os.dup(parent_fd)
+    try:
+        for component in parts:
+            try:
+                os.mkdir(component, TEMP_DIRECTORY_MODE, dir_fd=current_fd)
+            except FileExistsError:
+                pass
+            next_fd = os.open(
+                component,
+                os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                dir_fd=current_fd,
+            )
+            os.close(current_fd)
+            current_fd = next_fd
+        return current_fd
+    except BaseException:
+        os.close(current_fd)
+        raise
+
+
+def extract_member_safely(
+    archive: tarfile.TarFile,
+    root_fd: int,
+    member: tarfile.TarInfo,
+    relative_parts: tuple[str, ...],
+) -> None:
+    parent_fd = open_private_directory(root_fd, relative_parts[:-1])
+    try:
+        name = relative_parts[-1]
+        if member.isdir():
+            try:
+                os.mkdir(name, TEMP_DIRECTORY_MODE, dir_fd=parent_fd)
+            except FileExistsError:
+                existing_fd = os.open(
+                    name,
+                    os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,
+                    dir_fd=parent_fd,
+                )
+                os.close(existing_fd)
+            return
+        flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW
+        target_fd = os.open(name, flags, TEMP_FILE_MODE, dir_fd=parent_fd)
+        try:
+            source = archive.extractfile(member)
+            need(source is not None, "ARCHIVE_MEMBER_STREAM_MISSING")
+            remaining = member.size
+            with source, os.fdopen(target_fd, "wb", closefd=False) as target:
+                while remaining:
+                    chunk = source.read(min(COPY_CHUNK_BYTES, remaining))
+                    need(bool(chunk), "ARCHIVE_MEMBER_TRUNCATED")
+                    target.write(chunk)
+                    remaining -= len(chunk)
+                need(source.read(1) == b"", "ARCHIVE_MEMBER_SIZE_OVERFLOW")
+                target.flush()
+                os.fsync(target.fileno())
+        finally:
+            os.close(target_fd)
+    finally:
+        os.close(parent_fd)
+
+
+def extract_logical_root_once(
+    archive: tarfile.TarFile,
+    members: Sequence[tarfile.TarInfo],
+    contract: dict[str, object],
+    private_root: Path,
+) -> Path:
+    need(hasattr(os, "O_NOFOLLOW"), "PLATFORM_NO_NOFOLLOW")
+    root_fd = os.open(private_root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        root_prefix = contract["root_prefix"]
+        need(isinstance(root_prefix, tuple), "INTERNAL_ROOT_PREFIX_TYPE")
+        plan = build_extraction_plan(members, root_prefix)
+        for member, relative_parts in plan:
+            extract_member_safely(archive, root_fd, member, relative_parts)
+    finally:
+        os.close(root_fd)
+    toc = private_root / "toc.dat"
+    need(toc.is_file() and not toc.is_symlink(), "EXTRACTED_TOC_DAT_MISSING")
+    return private_root
+
+
+def validate_libpq_value(value: str, stop_code: str) -> str:
+    need(bool(value), stop_code)
+    need(len(value.encode("utf-8")) <= 1024, stop_code)
+    need(not any(ord(character) < 32 or ord(character) == 127 for character in value), stop_code)
+    return value
+
+
+def escape_pgpass(value: str) -> str:
+    return value.replace("\\", "\\\\").replace(":", "\\:")
+
+
+def write_private_libpq_files(
+    directory: Path,
+    host: str,
+    port: str,
+    database: str,
+    user: str,
+    password: str,
+) -> dict[str, str]:
+    host = validate_libpq_value(host, "TARGET_HOST_INVALID")
+    port = validate_libpq_value(port, "TARGET_PORT_INVALID")
+    database = validate_libpq_value(database, "TARGET_DATABASE_INVALID")
+    user = validate_libpq_value(user, "TARGET_USER_INVALID")
+    password = validate_libpq_value(password, "TARGET_PASSWORD_INVALID")
+    need(port.isdigit() and 1 <= int(port) <= 65535, "TARGET_PORT_INVALID")
+    service_path = directory / "pg_service.conf"
+    pgpass_path = directory / "pgpass"
+    service_text = (
+        "[" + RESTORE_SERVICE_NAME + "]\n"
+        + "host=" + host + "\n"
+        + "port=" + port + "\n"
+        + "dbname=" + database + "\n"
+        + "user=" + user + "\n"
+        + "sslmode=verify-full\n"
+        + "application_name=pmai_p0_04_restore_v3\n"
+    )
+    pgpass_text = ":".join(escape_pgpass(value) for value in (host, port, database, user, password)) + "\n"
+    for path, value in ((service_path, service_text), (pgpass_path, pgpass_text)):
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, TEMP_FILE_MODE)
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as handle:
+            handle.write(value)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.chmod(path, TEMP_FILE_MODE, follow_symlinks=False)
+    return {
+        "PGPASSFILE": str(pgpass_path),
+        "PGSERVICE": RESTORE_SERVICE_NAME,
+        "PGSERVICEFILE": str(service_path),
+    }
+
+
+def child_environment(libpq: dict[str, str]) -> dict[str, str]:
+    allowed = {key: os.environ[key] for key in ("PATH", "LANG", "LC_ALL") if key in os.environ}
+    allowed.update(libpq)
+    return allowed
+
+
+def run_child_once(
+    argv: Sequence[str],
+    environment: dict[str, str],
+    timeout_seconds: int,
+) -> tuple[int, bytes, bytes]:
+    need(bool(argv) and all(isinstance(value, str) and value for value in argv), "CHILD_ARGV_INVALID")
+    process = subprocess.Popen(
+        list(argv),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=environment,
+        shell=False,
+        start_new_session=True,
+    )
+    try:
+        stdout, stderr = process.communicate(timeout=timeout_seconds)
+    except subprocess.TimeoutExpired:
+        os.killpg(process.pid, signal.SIGKILL)
+        process.communicate()
+        raise Hold("CHILD_TIMEOUT_AMBIGUOUS_NO_RETRY")
+    return process.returncode, stdout, stderr
+
+
+def psql_once(sql: str, environment: dict[str, str]) -> bytes:
+    argv = (
+        "psql",
+        "--no-password",
+        "--no-psqlrc",
+        "--quiet",
+        "--set=ON_ERROR_STOP=1",
+        "--tuples-only",
+        "--no-align",
+        "--field-separator=\t",
+        "--dbname=service=" + RESTORE_SERVICE_NAME,
+        "--command",
+        sql,
+    )
+    returncode, stdout, _stderr = run_child_once(argv, environment, CHILD_TIMEOUT_SECONDS)
+    need(returncode == 0, "PSQL_COMMAND_FAILED_NO_RETRY")
+    return stdout
+
+
+def read_only_target_preflight(environment: dict[str, str]) -> dict[str, object]:
+    raw = psql_once(TARGET_PREFLIGHT_SQL, environment)
+    lines = [line for line in raw.decode("utf-8", errors="strict").splitlines() if line]
+    need(len(lines) == 1, "TARGET_PREFLIGHT_SHAPE_MISMATCH")
+    fields = lines[0].split("\t")
+    need(len(fields) == 9, "TARGET_PREFLIGHT_FIELD_COUNT")
+    database, server_address, port, version_num, ssl_state, recovery, attachments, relations, no_alembic = fields
+    identity_sha256 = sha256_bytes(
+        (database + "\0" + server_address + "\0" + port + "\n").encode("utf-8")
+    )
+    need(identity_sha256 == EXPECTED_TARGET_IDENTITY_SHA256, "TARGET_IDENTITY_MISMATCH")
+    need(identity_sha256 != FORBIDDEN_PRODUCTION_IDENTITY_SHA256, "PRODUCTION_TARGET_FORBIDDEN")
+    need(identity_sha256 != FORBIDDEN_STAGING_IDENTITY_SHA256, "STAGING_TARGET_FORBIDDEN")
+    need(version_num.startswith(str(EXPECTED_POSTGRESQL_MAJOR_VERSION)), "POSTGRESQL_MAJOR_MISMATCH")
+    need(ssl_state == "on", "TARGET_TLS_REQUIRED")
+    need(recovery == "false", "TARGET_RECOVERY_STATE_FORBIDDEN")
+    need(attachments == "0", "TARGET_APPLICATION_ATTACHMENTS_PRESENT")
+    need(relations == "0", "TARGET_NOT_EMPTY")
+    need(no_alembic == "true", "TARGET_ALEMBIC_VERSION_PRESENT")
+    return {
+        "application_attachment_count": 0,
+        "database_relation_count": 0,
+        "postgresql_major_version": EXPECTED_POSTGRESQL_MAJOR_VERSION,
+        "target_identity_sha256": identity_sha256,
+        "tls": True,
+    }
+
+
+def reserve_attempt_once(evidence_directory: Path, attempt_id: str) -> Path:
+    need(re.fullmatch(r"PMAI-P0-04-RR-V3-[A-Z0-9-]+", attempt_id) is not None, "ATTEMPT_ID_INVALID")
+    reservation = evidence_directory / (attempt_id + ".reservation.json")
+    descriptor = os.open(reservation, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, TEMP_FILE_MODE)
+    payload = json.dumps(
+        {
+            "attempt_id": attempt_id,
+            "automatic_retry": False,
+            "restore_attempt_reserved": True,
+            "stage_id": STAGE_ID,
+        },
+        ensure_ascii=True,
+        sort_keys=True,
+        separators=(",", ":"),
+    ).encode("ascii") + b"\n"
+    with os.fdopen(descriptor, "wb") as handle:
+        handle.write(payload)
+        handle.flush()
+        os.fsync(handle.fileno())
+    return reservation
+
+
+def build_restore_argv(extracted_root: Path) -> tuple[str, ...]:
+    need(extracted_root.is_dir() and not extracted_root.is_symlink(), "EXTRACTED_ROOT_UNSAFE")
+    need((extracted_root / "toc.dat").is_file(), "EXTRACTED_TOC_DAT_MISSING")
+    return (*RESTORE_ARGV_PREFIX, str(extracted_root))
+
+
+def restore_once(extracted_root: Path, environment: dict[str, str]) -> dict[str, object]:
+    argv = build_restore_argv(extracted_root)
+    returncode, stdout, stderr = run_child_once(argv, environment, CHILD_TIMEOUT_SECONDS)
+    transcript_sha256 = sha256_bytes(stdout + b"\0" + stderr)
+    need(returncode == 0, "PG_RESTORE_FAILED_NO_RETRY")
+    return {
+        "pg_restore_exit_code": returncode,
+        "restore_argv_sha256": sha256_bytes("\0".join(argv[:-1]).encode("utf-8")),
+        "restore_transcript_sha256": transcript_sha256,
+    }
+
+
+def sanitized_postcheck(environment: dict[str, str]) -> dict[str, object]:
+    raw = psql_once(POSTCHECK_SQL, environment)
+    lines = [line for line in raw.decode("utf-8", errors="strict").splitlines() if line]
+    need(bool(lines), "POSTCHECK_EMPTY_RESULT")
+    revision = lines[0]
+    relations = lines[1:]
+    schema_manifest_sha256 = sha256_bytes(
+        "".join(value + "\n" for value in sorted(relations)).encode("utf-8")
+    )
+    need(revision == EXPECTED_DATABASE_REVISION_AFTER_RESTORE, "POSTCHECK_REVISION_MISMATCH")
+    need(schema_manifest_sha256 == EXPECTED_SCHEMA_MANIFEST_SHA256, "POSTCHECK_SCHEMA_HASH_MISMATCH")
+    return {
+        "database_revision": revision,
+        "relation_count": len(relations),
+        "schema_manifest_sha256": schema_manifest_sha256,
+    }
+
+
+def sanitized_contract_result() -> dict[str, object]:
+    return {
+        "active_runner_created": False,
+        "archive_access_enabled": ARCHIVE_ACCESS_ENABLED,
+        "archive_extraction_enabled": ARCHIVE_EXTRACTION_ENABLED,
+        "automatic_retry_enabled": AUTOMATIC_RETRY_ENABLED,
+        "database_connection_enabled": DATABASE_CONNECTION_ENABLED,
+        "execution_enabled": EXECUTION_ENABLED,
+        "implementation_preparation_id": IMPLEMENTATION_PREPARATION_ID,
+        "implementation_version": IMPLEMENTATION_VERSION,
+        "member_payload_read_enabled": MEMBER_PAYLOAD_READ_ENABLED,
+        "mode": "INERT_IMPLEMENTATION_CONTRACT_ONLY",
+        "restore_execution_enabled": RESTORE_EXECUTION_ENABLED,
+        "stage_id": STAGE_ID,
+        "stop_code": "RESTORE_RUNNER_V3_IMPLEMENTATION_NOT_AUTHORIZED",
+        "target_preflight_enabled": TARGET_PREFLIGHT_ENABLED,
+    }
+
+
+def emit_sanitized(value: dict[str, object]) -> None:
+    print(json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+
+
+def future_bindings_complete() -> bool:
+    values = (
+        EXPECTED_ACTIVE_SOURCE_SHA256,
+        EXPECTED_TARGET_IDENTITY_SHA256,
+        FORBIDDEN_PRODUCTION_IDENTITY_SHA256,
+        FORBIDDEN_STAGING_IDENTITY_SHA256,
+        EXPECTED_SCHEMA_MANIFEST_SHA256,
+    )
+    return ACTIVATION_AUTHORIZATION_RECORD_ID != "UNBOUND" and all(is_sha256(value) for value in values)
+
+
+def execute_authorized_restore(args: argparse.Namespace) -> int:
+    need(EXECUTION_ENABLED, "EXECUTION_NOT_ENABLED")
+    need(ARCHIVE_ACCESS_ENABLED, "ARCHIVE_ACCESS_NOT_ENABLED")
+    need(MEMBER_HEADER_READ_ENABLED, "MEMBER_HEADER_READ_NOT_ENABLED")
+    need(MEMBER_PAYLOAD_READ_ENABLED, "MEMBER_PAYLOAD_READ_NOT_ENABLED")
+    need(ARCHIVE_EXTRACTION_ENABLED, "ARCHIVE_EXTRACTION_NOT_ENABLED")
+    need(TARGET_PREFLIGHT_ENABLED, "TARGET_PREFLIGHT_NOT_ENABLED")
+    need(DATABASE_CONNECTION_ENABLED, "DATABASE_CONNECTION_NOT_ENABLED")
+    need(RESTORE_PROCESS_ENABLED, "RESTORE_PROCESS_NOT_ENABLED")
+    need(RESTORE_EXECUTION_ENABLED, "RESTORE_EXECUTION_NOT_ENABLED")
+    need(PG_RESTORE_INVOCATION_ENABLED, "PG_RESTORE_NOT_ENABLED")
+    need(PSQL_INVOCATION_ENABLED, "PSQL_NOT_ENABLED")
+    need(not AUTOMATIC_RETRY_ENABLED and not MANUAL_RETRY_ENABLED, "RETRY_FORBIDDEN")
+    need(future_bindings_complete(), "FUTURE_BINDINGS_INCOMPLETE")
+    need(args.authorization_record_id == ACTIVATION_AUTHORIZATION_RECORD_ID, "AUTHORIZATION_MISMATCH")
+    need(args.confirm_source_sha256 == EXPECTED_ACTIVE_SOURCE_SHA256, "SOURCE_HASH_CONFIRMATION_MISMATCH")
+    need(args.confirm_archive_sha256 == EXPECTED_ARCHIVE_SHA256, "ARCHIVE_HASH_CONFIRMATION_MISMATCH")
+
+    raw_archive = Path(getpass.getpass("Archive path (not echoed): ")).expanduser()
+    need(not raw_archive.is_symlink(), "ARCHIVE_SYMLINK_FORBIDDEN")
+    archive_path = raw_archive.resolve(strict=True)
+    need(archive_path.is_file(), "ARCHIVE_PATH_UNSAFE_OR_MISSING")
+    need(sha256_path(archive_path) == EXPECTED_ARCHIVE_SHA256, "ARCHIVE_HASH_MISMATCH")
+
+    host = getpass.getpass("Target host (not echoed): ")
+    port = getpass.getpass("Target port (not echoed): ")
+    database = getpass.getpass("Target database (not echoed): ")
+    user = getpass.getpass("Target user (not echoed): ")
+    password = getpass.getpass("Target password (not echoed): ")
+    evidence_directory = Path(args.evidence_directory).expanduser().resolve(strict=True)
+    need(evidence_directory.is_dir() and not evidence_directory.is_symlink(), "EVIDENCE_DIRECTORY_UNSAFE")
+
+    with tempfile.TemporaryDirectory(prefix="pmai-p0-04-rr-v3-") as temporary:
+        private = Path(temporary)
+        os.chmod(private, TEMP_DIRECTORY_MODE)
+        extraction_root = private / "archive"
+        extraction_root.mkdir(mode=TEMP_DIRECTORY_MODE)
+        secret_root = private / "libpq"
+        secret_root.mkdir(mode=TEMP_DIRECTORY_MODE)
+        with tarfile.open(archive_path, mode="r:gz") as archive:
+            members = archive.getmembers()
+            contract = build_metadata_contract(members)
+            extracted_root = extract_logical_root_once(archive, members, contract, extraction_root)
+        libpq = write_private_libpq_files(secret_root, host, port, database, user, password)
+        environment = child_environment(libpq)
+        target = read_only_target_preflight(environment)
+        reserve_attempt_once(evidence_directory, args.attempt_id)
+        restore_result = restore_once(extracted_root, environment)
+        postcheck = sanitized_postcheck(environment)
+        need(sha256_path(archive_path) == EXPECTED_ARCHIVE_SHA256, "ARCHIVE_CHANGED_DURING_RUN")
+        emit_sanitized(
+            {
+                "archive_modified": False,
+                "automatic_retry": False,
+                "backup_restoreability_verified": False,
+                "database_revision": postcheck["database_revision"],
+                "decision": "GO_TO_SEPARATE_RESTORE_EXECUTION_EVIDENCE_REVIEW",
+                "member_payload_emitted": False,
+                "pg_restore_exit_code": restore_result["pg_restore_exit_code"],
+                "relation_count": postcheck["relation_count"],
+                "restore_attempt_count": 1,
+                "restore_execution": True,
+                "schema_manifest_sha256": postcheck["schema_manifest_sha256"],
+                "stage_id": STAGE_ID,
+                "target_identity_sha256": target["target_identity_sha256"],
+            }
+        )
+    return 0
+
+
+def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--execute", action="store_true")
+    parser.add_argument("--authorization-record-id")
+    parser.add_argument("--confirm-source-sha256")
+    parser.add_argument("--confirm-archive-sha256")
+    parser.add_argument("--attempt-id")
+    parser.add_argument("--evidence-directory")
+    return parser.parse_args(argv)
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    args = parse_args(argv)
+    if not args.execute:
+        emit_sanitized(sanitized_contract_result())
+        return 2
+    try:
+        return execute_authorized_restore(args)
+    except (Hold, OSError, subprocess.SubprocessError, UnicodeError, ValueError) as exc:
+        stop_code = str(exc) if isinstance(exc, Hold) else "INTERNAL_FAILURE_NO_RETRY"
+        emit_sanitized(
+            {
+                "automatic_retry": False,
+                "decision": "HOLD_NO_RETRY",
+                "raw_external_path_emitted": False,
+                "raw_member_names_emitted": False,
+                "restoreability_verified": False,
+                "stage_id": STAGE_ID,
+                "stop_code": stop_code,
+            }
+        )
+        return 2
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
