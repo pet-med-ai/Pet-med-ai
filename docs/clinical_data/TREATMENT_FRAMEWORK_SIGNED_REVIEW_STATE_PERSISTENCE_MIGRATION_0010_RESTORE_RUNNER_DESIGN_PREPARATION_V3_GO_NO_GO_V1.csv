@@ -1,0 +1,26 @@
+gate_id,gate,go_condition,observed,status,no_go_action
+PMAI-P0-04-RRDP-V3-GNG-001,entry Git baseline,main and origin equal 959b15b2,959b15b2,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-002,entry GitHub CI,Gate 204 PASS,Gate 204 PASS,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-003,repository cleanliness,clean at entry,clean at entry,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-004,root contract resolved,true,true,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-005,root layout contract,deep wrapped depth 2,deep wrapped depth 2,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-006,inert candidate suffix,.py.txt,.py.txt,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-007,candidate AST,valid text source,valid text source,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-008,candidate execution switch,false,false,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-009,archive access during preparation,false,false,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-010,archive extraction implementation,false,false,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-011,database implementation,false,false,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-012,restore implementation,false,false,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-013,retry implementation,false,false,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-014,safe extraction requirements,complete,complete,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-015,target isolation requirements,complete,complete,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-016,credential redaction requirements,complete,complete,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-017,restore argv template,reviewable and inert,reviewable and inert,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-018,postcheck requirements,complete,complete,PASS,HOLD
+PMAI-P0-04-RRDP-V3-GNG-019,runner authorization effective,required before implementation,false,HOLD,REQUEST_SEPARATE_AUTHORIZATION_REVIEW
+PMAI-P0-04-RRDP-V3-GNG-020,fresh target authorization effective,required before provisioning,false,HOLD,REQUEST_SEPARATE_TARGET_AUTHORIZATION
+PMAI-P0-04-RRDP-V3-GNG-021,one-time restore authorization effective,required before execution,false,HOLD,REQUEST_SEPARATE_EXECUTION_AUTHORIZATION
+PMAI-P0-04-RRDP-V3-GNG-022,backup restoreability verified,required before migration,false,HOLD,COMPLETE_RESTORE_EVIDENCE_REVIEW
+PMAI-P0-04-RRDP-V3-GNG-023,restore rehearsal complete,required before migration,false,HOLD,COMPLETE_RESTORE_EVIDENCE_REVIEW
+PMAI-P0-04-RRDP-V3-GNG-024,staging 0010 apply authorization,required before migration,false,HOLD,REQUEST_SEPARATE_MIGRATION_AUTHORIZATION
+PMAI-P0-04-RRDP-V3-GNG-025,preparation disposition,GO to separate runner V3 authorization review,GO to separate runner V3 authorization review,PASS,HOLD

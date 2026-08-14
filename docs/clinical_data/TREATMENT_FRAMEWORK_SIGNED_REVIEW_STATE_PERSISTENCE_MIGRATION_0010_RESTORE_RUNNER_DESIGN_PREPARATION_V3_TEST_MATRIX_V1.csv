@@ -1,0 +1,37 @@
+test_id,area,scenario,method,expected,status,fail_action
+PMAI-P0-04-RRDP-V3-T001,baseline,wrong main commit,synthetic preflight,HOLD before write,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T002,baseline,origin mismatch,synthetic preflight,HOLD before write,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T003,baseline,dirty extra path,synthetic preflight,HOLD before write,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T004,bundle,wrong bundle confirmation,apply negative test,HOLD before write,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T005,candidate,wrong candidate suffix,validator fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T006,candidate,syntax invalid,AST fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T007,candidate,execution enabled,AST literal fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T008,candidate,archive access enabled,AST literal fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T009,candidate,database connection enabled,AST literal fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T010,candidate,restore process implemented,AST literal fixture,HOLD,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T011,archive,archive hash mismatch,future contract fixture,HOLD before extraction,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T012,archive,member set hash mismatch,future contract fixture,HOLD before extraction,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T013,archive,wrapper depth mismatch,future contract fixture,HOLD before extraction,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T014,archive,logical root fingerprint mismatch,future contract fixture,HOLD before connection,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T015,archive,multiple toc.dat candidates,future contract fixture,HOLD before extraction,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T016,path,absolute member path,future contract fixture,HOLD unsafe member,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T017,path,parent traversal member,future contract fixture,HOLD unsafe member,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T018,path,symlink member,future contract fixture,HOLD unsafe member,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T019,path,hardlink member,future contract fixture,HOLD unsafe member,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T020,path,device fifo socket member,future contract fixture,HOLD unsafe member,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T021,path,duplicate normalized member,future contract fixture,HOLD unsafe member,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T022,path,case collision,future contract fixture,HOLD unsafe member,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T023,bounds,member count saturation,future contract fixture,HOLD before extraction,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T024,bounds,name bytes saturation,future contract fixture,HOLD before extraction,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T025,bounds,depth saturation,future contract fixture,HOLD before extraction,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T026,bounds,total size saturation,future contract fixture,HOLD before extraction,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T027,target,target identity mismatch,future contract fixture,HOLD before database connection,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T028,target,production or staging target,future contract fixture,HOLD before database connection,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T029,target,application attached,future contract fixture,HOLD before database connection,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T030,target,target not empty,future contract fixture,HOLD before attempt reservation,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T031,client,PostgreSQL major mismatch,future contract fixture,HOLD before attempt reservation,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T032,credential,connection value emitted,future contract fixture,HOLD and redact,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T033,restore,timeout ambiguity,future contract fixture,HOLD no retry,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T034,postcheck,revision mismatch,future contract fixture,HOLD no retry,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T035,cleanup,temp cleanup incomplete,future contract fixture,HOLD no retry,DESIGNED,HOLD
+PMAI-P0-04-RRDP-V3-T036,preparation,valid inert design and exact package,repository validator,GO to separate authorization review,DESIGNED,HOLD

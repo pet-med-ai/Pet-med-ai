@@ -19,7 +19,7 @@ PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persi
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
 
-EXPECTED_CI_SHA256 = '74b9b164ef72436c3989e7b2920b5114c7abda52fec7f601bb322c58ec358f8a'
+EXPECTED_CI_SHA256 = '9d02f180ffac1f69ab4f93f0d160bf82cb18205003703d042720b5fda421c7c9'
 AUTHORIZATION_RECORD_CI_SHA256 = 'f224dd3ed069a198613ad3ddbace564245586528acddab54e1eb835921ffea2f'
 HISTORICAL_CI_SHA256 = '8068312d6aa24e667f344b3eea9082f0a9b3688bc664dee0984d3e3dd251f25c'
 EXPECTED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
@@ -85,6 +85,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_archive_root_contract_investigation_v3_execution_evidence_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_restore_runner_design_preparation_v3.py '
  '|| exit 1']
 
 
