@@ -1,0 +1,49 @@
+control_id,control,expected,current,status,evidence,on_failure
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-001,stage,PMAI-P0-04,PMAI-P0-04,PASS,trusted baseline,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-002,entry main,a2f117eb55208bf5022d04482d005137a2f26874,a2f117eb55208bf5022d04482d005137a2f26874,PASS,Gate 207,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-003,entry parent,40f263be59d8732589ba78c4aa985d8c1b1b0a98,40f263be59d8732589ba78c4aa985d8c1b1b0a98,PASS,commit ancestry,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-004,origin parity,a2f117eb55208bf5022d04482d005137a2f26874,a2f117eb55208bf5022d04482d005137a2f26874,PASS,clean publication output,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-005,CI Gate,207 PASS,207 PASS,PASS,operator screenshot,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-006,prior CI hash,55dd1eb17ed1fb19d030759ae9ff5926a2bda5ee545461a980a99b58a5c474f1,55dd1eb17ed1fb19d030759ae9ff5926a2bda5ee545461a980a99b58a5c474f1,PASS,repository snapshot,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-007,route,ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3,ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3,PASS,published chain,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-008,preparation complete,true,true,PASS,published preparation,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-009,design candidate hash,98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b,98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b,PASS,byte hash,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-010,implementation candidate hash,91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081,91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081,PASS,byte hash,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-011,candidate suffix,.py.txt,.py.txt,PASS,inert storage,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-012,candidate executable,false,false,PASS,mode and suffix,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-013,candidate AST,valid,valid,PASS,parse only,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-014,candidate imported,false,false,PASS,static review,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-015,candidate executed,false,false,PASS,static review,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-016,candidate changed,false,false,PASS,exact hash,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-017,source hash scheme,SOURCE_LINES_UTF8_SHA256_V1,SOURCE_LINES_UTF8_SHA256_V1,PASS,cross-version lock,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-018,external gates,all false,all false,PASS,AST assignments,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-019,future bindings,all UNBOUND,all UNBOUND,PASS,AST assignments,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-020,archive opened,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-021,archive listed,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-022,member headers read,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-023,member payload read,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-024,active runner created,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-025,runner activated,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-026,runner executed,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-027,target created,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-028,database connected,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-029,restore executed,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-030,0010 created,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-031,0010 executed,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-032,deployment,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-033,deletion,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-034,stage,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-035,commit,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-036,push,false,false,PASS,scope boundary,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-037,current implementation authorization,false,false,PASS,pre-effective state,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-038,proposed implementation authorization,true,true,PASS,post-effective identity only,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-039,candidate promotion authorization,false,false,PASS,explicit exclusion,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-040,activation authorization,false,false,PASS,separate future gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-041,execution authorization,false,false,PASS,separate future gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-042,fresh target authorization,false,false,PASS,separate future gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-043,backup restoreability,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-044,restore rehearsal,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-045,P0-04 execution,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-046,staging 0010 apply,false,false,PASS,hard gate,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-047,authorization reuse,false,false,PASS,fail closed,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-CHK-048,sole next subject,FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_PREPARATION_V3,FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_PREPARATION_V3,PASS,ordered future gate,HOLD

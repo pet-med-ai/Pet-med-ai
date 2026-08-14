@@ -54,7 +54,7 @@ EXPECTED_HEAD = '7e5e4008ed3613b566aebcf1fc0d12e527ac816c'
 EXPECTED_PARENT = 'f521520f96ab28f1a6e696b60fc8f06e4a2eda69'
 EXPECTED_ISOLATED = '8d1dc8814ed8f80d8bc965b494c1c320fc08f228'
 EXPECTED_PRIOR_CI_SHA256 = 'cfc3619b6847018a074a06fd0020a06c9443595e0fdf3f670d462f9c4dfe6560'
-EXPECTED_FINAL_CI_SHA256 = '33d0cc12675211d7761ab1f1c7a909709c24df56854d31fad1d67638e555614f'
+EXPECTED_FINAL_CI_SHA256 = '55dd1eb17ed1fb19d030759ae9ff5926a2bda5ee545461a980a99b58a5c474f1'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_ARCHIVE_SHA256 = 'ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7'
 EXPECTED_IMPLEMENTATION_SHA256 = '2b99a7446fbd5509e22c9fa5f6cb18eca920711208aa37fb4af568fd21f6faab'
@@ -129,6 +129,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_restore_runner_v3_implementation_preparation_v1.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_restore_runner_v3_implementation_authorization_review_v1.py '
  '|| exit 1']
 PACKAGE_PATHS = {DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX, VALIDATOR}
 REQUIRED_PROTECTED_PATHS = PACKAGE_PATHS | {AUTHORIZATION_DOC, IMPLEMENTATION}

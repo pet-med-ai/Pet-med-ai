@@ -1,0 +1,45 @@
+test_id,test,method,expected,status,on_failure
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-001,entry commit mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-002,origin mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-003,dirty tree rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-004,Gate confirmation mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-005,prior CI hash mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-006,design hash mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-007,implementation hash mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-008,candidate suffix mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-009,candidate executable mode rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-010,active .py twin rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-011,candidate syntax mutation rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-012,critical source mutation rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-013,external gate true rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-014,future binding mutation rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-015,candidate import remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-016,candidate execution remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-017,archive access remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-018,archive listing remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-019,member header read remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-020,member payload read remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-021,active runner creation remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-022,runner activation remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-023,runner execution remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-024,target creation remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-025,database connection remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-026,restore remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-027,0010 creation remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-028,0010 execution remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-029,deployment remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-030,deletion remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-031,stage remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-032,commit remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-033,push remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-034,CI target cardinality exact,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-035,CI validator command order exact,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-036,locked runner hash retained,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-037,root contract retained from evidence,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-038,hard gates remain false,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-039,authorization is identity-only,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-040,candidate byte change needs new review,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-041,sole next subject exact,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-042,synthetic patch applies cleanly,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-043,synthetic validator passes,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-RR-V3-IMPL-AUTH-TST-044,synthetic CI passes,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
