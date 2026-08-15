@@ -28,7 +28,7 @@ EXPECTED_HEAD = "959b15b2ea15f31f19564d553207ce31a31561ce"
 EXPECTED_PARENT = "8f7a4a25908e874f406b08e9ae2d1dc9de69db26"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
 EXPECTED_PRIOR_CI_SHA256 = "74b9b164ef72436c3989e7b2920b5114c7abda52fec7f601bb322c58ec358f8a"
-EXPECTED_FINAL_CI_SHA256 = "e283cc5aa77f73d9fe79b1139411897b677daf8ebe71eb70212ae82edb07b31d"
+EXPECTED_FINAL_CI_SHA256 = "87605430bdb1c71d8edf7cace65bc554f5e8e888e6e8eed807ccb33cc32dbe18"
 EXPECTED_LOCKED_RUNNER_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f"
 EXPECTED_CANDIDATE_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_INVESTIGATOR_V3_SHA256 = "6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14"
@@ -280,7 +280,7 @@ def main() -> int:
     need(all(row["status"] == "DESIGNED" for row in tests), "test matrix status")
 
     targets = ci_targets(ci)
-    need(len(targets) == 127 and len(targets) == len(set(targets)), "CI TARGETS canonical")
+    need(len(targets) == 132 and len(targets) == len(set(targets)), "CI TARGETS canonical")
     need(PACKAGE_PATHS.issubset(set(targets)), "runner design package targets")
     command = "python3 " + VALIDATOR + " || exit 1"
     authorization_review_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_restore_runner_v3_authorization_review_v1.py || exit 1"
@@ -288,14 +288,15 @@ def main() -> int:
     implementation_authorization_review_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_restore_runner_v3_implementation_authorization_review_v1.py || exit 1"
     fresh_target_preparation_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_preparation_v3.py || exit 1"
     fresh_target_authorization_review_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_review_v3.py || exit 1"
+    fresh_target_external_execution_authorization_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_external_execution_authorization_v3.py || exit 1"
     need(
         ci.splitlines().count("# PMAI-P0-04 restore runner design preparation V3") == 1,
         "CI marker count",
     )
     need(ci.splitlines().count(command) == 1, "CI command count")
     need(
-        len(python_lines(ci)) == 26
-        and python_lines(ci)[-6:] == [command, authorization_review_command, implementation_preparation_command, implementation_authorization_review_command, fresh_target_preparation_command, fresh_target_authorization_review_command],
+        len(python_lines(ci)) == 27
+        and python_lines(ci)[-7:] == [command, authorization_review_command, implementation_preparation_command, implementation_authorization_review_command, fresh_target_preparation_command, fresh_target_authorization_review_command, fresh_target_external_execution_authorization_command],
         "CI command order",
     )
 

@@ -23,11 +23,11 @@ EVIDENCE_PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_st
 RESTORE_AUTH_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = 'e283cc5aa77f73d9fe79b1139411897b677daf8ebe71eb70212ae82edb07b31d'
+EXPECTED_CI_SHA256 = '87605430bdb1c71d8edf7cace65bc554f5e8e888e6e8eed807ccb33cc32dbe18'
 EXPECTED_PRIOR_CI_SHA256 = 'ee5b75fe566218490ca1edef2405596309a6302879ec486249b435ae07832cde'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_ABORT_DOC_COMMITTED_SHA256 = 'c1d44d9652ff7fc14fafa2747572716d1d7aaf3b87052008eb2dda6cded658eb'
-EXPECTED_ABORT_DOC_CURRENT_SHA256 = '30a60ea657db7694f9031dd8b87edd1a5a22e0cd0978f9928d2cf017ced4c1af'
+EXPECTED_ABORT_DOC_CURRENT_SHA256 = 'd5e40e3aa0adb4dafbaf24744ea5a1cd6184b8d46b79a4f6b4e57bb537d16549'
 EXPECTED_APPROVAL_STATEMENT = '批准 PMAI-P0-04 仅对 pet-med-ai-db-p0-04-disposable-restore-ohio 执行一次控制面删除并完成退休留证；删除前必须重新核验目标身份、Available、Apps=0、无依赖且无外部 restore runner 进程，并须在 2026-08-11 00:08 +08:00 前完成；不授权 production、staging source、数据库连接、Restore/Recovery、pg_restore、psql、Alembic、0010 migration、locked runner 或任何应用部署。'
 EXPECTED_APPROVAL_STATEMENT_SHA256 = '525efdddd4f15257e1211ef3e0b7c5215ef5bf54aa6560f07e1e26c6ed8ea6f8'
 EXPECTED_COMMANDS = ['python3 '
@@ -106,6 +106,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_review_v3.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_external_execution_authorization_v3.py '
  '|| exit 1']
 HASH_EXTRA_PATHS = {
     'backend/models.py',

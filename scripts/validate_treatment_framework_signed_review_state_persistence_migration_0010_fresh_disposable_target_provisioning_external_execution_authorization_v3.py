@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate PMAI-P0-04 Fresh Disposable Target Provisioning Authorization Review V3."""
+"""Validate PMAI-P0-04 fresh target external-execution authorization V3."""
 
 from __future__ import annotations
 
@@ -13,21 +13,21 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-DOC = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3.md"
-CHECKLIST = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3_CHECKLIST_V1.csv"
-GO_NO_GO = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3_GO_NO_GO_V1.csv"
-TEST_MATRIX = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3_TEST_MATRIX_V1.csv"
-VALIDATOR = "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_review_v3.py"
-PREPARATION_DOC = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_PREPARATION_V3.md"
+DOC = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3.md"
+CHECKLIST = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3_CHECKLIST_V1.csv"
+GO_NO_GO = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3_GO_NO_GO_V1.csv"
+TEST_MATRIX = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3_TEST_MATRIX_V1.csv"
+VALIDATOR = "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_external_execution_authorization_v3.py"
+PRIOR_REVIEW_DOC = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3.md"
 DESIGN_CANDIDATE = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3.py.txt"
 IMPLEMENTATION_CANDIDATE = "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3_IMPLEMENTATION_CANDIDATE_V1.py.txt"
 CI = "scripts/ci_static_checks.sh"
 LOCKED_RUNNER = "scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py"
 
-EXPECTED_HEAD = "4d787ebd51f610d8f92e679ab5caa22191924ac4"
-EXPECTED_PARENT = "6a11b484f4506caccd2e27be1558bcf455a8538a"
+EXPECTED_HEAD = "e3dce86cdc98546e61eb52b573aa8fee112a00b4"
+EXPECTED_PARENT = "4d787ebd51f610d8f92e679ab5caa22191924ac4"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
-EXPECTED_PRIOR_CI_SHA256 = "8c23f683f89965f4b90bd2925a575d2ac5ee5340ece340cc12b02ec923dcce55"
+EXPECTED_PRIOR_CI_SHA256 = "e283cc5aa77f73d9fe79b1139411897b677daf8ebe71eb70212ae82edb07b31d"
 EXPECTED_FINAL_CI_SHA256 = "87605430bdb1c71d8edf7cace65bc554f5e8e888e6e8eed807ccb33cc32dbe18"
 EXPECTED_CI_TARGETS_SHA256 = "f1a5ceeddd84069b4149addfe89ff03b6ac24a470beeaa7be860a0a68bad92c9"
 EXPECTED_CI_COMMANDS_SHA256 = "ded57a383fdf9572ab2f767778ce8f47c7a041821eb5a5bf53258d1ac3abe185"
@@ -35,10 +35,11 @@ EXPECTED_LOCKED_RUNNER_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e30
 EXPECTED_DESIGN_CANDIDATE_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_IMPLEMENTATION_CANDIDATE_SHA256 = "91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081"
 EXPECTED_TARGET_CONTRACT_SHA256 = "e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744"
-EXPECTED_NEXT_SUBJECT = "FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3"
+EXPECTED_NEXT_SUBJECT = "FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_V3"
+EXPECTED_POST_EXECUTION_SUBJECT = "FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V3"
 
 PACKAGE_PATHS = {DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX, VALIDATOR}
-CONTRACT_KEYS = (
+PRIOR_CONTRACT_KEYS = (
     "authorization_record_id",
     "target_logical_name",
     "target_provider",
@@ -59,8 +60,8 @@ CONTRACT_KEYS = (
     "target_delete_within_hours_after_evidence",
     "target_deletion_owner",
 )
+TARGET_KEYS = tuple(key for key in PRIOR_CONTRACT_KEYS if key != "authorization_record_id")
 EXPECTED_CONTRACT = {
-    "authorization_record_id": "PMAI-P0-04-FDTP-AUTH-REVIEW-V3-20260815",
     "target_logical_name": "pet-med-ai-db-p0-04-fresh-disposable-restore-v3-ohio",
     "target_provider": "Render",
     "target_provider_account_scope": "PROJECT_OWNER_EXISTING_RENDER_ACCOUNT",
@@ -80,16 +81,59 @@ EXPECTED_CONTRACT = {
     "target_delete_within_hours_after_evidence": "24",
     "target_deletion_owner": "PROJECT_OWNER_OPERATOR",
 }
+EXPECTED_RESULT_FIELDS = (
+    "authorization_record_id",
+    "execution_attempt_number",
+    "target_contract_identity_sha256",
+    "target_logical_name",
+    "target_provider",
+    "target_service_identifier_sha256",
+    "target_status",
+    "target_region",
+    "target_engine_family",
+    "target_server_major_version",
+    "target_instance_type",
+    "target_storage_gb",
+    "target_storage_autoscaling",
+    "target_read_replica_count",
+    "target_high_availability",
+    "target_connection_pooling",
+    "target_application_attachment_count",
+    "target_created_at_utc",
+    "target_expiry_at_utc",
+    "target_cost_projection_usd",
+    "target_deletion_owner",
+    "sanitized_external_evidence_sha256_set",
+    "decision",
+)
 FALSE_MARKERS = {
     "current_fresh_disposable_target_provisioning_authorized",
-    "external_target_provisioning_execution_authorized",
+    "current_external_target_provisioning_execution_authorized",
     "one_time_external_provisioning_confirmation_present",
+    "automatic_retry",
+    "manual_retry_authorized",
     "fresh_disposable_target_selected",
     "fresh_disposable_target_created",
     "restore_runner_v3_implementation_promoted",
     "active_restore_runner_created",
     "restore_runner_v3_activation_authorized",
     "restore_runner_v3_execution_authorized",
+    "provider_control_plane_opened",
+    "automation_or_api_provisioning_authorized",
+    "provisioning_script_created",
+    "target_form_submission_performed",
+    "external_create_request_submitted",
+    "existing_service_reuse_authorized",
+    "current_create_action_authorized",
+    "credential_collection_by_package",
+    "connection_value_access_authorized",
+    "application_attachment_authorized",
+    "database_connection_authorized",
+    "restore_execution_authorized",
+    "resource_deletion_authorized",
+    "network_access",
+    "external_execution",
+    "provider_pricing_network_reverified",
     "archive_file_opened",
     "backup_archive_listing_invoked",
     "backup_archive_member_headers_read",
@@ -100,6 +144,7 @@ FALSE_MARKERS = {
     "backup_archive_modified",
     "backup_archive_repackaged",
     "fresh_disposable_target_provisioning_authorized",
+    "external_target_provisioning_execution_authorized",
     "render_target_created",
     "render_target_deleted",
     "restore_runner_activated",
@@ -187,38 +232,55 @@ def candidate_assignments(source: str) -> dict[str, object]:
     return values
 
 
-def canonical_contract_sha256(doc: str) -> str:
-    canonical = "".join(key + "=" + marker(doc, key) + "\n" for key in CONTRACT_KEYS)
-    return sha256_bytes(canonical.encode("utf-8"))
-
-
 def sequence_sha256(values: list[str]) -> str:
     return sha256_bytes(("\n".join(values) + "\n").encode("utf-8"))
 
 
+def canonical_prior_contract_sha256(source: str) -> str:
+    canonical = "".join(key + "=" + marker(source, key) + "\n" for key in PRIOR_CONTRACT_KEYS)
+    return sha256_bytes(canonical.encode("utf-8"))
+
+
+def result_fields(source: str) -> tuple[str, ...]:
+    match = re.search(
+        r"(?ms)^## 7\. Sanitized result envelope for the later action\n.*?^~~~text\n(.*?)^~~~$",
+        source,
+    )
+    need(match is not None, "sanitized result envelope")
+    fields = tuple(line.strip() for line in match.group(1).splitlines() if line.strip())
+    need(all(re.fullmatch(r"[a-z0-9_]+", field) for field in fields), "result field format")
+    return fields
+
+
 def main() -> int:
     doc = text(DOC)
-    preparation = text(PREPARATION_DOC)
+    prior = text(PRIOR_REVIEW_DOC)
     ci = text(CI)
     required = {
         "stage_id": "PMAI-P0-04",
-        "substage": "FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3",
-        "package_status": "FRESH_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_RECORD_ONLY",
-        "review_status": "PROPOSED_APPROVE_EXACT_FRESH_TARGET_CONTRACT_V3",
-        "authorization_scope": "ONE_NEW_EMPTY_ISOLATED_DISPOSABLE_POSTGRES_SERVICE_ONLY",
+        "substage": "FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3",
+        "package_status": "EXTERNAL_PROVISIONING_EXECUTION_AUTHORIZATION_RECORD_ONLY",
+        "review_status": "PROPOSED_APPROVE_ONE_TIME_FRESH_TARGET_PROVISIONING_EXECUTION_V3",
+        "authorization_record_id": "PMAI-P0-04-FDTP-EXT-EXEC-AUTH-V3-20260815",
+        "current_turn_scope": "REPOSITORY_ONLY_DESIGN_AND_DRY_RUN",
+        "authorization_scope": "ONE_NEW_EMPTY_UNATTACHED_RENDER_POSTGRES_SERVICE_CREATION_ONLY",
         "authorization_scope_recorded": "true",
-        "post_effective_gate_fresh_disposable_target_contract_authorized": "true",
-        "post_effective_gate_fresh_disposable_target_provisioning_eligible": "true",
+        "post_effective_gate_external_target_provisioning_execution_eligible": "true",
+        "current_provisioning_attempts_authorized": "0",
+        "post_confirmation_provisioning_attempts_authorized": "1",
         "selected_route": "ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3",
-        "fresh_disposable_target_provisioning_authorization_preparation_complete": "true",
+        "completed_authorization_review_commit": EXPECTED_HEAD,
+        "completed_authorization_review_ci_gate": "210",
+        "completed_authorization_review_ci_status": "PASS",
+        "fresh_disposable_target_provisioning_authorization_review_complete": "true",
+        "target_contract_bound": "true",
+        "target_contract_identity_sha256": EXPECTED_TARGET_CONTRACT_SHA256,
         "restore_runner_v3_implementation_authorized": "true",
         "root_contract_resolved": "true",
         "root_layout_classification": "PG_DIRECTORY_ROOT_DEEP_WRAPPED",
         "wrapper_depth": "2",
         "cumulative_archive_listing_attempts_consumed": "3",
         "cumulative_archive_listing_attempts_remaining": "0",
-        "target_contract_bound": "true",
-        "target_contract_identity_sha256": EXPECTED_TARGET_CONTRACT_SHA256,
         "target_service_identifier": "UNBOUND_UNTIL_CREATED",
         "actual_target_identity_sha256": "UNBOUND_UNTIL_CREATED",
         "target_created_at": "UNBOUND_UNTIL_CREATED",
@@ -232,15 +294,16 @@ def main() -> int:
         "target_prior_authorization_reuse_forbidden": "true",
         "target_application_traffic_disabled": "true",
         "target_cleanup_evidence_required": "true",
-        "source_postgresql_major_version": "18",
-        "restore_client_version": "18.4",
-        "required_target_postgresql_major_version": "18",
-        "version_compatibility_review": "PASS_CONDITIONAL_ON_EXECUTION_TIME_EXACT_MAJOR_RECHECK",
-        "provider_pricing_network_reverified": "false",
+        "execution_action": "CREATE_ONE_NEW_EMPTY_RENDER_POSTGRES_SERVICE_ONLY",
+        "execution_channel": "PROJECT_OWNER_INTERACTIVE_RENDER_CONTROL_PLANE",
+        "provider_control_plane_login_by_operator_only": "true",
+        "execution_attempt_limit": "1",
+        "execution_attempts_consumed": "0",
+        "post_confirmation_create_action_eligible": "true",
+        "stop_after_sanitized_provisioning_result": "true",
         "repository_only": "true",
-        "network_access": "false",
-        "external_execution": "false",
         "sole_next_subject": EXPECTED_NEXT_SUBJECT,
+        "post_execution_next_subject": EXPECTED_POST_EXECUTION_SUBJECT,
         "decision": "GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY",
     }
     required.update(EXPECTED_CONTRACT)
@@ -248,21 +311,27 @@ def main() -> int:
         need(marker(doc, key) == expected, "document marker " + key)
     for key in FALSE_MARKERS:
         need(marker(doc, key) == "false", "false boundary marker " + key)
+
     need(marker(doc, "local_main") == EXPECTED_HEAD, "entry head")
     need(marker(doc, "origin_main") == EXPECTED_HEAD, "origin head")
     need(marker(doc, "main_parent") == EXPECTED_PARENT, "entry parent")
-    need(marker(doc, "github_ci_gate_number") == "209", "Gate number")
+    need(marker(doc, "github_ci_gate_number") == "210", "Gate number")
     need(marker(doc, "github_ci_gate_status") == "PASS", "Gate status")
     need(marker(doc, "github_ci_gate_commit") == EXPECTED_HEAD, "Gate commit")
     need(marker(doc, "prior_ci_sha256") == EXPECTED_PRIOR_CI_SHA256, "prior CI hash")
-    need(marker(doc, "final_ci_sha256") == EXPECTED_FINAL_CI_SHA256, "final CI hash")
+    need(marker(doc, "final_ci_sha256") == EXPECTED_FINAL_CI_SHA256, "final CI hash marker")
     need(marker(doc, "local_isolated_branch") == EXPECTED_ISOLATED, "isolated local")
     need(marker(doc, "remote_isolated_branch") == EXPECTED_ISOLATED, "isolated remote")
-    need(marker(preparation, "ready_for_separate_fresh_disposable_target_provisioning_authorization_review_v3") == "true", "preparation readiness")
-    need(marker(preparation, "fresh_disposable_target_selected") == "false", "preparation target selection")
-    need(marker(preparation, "fresh_disposable_target_created") == "false", "preparation target creation")
-    need(marker(preparation, "final_ci_sha256") == EXPECTED_FINAL_CI_SHA256, "preparation final CI hash")
-    need(canonical_contract_sha256(doc) == EXPECTED_TARGET_CONTRACT_SHA256, "target contract hash")
+
+    need(marker(prior, "target_contract_identity_sha256") == EXPECTED_TARGET_CONTRACT_SHA256, "prior target contract identity")
+    need(canonical_prior_contract_sha256(prior) == EXPECTED_TARGET_CONTRACT_SHA256, "prior canonical target contract")
+    need(marker(prior, "sole_next_subject") == "FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3", "prior next subject")
+    need(marker(prior, "local_main") == EXPECTED_PARENT, "prior review entry head")
+    need(marker(prior, "final_ci_sha256") == EXPECTED_FINAL_CI_SHA256, "prior review final CI hash rollover")
+    for key in TARGET_KEYS:
+        need(marker(doc, key) == marker(prior, key), "target contract rollover " + key)
+
+    need(result_fields(doc) == EXPECTED_RESULT_FIELDS, "sanitized result allowlist")
     need(sha256_path(ROOT / LOCKED_RUNNER) == EXPECTED_LOCKED_RUNNER_SHA256, "locked runner hash")
     need(sha256_path(ROOT / DESIGN_CANDIDATE) == EXPECTED_DESIGN_CANDIDATE_SHA256, "design candidate hash")
     candidate = ROOT / IMPLEMENTATION_CANDIDATE
@@ -280,20 +349,25 @@ def main() -> int:
         "RESTORE_EXECUTION_ENABLED",
     ):
         need(assignments.get(name) is False, "candidate gate " + name)
+
     package_text = "\n".join(text(rel) for rel in (DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX))
     forbidden = [
         r"(?i)postgres(?:ql)?://[^\s`]+",
         r"(?im)^\s*(?:export\s+)?DATABASE_URL\s*=",
         r"(?im)^\s*(?:export\s+)?SECRET_KEY\s*=",
-        r"(?im)^\s*(?:password|passwd|pwd)\s*[:=]",
+        r"(?im)^\s*(?:password|passwd|pwd|api_token|access_token)\s*[:=]",
     ]
     need(not any(re.search(pattern, package_text) for pattern in forbidden), "secret or connection material")
+    need("target_service_identifier_sha256" in package_text, "sanitized target identifier field")
+    need("target_service_identifier_raw" not in package_text, "raw target identifier field")
+
     checklist = rows(CHECKLIST)
     go_no_go = rows(GO_NO_GO)
     tests = rows(TEST_MATRIX)
-    need(len(checklist) == 69 and all(row["status"] == "PASS" for row in checklist), "checklist")
-    need(len(go_no_go) == 40 and {row["status"] for row in go_no_go} == {"PASS", "HOLD"}, "go/no-go")
-    need(len(tests) == 62 and all(row["status"] == "DESIGNED" for row in tests), "test matrix")
+    need(len(checklist) == 70 and all(row["status"] == "PASS" for row in checklist), "checklist")
+    need(len(go_no_go) == 45 and {row["status"] for row in go_no_go} == {"PASS", "HOLD"}, "go/no-go")
+    need(len(tests) == 65 and all(row["status"] == "DESIGNED" for row in tests), "test matrix")
+
     targets = ci_targets(ci)
     commands = python_lines(ci)
     need(len(targets) == 132 and len(set(targets)) == 132, "CI target cardinality")
@@ -302,36 +376,42 @@ def main() -> int:
     need(len(commands) == 27, "CI command cardinality")
     need(sequence_sha256(commands) == EXPECTED_CI_COMMANDS_SHA256, "CI command contract")
     need(
-        commands[-3:]
+        commands[-2:]
         == [
-            "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_preparation_v3.py || exit 1",
+            "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_review_v3.py || exit 1",
             "python3 " + VALIDATOR + " || exit 1",
-            "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_external_execution_authorization_v3.py || exit 1",
         ],
         "CI command order",
     )
     need(sha256_path(ROOT / CI) == EXPECTED_FINAL_CI_SHA256, "CI file hash")
     need(not list((ROOT / "backend/migrations/versions").glob("0010*.py")), "active 0010 migration")
-    print("PASS: PMAI-P0-04 Fresh Disposable Target Provisioning Authorization Review V3")
+
+    print("PASS: PMAI-P0-04 Fresh Disposable Target Provisioning External Execution Authorization V3")
     print("stage_id=PMAI-P0-04")
-    print("substage=FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3")
-    print("package_status=FRESH_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_RECORD_ONLY")
+    print("substage=FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3")
+    print("package_status=EXTERNAL_PROVISIONING_EXECUTION_AUTHORIZATION_RECORD_ONLY")
     print("authorization_scope_recorded=true")
-    print("target_contract_bound=true")
     print("target_contract_identity_sha256=" + EXPECTED_TARGET_CONTRACT_SHA256)
-    print("post_effective_gate_fresh_disposable_target_contract_authorized=true")
-    print("post_effective_gate_fresh_disposable_target_provisioning_eligible=true")
-    print("fresh_disposable_target_provisioning_authorized=false")
-    print("external_target_provisioning_execution_authorized=false")
+    print("post_effective_gate_external_target_provisioning_execution_eligible=true")
+    print("current_fresh_disposable_target_provisioning_authorized=false")
+    print("current_external_target_provisioning_execution_authorized=false")
     print("one_time_external_provisioning_confirmation_present=false")
-    print("fresh_disposable_target_selected=false")
-    print("fresh_disposable_target_created=false")
-    print("active_restore_runner_created=false")
-    print("restore_runner_v3_activation_authorized=false")
-    print("restore_runner_v3_execution_authorized=false")
+    print("current_provisioning_attempts_authorized=0")
+    print("post_confirmation_provisioning_attempts_authorized=1")
+    print("automatic_retry=false")
+    print("manual_retry_authorized=false")
+    print("provider_control_plane_opened=false")
+    print("target_selected=false")
+    print("target_created=false")
+    print("credentials_collected=false")
     print("archive_file_opened=false")
+    print("active_restore_runner_created=false")
     print("database_connection=false")
     print("restore_execution=false")
+    print("migration_created=false")
+    print("migration_executed=false")
+    print("application_deployment=false")
+    print("resource_deleted=false")
     print("backup_restoreability_verified=false")
     print("disposable_restore_rehearsal_complete=false")
     print("p0_04_execution_authorized=false")
