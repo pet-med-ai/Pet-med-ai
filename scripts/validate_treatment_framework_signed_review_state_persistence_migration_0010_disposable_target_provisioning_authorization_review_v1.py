@@ -19,7 +19,7 @@ PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persi
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
 
-EXPECTED_CI_SHA256 = '8c23f683f89965f4b90bd2925a575d2ac5ee5340ece340cc12b02ec923dcce55'
+EXPECTED_CI_SHA256 = 'e283cc5aa77f73d9fe79b1139411897b677daf8ebe71eb70212ae82edb07b31d'
 AUTHORIZATION_RECORD_CI_SHA256 = 'f224dd3ed069a198613ad3ddbace564245586528acddab54e1eb835921ffea2f'
 HISTORICAL_CI_SHA256 = '8068312d6aa24e667f344b3eea9082f0a9b3688bc664dee0984d3e3dd251f25c'
 EXPECTED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
@@ -100,6 +100,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_preparation_v3.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_review_v3.py '
  '|| exit 1']
 
 

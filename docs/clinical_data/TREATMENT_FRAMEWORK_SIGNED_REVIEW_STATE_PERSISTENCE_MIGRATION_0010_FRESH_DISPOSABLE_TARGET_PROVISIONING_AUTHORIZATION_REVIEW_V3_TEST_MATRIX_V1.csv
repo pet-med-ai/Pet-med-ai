@@ -1,0 +1,63 @@
+test_id,test,method,expected,status,on_failure
+PMAI-P0-04-FDTP-AUTH-V3-TST-001,entry commit mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-002,origin mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-003,dirty tree rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-004,Gate confirmation mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-005,prior CI hash mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-006,route mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-007,preparation marker mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-008,design candidate hash mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-009,implementation candidate hash mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-010,active implementation twin rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-011,root contract unresolved rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-012,wrapper depth mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-013,archive attempt reuse rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-014,target contract hash recomputes,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-015,target contract field mutation rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-016,target logical name mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-017,target provider mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-018,target region mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-019,target major mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-020,target plan mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-021,target storage mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-022,target autoscaling true rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-023,target replica nonzero rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-024,target HA true rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-025,target pooling true rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-026,application attachment nonzero rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-027,cost ceiling mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-028,expiry mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-029,deletion owner mismatch rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-030,service identifier invented rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-031,actual target identity invented rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-032,prior retired target reuse rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-033,prior authorization reuse rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-034,current provisioning authority remains false,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-035,post-effective proposal separately gated,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-036,external execution authority remains false,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-037,one-time confirmation remains false,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-038,target selection remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-039,target creation remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-040,secret pattern rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-041,connection URL rejects,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-042,credential collection remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-043,archive access remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-044,archive listing remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-045,member payload read remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-046,active runner creation remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-047,runner activation remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-048,runner execution remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-049,database connection remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-050,restore remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-051,0010 creation remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-052,0010 execution remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-053,deployment remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-054,deletion remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-055,Git publication remains absent,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-056,CI target cardinality exact,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-057,CI command contract exact,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-058,locked runner hash retained,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-059,sole next subject exact,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-060,synthetic patch applies cleanly,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-061,synthetic validator passes,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-TST-062,synthetic CI passes,static/synthetic repository-only,PASS_OR_HOLD_FAIL_CLOSED,DESIGNED,HOLD

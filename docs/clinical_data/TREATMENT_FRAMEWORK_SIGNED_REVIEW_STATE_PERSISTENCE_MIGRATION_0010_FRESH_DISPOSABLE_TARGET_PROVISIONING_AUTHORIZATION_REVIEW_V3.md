@@ -1,0 +1,290 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Fresh Disposable Target Provisioning Authorization Review V3
+
+This repository-only review binds one proposed fresh disposable PostgreSQL
+target contract and records the gates that would make that contract eligible
+for a later, separately confirmed provisioning action. It does not select an
+existing service, create a service, collect a credential, access a backup,
+activate or execute a runner, connect to a database, restore, create or execute
+migration 0010, deploy, delete, stage, commit, or push.
+
+## 1. Canonical authorization-review record
+
+~~~text
+stage_id=PMAI-P0-04
+substage=FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3
+stage_status=IN_PROGRESS
+package_status=FRESH_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_RECORD_ONLY
+review_status=PROPOSED_APPROVE_EXACT_FRESH_TARGET_CONTRACT_V3
+authorization_record_id=PMAI-P0-04-FDTP-AUTH-REVIEW-V3-20260815
+authorization_recorded_date=2026-08-15
+design_dry_run_authority_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260815
+approver_role=PROJECT_OWNER_OPERATOR
+operator_role=PROJECT_OWNER_OPERATOR
+authorization_scope=ONE_NEW_EMPTY_ISOLATED_DISPOSABLE_POSTGRES_SERVICE_ONLY
+authorization_effective_gate=EXACT_PACKAGE_APPLIED_COMMITTED_PUSHED_GITHUB_CI_PASS_AND_SEPARATE_ONE_TIME_EXTERNAL_PROVISIONING_CONFIRMATION
+authorization_scope_recorded=true
+current_fresh_disposable_target_provisioning_authorized=false
+post_effective_gate_fresh_disposable_target_contract_authorized=true
+post_effective_gate_fresh_disposable_target_provisioning_eligible=true
+external_target_provisioning_execution_authorized=false
+one_time_external_provisioning_confirmation_present=false
+fresh_disposable_target_selected=false
+fresh_disposable_target_created=false
+decision=GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY
+next_action=REQUEST_SEPARATE_REPOSITORY_APPLY_AUTHORIZATION_FOR_EXACT_BUNDLE
+~~~
+
+The proposed post-effective-gate values are not current authority. They become
+meaningful only after the exact reviewed bundle is separately applied,
+published, passes a new GitHub CI Gate, and receives a new one-time external
+provisioning confirmation. No authority is inherited from this design or
+dry-run.
+
+## 2. Trusted entry baseline
+
+~~~text
+local_main=4d787ebd51f610d8f92e679ab5caa22191924ac4
+origin_main=4d787ebd51f610d8f92e679ab5caa22191924ac4
+main_parent=6a11b484f4506caccd2e27be1558bcf455a8538a
+github_ci_gate_number=209
+github_ci_gate_status=PASS
+github_ci_gate_commit=4d787ebd51f610d8f92e679ab5caa22191924ac4
+prior_ci_sha256=8c23f683f89965f4b90bd2925a575d2ac5ee5340ece340cc12b02ec923dcce55
+final_ci_sha256=e283cc5aa77f73d9fe79b1139411897b677daf8ebe71eb70212ae82edb07b31d
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_at_entry=true
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+baseline_source=OPERATOR_PUBLICATION_OUTPUT_AND_GITHUB_CI_GATE_209_SCREENSHOT_NO_RUNTIME_RECHECK
+~~~
+
+Gate 209 proves only the repository publication. Runtime and database values
+are retained baselines and were not rechecked by this network-disabled review.
+
+## 3. Published prerequisites retained
+
+~~~text
+selected_route=ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3
+completed_preparation_substage=FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_PREPARATION_V3
+completed_preparation_commit=4d787ebd51f610d8f92e679ab5caa22191924ac4
+completed_preparation_ci_gate=209
+completed_preparation_ci_status=PASS
+fresh_disposable_target_provisioning_authorization_preparation_complete=true
+restore_runner_v3_implementation_authorized=true
+restore_runner_v3_design_candidate_sha256=98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b
+restore_runner_v3_implementation_candidate_sha256=91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081
+restore_runner_v3_implementation_storage_suffix=.py.txt
+restore_runner_v3_implementation_promoted=false
+active_restore_runner_created=false
+restore_runner_v3_activation_authorized=false
+restore_runner_v3_execution_authorized=false
+approved_archive_sha256=ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7
+member_name_set_sha256=3a509a2084dd279e644c95d83d77babe555f21de76950c1c092421952a75e229
+logical_root_fingerprint_sha256=fcded0b983602688dfdd29b9742cdea17d429d8a19567c01feca91387c7c6d47
+root_contract_resolved=true
+root_layout_classification=PG_DIRECTORY_ROOT_DEEP_WRAPPED
+wrapper_depth=2
+cumulative_archive_listing_attempts_consumed=3
+cumulative_archive_listing_attempts_remaining=0
+~~~
+
+No archive attempt or prior target authorization is reused. The prior retired
+target remains excluded from this fresh contract.
+
+## 4. Exact proposed target contract
+
+~~~text
+target_contract_bound=true
+target_contract_identity_sha256=e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744
+target_logical_name=pet-med-ai-db-p0-04-fresh-disposable-restore-v3-ohio
+target_provider=Render
+target_provider_account_scope=PROJECT_OWNER_EXISTING_RENDER_ACCOUNT
+target_region=Ohio (US East)
+target_engine_family=PostgreSQL
+target_server_major_version=18
+target_instance_type=Basic-256mb
+target_storage_gb=1
+target_storage_autoscaling=false
+target_read_replica_count=0
+target_high_availability=false
+target_connection_pooling=false
+target_application_attachment_count=0
+target_network_scope=UNATTACHED_NO_APPLICATION_TRAFFIC
+target_cost_ceiling_usd=1.00
+target_max_lifetime_hours=72
+target_delete_within_hours_after_evidence=24
+target_deletion_owner=PROJECT_OWNER_OPERATOR
+target_service_identifier=UNBOUND_UNTIL_CREATED
+actual_target_identity_sha256=UNBOUND_UNTIL_CREATED
+target_created_at=UNBOUND_UNTIL_CREATED
+target_expiry_at=DERIVE_FROM_CREATED_AT_PLUS_72_HOURS
+target_is_disposable=true
+target_must_be_new=true
+target_must_be_empty=true
+target_production_identity_excluded=true
+target_staging_identity_excluded=true
+target_prior_retired_identity_reuse_forbidden=true
+target_prior_authorization_reuse_forbidden=true
+target_application_traffic_disabled=true
+target_cleanup_evidence_required=true
+~~~
+
+This is a contract binding, not an external service selection. The provider
+service identifier and actual identity cannot exist until a separately
+authorized provisioning action creates the service. Any change to a bound
+field or contract hash requires a new authorization review.
+
+## 5. Version and restore compatibility boundary
+
+~~~text
+source_postgresql_major_version=18
+restore_client_version=18.4
+required_target_postgresql_major_version=18
+version_compatibility_review=PASS_CONDITIONAL_ON_EXECUTION_TIME_EXACT_MAJOR_RECHECK
+execution_time_provider_version_recheck_required=true
+version_mismatch_action=HOLD_AND_CREATE_NOTHING
+restore_execution_authorized=false
+~~~
+
+The retained source and client values come from sanitized prior evidence. No
+database or provider endpoint was contacted by this review.
+
+## 6. Cost, expiry, deletion, and credential boundary
+
+~~~text
+provider_pricing_network_reverified=false
+provider_pricing_must_be_reviewed_in_control_plane_before_creation=true
+cost_projection_must_not_exceed_usd=1.00
+cost_projection_evidence_sanitized=true
+billing_owner=PROJECT_OWNER_OPERATOR
+expiry_rule=CREATED_AT_PLUS_72_HOURS
+deletion_rule=WITHIN_24_HOURS_AFTER_REQUIRED_EVIDENCE
+deletion_owner=PROJECT_OWNER_OPERATOR
+credential_custody=OPERATOR_CHANNEL_OUTSIDE_REPOSITORY
+credential_collection_by_review=false
+credential_repository_storage_forbidden=true
+connection_url_evidence_forbidden=true
+raw_environment_evidence_forbidden=true
+~~~
+
+If the provider control plane shows a different region, major version, plan,
+storage behavior, cost, or account scope, the later action must stop before
+creation and return to a new review.
+
+## 7. Proposed later provisioning-only operation
+
+Only after every effective gate and a separate one-time confirmation may the
+operator create exactly one new empty service matching the contract. The later
+action may capture only sanitized service identity, configuration, state,
+creation time, calculated expiry, isolation, cost projection, and deletion
+ownership evidence. It must then stop.
+
+The later action must not retrieve or print a connection value, attach an
+application, access the backup, create or activate a runner, connect to the
+database, restore, run SQL, run Alembic, deploy, or delete anything.
+
+## 8. Current repository-only boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+archive_file_opened=false
+backup_archive_listing_invoked=false
+backup_archive_member_headers_read=false
+backup_archive_member_payload_read=false
+backup_archive_extracted=false
+backup_archive_copied=false
+backup_archive_uploaded=false
+backup_archive_modified=false
+backup_archive_repackaged=false
+fresh_disposable_target_selected=false
+fresh_disposable_target_provisioning_authorized=false
+fresh_disposable_target_created=false
+render_target_created=false
+render_target_deleted=false
+active_restore_runner_created=false
+restore_runner_activated=false
+restore_runner_executed=false
+locked_runner_invoked=false
+credential_collection_performed=false
+connection_url_collected=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+application_deployment=false
+resource_deleted=false
+files_staged=false
+files_committed=false
+files_pushed=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+## 9. Fail-closed stop conditions
+
+Stop with HOLD if the Git baseline, Gate 209, route, prior preparation,
+candidate hashes, locked runner, archive contract, or repository cleanliness
+differs; if the target contract hash fails; if a bound parameter changes; if
+the old retired target or its authorization would be reused; if an actual
+service is silently selected; if a secret or connection value appears; or if
+any archive, target, runner, database, restore, migration, deployment,
+deletion, or Git publication action is attempted.
+
+## 10. Ordered gates and sole next subject
+
+~~~text
+future_gate_01=EXACT_AUTHORIZATION_REVIEW_BUNDLE_APPLIED_PUBLISHED_AND_NEW_CI_PASS
+future_gate_02=SEPARATE_ONE_FRESH_TARGET_EXTERNAL_PROVISIONING_EXECUTION_AUTHORIZATION_V3
+future_gate_03=EXACT_TARGET_CONTRACT_SHA256_CONFIRMATION
+future_gate_04=EXECUTION_TIME_PROVIDER_VERSION_AND_COST_RECHECK
+future_gate_05=ONE_NEW_EMPTY_UNATTACHED_TARGET_CREATION
+future_gate_06=SANITIZED_TARGET_PROVISIONING_EXECUTION_EVIDENCE_PUBLISHED_AND_CI_PASS
+future_gate_07=SEPARATE_ACTIVE_RUNNER_CREATION_AND_ACTIVATION_PREPARATION
+future_gate_08=SEPARATE_RUNNER_ACTIVATION_AND_ONE_TIME_RESTORE_EXECUTION_AUTHORIZATION
+future_gate_09=EXACT_ACTIVE_RUNNER_SOURCE_SHA256_MATCH
+future_gate_10=FRESH_TARGET_IDENTITY_AND_ISOLATION_RECHECK
+future_gate_11=APPROVED_ARCHIVE_SHA256_MATCH_WITHOUT_NEW_LISTING
+future_gate_12=SAFE_EXTRACTION_TO_NEW_0700_TEMP_DIRECTORY
+future_gate_13=EXTRACTED_LOGICAL_ROOT_FINGERPRINT_MATCH
+future_gate_14=READ_ONLY_EMPTY_TARGET_PREFLIGHT
+future_gate_15=ONE_ATTEMPT_RESERVATION_AND_SINGLE_TRANSACTION_RESTORE
+sole_next_subject=FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3
+~~~
+
+This review does not grant its own repository apply or publication authority.
+Until all gates are effective, the current target and execution authorization
+values remain false.
+
+## 11. Production and clinical hard gates retained
+
+~~~text
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+production_migration_authorized=false
+production_migration_executed=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~

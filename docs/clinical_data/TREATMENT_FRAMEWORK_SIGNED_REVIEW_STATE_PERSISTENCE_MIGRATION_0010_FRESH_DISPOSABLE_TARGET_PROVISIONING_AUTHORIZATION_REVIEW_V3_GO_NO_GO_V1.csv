@@ -1,0 +1,41 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-FDTP-AUTH-V3-GNG-001,entry commit,4d787ebd51f610d8f92e679ab5caa22191924ac4,4d787ebd51f610d8f92e679ab5caa22191924ac4,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-002,Gate 209,PASS,PASS,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-003,repository clean,true,true,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-004,preparation published,true,true,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-005,implementation identity authorized,true,true,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-006,root contract,resolved depth 2,resolved depth 2,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-007,archive attempts remaining,0,0,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-008,target contract hash,exact,e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-009,target logical name,exact,pet-med-ai-db-p0-04-fresh-disposable-restore-v3-ohio,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-010,target provider,Render,Render,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-011,target region,Ohio (US East),Ohio (US East),PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-012,target major version,18,18,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-013,target plan,Basic-256mb,Basic-256mb,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-014,target storage GB,1,1,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-015,application attachments,0,0,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-016,network scope,unattached,unattached,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-017,cost ceiling USD,1.00,1.00,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-018,expiry hours,72,72,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-019,deletion owner,PROJECT_OWNER_OPERATOR,PROJECT_OWNER_OPERATOR,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-020,service identifier,created later,UNBOUND_UNTIL_CREATED,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-021,actual target identity,created later,UNBOUND_UNTIL_CREATED,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-022,production excluded,true,true,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-023,staging excluded,true,true,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-024,prior retired target reuse,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-025,prior authorization reuse,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-026,current provisioning authority,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-027,post-effective contract authority,separate gates pending,proposed only,HOLD,COMPLETE_REPOSITORY_GATES
+PMAI-P0-04-FDTP-AUTH-V3-GNG-028,external provisioning execution,separate confirmation,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-AUTH-V3-GNG-029,target selection,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-030,target creation,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-031,credential collection,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-032,archive access,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-033,runner activation,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-AUTH-V3-GNG-034,runner execution,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-AUTH-V3-GNG-035,database connection,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-AUTH-V3-GNG-036,restore,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-AUTH-V3-GNG-037,migration 0010,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-AUTH-V3-GNG-038,deployment,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-039,resource deletion,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-AUTH-V3-GNG-040,sole next subject,FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3,FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V3,PASS,HOLD

@@ -28,7 +28,7 @@ EXPECTED_HEAD = "6a11b484f4506caccd2e27be1558bcf455a8538a"
 EXPECTED_PARENT = "a2f117eb55208bf5022d04482d005137a2f26874"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
 EXPECTED_PRIOR_CI_SHA256 = "55dd1eb17ed1fb19d030759ae9ff5926a2bda5ee545461a980a99b58a5c474f1"
-EXPECTED_FINAL_CI_SHA256 = "8c23f683f89965f4b90bd2925a575d2ac5ee5340ece340cc12b02ec923dcce55"
+EXPECTED_FINAL_CI_SHA256 = "e283cc5aa77f73d9fe79b1139411897b677daf8ebe71eb70212ae82edb07b31d"
 EXPECTED_LOCKED_RUNNER_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f"
 EXPECTED_DESIGN_CANDIDATE_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_IMPLEMENTATION_CANDIDATE_SHA256 = "91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081"
@@ -105,6 +105,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_preparation_v3.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_review_v3.py '
  '|| exit 1']
 EXPECTED_NEXT_SUBJECT = "FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3"
 
@@ -249,10 +252,11 @@ def main() -> int:
     need(len(tests) == 53 and all(row["status"] == "DESIGNED" for row in tests), "test matrix")
     targets = ci_targets(ci)
     commands = python_lines(ci)
-    need(len(targets) == 122 and len(set(targets)) == 122, "CI target cardinality")
+    need(len(targets) == 127 and len(set(targets)) == 127, "CI target cardinality")
     need(PACKAGE_PATHS <= set(targets), "CI package targets")
-    need(len(commands) == 25 and commands == EXPECTED_COMMANDS, "CI command contract")
-    need(commands[-1] == "python3 " + VALIDATOR + " || exit 1", "CI command order")
+    need(len(commands) == 26 and commands == EXPECTED_COMMANDS, "CI command contract")
+    fresh_target_authorization_review_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_review_v3.py || exit 1"
+    need(commands[-2:] == ["python3 " + VALIDATOR + " || exit 1", fresh_target_authorization_review_command], "CI command order")
     need(not list((ROOT / "backend/migrations/versions").glob("0010*.py")), "active 0010 migration")
     print("PASS: PMAI-P0-04 Fresh Disposable Target Provisioning Authorization Preparation V3")
     print("stage_id=PMAI-P0-04")
