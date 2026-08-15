@@ -1,0 +1,33 @@
+gate_id,gate,required,current,status,on_failure
+PMAI-P0-04-FDTP-PREP-V3-GNG-001,entry commit,6a11b484f4506caccd2e27be1558bcf455a8538a,6a11b484f4506caccd2e27be1558bcf455a8538a,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-002,Gate 208,PASS,PASS,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-003,repository clean,true,true,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-004,implementation identity,91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081,91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-005,implementation authorization effective,true,true,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-006,implementation promotion,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-007,active runner creation,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-008,runner activation,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-PREP-V3-GNG-009,runner execution,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-PREP-V3-GNG-010,root contract,resolved depth 2,resolved depth 2,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-011,archive access,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-012,archive retry,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-013,candidate target scope,one new empty isolated PostgreSQL,prepared only,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-014,provider identity,exact binding required,UNBOUND,HOLD,BIND_IN_REVIEW
+PMAI-P0-04-FDTP-PREP-V3-GNG-015,region,exact binding required,UNBOUND,HOLD,BIND_IN_REVIEW
+PMAI-P0-04-FDTP-PREP-V3-GNG-016,target identity,exact sanitized hash required,UNBOUND,HOLD,BIND_IN_REVIEW
+PMAI-P0-04-FDTP-PREP-V3-GNG-017,production exclusion,evidence required,not yet reviewed,HOLD,BIND_IN_REVIEW
+PMAI-P0-04-FDTP-PREP-V3-GNG-018,staging exclusion,evidence required,not yet reviewed,HOLD,BIND_IN_REVIEW
+PMAI-P0-04-FDTP-PREP-V3-GNG-019,server compatibility,review required,UNBOUND,HOLD,BIND_IN_REVIEW
+PMAI-P0-04-FDTP-PREP-V3-GNG-020,empty target,required,not yet provisioned,HOLD,VERIFY_AFTER_PROVISIONING
+PMAI-P0-04-FDTP-PREP-V3-GNG-021,application traffic,disabled,not yet provisioned,HOLD,VERIFY_AFTER_PROVISIONING
+PMAI-P0-04-FDTP-PREP-V3-GNG-022,cost ceiling,bound,UNBOUND,HOLD,BIND_IN_REVIEW
+PMAI-P0-04-FDTP-PREP-V3-GNG-023,expiry,bound,UNBOUND,HOLD,BIND_IN_REVIEW
+PMAI-P0-04-FDTP-PREP-V3-GNG-024,deletion owner,bound,UNBOUND,HOLD,BIND_IN_REVIEW
+PMAI-P0-04-FDTP-PREP-V3-GNG-025,credential collection,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-026,target provisioning,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-PREP-V3-GNG-027,database connection,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-PREP-V3-GNG-028,restore,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-PREP-V3-GNG-029,migration 0010,separate authority,not authorized,HOLD,REQUEST_SEPARATE_AUTHORIZATION
+PMAI-P0-04-FDTP-PREP-V3-GNG-030,deployment,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-031,resource deletion,false,false,PASS,HOLD
+PMAI-P0-04-FDTP-PREP-V3-GNG-032,sole next subject,FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3,FRESH_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V3,PASS,HOLD
