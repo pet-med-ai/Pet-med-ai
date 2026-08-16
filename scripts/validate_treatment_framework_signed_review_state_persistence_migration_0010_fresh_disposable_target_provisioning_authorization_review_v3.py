@@ -28,9 +28,9 @@ EXPECTED_HEAD = "4d787ebd51f610d8f92e679ab5caa22191924ac4"
 EXPECTED_PARENT = "6a11b484f4506caccd2e27be1558bcf455a8538a"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
 EXPECTED_PRIOR_CI_SHA256 = "8c23f683f89965f4b90bd2925a575d2ac5ee5340ece340cc12b02ec923dcce55"
-EXPECTED_FINAL_CI_SHA256 = "87605430bdb1c71d8edf7cace65bc554f5e8e888e6e8eed807ccb33cc32dbe18"
-EXPECTED_CI_TARGETS_SHA256 = "f1a5ceeddd84069b4149addfe89ff03b6ac24a470beeaa7be860a0a68bad92c9"
-EXPECTED_CI_COMMANDS_SHA256 = "ded57a383fdf9572ab2f767778ce8f47c7a041821eb5a5bf53258d1ac3abe185"
+EXPECTED_FINAL_CI_SHA256 = "4b50f28b230853bd57a983a7034aff170e11531bd276964a8c4b93769803c80c"
+EXPECTED_CI_TARGETS_SHA256 = "4bcdc574194f654b6fa25921280077700874db06d3af74a7b238f179a8e45147"
+EXPECTED_CI_COMMANDS_SHA256 = "08afde96e935ef6d9d6f2b7412d8b3b77cb64548853af7938edd2d524e0f9e66"
 EXPECTED_LOCKED_RUNNER_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f"
 EXPECTED_DESIGN_CANDIDATE_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_IMPLEMENTATION_CANDIDATE_SHA256 = "91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081"
@@ -296,17 +296,18 @@ def main() -> int:
     need(len(tests) == 62 and all(row["status"] == "DESIGNED" for row in tests), "test matrix")
     targets = ci_targets(ci)
     commands = python_lines(ci)
-    need(len(targets) == 132 and len(set(targets)) == 132, "CI target cardinality")
+    need(len(targets) == 137 and len(set(targets)) == 137, "CI target cardinality")
     need(PACKAGE_PATHS <= set(targets), "CI package targets")
     need(sequence_sha256(targets) == EXPECTED_CI_TARGETS_SHA256, "CI target contract")
-    need(len(commands) == 27, "CI command cardinality")
+    need(len(commands) == 28, "CI command cardinality")
     need(sequence_sha256(commands) == EXPECTED_CI_COMMANDS_SHA256, "CI command contract")
     need(
-        commands[-3:]
+        commands[-4:]
         == [
             "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_preparation_v3.py || exit 1",
             "python3 " + VALIDATOR + " || exit 1",
             "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_external_execution_authorization_v3.py || exit 1",
+            "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_execution_evidence_v3.py || exit 1",
         ],
         "CI command order",
     )

@@ -1,0 +1,331 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Fresh Disposable Target Provisioning Execution Evidence V3
+
+This repository-only package records the sanitized result of the already
+completed, single authorized fresh disposable target provisioning action. It
+does not access the provider control plane, create another target, retrieve a
+credential or connection value, access a backup, create, activate, or execute
+a runner, connect to a database, restore, create or execute migration 0010,
+deploy, delete, stage, commit, or push.
+
+## 1. Canonical evidence decision
+
+~~~text
+stage_id=PMAI-P0-04
+substage=FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V3
+stage_status=IN_PROGRESS
+package_status=FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_RECORD_ONLY
+evidence_status=COMPLETE_SINGLE_TARGET_PROVISIONING_ATTEMPT_TARGET_AVAILABLE
+evidence_record_id=PMAI-P0-04-FDTP-EXEC-EVID-V3-20260816
+authorization_record_id=PMAI-P0-04-FDTP-EXT-EXEC-AUTH-V3-20260815
+external_provisioning_execution_performed=true
+external_create_request_submitted=true
+execution_attempt_limit=1
+execution_attempts_consumed=1
+execution_attempts_remaining=0
+automatic_retry=false
+manual_retry_authorized=false
+authorization_reuse_allowed=false
+target_created=true
+target_status=AVAILABLE
+target_contract_match=true
+current_external_target_provisioning_execution_authorized=false
+current_target_creation_authorized=false
+active_restore_runner_created=false
+restore_runner_v3_activation_authorized=false
+restore_runner_v3_execution_authorized=false
+database_connection=false
+restore_execution=false
+decision=GO_TO_SEPARATE_ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_PREPARATION
+next_action=SEPARATE_ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_PREPARATION_REQUIRED
+~~~
+
+The provider-side create submission consumed the sole authorized attempt,
+irrespective of its successful outcome. No retry or second target creation is
+permitted under the consumed authorization.
+
+## 2. Published authorization baseline
+
+~~~text
+authorization_package_commit=6673d3b4bb4052f57f4f7d456a09ac82b20ea281
+authorization_package_commit_parent=e3dce86cdc98546e61eb52b573aa8fee112a00b4
+local_main_at_evidence_entry=6673d3b4bb4052f57f4f7d456a09ac82b20ea281
+origin_main_at_evidence_entry=6673d3b4bb4052f57f4f7d456a09ac82b20ea281
+github_ci_gate_number=211
+github_ci_gate_status=PASS
+github_ci_gate_commit=6673d3b4bb4052f57f4f7d456a09ac82b20ea281
+prior_ci_sha256=87605430bdb1c71d8edf7cace65bc554f5e8e888e6e8eed807ccb33cc32dbe18
+final_ci_sha256=4b50f28b230853bd57a983a7034aff170e11531bd276964a8c4b93769803c80c
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_before_execution=true
+repository_clean_after_execution=true
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+restore_runner_v3_design_candidate_sha256=98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b
+restore_runner_v3_implementation_candidate_sha256=91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081
+active_0010_migration_file_count=0
+baseline_source=OPERATOR_PUBLICATION_OUTPUT_GITHUB_CI_GATE_211_SCREENSHOT_SANITIZED_CONFIGURATION_SCREENSHOTS_AND_OPERATOR_SUCCESS_REPORT
+~~~
+
+Gate 211 proves the published authorization package only. The later target
+creation result is bound by the sanitized operator evidence recorded below;
+it is not database connectivity, restore, or restoreability evidence.
+
+## 3. Consumed one-time execution authorization
+
+~~~text
+execution_confirmation_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260815
+authorization_scope=ONE_NEW_EMPTY_UNATTACHED_RENDER_POSTGRES_SERVICE_CREATION_ONLY
+published_commit_confirmation=6673d3b4bb4052f57f4f7d456a09ac82b20ea281
+published_ci_gate_confirmation=211|PASS
+target_contract_identity_sha256=e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744
+execution_attempt_number=1
+create_request_submitted=true
+execution_authorization_was_present=true
+execution_authorization_consumed=true
+one_time_execution_confirmation_was_present=true
+name_absent_preflight=true
+configuration_contract_preflight_passed=true
+cost_ceiling_preflight_passed=true
+current_provisioning_attempt_authorized=false
+second_provisioning_attempt_authorized=false
+target_creation_retry_allowed=false
+~~~
+
+The operator confirmed name absence and exact form configuration immediately
+before the single create click. Submission itself consumed the authorization;
+the later Available state does not renew it.
+
+## 4. Exact target-contract result
+
+~~~text
+target_logical_name=pet-med-ai-db-p0-04-fresh-disposable-restore-v3-ohio
+target_provider=Render
+target_provider_account_scope=PROJECT_OWNER_EXISTING_RENDER_ACCOUNT
+target_region=Ohio (US East)
+target_engine_family=PostgreSQL
+target_server_major_version=18
+target_instance_type=Basic-256mb
+target_storage_gb=1
+target_storage_autoscaling=false
+target_read_replica_count=0
+target_high_availability=false
+target_connection_pooling=false
+target_application_attachment_count=0
+target_network_scope=UNATTACHED_NO_APPLICATION_TRAFFIC
+target_cost_ceiling_usd=1.00
+target_cost_projection_usd=0.62
+target_max_lifetime_hours=72
+target_delete_within_hours_after_evidence=24
+target_deletion_owner=PROJECT_OWNER_OPERATOR
+target_is_disposable=true
+target_is_new=true
+target_was_empty_at_creation=true
+target_application_traffic_disabled=true
+target_production_identity_excluded=true
+target_staging_identity_excluded=true
+target_prior_retired_identity_reused=false
+target_status=AVAILABLE
+target_contract_match=true
+~~~
+
+The 72-hour projection uses the displayed monthly total of USD 6.30 and is
+below the USD 1.00 ceiling. This evidence does not authorize keeping the
+target beyond the contract or deleting it without a separate deletion action
+authorization.
+
+## 5. Privacy-preserving identity and time boundary
+
+~~~text
+target_service_identifier_sha256=NOT_CAPTURED_PRIVACY_BOUNDARY_ENFORCED
+target_service_identifier_capture_status=INTENTIONALLY_NOT_CAPTURED
+raw_target_service_identifier_repository_value=FORBIDDEN
+target_dashboard_url_repository_value=FORBIDDEN
+target_connection_url_repository_value=FORBIDDEN
+target_credential_repository_value=FORBIDDEN
+target_created_at_utc=NOT_CAPTURED_EXACTLY_RELATIVE_UI_ONLY
+target_created_at_precision=RELATIVE_PROVIDER_UI_ONLY
+target_expiry_at_utc=EXTERNAL_OPERATOR_TRACKED_MAX_72_HOURS
+target_expiry_precision=BOUND_BY_MAX_LIFETIME_NOT_EXACT_TIMESTAMP
+exact_timestamp_inference_performed=false
+raw_provider_response_repository_value=FORBIDDEN
+~~~
+
+The available provider view showed a relative creation age, not an exact UTC
+timestamp. This package therefore records the bounded lifetime obligation and
+does not fabricate an exact creation or expiry timestamp. No raw service ID,
+URL, credential, or provider response was collected for Git.
+
+## 6. Sanitized external evidence bindings
+
+~~~text
+sanitized_configuration_name_evidence_sha256=58ce6e522b5cfa9d52390bc4304f4e71c7a92bef852122971948715288e16f43
+sanitized_region_version_evidence_sha256=541eeccc2e78d5b7713d31e0a5605de641caf64facd69d58b64d32b115b619e7
+sanitized_plan_storage_evidence_sha256=676c8e2198bcf764c9d215458c33a70a73a88f5b079d9648b5a29de1a3237e3e
+sanitized_cost_safety_evidence_sha256=c28d09c4b80ee27d8f6f8affbe18eb100b8fae3552432ddb1d65edc237a6fb2b
+sanitized_available_status_evidence_sha256=4edb074ae2f4cd9363adf5657286b7276d2faaf757636f74f00912b0511776c0
+sanitized_external_evidence_count=5
+external_evidence_storage=PROJECT_OWNER_EXTERNAL_CUSTODY_NOT_REPOSITORY
+raw_screenshot_repository_value=FORBIDDEN
+~~~
+
+Only the SHA-256 bindings are admitted. The images are not copied into the
+repository by this package.
+
+## 7. Canonical sanitized provisioning result
+
+~~~text
+sanitized_result_canonicalization=EXACT_UTF8_JSON_SORTED_KEYS_COMPACT_NO_TRAILING_NEWLINE
+sanitized_provisioning_result_sha256=e786650600fe955d3d1121bb4cf6187acf1fd27e256da4084c09d91348722e4f
+sanitized_result_field_count=23
+~~~
+
+~~~json
+{"authorization_record_id":"PMAI-P0-04-FDTP-EXT-EXEC-AUTH-V3-20260815","decision":"GO_TO_SEPARATE_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V3","execution_attempt_number":1,"sanitized_external_evidence_sha256_set":["58ce6e522b5cfa9d52390bc4304f4e71c7a92bef852122971948715288e16f43","541eeccc2e78d5b7713d31e0a5605de641caf64facd69d58b64d32b115b619e7","676c8e2198bcf764c9d215458c33a70a73a88f5b079d9648b5a29de1a3237e3e","c28d09c4b80ee27d8f6f8affbe18eb100b8fae3552432ddb1d65edc237a6fb2b","4edb074ae2f4cd9363adf5657286b7276d2faaf757636f74f00912b0511776c0"],"target_application_attachment_count":0,"target_connection_pooling":false,"target_contract_identity_sha256":"e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744","target_cost_projection_usd":0.62,"target_created_at_utc":"NOT_CAPTURED_EXACTLY_RELATIVE_UI_ONLY","target_deletion_owner":"PROJECT_OWNER_OPERATOR","target_engine_family":"PostgreSQL","target_expiry_at_utc":"EXTERNAL_OPERATOR_TRACKED_MAX_72_HOURS","target_high_availability":false,"target_instance_type":"Basic-256mb","target_logical_name":"pet-med-ai-db-p0-04-fresh-disposable-restore-v3-ohio","target_provider":"Render","target_read_replica_count":0,"target_region":"Ohio (US East)","target_server_major_version":18,"target_service_identifier_sha256":"NOT_CAPTURED_PRIVACY_BOUNDARY_ENFORCED","target_status":"AVAILABLE","target_storage_autoscaling":false,"target_storage_gb":1}
+~~~
+
+The result decision points only to this evidence-recording subject. The
+governance decision after this package is the separate runner creation and
+activation preparation gate named in Section 1.
+
+## 8. Recorded completed external action boundary
+
+~~~text
+recorded_provider_control_plane_opened=true
+recorded_target_form_configured=true
+recorded_external_create_request_submitted=true
+recorded_target_created=true
+recorded_target_available=true
+recorded_execution_attempts_consumed=1
+recorded_credentials_viewed=false
+recorded_connection_values_viewed=false
+recorded_database_connection=false
+recorded_database_write=false
+recorded_backup_access=false
+recorded_runner_created=false
+recorded_runner_activated=false
+recorded_runner_executed=false
+recorded_restore_execution=false
+recorded_pg_restore_invoked=false
+recorded_psql_invoked=false
+recorded_alembic_invoked=false
+recorded_migration_created=false
+recorded_migration_executed=false
+recorded_application_deployment=false
+recorded_resource_deleted=false
+~~~
+
+These fields describe the already completed operator action. They do not turn
+on any current package capability.
+
+## 9. Current repository-only package boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+provider_control_plane_opened=false
+target_selection_performed=false
+target_creation_performed=false
+target_configuration_modified=false
+target_deletion_performed=false
+credential_collection_performed=false
+connection_url_collected=false
+archive_file_opened=false
+backup_archive_listing_invoked=false
+backup_archive_member_headers_read=false
+backup_archive_member_payload_read=false
+backup_archive_extracted=false
+backup_archive_copied=false
+backup_archive_uploaded=false
+backup_archive_modified=false
+backup_archive_repackaged=false
+active_restore_runner_created=false
+restore_runner_activated=false
+restore_runner_executed=false
+locked_runner_invoked=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+application_deployment=false
+resource_deleted=false
+files_staged=false
+files_committed=false
+files_pushed=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+## 10. Evidence and inference boundary
+
+~~~text
+fresh_disposable_target_provisioning_verified=true
+target_contract_configuration_verified=true
+target_available_control_plane_status_verified=true
+target_database_connectivity_verified=false
+target_database_empty_state_readback_verified=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+restore_runner_creation_authorized=false
+restore_runner_activation_authorized=false
+restore_runner_execution_authorized=false
+restore_execution_authorized=false
+target_retirement_authorized=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+An Available control-plane status is not a database connection test, empty
+schema readback, restore rehearsal, or proof of backup restoreability.
+
+## 11. Fail-closed and lifecycle obligations
+
+No retry is available. Any later duplicate target creation, configuration
+change, credential retrieval, database connection, runner creation or
+activation, restore, migration, deployment, or deletion requires its own
+explicitly bounded authorization. The project owner remains responsible for
+the 72-hour maximum lifetime and for separately authorizing deletion within 24
+hours after the evidence chain no longer needs the target.
+
+## 12. Ordered gates and sole next subject
+
+~~~text
+completed_gate_01=EXTERNAL_EXECUTION_AUTHORIZATION_PACKAGE_PUBLISHED_AND_CI_GATE_211_PASS
+completed_gate_02=SEPARATE_ONE_TIME_EXTERNAL_PROVISIONING_EXECUTION_CONFIRMATION
+completed_gate_03=NAME_COST_AND_CONFIGURATION_PREFLIGHT_PASS
+completed_gate_04=ONE_CREATE_REQUEST_SUBMITTED_AND_ATTEMPT_CONSUMED
+completed_gate_05=TARGET_CREATED_AND_AVAILABLE_SANITIZED_RESULT_RETURNED
+current_gate_06=EXECUTION_EVIDENCE_V3_REPOSITORY_PACKAGE_REVIEW
+future_gate_07=EXECUTION_EVIDENCE_V3_APPLIED_PUBLISHED_AND_NEW_CI_PASS
+future_gate_08=SEPARATE_ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_PREPARATION
+future_gate_09=SEPARATE_RUNNER_ACTIVATION_AND_ONE_TIME_RESTORE_EXECUTION_AUTHORIZATION
+sole_next_subject=ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_PREPARATION
+~~~
+
+## 13. Production and clinical hard gates retained
+
+~~~text
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+production_migration_authorized=false
+production_migration_executed=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~

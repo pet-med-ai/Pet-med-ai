@@ -21,7 +21,7 @@ EVIDENCE_PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_st
 RESTORE_AUTH_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = '87605430bdb1c71d8edf7cace65bc554f5e8e888e6e8eed807ccb33cc32dbe18'
+EXPECTED_CI_SHA256 = '4b50f28b230853bd57a983a7034aff170e11531bd276964a8c4b93769803c80c'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_V2_RUNNER_SHA256 = 'e36c62f2a69c97c03c97cf9b76edb42759f4bdea5ae987acc34b9c6f4c356cf5'
 EXPECTED_BACKUP_SHA256 = 'ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7'
@@ -113,6 +113,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_external_execution_authorization_v3.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_execution_evidence_v3.py '
  '|| exit 1']
 HASH_EXTRA_PATHS = {'backend/models.py',
  'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md',
