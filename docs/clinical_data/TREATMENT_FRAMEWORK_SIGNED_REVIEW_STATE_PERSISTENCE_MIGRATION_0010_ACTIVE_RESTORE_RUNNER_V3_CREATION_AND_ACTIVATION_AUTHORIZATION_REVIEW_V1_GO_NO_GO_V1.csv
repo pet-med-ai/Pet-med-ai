@@ -1,0 +1,29 @@
+gate_id,gate,expected,current,status,decision_if_failed
+PMAI-P0-04-ARR-V3-CA-AUTH-G01,entry commit exact,41b94ef7e5e337538fa6ef22ebc0a225112c5c59,41b94ef7e5e337538fa6ef22ebc0a225112c5c59,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G02,GitHub CI Gate 213 pass,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G03,preparation package complete,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G04,implementation candidate hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G05,design candidate hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G06,target contract hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G07,planned active path absent,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G08,active 0010 migration absent,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G09,candidate fail closed,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G10,runtime binding contract complete,true,false,HOLD,SEPARATE_BINDING_AND_EXECUTION_AUTHORIZATION_REQUIRED
+PMAI-P0-04-ARR-V3-CA-AUTH-G11,current active runner creation authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G12,current runner activation authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G13,post effective eligibility,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G14,post effective creation execution authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G15,one time action confirmation,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G16,runner execution authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G17,archive access authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G18,credential read authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G19,target access authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G20,database connection authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G21,restore execution authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G22,migration 0010 authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G23,deployment authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G24,resource deletion authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-AUTH-G25,repository apply authority,false,false,HOLD,SEPARATE_USER_AUTHORIZATION_REQUIRED
+PMAI-P0-04-ARR-V3-CA-AUTH-G26,Git publication authority,false,false,HOLD,SEPARATE_USER_AUTHORIZATION_REQUIRED
+PMAI-P0-04-ARR-V3-CA-AUTH-G27,backup restoreability verified,true,false,HOLD,RESTORE_EVIDENCE_REQUIRED
+PMAI-P0-04-ARR-V3-CA-AUTH-G28,review package internally ready,true,true,PASS,GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY

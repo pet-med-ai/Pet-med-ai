@@ -27,7 +27,7 @@ EXPECTED_HEAD = "190de64deac0eef19c9ffcaafc8ecbdcc12f7278"
 EXPECTED_PARENT = "959b15b2ea15f31f19564d553207ce31a31561ce"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
 EXPECTED_PRIOR_CI_SHA256 = "9d02f180ffac1f69ab4f93f0d160bf82cb18205003703d042720b5fda421c7c9"
-EXPECTED_FINAL_CI_SHA256 = "4c91905018f71da785a3ec77fd20da7c31c8e495862fb6e30259e60658756706"
+EXPECTED_FINAL_CI_SHA256 = "2aa57fb16b2513954b8ab8f9f86646a3d961174576ea6aa3539e683636620b6c"
 EXPECTED_LOCKED_RUNNER_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f"
 EXPECTED_CANDIDATE_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_ARCHIVE_SHA256 = "ea7b5a69231f50e54bd0a9da5b8eab4dde04d763853bef824564c4c66d2fa8a7"
@@ -268,7 +268,7 @@ def main() -> int:
     need(all(row["status"] == "DESIGNED" for row in tests), "test matrix status")
 
     targets = ci_targets(ci)
-    need(len(targets) == 142 and len(targets) == len(set(targets)), "CI TARGETS canonical")
+    need(len(targets) == 147 and len(targets) == len(set(targets)), "CI TARGETS canonical")
     need(PACKAGE_PATHS.issubset(set(targets)), "authorization review package targets")
     command = "python3 " + VALIDATOR + " || exit 1"
     implementation_preparation_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_restore_runner_v3_implementation_preparation_v1.py || exit 1"
@@ -282,7 +282,7 @@ def main() -> int:
         "CI marker count",
     )
     need(ci.splitlines().count(command) == 1, "CI command count")
-    need(len(python_lines(ci)) == 29 and python_lines(ci)[-8:-1] == [command, implementation_preparation_command, implementation_authorization_review_command, fresh_target_preparation_command, fresh_target_authorization_review_command, fresh_target_external_execution_authorization_command, fresh_target_execution_evidence_command], "CI command order")
+    need(len(python_lines(ci)) == 30 and python_lines(ci)[-9:-2] == [command, implementation_preparation_command, implementation_authorization_review_command, fresh_target_preparation_command, fresh_target_authorization_review_command, fresh_target_external_execution_authorization_command, fresh_target_execution_evidence_command], "CI command order")
 
     unsafe_suffixes = (".png", ".jpg", ".jpeg", ".json", ".tar", ".tar.gz", ".db", ".bak", ".save")
     need(not any(path.lower().endswith(unsafe_suffixes) for path in targets), "raw or unsafe target")

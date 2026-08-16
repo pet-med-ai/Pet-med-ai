@@ -1,0 +1,300 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Active Restore Runner V3 Creation and Activation Authorization Review V1
+
+This repository-only package reviews the exact inert Restore Runner V3
+implementation candidate and the published preparation contract for a future
+active-runner creation and non-executing activation action. It records only a
+post-publication eligibility boundary. It does not create, activate, import, or
+execute a runner; access the backup; read credentials; access the target;
+connect to a database; restore; create or execute migration 0010; deploy;
+delete; stage; commit; or push.
+
+## 1. Canonical authorization-review record
+
+~~~text
+stage_id=PMAI-P0-04
+substage=ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_AUTHORIZATION_REVIEW_V1
+stage_status=IN_PROGRESS
+package_status=ACTIVE_RUNNER_CREATION_AND_ACTIVATION_AUTHORIZATION_REVIEW_RECORD_ONLY
+review_status=PROPOSED_APPROVE_SEPARATE_FAIL_CLOSED_CREATION_AND_NONEXECUTING_ACTIVATION_ELIGIBILITY_ONLY
+authorization_review_record_id=PMAI-P0-04-ARR-V3-CA-AUTH-REV-V1-20260816
+authorization_recorded_date=2026-08-16
+authorization_scope_recorded=true
+current_substage=ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_PREPARATION_V1
+proposed_substage=ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_AUTHORIZATION_REVIEW_V1
+selected_route=ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3
+current_active_restore_runner_creation_authorized=false
+current_restore_runner_v3_activation_authorized=false
+post_effective_gate_creation_and_activation_eligible=true
+post_effective_gate_active_restore_runner_creation_authorized=false
+post_effective_gate_restore_runner_v3_activation_authorized=false
+one_time_creation_and_activation_confirmation_present=false
+active_restore_runner_created=false
+restore_runner_activated=false
+restore_runner_executed=false
+restore_runner_v3_execution_authorized=false
+one_time_restore_execution_authorized=false
+decision=GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY
+next_subject=ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_EXECUTION_AUTHORIZATION_V1
+~~~
+
+The eligibility marker becomes effective only after this exact bundle is
+separately applied, published, and passes a new GitHub CI Gate. It is not
+creation or activation authority. A later, separately authorized action must
+bind every required identity, prove the active path is absent, and retain all
+execution and external-access gates as false.
+
+## 2. Trusted entry baseline
+
+~~~text
+local_main=41b94ef7e5e337538fa6ef22ebc0a225112c5c59
+origin_main=41b94ef7e5e337538fa6ef22ebc0a225112c5c59
+main_parent=b13a790b9f1803a52e51598523c17779a4a7397a
+github_ci_gate_number=213
+github_ci_gate_status=PASS
+github_ci_gate_commit=41b94ef7e5e337538fa6ef22ebc0a225112c5c59
+prior_ci_sha256=4c91905018f71da785a3ec77fd20da7c31c8e495862fb6e30259e60658756706
+final_ci_sha256=2aa57fb16b2513954b8ab8f9f86646a3d961174576ea6aa3539e683636620b6c
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_at_entry=true
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+baseline_source=OPERATOR_PUBLICATION_OUTPUT_AND_GITHUB_CI_GATE_213_SCREENSHOT_NO_RUNTIME_OR_TARGET_RECHECK
+~~~
+
+Gate 213 proves only the published repository commit. This review does not
+re-open the provider control plane and does not recheck any runtime, database,
+credential, backup, or target fact.
+
+## 3. Completed preparation and exact candidate identities
+
+~~~text
+completed_substage=ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_PREPARATION_V1
+completed_commit=41b94ef7e5e337538fa6ef22ebc0a225112c5c59
+completed_parent=b13a790b9f1803a52e51598523c17779a4a7397a
+completed_ci_gate=213
+completed_ci_status=PASS
+active_runner_creation_and_activation_preparation_complete=true
+design_candidate_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3.py.txt
+design_candidate_sha256=98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b
+implementation_candidate_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3_IMPLEMENTATION_CANDIDATE_V1.py.txt
+implementation_candidate_sha256=91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081
+implementation_candidate_suffix=.py.txt
+implementation_candidate_repository_executable=false
+implementation_candidate_ast_valid=true
+implementation_candidate_imported=false
+implementation_candidate_executed=false
+implementation_candidate_modified_by_review=false
+candidate_byte_change_requires_new_integrity_review=true
+planned_active_runner_path=scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_v3.py
+planned_active_runner_path_present=false
+~~~
+
+Candidate review is static. The `.py.txt` source is parsed as text and never
+imported or executed. Its exact byte hash, fail-closed literals, unbound future
+bindings, and absence of an active-path twin are mandatory invariants.
+
+## 4. Published target contract retained without target access
+
+~~~text
+target_evidence_commit=b13a790b9f1803a52e51598523c17779a4a7397a
+target_evidence_ci_gate=212
+target_contract_identity_sha256=e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744
+target_logical_name=pet-med-ai-db-p0-04-fresh-disposable-restore-v3-ohio
+target_region=Ohio (US East)
+target_server_major_version=18
+target_instance_type=Basic-256mb
+target_storage_gb=1
+target_status_from_published_evidence=AVAILABLE
+target_status_rechecked_by_review=false
+target_runtime_identity_sha256=UNBOUND
+target_database_connectivity_verified=false
+target_database_empty_state_readback_verified=false
+provider_service_identifier_captured=false
+credentials_collected=false
+~~~
+
+The target-contract hash is not a substitute for the runtime database identity
+hash. A stale target, expired lifecycle, path collision, missing identity, or
+ambiguous result is HOLD and authorizes no runner creation.
+
+## 5. Candidate fail-closed integrity findings
+
+~~~text
+execution_enabled=false
+archive_access_enabled=false
+archive_listing_enabled=false
+member_header_read_enabled=false
+member_payload_read_enabled=false
+archive_extraction_enabled=false
+target_preflight_enabled=false
+database_connection_enabled=false
+database_write_enabled=false
+restore_process_enabled=false
+restore_execution_enabled=false
+pg_restore_invocation_enabled=false
+psql_invocation_enabled=false
+automatic_retry_enabled=false
+manual_retry_enabled=false
+migration_0010_enabled=false
+deployment_enabled=false
+resource_deletion_enabled=false
+activation_authorization_record_id_binding=UNBOUND
+expected_active_source_sha256_binding=UNBOUND
+expected_target_identity_sha256_binding=UNBOUND
+forbidden_production_identity_sha256_binding=UNBOUND
+forbidden_staging_identity_sha256_binding=UNBOUND
+expected_schema_manifest_sha256_binding=UNBOUND
+runtime_binding_contract_complete=false
+unsafe_dynamic_execution_absent=true
+shell_true_absent=true
+tarfile_extractall_absent=true
+candidate_imported_by_review=false
+candidate_executed_by_review=false
+~~~
+
+Because the runtime binding contract remains incomplete, this review records
+eligibility only. It cannot make current creation or activation authority true.
+
+## 6. Post-effective eligibility boundary
+
+~~~text
+post_effective_gate_requires_exact_bundle_publication=true
+post_effective_gate_requires_new_github_ci_pass=true
+post_effective_gate_authorized_implementation_candidate_sha256=91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081
+post_effective_gate_authorized_target_contract_identity_sha256=e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744
+post_effective_gate_creation_and_activation_eligible=true
+post_effective_gate_creation_and_activation_execution_authorized=false
+post_effective_gate_runner_execution_authorized=false
+post_effective_gate_archive_access_authorized=false
+post_effective_gate_credential_read_authorized=false
+post_effective_gate_target_access_authorized=false
+post_effective_gate_database_connection_authorized=false
+post_effective_gate_restore_authorized=false
+post_effective_gate_migration_0010_authorized=false
+post_effective_gate_deployment_authorized=false
+post_effective_gate_resource_deletion_authorized=false
+authorization_reuse_allowed=false
+~~~
+
+The later execution-authorization record must be exact-bundle and one-action
+scoped. It must not infer authority from this review or from target existence.
+
+## 7. Mandatory gates for any later creation and activation action
+
+~~~text
+future_gate_01=THIS_AUTHORIZATION_REVIEW_PACKAGE_PUBLISHED_AND_NEW_CI_PASS
+future_gate_02=SEPARATE_CREATION_AND_ACTIVATION_EXECUTION_AUTHORIZATION_EFFECTIVE
+future_gate_03=EXACT_IMPLEMENTATION_CANDIDATE_SHA256_MATCH
+future_gate_04=EXACT_TARGET_CONTRACT_SHA256_MATCH
+future_gate_05=ALL_RUNTIME_HASH_BINDINGS_PRESENT_AND_SEPARATELY_REVIEWED
+future_gate_06=TARGET_LIFECYCLE_AND_AVAILABLE_STATUS_RECONFIRMED_WITHOUT_CREDENTIAL_DISCLOSURE
+future_gate_07=PLANNED_ACTIVE_PATH_ABSENT
+future_gate_08=NO_ACTIVE_0010_MIGRATION_PRESENT
+future_gate_09=ATOMIC_CREATE_NEW_WITH_NO_OVERWRITE
+future_gate_10=ACTIVE_SOURCE_HASH_AND_CRITICAL_FUNCTION_LOCK_RECHECK
+future_gate_11=RUNNER_NOT_IMPORTED_OR_EXECUTED_DURING_CREATION
+future_gate_12=ALL_EXTERNAL_AND_RESTORE_GATES_REMAIN_FALSE
+future_gate_13=SEPARATE_ONE_TIME_RESTORE_EXECUTION_AUTHORIZATION_STILL_REQUIRED
+~~~
+
+Failure or ambiguity at any gate is HOLD and creates nothing. No automatic or
+manual retry is implied.
+
+## 8. Activation and restore-execution separation
+
+~~~text
+creation_and_activation_is_restore_execution=false
+creation_action_attempt_limit_current=0
+post_confirmation_creation_action_attempt_limit=1
+activation_may_import_runner=false
+activation_may_execute_runner=false
+activation_may_access_archive=false
+activation_may_read_credentials=false
+activation_may_access_target=false
+activation_may_connect_database=false
+activation_may_restore=false
+one_time_restore_execution_confirmation_required_after_activation=true
+restore_attempts_authorized=0
+automatic_retry_allowed=false
+manual_retry_allowed=false
+ambiguous_result_policy=HOLD_NO_RETRY
+~~~
+
+## 9. Current repository-only boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+provider_control_plane_opened=false
+archive_file_opened=false
+backup_archive_listing_invoked=false
+backup_archive_member_headers_read=false
+backup_archive_member_payload_read=false
+backup_archive_extracted=false
+credential_collection_performed=false
+connection_url_collected=false
+active_restore_runner_created=false
+restore_runner_activated=false
+restore_runner_executed=false
+locked_runner_invoked=false
+target_accessed=false
+target_modified=false
+target_deleted=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+application_deployment=false
+resource_deleted=false
+files_staged=false
+files_committed=false
+files_pushed=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~~
+
+## 10. Review outcome and sole next subject
+
+After separate repository apply, exact publication, and a new GitHub CI PASS,
+this record makes one later creation-and-activation execution-authorization
+review eligible. The sole next governance subject is
+`ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_EXECUTION_AUTHORIZATION_V1`.
+
+This package itself is not authority to create or activate a runner, access a
+backup or target, read credentials, connect to a database, restore, create or
+execute migration 0010, deploy, delete, or publish itself.
+
+## 11. Target lifecycle and production hard gates retained
+
+~~~text
+target_max_lifetime_hours=72
+target_delete_within_hours_after_evidence=24
+target_retirement_authorized=false
+target_deletion_performed=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+production_migration_authorized=false
+production_migration_executed=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~~
