@@ -28,7 +28,7 @@ EXPECTED_HEAD = '8f7a4a25908e874f406b08e9ae2d1dc9de69db26'
 EXPECTED_PARENT = '0e6dfdd876227d88003bebc9edd966f0821c0b41'
 EXPECTED_ISOLATED = '8d1dc8814ed8f80d8bc965b494c1c320fc08f228'
 EXPECTED_PRIOR_CI_SHA256 = '27171bf84096af25dc25ff3f0153516108b92b22fec878b1afc9184df5c2dece'
-EXPECTED_FINAL_CI_SHA256 = '4b50f28b230853bd57a983a7034aff170e11531bd276964a8c4b93769803c80c'
+EXPECTED_FINAL_CI_SHA256 = '4c91905018f71da785a3ec77fd20da7c31c8e495862fb6e30259e60658756706'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_CANDIDATE_SOURCE_SHA256 = '6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14'
 EXPECTED_V1_RESULT_SHA256 = 'c8c68cbe00ebeff2eae75fb6c1b375af8e867b869e68378e43b9188b1a2b6893'
@@ -196,7 +196,7 @@ def main() -> int:
         need(marker(auth_doc, key) == expected, 'authorization pointer ' + key)
 
     targets = ci_targets(ci)
-    need(len(targets) == 137 and len(targets) == len(set(targets)), 'CI TARGETS canonical')
+    need(len(targets) == 142 and len(targets) == len(set(targets)), 'CI TARGETS canonical')
     need(PACKAGE_PATHS.issubset(set(targets)), 'evidence package targets')
     command = 'python3 ' + VALIDATOR + ' || exit 1'
     runner_design_command = 'python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_restore_runner_design_preparation_v3.py || exit 1'
@@ -210,8 +210,8 @@ def main() -> int:
     need(ci.splitlines().count('# PMAI-P0-04 archive root contract investigation V3 execution evidence v1') == 1, 'CI marker count')
     need(ci.splitlines().count(command) == 1, 'CI command count')
     need(
-        len(python_lines(ci)) == 28
-        and python_lines(ci)[-9:] == [command, runner_design_command, runner_authorization_review_command, implementation_preparation_command, implementation_authorization_review_command, fresh_target_preparation_command, fresh_target_authorization_review_command, fresh_target_external_execution_authorization_command, fresh_target_execution_evidence_command],
+        len(python_lines(ci)) == 29
+        and python_lines(ci)[-10:-1] == [command, runner_design_command, runner_authorization_review_command, implementation_preparation_command, implementation_authorization_review_command, fresh_target_preparation_command, fresh_target_authorization_review_command, fresh_target_external_execution_authorization_command, fresh_target_execution_evidence_command],
         'CI command order',
     )
 

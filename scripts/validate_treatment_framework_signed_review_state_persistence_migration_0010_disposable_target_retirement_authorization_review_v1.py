@@ -23,11 +23,11 @@ EVIDENCE_PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_st
 RESTORE_AUTH_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = '4b50f28b230853bd57a983a7034aff170e11531bd276964a8c4b93769803c80c'
+EXPECTED_CI_SHA256 = '4c91905018f71da785a3ec77fd20da7c31c8e495862fb6e30259e60658756706'
 EXPECTED_PRIOR_CI_SHA256 = 'ee5b75fe566218490ca1edef2405596309a6302879ec486249b435ae07832cde'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_ABORT_DOC_COMMITTED_SHA256 = 'c1d44d9652ff7fc14fafa2747572716d1d7aaf3b87052008eb2dda6cded658eb'
-EXPECTED_ABORT_DOC_CURRENT_SHA256 = '4e94c8a8b53b9b8f6b226c5aad7cfe5c80b9b659fd6f098367b579b8839cfd90'
+EXPECTED_ABORT_DOC_CURRENT_SHA256 = '25d4bdbad898831c32ad4899dca01d589461bf9baac128634dd4574bb949cc1a'
 EXPECTED_APPROVAL_STATEMENT = '批准 PMAI-P0-04 仅对 pet-med-ai-db-p0-04-disposable-restore-ohio 执行一次控制面删除并完成退休留证；删除前必须重新核验目标身份、Available、Apps=0、无依赖且无外部 restore runner 进程，并须在 2026-08-11 00:08 +08:00 前完成；不授权 production、staging source、数据库连接、Restore/Recovery、pg_restore、psql、Alembic、0010 migration、locked runner 或任何应用部署。'
 EXPECTED_APPROVAL_STATEMENT_SHA256 = '525efdddd4f15257e1211ef3e0b7c5215ef5bf54aa6560f07e1e26c6ed8ea6f8'
 EXPECTED_COMMANDS = ['python3 '
@@ -112,6 +112,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_execution_evidence_v3.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_creation_and_activation_preparation_v1.py '
  '|| exit 1']
 HASH_EXTRA_PATHS = {
     'backend/models.py',

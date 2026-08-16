@@ -27,7 +27,7 @@ EXPECTED_HEAD = "40f263be59d8732589ba78c4aa985d8c1b1b0a98"
 EXPECTED_PARENT = "190de64deac0eef19c9ffcaafc8ecbdcc12f7278"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
 EXPECTED_PRIOR_CI_SHA256 = "9a8c3a96466a783c576c28d66b6e7db3cc05c86c018bcd750343c3d99f323104"
-EXPECTED_FINAL_CI_SHA256 = "4b50f28b230853bd57a983a7034aff170e11531bd276964a8c4b93769803c80c"
+EXPECTED_FINAL_CI_SHA256 = "4c91905018f71da785a3ec77fd20da7c31c8e495862fb6e30259e60658756706"
 EXPECTED_LOCKED_RUNNER_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f"
 EXPECTED_DESIGN_CANDIDATE_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_CANDIDATE_SHA256 = "91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081"
@@ -129,6 +129,9 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_execution_evidence_v3.py '
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_creation_and_activation_preparation_v1.py '
  '|| exit 1']
 PACKAGE_PATHS = {DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX, CANDIDATE, VALIDATOR}
 
@@ -358,8 +361,8 @@ def main() -> int:
     ci = read_text(CI)
     targets = ci_targets(ci)
     commands = python_lines(ci)
-    need(len(targets) == 137 and len(set(targets)) == 137, "CI target cardinality")
-    need(len(commands) == 28 and commands == EXPECTED_COMMANDS, "CI command contract")
+    need(len(targets) == 142 and len(set(targets)) == 142, "CI target cardinality")
+    need(len(commands) == 29 and commands == EXPECTED_COMMANDS, "CI command contract")
     need(PACKAGE_PATHS <= set(targets), "CI package targets")
     need(all(CANDIDATE not in command for command in commands), "candidate not executed by CI")
     need(("python3 " + VALIDATOR + " || exit 1") in commands, "validator command")
