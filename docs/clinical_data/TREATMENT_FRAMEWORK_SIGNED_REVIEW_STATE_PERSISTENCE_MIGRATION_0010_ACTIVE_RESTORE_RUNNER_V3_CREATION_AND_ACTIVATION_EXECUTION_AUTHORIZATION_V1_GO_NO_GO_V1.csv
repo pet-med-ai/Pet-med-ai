@@ -1,0 +1,32 @@
+gate_id,gate,expected,current,status,decision_if_failed
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G01,entry commit exact,41cebde19b7990aff5beb27899e7892876e4a698,41cebde19b7990aff5beb27899e7892876e4a698,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G02,GitHub CI Gate 214 pass,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G03,authorization review published,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G04,implementation candidate hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G05,design candidate hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G06,locked runner hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G07,target contract hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G08,planned active path absent,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G09,active 0010 migration absent,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G10,current creation authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G11,current activation authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G12,current execution authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G13,post effective execution eligibility,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G14,one time confirmation present,true,false,HOLD,SEPARATE_CONFIRMATION_REQUIRED
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G15,runtime binding contract complete,true,false,HOLD,ALL_BINDINGS_REQUIRED
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G16,current creation attempts authorized,0,0,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G17,post confirmation attempt limit,1,1,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G18,runner execution authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G19,archive access authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G20,credential read authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G21,target access authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G22,database connection authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G23,restore execution authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G24,migration 0010 authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G25,deployment authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G26,resource deletion authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G27,automatic retry authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G28,repository apply authority,false,false,HOLD,SEPARATE_USER_AUTHORIZATION_REQUIRED
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G29,Git publication authority,false,false,HOLD,SEPARATE_USER_AUTHORIZATION_REQUIRED
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G30,backup restoreability verified,true,false,HOLD,RESTORE_EVIDENCE_REQUIRED
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-G31,authorization package internally ready,true,true,PASS,GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY

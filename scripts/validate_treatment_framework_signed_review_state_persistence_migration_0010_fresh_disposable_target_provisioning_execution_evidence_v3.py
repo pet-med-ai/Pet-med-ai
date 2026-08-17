@@ -31,9 +31,9 @@ EXPECTED_HEAD = "6673d3b4bb4052f57f4f7d456a09ac82b20ea281"
 EXPECTED_PARENT = "e3dce86cdc98546e61eb52b573aa8fee112a00b4"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
 EXPECTED_PRIOR_CI_SHA256 = "87605430bdb1c71d8edf7cace65bc554f5e8e888e6e8eed807ccb33cc32dbe18"
-EXPECTED_FINAL_CI_SHA256 = "2aa57fb16b2513954b8ab8f9f86646a3d961174576ea6aa3539e683636620b6c"
-EXPECTED_CI_TARGETS_SHA256 = "3a4111dbb58aded4461ac3baba45922b077c1bec44dea7867402bea1d106026a"
-EXPECTED_CI_COMMANDS_SHA256 = "7ab6d12a3a94e577df72ed828dcfe8cedcde6bf143d1cab4e509a43236d49819"
+EXPECTED_FINAL_CI_SHA256 = "a433a4790a1ea2a638640906dd43e8402bfccaa463967968eb0e1eda915ad6d4"
+EXPECTED_CI_TARGETS_SHA256 = "e8bba0ce72ca5be4b32d1e8c0b0de7fe3b609588e746442ee0bb7365bd89a0e4"
+EXPECTED_CI_COMMANDS_SHA256 = "504e69e3842a6a51acb16a9a85ac2a6463a7e51d5ea04d7ad1c31521390fff0a"
 EXPECTED_LOCKED_RUNNER_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f"
 EXPECTED_DESIGN_CANDIDATE_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_IMPLEMENTATION_CANDIDATE_SHA256 = "91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081"
@@ -366,13 +366,13 @@ def main() -> int:
 
     targets = ci_targets(ci)
     commands = python_lines(ci)
-    need(len(targets) == 147 and len(set(targets)) == 147, "CI target cardinality")
+    need(len(targets) == 152 and len(set(targets)) == 152, "CI target cardinality")
     need(PACKAGE_PATHS <= set(targets), "CI package targets")
     need(sequence_sha256(targets) == EXPECTED_CI_TARGETS_SHA256, "CI target contract")
-    need(len(commands) == 30, "CI command cardinality")
+    need(len(commands) == 31, "CI command cardinality")
     need(sequence_sha256(commands) == EXPECTED_CI_COMMANDS_SHA256, "CI command contract")
     need(
-        commands[-5:-2]
+        commands[-6:-3]
         == [
             "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_authorization_review_v3.py || exit 1",
             "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_external_execution_authorization_v3.py || exit 1",

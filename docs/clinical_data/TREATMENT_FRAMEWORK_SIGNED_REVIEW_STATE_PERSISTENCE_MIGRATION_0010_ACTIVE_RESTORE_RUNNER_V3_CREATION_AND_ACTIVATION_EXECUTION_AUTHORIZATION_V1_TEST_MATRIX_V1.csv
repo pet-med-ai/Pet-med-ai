@@ -1,0 +1,53 @@
+test_id,scenario,method,expected,status,decision_if_failed
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T01,canonical authorization document,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T02,entry head mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T03,entry parent mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T04,CI Gate mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T05,prior review decision mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T06,design candidate hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T07,implementation candidate hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T08,locked runner hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T09,target contract hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T10,active runner path collision,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T11,active 0010 migration present,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T12,current creation authority promoted,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T13,current activation authority promoted,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T14,current execution authority promoted,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T15,one time confirmation inferred,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T16,current attempt count nonzero,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T17,post confirmation attempt count not one,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T18,binding supplied by current package,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T19,binding contract marked complete,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T20,raw provider identifier included,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T21,credential value included,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T22,connection value included,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T23,provider control plane access attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T24,archive access attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T25,credential read attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T26,target access attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T27,database connection attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T28,runner creation attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T29,runner activation attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T30,runner import attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T31,runner execution attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T32,restore attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T33,migration creation attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T34,migration execution attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T35,deployment attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T36,resource deletion attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T37,target modification attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T38,automatic retry enabled,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T39,manual retry enabled,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T40,authorization reuse enabled,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T41,eligibility confused with current authority,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T42,restore execution authority promoted,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T43,CI target cardinality,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T44,CI command cardinality,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T45,CI command order,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T46,full local CI,local repository only,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T47,repository apply not implied,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T48,Git publication not implied,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T49,target lifetime not extended,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T50,sanitized result schema exact,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T51,separate one time confirmation required,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-T52,no active runner produced by package,repository scan,PASS,DESIGNED,HOLD

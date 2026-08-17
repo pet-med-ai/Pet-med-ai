@@ -1,0 +1,295 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Active Restore Runner V3 Creation and Activation Execution Authorization V1
+
+This repository-only package defines a proposed one-time authorization envelope
+for a later atomic creation and non-executing activation of Active Restore
+Runner V3. It does not create, activate, import, or execute a runner; access a
+backup; read credentials; access or change the disposable target; connect to a
+database; restore; create or execute migration 0010; deploy; delete; stage;
+commit; or push.
+
+The project owner's authorization to enter this governance subject is treated
+at minimum scope: design and dry-run only. It is not the later one-time user
+confirmation required for the creation and activation action.
+
+## 1. Canonical execution-authorization record
+
+~~~text
+stage_id=PMAI-P0-04
+substage=ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_EXECUTION_AUTHORIZATION_V1
+stage_status=IN_PROGRESS
+package_status=ACTIVE_RUNNER_CREATION_AND_ACTIVATION_EXECUTION_AUTHORIZATION_RECORD_ONLY
+review_status=PROPOSED_APPROVE_ONE_TIME_ATOMIC_CREATION_AND_NONEXECUTING_ACTIVATION_V1
+authorization_record_id=PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-V1-20260816
+authorization_recorded_date=2026-08-16
+governance_subject_authority_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260816
+current_turn_scope=REPOSITORY_ONLY_DESIGN_AND_DRY_RUN
+approver_role=PROJECT_OWNER_OPERATOR
+operator_role=PROJECT_OWNER_OPERATOR
+authorization_scope=ONE_ATOMIC_CREATE_NEW_AND_NONEXECUTING_ACTIVATION_ACTION_ONLY
+authorization_effective_gate=EXACT_PACKAGE_APPLIED_COMMITTED_PUSHED_NEW_GITHUB_CI_PASS_AND_SEPARATE_ONE_TIME_USER_EXECUTION_CONFIRMATION
+authorization_scope_recorded=true
+current_active_restore_runner_creation_authorized=false
+current_restore_runner_v3_activation_authorized=false
+current_creation_and_activation_execution_authorized=false
+post_effective_gate_creation_and_activation_execution_eligible=true
+post_effective_gate_creation_and_activation_execution_authorized=false
+one_time_creation_and_activation_confirmation_present=false
+current_creation_and_activation_attempts_authorized=0
+post_confirmation_creation_and_activation_attempts_authorized=1
+creation_and_activation_attempts_consumed=0
+automatic_retry=false
+manual_retry_authorized=false
+authorization_reuse_allowed=false
+active_restore_runner_created=false
+restore_runner_activated=false
+restore_runner_executed=false
+decision=GO_TO_SEPARATE_REPOSITORY_APPLY_REVIEW_ONLY
+next_action=REQUEST_SEPARATE_ONE_TIME_CREATION_AND_ACTIVATION_EXECUTION_CONFIRMATION
+~~
+
+Publication and a passing CI Gate make the exact action envelope eligible, not
+currently executable. The later confirmation must name the published commit,
+new CI Gate, authorization record, candidate SHA-256, target-contract SHA-256,
+and every required non-secret runtime hash binding. Any missing, stale, or
+ambiguous value is HOLD and creates nothing.
+
+## 2. Trusted entry baseline
+
+~~~text
+local_main=41cebde19b7990aff5beb27899e7892876e4a698
+origin_main=41cebde19b7990aff5beb27899e7892876e4a698
+main_parent=41b94ef7e5e337538fa6ef22ebc0a225112c5c59
+github_ci_gate_number=214
+github_ci_gate_status=PASS
+github_ci_gate_commit=41cebde19b7990aff5beb27899e7892876e4a698
+prior_ci_sha256=2aa57fb16b2513954b8ab8f9f86646a3d961174576ea6aa3539e683636620b6c
+final_ci_sha256=a433a4790a1ea2a638640906dd43e8402bfccaa463967968eb0e1eda915ad6d4
+local_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+remote_isolated_branch=8d1dc8814ed8f80d8bc965b494c1c320fc08f228
+repository_clean_at_entry=true
+production_runtime_baseline=d659aefb
+staging_runtime_baseline=8d1dc881
+production_database_revision_baseline=0009_diag_data
+staging_database_revision_baseline=0009_diag_data
+locked_runner_sha256=c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f
+baseline_source=OPERATOR_PUBLICATION_OUTPUT_AND_GITHUB_CI_GATE_214_SCREENSHOT_NO_RUNTIME_TARGET_CREDENTIAL_OR_BACKUP_RECHECK
+~~
+
+Gate 214 proves only the published repository commit. No target lifecycle,
+credential, runtime, database, or backup fact was rechecked by this package.
+
+## 3. Published authorization-review prerequisite
+
+~~~text
+completed_substage=ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_AUTHORIZATION_REVIEW_V1
+completed_commit=41cebde19b7990aff5beb27899e7892876e4a698
+completed_parent=41b94ef7e5e337538fa6ef22ebc0a225112c5c59
+completed_ci_gate=214
+completed_ci_status=PASS
+authorization_review_scope_recorded=true
+candidate_integrity_review_complete=true
+post_effective_gate_creation_and_activation_eligible=true
+post_effective_gate_creation_and_activation_execution_authorized=false
+runtime_binding_contract_complete=false
+active_restore_runner_created=false
+restore_runner_activated=false
+restore_runner_executed=false
+~~
+
+The prior review established eligibility only. Its authorization may not be
+reused as the later one-time creation and activation confirmation.
+
+## 4. Exact immutable source and target contracts
+
+~~~text
+selected_route=ROUTE_C_REBUILD_DEPTH_AWARE_METADATA_INVESTIGATION_CHAIN_V3
+design_candidate_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3.py.txt
+design_candidate_sha256=98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b
+implementation_candidate_path=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3_IMPLEMENTATION_CANDIDATE_V1.py.txt
+implementation_candidate_sha256=91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081
+implementation_candidate_repository_executable=false
+implementation_candidate_modified_by_authorization=false
+target_contract_identity_sha256=e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744
+target_status_from_published_evidence=AVAILABLE
+target_status_rechecked_by_authorization=false
+planned_active_runner_path=scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_v3.py
+planned_active_runner_path_present=false
+active_0010_migration_present=false
+~~
+
+Any candidate byte change, active-path collision, target-contract change, or
+new migration requires HOLD and a new review chain.
+
+## 5. Required later runtime binding envelope
+
+~~~text
+activation_authorization_record_id_binding=UNBOUND_UNTIL_ONE_TIME_CONFIRMATION
+expected_active_source_sha256_binding=UNBOUND_UNTIL_ONE_TIME_CONFIRMATION
+expected_target_identity_sha256_binding=UNBOUND_UNTIL_ONE_TIME_CONFIRMATION
+forbidden_production_identity_sha256_binding=UNBOUND_UNTIL_ONE_TIME_CONFIRMATION
+forbidden_staging_identity_sha256_binding=UNBOUND_UNTIL_ONE_TIME_CONFIRMATION
+expected_schema_manifest_sha256_binding=UNBOUND_UNTIL_ONE_TIME_CONFIRMATION
+runtime_binding_contract_complete=false
+raw_target_identifier_may_be_committed=false
+connection_value_may_be_committed=false
+credential_value_may_be_committed=false
+binding_values_collected_by_current_package=false
+~~
+
+The later confirmation may provide only reviewed hashes and the authorization
+record ID. It may not disclose a connection URL, hostname, username, password,
+dashboard URL, provider service identifier, backup path, or secret value.
+
+## 6. Proposed one-time action envelope
+
+~~~text
+execution_action=ATOMIC_CREATE_NEW_ACTIVE_RUNNER_SOURCE_AND_SET_REVIEWED_NONEXECUTING_MODE_ONLY
+source_materialization=BYTE_EXACT_REVIEWED_IMPLEMENTATION_WITH_EXPLICIT_NON_SECRET_BINDINGS
+creation_strategy=ATOMIC_CREATE_NEW_NO_OVERWRITE
+activation_definition=ACTIVE_PATH_PRESENT_AND_REVIEWED_MODE_SET_WITHOUT_IMPORT_OR_EXECUTION
+activation_may_import_runner=false
+activation_may_execute_runner=false
+activation_may_access_archive=false
+activation_may_read_credentials=false
+activation_may_access_target=false
+activation_may_connect_database=false
+activation_may_restore=false
+activation_may_create_migration=false
+activation_may_deploy=false
+activation_may_delete_resource=false
+execution_attempt_limit=1
+execution_attempts_consumed=0
+automatic_retry=false
+manual_retry_authorized=false
+overwrite_existing_path_authorized=false
+stop_after_sanitized_creation_and_activation_result=true
+restore_runner_v3_execution_authorized=false
+one_time_restore_execution_authorized=false
+restore_attempts_authorized=0
+~~
+
+Creation and non-executing activation are not restore execution. The action
+must stop immediately after a sanitized result and must not import the new
+module or invoke any runner function.
+
+## 7. Mandatory future execution-time preflight
+
+Before the later action, all of the following must pass:
+
+1. This exact package is published on `main` and its new GitHub CI Gate is PASS.
+2. A separate one-time user confirmation names the published commit, CI Gate,
+   authorization record ID, implementation candidate hash, target-contract
+   hash, and all six required runtime bindings.
+3. The planned active path is absent and no active migration 0010 exists.
+4. Candidate, locked-runner, and target-contract hashes remain exact.
+5. The target lifecycle and AVAILABLE status are separately reconfirmed without
+   reading or displaying credentials.
+6. The expected target identity differs from the forbidden production and
+   staging identities.
+7. The rendered active bytes and critical-function AST hashes match the
+   separately reviewed expected values before atomic publication.
+8. Every archive, database, restore, migration, deployment, and deletion gate
+   remains false.
+
+Failure or ambiguity at any point is `HOLD_AND_CREATE_NOTHING`. Submission of
+the atomic create consumes the single attempt whether it succeeds, fails, or
+ends ambiguously. No retry is permitted.
+
+## 8. Sanitized result envelope for the later action
+
+~~~text
+authorization_record_id
+creation_and_activation_attempt_number
+implementation_candidate_sha256
+target_contract_identity_sha256
+active_runner_path_present
+active_runner_source_sha256
+active_runner_mode_classification
+runtime_binding_set_sha256
+critical_function_ast_hash_set_sha256
+runner_imported
+runner_executed
+archive_accessed
+credential_read
+target_accessed
+database_connected
+restore_executed
+migration_created
+deployment_performed
+resource_deleted
+decision
+~~
+
+The result must not contain raw binding values, credentials, connection data,
+provider identifiers, archive paths, member names, or application secrets.
+
+## 9. Current repository-only boundary
+
+~~~text
+repository_only=true
+network_access=false
+external_execution=false
+provider_control_plane_opened=false
+archive_file_opened=false
+backup_archive_listing_invoked=false
+backup_archive_member_headers_read=false
+backup_archive_member_payload_read=false
+backup_archive_extracted=false
+credential_collection_performed=false
+connection_url_collected=false
+target_control_plane_access=false
+target_accessed=false
+target_modified=false
+target_deleted=false
+active_restore_runner_created=false
+restore_runner_activated=false
+restore_runner_executed=false
+locked_runner_invoked=false
+database_connection=false
+database_write=false
+restore_execution=false
+pg_restore_invoked=false
+psql_invoked=false
+alembic_invoked=false
+migration_created=false
+migration_executed=false
+application_deployment=false
+resource_deleted=false
+files_staged=false
+files_committed=false
+files_pushed=false
+backup_restoreability_verified=false
+disposable_restore_rehearsal_complete=false
+p0_04_execution_authorized=false
+staging_0010_apply_authorized=false
+~~
+
+## 10. Review outcome and sole next action
+
+After separate repository apply, exact publication, and a new GitHub CI PASS,
+the sole next action is a separately authorized one-time Active Restore Runner
+V3 creation and non-executing activation confirmation containing every required
+hash binding. This package itself grants no current creation or activation
+authority and grants no runner execution or restore authority.
+
+## 11. Target lifecycle and production hard gates retained
+
+~~~text
+target_max_lifetime_hours=72
+target_delete_within_hours_after_evidence=24
+target_retirement_authorized=false
+target_deletion_performed=false
+production_migration_authorized=false
+production_migration_executed=false
+ENABLE_EMR_REAL_IMPORT=false
+ENABLE_EMR_IMPORT_CASE_UPDATE=false
+ENABLE_EMR_ATTACHMENT_DOWNLOAD=false
+ENABLE_PREVENTIVE_AUTO_DELIVERY=false
+ENABLE_PREVENTIVE_SMS_DELIVERY=false
+ENABLE_PREVENTIVE_WECHAT_DELIVERY=false
+ENABLE_PREVENTIVE_EMAIL_DELIVERY=false
+ENABLE_PRESCRIPTION_STRUCTURED_WRITE=false
+ENABLE_DEVICE_REAL_INGEST=false
+ENABLE_BILLING_REAL_WRITE=false
+~~
