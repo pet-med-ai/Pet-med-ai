@@ -28,7 +28,7 @@ EXPECTED_HEAD = "959b15b2ea15f31f19564d553207ce31a31561ce"
 EXPECTED_PARENT = "8f7a4a25908e874f406b08e9ae2d1dc9de69db26"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
 EXPECTED_PRIOR_CI_SHA256 = "74b9b164ef72436c3989e7b2920b5114c7abda52fec7f601bb322c58ec358f8a"
-EXPECTED_FINAL_CI_SHA256 = "a433a4790a1ea2a638640906dd43e8402bfccaa463967968eb0e1eda915ad6d4"
+EXPECTED_FINAL_CI_SHA256 = "a26f17997b73dffc542faa369c447431d97f36a84d4979fe26c3994dddcaee9b"
 EXPECTED_LOCKED_RUNNER_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f"
 EXPECTED_CANDIDATE_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_INVESTIGATOR_V3_SHA256 = "6800bc57c018ad17deb84b2c821baad4752e23f9aa432b01d64f9518737d5e14"
@@ -280,7 +280,7 @@ def main() -> int:
     need(all(row["status"] == "DESIGNED" for row in tests), "test matrix status")
 
     targets = ci_targets(ci)
-    need(len(targets) == 152 and len(targets) == len(set(targets)), "CI TARGETS canonical")
+    need(len(targets) == 162 and len(targets) == len(set(targets)), "CI TARGETS canonical")
     need(PACKAGE_PATHS.issubset(set(targets)), "runner design package targets")
     command = "python3 " + VALIDATOR + " || exit 1"
     authorization_review_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_restore_runner_v3_authorization_review_v1.py || exit 1"
@@ -296,12 +296,28 @@ def main() -> int:
     )
     need(ci.splitlines().count(command) == 1, "CI command count")
     need(
-        len(python_lines(ci)) == 31
-        and python_lines(ci)[-11:-3] == [command, authorization_review_command, implementation_preparation_command, implementation_authorization_review_command, fresh_target_preparation_command, fresh_target_authorization_review_command, fresh_target_external_execution_authorization_command, fresh_target_execution_evidence_command],
+        len(python_lines(ci)) == 32 and python_lines(ci)[-12:-4] == [command, authorization_review_command, implementation_preparation_command, implementation_authorization_review_command, fresh_target_preparation_command, fresh_target_authorization_review_command, fresh_target_external_execution_authorization_command, fresh_target_execution_evidence_command],
         "CI command order",
     )
 
-    unsafe_suffixes = (".png", ".jpg", ".jpeg", ".json", ".tar", ".tar.gz", ".db", ".bak", ".save")
+    sanitized_json_prefix = (
+        "docs/clinical_data/"
+        "TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_"
+        "ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_"
+        "COLLECTION_AND_REVIEW_PREPARATION_V1_"
+    )
+    allowed_sanitized_json_targets = {
+        sanitized_json_prefix + "LOCKED_BASELINE_V1.json",
+        sanitized_json_prefix + "PACKAGE_MANIFEST_V1.json",
+        sanitized_json_prefix + "RUNTIME_OBSERVATION_TEMPLATE_V1.json",
+        sanitized_json_prefix + "SANITIZED_COLLECTOR_OUTPUT_TEMPLATE_V1.json",
+    }
+    json_targets = {path for path in targets if path.lower().endswith(".json")}
+    need(
+        json_targets == allowed_sanitized_json_targets,
+        "sanitized governance JSON targets mismatch",
+    )
+    unsafe_suffixes = (".png", ".jpg", ".jpeg", ".tar", ".tar.gz", ".db", ".bak", ".save")
     need(not any(path.lower().endswith(unsafe_suffixes) for path in targets), "raw or unsafe target")
     for rel in PACKAGE_PATHS:
         value = read_text(rel)

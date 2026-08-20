@@ -20,7 +20,7 @@ AUTH_REVIEW_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_stat
 AUTH_REVIEW_DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_TARGET_PROVISIONING_AUTHORIZATION_REVIEW_V1.md'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = 'a433a4790a1ea2a638640906dd43e8402bfccaa463967968eb0e1eda915ad6d4'
+EXPECTED_CI_SHA256 = 'a26f17997b73dffc542faa369c447431d97f36a84d4979fe26c3994dddcaee9b'
 EVIDENCE_PREPARATION_RECORD_CI_SHA256 = '26944102de1c64805425675dc4eedc06f150feb6bc0e57d26319028ae6618311'
 AUTHORIZATION_REVIEW_RECORD_CI_SHA256 = 'f224dd3ed069a198613ad3ddbace564245586528acddab54e1eb835921ffea2f'
 EXPECTED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
@@ -119,7 +119,10 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_creation_and_activation_execution_authorization_v1.py '
- '|| exit 1']
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_sanitized_runtime_binding_evidence_collection_and_review_preparation_v1.py '
+ '--dry-run || exit 1']
 
 
 def need(ok: bool, message: str) -> None:
@@ -315,7 +318,24 @@ def main() -> int:
         "auth-review command rollover",
     )
 
-    unsafe_suffixes = (".png", ".jpg", ".jpeg", ".json", ".tar", ".tar.gz")
+    sanitized_json_prefix = (
+        "docs/clinical_data/"
+        "TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_"
+        "ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_"
+        "COLLECTION_AND_REVIEW_PREPARATION_V1_"
+    )
+    allowed_sanitized_json_targets = {
+        sanitized_json_prefix + "LOCKED_BASELINE_V1.json",
+        sanitized_json_prefix + "PACKAGE_MANIFEST_V1.json",
+        sanitized_json_prefix + "RUNTIME_OBSERVATION_TEMPLATE_V1.json",
+        sanitized_json_prefix + "SANITIZED_COLLECTOR_OUTPUT_TEMPLATE_V1.json",
+    }
+    json_targets = {path for path in targets if path.lower().endswith(".json")}
+    need(
+        json_targets == allowed_sanitized_json_targets,
+        "sanitized governance JSON targets mismatch",
+    )
+    unsafe_suffixes = (".png", ".jpg", ".jpeg", ".tar", ".tar.gz")
     need(
         not any(path.lower().endswith(unsafe_suffixes) for path in targets),
         "raw evidence artifact in protected targets",

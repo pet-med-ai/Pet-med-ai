@@ -23,11 +23,11 @@ EVIDENCE_PREP_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_st
 RESTORE_AUTH_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_execution_authorization_review_v1.py'
 CI = 'scripts/ci_static_checks.sh'
 LOCKED_RUNNER = 'scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py'
-EXPECTED_CI_SHA256 = 'a433a4790a1ea2a638640906dd43e8402bfccaa463967968eb0e1eda915ad6d4'
+EXPECTED_CI_SHA256 = 'a26f17997b73dffc542faa369c447431d97f36a84d4979fe26c3994dddcaee9b'
 EXPECTED_PRIOR_CI_SHA256 = 'ee5b75fe566218490ca1edef2405596309a6302879ec486249b435ae07832cde'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_ABORT_DOC_COMMITTED_SHA256 = 'c1d44d9652ff7fc14fafa2747572716d1d7aaf3b87052008eb2dda6cded658eb'
-EXPECTED_ABORT_DOC_CURRENT_SHA256 = 'fe1a590389c5c7e2e8e3ac9da8cc0f7eca4afcfbb72b89d44bc4d74ff1484cea'
+EXPECTED_ABORT_DOC_CURRENT_SHA256 = 'd8c0bd37ab05f9c136dd0346b965615cde45f73c59c20385501796e5b13cb615'
 EXPECTED_APPROVAL_STATEMENT = '批准 PMAI-P0-04 仅对 pet-med-ai-db-p0-04-disposable-restore-ohio 执行一次控制面删除并完成退休留证；删除前必须重新核验目标身份、Available、Apps=0、无依赖且无外部 restore runner 进程，并须在 2026-08-11 00:08 +08:00 前完成；不授权 production、staging source、数据库连接、Restore/Recovery、pg_restore、psql、Alembic、0010 migration、locked runner 或任何应用部署。'
 EXPECTED_APPROVAL_STATEMENT_SHA256 = '525efdddd4f15257e1211ef3e0b7c5215ef5bf54aa6560f07e1e26c6ed8ea6f8'
 EXPECTED_COMMANDS = ['python3 '
@@ -121,7 +121,10 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_creation_and_activation_execution_authorization_v1.py '
- '|| exit 1']
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_sanitized_runtime_binding_evidence_collection_and_review_preparation_v1.py '
+ '--dry-run || exit 1']
 HASH_EXTRA_PATHS = {
     'backend/models.py',
     'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_AUTHENTICATED_STAGING_SMOKE_V1.md',
@@ -343,7 +346,24 @@ def main() -> int:
         need(literal(previous, 'EXPECTED_CI_SHA256') == EXPECTED_CI_SHA256, 'prior CI rollover')
         need(literal(previous, 'EXPECTED_COMMANDS') == EXPECTED_COMMANDS, 'prior command rollover')
 
-    unsafe_suffixes = ('.png', '.jpg', '.jpeg', '.json', '.tar', '.tar.gz')
+    sanitized_json_prefix = (
+        "docs/clinical_data/"
+        "TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_"
+        "ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_"
+        "COLLECTION_AND_REVIEW_PREPARATION_V1_"
+    )
+    allowed_sanitized_json_targets = {
+        sanitized_json_prefix + "LOCKED_BASELINE_V1.json",
+        sanitized_json_prefix + "PACKAGE_MANIFEST_V1.json",
+        sanitized_json_prefix + "RUNTIME_OBSERVATION_TEMPLATE_V1.json",
+        sanitized_json_prefix + "SANITIZED_COLLECTOR_OUTPUT_TEMPLATE_V1.json",
+    }
+    json_targets = {path for path in targets if path.lower().endswith(".json")}
+    need(
+        json_targets == allowed_sanitized_json_targets,
+        "sanitized governance JSON targets mismatch",
+    )
+    unsafe_suffixes = ('.png', '.jpg', '.jpeg', '.tar', '.tar.gz')
     need(not any(path.lower().endswith(unsafe_suffixes) for path in targets), 'raw evidence target')
     for rel in (DOC, VALIDATOR):
         value = read_text(rel)

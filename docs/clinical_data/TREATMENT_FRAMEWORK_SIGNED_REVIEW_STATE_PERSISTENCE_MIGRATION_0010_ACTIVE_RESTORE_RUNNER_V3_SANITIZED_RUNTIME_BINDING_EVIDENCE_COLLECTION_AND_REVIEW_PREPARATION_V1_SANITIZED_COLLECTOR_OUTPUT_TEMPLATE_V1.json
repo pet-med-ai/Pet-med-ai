@@ -1,0 +1,18 @@
+{
+  "activation_authorization_record_sha256": "UNBOUND",
+  "collection_execution_authorization_record_sha256": "UNBOUND",
+  "collection_execution_authorized": false,
+  "collector_contract_sha256": "UNBOUND",
+  "evidence_complete": false,
+  "expected_schema_manifest_sha256": "UNBOUND",
+  "expected_target_identity_sha256": "UNBOUND",
+  "fixture_only": false,
+  "forbidden_production_identity_sha256": "UNBOUND",
+  "forbidden_staging_identity_sha256": "UNBOUND",
+  "raw_connection_values_disclosed": false,
+  "source_observation_bundle_sha256": "UNBOUND",
+  "target_available_recheck_evidence_sha256": "UNBOUND",
+  "target_lifecycle_evidence_sha256": "UNBOUND",
+  "target_lifecycle_within_72h": false,
+  "target_status_available": false
+}
