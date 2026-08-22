@@ -1,0 +1,36 @@
+id,area,case,expected_result,runtime_access
+T-001,baseline,exact commit candidate and CI contract,PASS,none
+T-002,baseline,candidate hash mismatch,HOLD,none
+T-003,collector,dry-run exposes no live mode,PASS,none
+T-004,collector,self-test computes identity hashes mechanically,PASS,none
+T-005,collector,self-test computes schema manifest hash mechanically,PASS,none
+T-006,collector,self-test record is fixture-only,HOLD_FOR_RELEASE,none
+T-007,collector,unexpected observation key,HOLD,none
+T-008,collector,credential-like observation key,HOLD,none
+T-009,collector,empty identity component,HOLD,none
+T-010,collector,invalid port representation,HOLD,none
+T-011,collector,duplicate target production staging identity,HOLD,none
+T-012,collector,empty schema relation set,HOLD,none
+T-013,collector,duplicate schema relation,HOLD,none
+T-014,collector,raw connection disclosure true,HOLD,none
+T-015,reviewer,unbound template,HOLD,none
+T-016,reviewer,missing hash,HOLD,none
+T-017,reviewer,uppercase or malformed hash,HOLD,none
+T-018,reviewer,all-zero or all-one hash,HOLD,none
+T-019,reviewer,duplicate reviewed hashes,HOLD,none
+T-020,reviewer,target contract hash used as runtime identity,HOLD,none
+T-021,reviewer,known candidate hash used as runtime evidence,HOLD,none
+T-022,reviewer,target AVAILABLE false,HOLD,none
+T-023,reviewer,lifecycle within 72 hours false,HOLD,none
+T-024,reviewer,collection execution authorization false,HOLD,none
+T-025,reviewer,fixture-only true,HOLD,none
+T-026,reviewer,raw connection disclosure true,HOLD,none
+T-027,reviewer,extra key,HOLD,none
+T-028,reviewer,reviewed bundle hash mechanically derived,PASS,none
+T-029,privacy,console value is neither SHA-256 nor boolean,HOLD,none
+T-030,boundary,provider control plane invocation detected,HOLD,none
+T-031,boundary,database or network import detected,HOLD,none
+T-032,boundary,runner path creation or execution detected,HOLD,none
+T-033,boundary,stage commit push command detected,HOLD,none
+T-034,output,existing output path,HOLD,none
+T-035,output,output inside canonical repository,HOLD,none

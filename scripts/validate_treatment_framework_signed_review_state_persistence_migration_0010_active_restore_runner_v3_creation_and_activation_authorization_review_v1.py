@@ -31,13 +31,13 @@ EXPECTED_HEAD = "41b94ef7e5e337538fa6ef22ebc0a225112c5c59"
 EXPECTED_PARENT = "b13a790b9f1803a52e51598523c17779a4a7397a"
 EXPECTED_ISOLATED = "8d1dc8814ed8f80d8bc965b494c1c320fc08f228"
 EXPECTED_PRIOR_CI_SHA256 = "4c91905018f71da785a3ec77fd20da7c31c8e495862fb6e30259e60658756706"
-EXPECTED_FINAL_CI_SHA256 = "a433a4790a1ea2a638640906dd43e8402bfccaa463967968eb0e1eda915ad6d4"
+EXPECTED_FINAL_CI_SHA256 = "a26f17997b73dffc542faa369c447431d97f36a84d4979fe26c3994dddcaee9b"
 EXPECTED_DESIGN_SHA256 = "98d6cd0a1f01c551d6f43bae484842ff75163f5a3ea1fb0c600ef85167c0c31b"
 EXPECTED_IMPLEMENTATION_SHA256 = "91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081"
 EXPECTED_LOCKED_SHA256 = "c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f"
 EXPECTED_TARGET_CONTRACT_SHA256 = "e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744"
-EXPECTED_TARGET_COUNT = 152
-EXPECTED_COMMAND_COUNT = 31
+EXPECTED_TARGET_COUNT = 162
+EXPECTED_COMMAND_COUNT = 32
 EXPECTED_NEXT = "ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_EXECUTION_AUTHORIZATION_V1"
 PACKAGE_PATHS = {DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX, VALIDATOR}
 
@@ -245,7 +245,7 @@ def main() -> int:
     need(len(commands) == EXPECTED_COMMAND_COUNT, "CI command cardinality")
     preparation_command = "python3 scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_creation_and_activation_preparation_v1.py || exit 1"
     review_command = "python3 " + VALIDATOR + " || exit 1"
-    need(commands[-3:-1] == [preparation_command, review_command], "CI command order")
+    need(commands[-4:-2] == [preparation_command, review_command], "CI command order")
     need(ci.splitlines().count("# PMAI-P0-04 active restore runner V3 creation and activation authorization review v1") == 1, "CI marker count")
     need(ci.splitlines().count(review_command) == 1, "CI review command count")
     need(sha256_path(ROOT / CI) == EXPECTED_FINAL_CI_SHA256, "CI file hash")

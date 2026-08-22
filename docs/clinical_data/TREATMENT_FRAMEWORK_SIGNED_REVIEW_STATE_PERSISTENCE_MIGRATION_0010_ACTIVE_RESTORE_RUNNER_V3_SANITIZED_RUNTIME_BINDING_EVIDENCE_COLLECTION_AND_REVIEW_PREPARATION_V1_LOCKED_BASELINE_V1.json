@@ -1,0 +1,31 @@
+{
+  "activation_authorization_record_id": "PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-V1-20260816",
+  "activation_authorization_record_sha256": "42aa5a864d73b1a3d8d1b8489be0d0cc36c761b8e9c030e0752a07c5f0264b4c",
+  "base_commit": "ec5fd93108adf13e3570a18f37465b852f2b1484",
+  "base_parent": "41cebde19b7990aff5beb27899e7892876e4a698",
+  "branch": "main",
+  "collection_execution_authorization_record_id": "PMAI-P0-04-ARR-V3-SRBE-COLLECT-REVIEW-EXEC-AUTH-V1",
+  "dynamic_output_value_types": [
+    "lowercase_sha256",
+    "boolean"
+  ],
+  "github_ci_gate": 215,
+  "github_ci_gate_conclusion": "success",
+  "github_ci_gate_run_attempt": 1,
+  "identity_normalization_contract": "UTF8(database)+NUL+UTF8(server_address)+NUL+UTF8(port)+LF",
+  "implementation_candidate_path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_DISPOSABLE_RESTORE_RUNNER_V3_IMPLEMENTATION_CANDIDATE_V1.py.txt",
+  "implementation_candidate_sha256": "91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081",
+  "repository": "pet-med-ai/Pet-med-ai",
+  "required_runtime_hash_fields": [
+    "expected_target_identity_sha256",
+    "forbidden_production_identity_sha256",
+    "forbidden_staging_identity_sha256",
+    "expected_schema_manifest_sha256"
+  ],
+  "schema": "PMAI_P0_04_ARR_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_PREPARATION_BASELINE_V1",
+  "schema_manifest_normalization_contract": "UTF8(CONCAT(SORT(relations),EACH_PLUS_LF))",
+  "source_preparation_package_sha256": "f4f708aa0f5550eaeb5377e9c6787faf36349beb23958ca861420ba098524e93",
+  "stage_id": "PMAI-P0-04",
+  "substage": "ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_PREPARATION_V1",
+  "target_contract_identity_sha256": "e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744"
+}

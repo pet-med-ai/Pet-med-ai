@@ -1,0 +1,27 @@
+id,gate,current_state,required_state,fail_closed_result
+SRBE-001,Published baseline is exact,PASS,PASS,HOLD
+SRBE-002,Implementation candidate SHA-256 is exact,PASS,PASS,HOLD
+SRBE-003,Identity normalization matches candidate,PASS,PASS,HOLD
+SRBE-004,Schema manifest normalization matches candidate,PASS,PASS,HOLD
+SRBE-005,Collector dynamic outputs are SHA-256 or boolean only,PASS,PASS,HOLD
+SRBE-006,Collector has no live CLI mode,PASS,PASS,HOLD
+SRBE-007,Collector has no network provider database or credential import,PASS,PASS,HOLD
+SRBE-008,Reviewer accepts exact sanitized key set only,PASS,PASS,HOLD
+SRBE-009,Reviewer computes evidence bundle hash mechanically,PASS,PASS,HOLD
+SRBE-010,Target contract hash substitution is rejected,PASS,PASS,HOLD
+SRBE-011,All-zero all-one placeholder and duplicate hashes are rejected,PASS,PASS,HOLD
+SRBE-012,Synthetic evidence is marked fixture-only and rejected for release,PASS,PASS,HOLD
+SRBE-013,Raw connection disclosure flag must be false,PASS,PASS,HOLD
+SRBE-014,Fresh target AVAILABLE recheck must be true,UNBOUND,true,HOLD
+SRBE-015,Target lifecycle within 72 hours must be true,UNBOUND,true,HOLD
+SRBE-016,Expected target identity SHA-256,UNBOUND,reviewed SHA-256,HOLD
+SRBE-017,Forbidden production identity SHA-256,UNBOUND,reviewed SHA-256,HOLD
+SRBE-018,Forbidden staging identity SHA-256,UNBOUND,reviewed SHA-256,HOLD
+SRBE-019,Expected schema manifest SHA-256,UNBOUND,reviewed SHA-256,HOLD
+SRBE-020,Separate collection and review execution authorization,false,true,HOLD
+SRBE-021,Provider control plane accessed,false,false,HOLD
+SRBE-022,Backup or credential accessed,false,false,HOLD
+SRBE-023,Target or database accessed,false,false,HOLD
+SRBE-024,Runner created activated imported or executed,false,false,HOLD
+SRBE-025,Restore migration deployment or deletion performed,false,false,HOLD
+SRBE-026,Git stage commit or push performed,false,false,HOLD

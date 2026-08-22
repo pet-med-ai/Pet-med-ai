@@ -68,7 +68,7 @@ EXPECTED_HEAD = 'da837e6eb35819457b340d9fe9fd3a4336dc6673'
 EXPECTED_PARENT = '9f00393543ec435353d5deadc6c74972aed4f6c2'
 EXPECTED_ISOLATED = '8d1dc8814ed8f80d8bc965b494c1c320fc08f228'
 EXPECTED_PRIOR_CI_SHA256 = '7cba5137d959d9f37a5e4f7a70798ff5090fc130ead6ce9d124c457c9a682811'
-EXPECTED_FINAL_CI_SHA256 = 'a433a4790a1ea2a638640906dd43e8402bfccaa463967968eb0e1eda915ad6d4'
+EXPECTED_FINAL_CI_SHA256 = 'a26f17997b73dffc542faa369c447431d97f36a84d4979fe26c3994dddcaee9b'
 EXPECTED_LOCKED_RUNNER_SHA256 = 'c50002898763c0b7e6aa618d2728f8595496c5c4bb57e300aedbc4d59bbde23f'
 EXPECTED_IMPLEMENTATION_SHA256 = 'ce4b0fc1421624b29309f8eeae750d712601821529102620faf5c1b2b75be4f6'
 EXPECTED_V1_RESULT_SHA256 = 'c8c68cbe00ebeff2eae75fb6c1b375af8e867b869e68378e43b9188b1a2b6893'
@@ -168,7 +168,10 @@ EXPECTED_COMMANDS = ['python3 '
  '|| exit 1',
  'python3 '
  'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_creation_and_activation_execution_authorization_v1.py '
- '|| exit 1']
+ '|| exit 1',
+ 'python3 '
+ 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_sanitized_runtime_binding_evidence_collection_and_review_preparation_v1.py '
+ '--dry-run || exit 1']
 PACKAGE_PATHS = {DOC, CHECKLIST, GO_NO_GO, TEST_MATRIX, VALIDATOR}
 REQUIRED_PROTECTED_PATHS = PACKAGE_PATHS | {EVIDENCE_DOC, IMPLEMENTATION}
 HASH_EXTRA_PATHS = {
@@ -579,7 +582,24 @@ def main() -> int:
     need(marker(evidence_doc, 'v2_archive_listing_attempts_consumed') == '1', 'V2 attempt count changed')
     need(marker(evidence_doc, 'root_contract_resolved') == 'false', 'V2 result changed')
 
-    unsafe_suffixes = ('.png', '.jpg', '.jpeg', '.json', '.tar', '.tar.gz', '.db', '.bak', '.save')
+    sanitized_json_prefix = (
+        "docs/clinical_data/"
+        "TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_"
+        "ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_"
+        "COLLECTION_AND_REVIEW_PREPARATION_V1_"
+    )
+    allowed_sanitized_json_targets = {
+        sanitized_json_prefix + "LOCKED_BASELINE_V1.json",
+        sanitized_json_prefix + "PACKAGE_MANIFEST_V1.json",
+        sanitized_json_prefix + "RUNTIME_OBSERVATION_TEMPLATE_V1.json",
+        sanitized_json_prefix + "SANITIZED_COLLECTOR_OUTPUT_TEMPLATE_V1.json",
+    }
+    json_targets = {path for path in targets if path.lower().endswith(".json")}
+    need(
+        json_targets == allowed_sanitized_json_targets,
+        "sanitized governance JSON targets mismatch",
+    )
+    unsafe_suffixes = ('.png', '.jpg', '.jpeg', '.tar', '.tar.gz', '.db', '.bak', '.save')
     need(not any(path.lower().endswith(unsafe_suffixes) for path in targets), 'raw or unsafe target')
     for rel in PACKAGE_PATHS:
         value = read_text(rel)

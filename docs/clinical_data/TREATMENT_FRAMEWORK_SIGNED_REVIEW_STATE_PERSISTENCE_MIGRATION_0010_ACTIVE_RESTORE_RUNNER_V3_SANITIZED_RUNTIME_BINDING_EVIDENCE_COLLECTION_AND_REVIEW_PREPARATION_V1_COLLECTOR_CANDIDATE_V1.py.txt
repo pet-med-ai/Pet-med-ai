@@ -1,0 +1,490 @@
+#!/usr/bin/env python3
+"""Pure hash-only collector core for PMAI-P0-04 sanitized runtime evidence.
+
+The command line intentionally exposes only dry-run and self-test modes. There
+is no live collection mode, no file input, and no provider, credential, target,
+database, backup, network, runner, restore, migration, deployment, deletion,
+or Git integration. A future separately authorized adapter may call the pure
+``collect_from_observation`` function with ephemeral source observations. The
+function returns only lowercase SHA-256 strings and booleans.
+"""
+from __future__ import annotations
+
+import argparse
+from datetime import datetime, timezone
+import hashlib
+import json
+import re
+import sys
+from typing import Mapping, NoReturn, Sequence
+
+
+sys.dont_write_bytecode = True
+
+ACTIVATION_AUTHORIZATION_RECORD_ID = (
+    "PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-V1-20260816"
+)
+COLLECTION_EXECUTION_AUTHORIZATION_RECORD_ID = (
+    "PMAI-P0-04-ARR-V3-SRBE-COLLECT-REVIEW-EXEC-AUTH-V1"
+)
+MAX_TEXT_BYTES = 4096
+MAX_RELATION_COUNT = 10000
+MAX_EVIDENCE_JSON_BYTES = 64 * 1024
+FRESH_RECHECK_MAX_SKEW_SECONDS = 300
+LIFECYCLE_MAX_AGE_SECONDS = 72 * 60 * 60
+
+IDENTITY_KEYS = {"database", "port", "server_address"}
+AVAILABLE_EVIDENCE_KEYS = {
+    "observation_contract",
+    "observed_at_utc",
+    "resource_identity_sha256",
+    "status",
+}
+LIFECYCLE_EVIDENCE_KEYS = {
+    "created_at_utc",
+    "max_age_seconds",
+    "observation_contract",
+    "observed_at_utc",
+    "resource_identity_sha256",
+}
+OBSERVATION_KEYS = {
+    "collection_execution_authorized",
+    "fixture_only",
+    "production_identity",
+    "raw_connection_values_disclosed",
+    "schema_manifest_relations",
+    "staging_identity",
+    "target_available_recheck_evidence",
+    "target_identity",
+    "target_lifecycle_evidence",
+}
+OUTPUT_HASH_KEYS = {
+    "activation_authorization_record_sha256",
+    "collection_execution_authorization_record_sha256",
+    "collector_contract_sha256",
+    "expected_schema_manifest_sha256",
+    "expected_target_identity_sha256",
+    "forbidden_production_identity_sha256",
+    "forbidden_staging_identity_sha256",
+    "source_observation_bundle_sha256",
+    "target_available_recheck_evidence_sha256",
+    "target_lifecycle_evidence_sha256",
+}
+OUTPUT_BOOLEAN_KEYS = {
+    "collection_execution_authorized",
+    "evidence_complete",
+    "fixture_only",
+    "raw_connection_values_disclosed",
+    "target_lifecycle_within_72h",
+    "target_status_available",
+}
+OUTPUT_KEYS = OUTPUT_HASH_KEYS | OUTPUT_BOOLEAN_KEYS
+
+CONTRACT_DESCRIPTOR = {
+    "activation_authorization_record_id": ACTIVATION_AUTHORIZATION_RECORD_ID,
+    "available_contract": "PROVIDER_STATUS_AVAILABLE_RECHECK_V1",
+    "collection_execution_authorization_record_id": (
+        COLLECTION_EXECUTION_AUTHORIZATION_RECORD_ID
+    ),
+    "dynamic_output_types": ["boolean", "lowercase_sha256"],
+    "fresh_recheck_max_skew_seconds": FRESH_RECHECK_MAX_SKEW_SECONDS,
+    "identity_normalization": (
+        "UTF8(database)+NUL+UTF8(server_address)+NUL+UTF8(port)+LF"
+    ),
+    "lifecycle_contract": "TARGET_LIFECYCLE_WITHIN_72H_V1",
+    "lifecycle_max_age_seconds": LIFECYCLE_MAX_AGE_SECONDS,
+    "output_boolean_keys": sorted(OUTPUT_BOOLEAN_KEYS),
+    "output_hash_keys": sorted(OUTPUT_HASH_KEYS),
+    "schema": "PMAI_P0_04_ARR_V3_HASH_ONLY_COLLECTOR_CONTRACT_V1",
+    "schema_manifest_normalization": (
+        "UTF8(CONCAT(SORT(relations),EACH_PLUS_LF))"
+    ),
+}
+
+FORBIDDEN_KEY_PATTERN = re.compile(
+    r"(?:password|passwd|secret|token|credential|private[_-]?key|api[_-]?key|"
+    r"connection[_-]?string|dsn|username|user_name|backup[_-]?path|archive[_-]?path|"
+    r"uri|url)$",
+    re.IGNORECASE,
+)
+
+
+class Hold(RuntimeError):
+    """Fixed stop code whose digest can be emitted without leaking input."""
+
+
+class HashBooleanArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        del message
+        raise Hold("ARGUMENT_CONTRACT_MISMATCH")
+
+
+def need(condition: bool, code: str) -> None:
+    if not condition:
+        raise Hold(code)
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def canonical_json_bytes(value: object) -> bytes:
+    try:
+        encoded = json.dumps(
+            value,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")
+    except (TypeError, ValueError, UnicodeError) as exc:
+        raise Hold("CANONICAL_JSON_INVALID") from exc
+    need(len(encoded) <= MAX_EVIDENCE_JSON_BYTES, "CANONICAL_JSON_TOO_LARGE")
+    return encoded
+
+
+def is_sha256(value: object) -> bool:
+    return (
+        isinstance(value, str)
+        and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+    )
+
+
+def contract_sha256() -> str:
+    return sha256_bytes(canonical_json_bytes(CONTRACT_DESCRIPTOR))
+
+
+def parse_utc(value: object, code: str) -> datetime:
+    need(isinstance(value, str), code)
+    need(re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z", value) is not None, code)
+    try:
+        parsed = datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        )
+    except ValueError as exc:
+        raise Hold(code) from exc
+    return parsed
+
+
+def check_forbidden_keys(value: object) -> None:
+    if isinstance(value, Mapping):
+        for key, child in value.items():
+            need(isinstance(key, str), "NON_STRING_KEY_FORBIDDEN")
+            need(FORBIDDEN_KEY_PATTERN.search(key) is None, "CREDENTIAL_LIKE_KEY_FORBIDDEN")
+            check_forbidden_keys(child)
+    elif isinstance(value, list):
+        for child in value:
+            check_forbidden_keys(child)
+
+
+def validate_identity(value: object, label: str) -> tuple[str, str, str]:
+    need(isinstance(value, Mapping), label + "_NOT_OBJECT")
+    need(set(value) == IDENTITY_KEYS, label + "_KEY_SET_MISMATCH")
+    parts: list[str] = []
+    for key in ("database", "server_address", "port"):
+        item = value[key]
+        need(isinstance(item, str) and bool(item), label + "_" + key.upper() + "_INVALID")
+        need(
+            len(item.encode("utf-8", errors="strict")) <= MAX_TEXT_BYTES,
+            label + "_" + key.upper() + "_TOO_LARGE",
+        )
+        need("\0" not in item and "\r" not in item and "\n" not in item, label + "_CONTROL_CHARACTER")
+        parts.append(item)
+    port = parts[2]
+    need(re.fullmatch(r"[1-9][0-9]{0,4}", port) is not None, label + "_PORT_FORMAT")
+    need(1 <= int(port) <= 65535 and str(int(port)) == port, label + "_PORT_RANGE")
+    return parts[0], parts[1], parts[2]
+
+
+def identity_sha256(value: object, label: str) -> str:
+    database, server_address, port = validate_identity(value, label)
+    payload = (database + "\0" + server_address + "\0" + port + "\n").encode(
+        "utf-8", errors="strict"
+    )
+    return sha256_bytes(payload)
+
+
+def schema_manifest_sha256(value: object) -> str:
+    need(isinstance(value, list), "SCHEMA_RELATIONS_NOT_LIST")
+    need(0 < len(value) <= MAX_RELATION_COUNT, "SCHEMA_RELATION_COUNT_INVALID")
+    need(all(isinstance(item, str) and bool(item) for item in value), "SCHEMA_RELATION_INVALID")
+    relations = list(value)
+    need(len(relations) == len(set(relations)), "SCHEMA_RELATION_DUPLICATE")
+    for relation in relations:
+        need(
+            len(relation.encode("utf-8", errors="strict")) <= MAX_TEXT_BYTES,
+            "SCHEMA_RELATION_TOO_LARGE",
+        )
+        need("\0" not in relation and "\r" not in relation and "\n" not in relation, "SCHEMA_RELATION_CONTROL_CHARACTER")
+    payload = "".join(relation + "\n" for relation in sorted(relations)).encode(
+        "utf-8", errors="strict"
+    )
+    return sha256_bytes(payload)
+
+
+def validate_available_evidence(
+    value: object,
+    target_identity_digest: str,
+    now_utc: datetime,
+) -> bool:
+    need(isinstance(value, Mapping), "AVAILABLE_EVIDENCE_NOT_OBJECT")
+    need(set(value) == AVAILABLE_EVIDENCE_KEYS, "AVAILABLE_EVIDENCE_KEY_SET_MISMATCH")
+    need(
+        value["observation_contract"] == "PROVIDER_STATUS_AVAILABLE_RECHECK_V1",
+        "AVAILABLE_EVIDENCE_CONTRACT_MISMATCH",
+    )
+    need(value["resource_identity_sha256"] == target_identity_digest, "AVAILABLE_TARGET_BINDING_MISMATCH")
+    observed = parse_utc(value["observed_at_utc"], "AVAILABLE_OBSERVED_AT_INVALID")
+    need(now_utc.tzinfo is not None, "NOW_UTC_REQUIRED")
+    skew = (now_utc.astimezone(timezone.utc) - observed).total_seconds()
+    need(0 <= skew <= FRESH_RECHECK_MAX_SKEW_SECONDS, "AVAILABLE_RECHECK_NOT_FRESH")
+    return value["status"] == "AVAILABLE"
+
+
+def validate_lifecycle_evidence(
+    value: object,
+    target_identity_digest: str,
+    now_utc: datetime,
+) -> bool:
+    need(isinstance(value, Mapping), "LIFECYCLE_EVIDENCE_NOT_OBJECT")
+    need(set(value) == LIFECYCLE_EVIDENCE_KEYS, "LIFECYCLE_EVIDENCE_KEY_SET_MISMATCH")
+    need(
+        value["observation_contract"] == "TARGET_LIFECYCLE_WITHIN_72H_V1",
+        "LIFECYCLE_EVIDENCE_CONTRACT_MISMATCH",
+    )
+    need(value["resource_identity_sha256"] == target_identity_digest, "LIFECYCLE_TARGET_BINDING_MISMATCH")
+    need(value["max_age_seconds"] == LIFECYCLE_MAX_AGE_SECONDS, "LIFECYCLE_MAX_AGE_MISMATCH")
+    created = parse_utc(value["created_at_utc"], "LIFECYCLE_CREATED_AT_INVALID")
+    observed = parse_utc(value["observed_at_utc"], "LIFECYCLE_OBSERVED_AT_INVALID")
+    skew = (now_utc.astimezone(timezone.utc) - observed).total_seconds()
+    need(0 <= skew <= FRESH_RECHECK_MAX_SKEW_SECONDS, "LIFECYCLE_RECHECK_NOT_FRESH")
+    age = (observed - created).total_seconds()
+    return 0 <= age <= LIFECYCLE_MAX_AGE_SECONDS
+
+
+def validate_hash_boolean_output(value: Mapping[str, object]) -> None:
+    need(set(value) == OUTPUT_KEYS, "OUTPUT_KEY_SET_MISMATCH")
+    for key in OUTPUT_HASH_KEYS:
+        need(is_sha256(value[key]), "OUTPUT_SHA256_INVALID")
+    for key in OUTPUT_BOOLEAN_KEYS:
+        need(type(value[key]) is bool, "OUTPUT_BOOLEAN_INVALID")
+
+
+def collect_from_observation(
+    observation: Mapping[str, object],
+    now_utc: datetime,
+) -> dict[str, object]:
+    """Normalize ephemeral observations and return hashes/booleans only.
+
+    This pure function performs no I/O. It is intentionally not reachable from
+    the CLI. A later adapter requires separate authorization.
+    """
+
+    need(isinstance(observation, Mapping), "OBSERVATION_NOT_OBJECT")
+    need(set(observation) == OBSERVATION_KEYS, "OBSERVATION_KEY_SET_MISMATCH")
+    check_forbidden_keys(observation)
+    need(
+        type(observation["collection_execution_authorized"]) is bool,
+        "COLLECTION_AUTHORIZATION_FLAG_INVALID",
+    )
+    need(type(observation["fixture_only"]) is bool, "FIXTURE_FLAG_INVALID")
+    need(
+        observation["raw_connection_values_disclosed"] is False,
+        "RAW_CONNECTION_DISCLOSURE_FORBIDDEN",
+    )
+
+    target_digest = identity_sha256(observation["target_identity"], "TARGET_IDENTITY")
+    production_digest = identity_sha256(
+        observation["production_identity"], "PRODUCTION_IDENTITY"
+    )
+    staging_digest = identity_sha256(
+        observation["staging_identity"], "STAGING_IDENTITY"
+    )
+    need(
+        len({target_digest, production_digest, staging_digest}) == 3,
+        "TARGET_IDENTITY_SEPARATION_FAILED",
+    )
+    manifest_digest = schema_manifest_sha256(observation["schema_manifest_relations"])
+    status_available = validate_available_evidence(
+        observation["target_available_recheck_evidence"],
+        target_digest,
+        now_utc,
+    )
+    lifecycle_within_72h = validate_lifecycle_evidence(
+        observation["target_lifecycle_evidence"],
+        target_digest,
+        now_utc,
+    )
+
+    result: dict[str, object] = {
+        "activation_authorization_record_sha256": sha256_bytes(
+            ACTIVATION_AUTHORIZATION_RECORD_ID.encode("ascii")
+        ),
+        "collection_execution_authorization_record_sha256": sha256_bytes(
+            COLLECTION_EXECUTION_AUTHORIZATION_RECORD_ID.encode("ascii")
+        ),
+        "collection_execution_authorized": observation[
+            "collection_execution_authorized"
+        ],
+        "collector_contract_sha256": contract_sha256(),
+        "evidence_complete": True,
+        "expected_schema_manifest_sha256": manifest_digest,
+        "expected_target_identity_sha256": target_digest,
+        "fixture_only": observation["fixture_only"],
+        "forbidden_production_identity_sha256": production_digest,
+        "forbidden_staging_identity_sha256": staging_digest,
+        "raw_connection_values_disclosed": False,
+        "source_observation_bundle_sha256": sha256_bytes(
+            canonical_json_bytes(observation)
+        ),
+        "target_available_recheck_evidence_sha256": sha256_bytes(
+            canonical_json_bytes(observation["target_available_recheck_evidence"])
+        ),
+        "target_lifecycle_evidence_sha256": sha256_bytes(
+            canonical_json_bytes(observation["target_lifecycle_evidence"])
+        ),
+        "target_lifecycle_within_72h": lifecycle_within_72h,
+        "target_status_available": status_available,
+    }
+    validate_hash_boolean_output(result)
+    return result
+
+
+def boundary_status() -> dict[str, bool]:
+    return {
+        "archive_accessed": False,
+        "backup_accessed": False,
+        "credential_accessed": False,
+        "database_connected": False,
+        "deployment_performed": False,
+        "git_commit_performed": False,
+        "git_push_performed": False,
+        "git_stage_performed": False,
+        "migration_created": False,
+        "migration_executed": False,
+        "network_accessed": False,
+        "provider_control_plane_accessed": False,
+        "resource_deleted": False,
+        "restore_executed": False,
+        "runner_activated": False,
+        "runner_created": False,
+        "runner_executed": False,
+        "runner_imported": False,
+        "target_accessed": False,
+    }
+
+
+def emit_hash_boolean(value: Mapping[str, object]) -> None:
+    for item in value.values():
+        need(type(item) is bool or is_sha256(item), "CONSOLE_VALUE_TYPE_FORBIDDEN")
+    print(
+        json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":"))
+    )
+
+
+def synthetic_observation() -> tuple[dict[str, object], datetime]:
+    now = datetime(2026, 8, 17, 0, 0, 0, tzinfo=timezone.utc)
+    target = {"database": "fixture_target", "server_address": "192.0.2.10", "port": "5432"}
+    target_digest = identity_sha256(target, "SYNTHETIC_TARGET")
+    observation: dict[str, object] = {
+        "collection_execution_authorized": False,
+        "fixture_only": True,
+        "production_identity": {
+            "database": "fixture_production",
+            "server_address": "192.0.2.20",
+            "port": "5432",
+        },
+        "raw_connection_values_disclosed": False,
+        "schema_manifest_relations": ["public.alpha", "public.beta"],
+        "staging_identity": {
+            "database": "fixture_staging",
+            "server_address": "192.0.2.30",
+            "port": "5432",
+        },
+        "target_available_recheck_evidence": {
+            "observation_contract": "PROVIDER_STATUS_AVAILABLE_RECHECK_V1",
+            "observed_at_utc": "2026-08-17T00:00:00Z",
+            "resource_identity_sha256": target_digest,
+            "status": "AVAILABLE",
+        },
+        "target_identity": target,
+        "target_lifecycle_evidence": {
+            "created_at_utc": "2026-08-16T00:00:00Z",
+            "max_age_seconds": LIFECYCLE_MAX_AGE_SECONDS,
+            "observation_contract": "TARGET_LIFECYCLE_WITHIN_72H_V1",
+            "observed_at_utc": "2026-08-17T00:00:00Z",
+            "resource_identity_sha256": target_digest,
+        },
+    }
+    return observation, now
+
+
+def dry_run() -> int:
+    result: dict[str, object] = {
+        "activation_authorization_record_sha256": sha256_bytes(
+            ACTIVATION_AUTHORIZATION_RECORD_ID.encode("ascii")
+        ),
+        "collection_execution_authorization_record_sha256": sha256_bytes(
+            COLLECTION_EXECUTION_AUTHORIZATION_RECORD_ID.encode("ascii")
+        ),
+        "collector_contract_sha256": contract_sha256(),
+        "dry_run": True,
+        "hold": True,
+        "live_collection_cli_present": False,
+        "runtime_evidence_collected": False,
+    }
+    result.update(boundary_status())
+    emit_hash_boolean(result)
+    return 0
+
+
+def self_test() -> int:
+    observation, now = synthetic_observation()
+    record = collect_from_observation(observation, now)
+    result = dict(record)
+    result.update(boundary_status())
+    result.update(
+        {
+            "hold": True,
+            "release_eligible": False,
+            "self_test": True,
+            "synthetic_values_persisted": False,
+        }
+    )
+    emit_hash_boolean(result)
+    return 0
+
+
+def parser() -> HashBooleanArgumentParser:
+    value = HashBooleanArgumentParser(add_help=False, description=__doc__)
+    modes = value.add_mutually_exclusive_group(required=True)
+    modes.add_argument("--dry-run", action="store_true")
+    modes.add_argument("--self-test", action="store_true")
+    return value
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parser().parse_args(argv)
+    if args.dry_run:
+        return dry_run()
+    return self_test()
+
+
+def entrypoint() -> int:
+    try:
+        return main()
+    except Exception as exc:
+        result: dict[str, object] = {
+            "error_code_sha256": sha256_bytes(str(exc).encode("utf-8")),
+            "hold": True,
+            "runtime_evidence_collected": False,
+        }
+        result.update(boundary_status())
+        try:
+            emit_hash_boolean(result)
+        except Exception:
+            print('{"hold":true}')
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(entrypoint())
