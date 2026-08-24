@@ -1,0 +1,51 @@
+{
+  "schema": "PMAI_P0_04_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_PACKAGE_MANIFEST_V1",
+  "stage_id": "PMAI-P0-04",
+  "work_bundle": "PMAI-P0-04-DISP-TARGET-REBIND-V4",
+  "repository": "pet-med-ai/Pet-med-ai",
+  "base_branch": "main",
+  "base_commit": "b8d79ff3af32b1452672cdeb766e2e35b72c1213",
+  "authorized_changed_path_count": 9,
+  "package_path_count": 8,
+  "manifest_member_count": 7,
+  "manifest_self_excluded": true,
+  "central_integration_path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py",
+  "ci_entrypoint_changed": false,
+  "files": [
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4.md",
+      "bytes": 5159,
+      "sha256": "482679bf23019e25bd650f10be165c01c3894572fe803abb33ea0c17eca77c78"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_ACTIVE_POINTER_V1.json",
+      "bytes": 1508,
+      "sha256": "b28619a0a3178a785782d898eb32192b164497fee5c23e96a5010cecc4bef798"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_CHECKLIST_V1.csv",
+      "bytes": 4677,
+      "sha256": "259d388668b03f81eca0d766aeb459c783663ec0204700bff31b7306b75f1b52"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_GO_NO_GO_V1.csv",
+      "bytes": 2071,
+      "sha256": "a1bfbc35c61dda8a95e06ca2931d35cf50b57efbcff769f1b5f09be5ed6b5be6"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_LOCKED_BASELINE_V1.json",
+      "bytes": 5103,
+      "sha256": "082bfecba5593ec26faa36cb0a61a9ee4df5b1bc11537193a01917bb24d60c65"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_TEST_MATRIX_V1.csv",
+      "bytes": 3425,
+      "sha256": "8f4650d61643c505c3148210059ee076d85e1864c5d5189084f4b295e229fd6b"
+    },
+    {
+      "path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_contract_rebind_v4.py",
+      "bytes": 26799,
+      "sha256": "54566252e8097ec878c122ed95ce090c11cb623304f0b36fd7a91771b1c8ec74"
+    }
+  ]
+}

@@ -1,0 +1,52 @@
+control_id,control,expected,current,status,evidence,on_failure
+CRV4-C001,Stage identity,PMAI-P0-04,PMAI-P0-04,PASS,locked baseline,STOP
+CRV4-C002,Work bundle identity,PMAI-P0-04-DISP-TARGET-REBIND-V4,PMAI-P0-04-DISP-TARGET-REBIND-V4,PASS,locked baseline,STOP
+CRV4-C003,Repository identity,pet-med-ai/Pet-med-ai,pet-med-ai/Pet-med-ai,PASS,locked baseline,STOP
+CRV4-C004,Base branch,main,main,PASS,locked baseline,STOP
+CRV4-C005,Base commit,b8d79ff3af32b1452672cdeb766e2e35b72c1213,b8d79ff3af32b1452672cdeb766e2e35b72c1213,PASS,locked baseline,STOP
+CRV4-C006,Changed path scope,EXACT_9_PATHS,EXACT_9_PATHS,PASS,authorization record,STOP
+CRV4-C007,Maximum changed paths,9,9,PASS,authorization record,STOP
+CRV4-C008,V3 logical name preserved,pet-med-ai-db-p0-04-fresh-disposable-restore-v3-ohio,pet-med-ai-db-p0-04-fresh-disposable-restore-v3-ohio,PASS,V3 anchor,STOP
+CRV4-C009,V3 identity preserved,e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744,e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744,PASS,V3 anchor,STOP
+CRV4-C010,V3 retirement state,RETIRED_ABSENCE_VERIFIED_HISTORICAL,RETIRED_ABSENCE_VERIFIED_HISTORICAL,PASS,absence decision,STOP
+CRV4-C011,V3 absence decision,PASS_PMAI_P0_04_V3_TARGET_RETIREMENT_AND_ABSENCE_READ_ONLY_EVIDENCE_V1,PASS_PMAI_P0_04_V3_TARGET_RETIREMENT_AND_ABSENCE_READ_ONLY_EVIDENCE_V1,PASS,external read-only evidence token,STOP
+CRV4-C012,V3 files byte exact,true,true,PASS,protected hashes,STOP
+CRV4-C013,V4 review record,PMAI-P0-04-FDTP-AUTH-REVIEW-V4-20260823,PMAI-P0-04-FDTP-AUTH-REVIEW-V4-20260823,PASS,locked baseline,STOP
+CRV4-C014,V4 logical name,pet-med-ai-db-p0-04-fresh-disposable-restore-v4-ohio,pet-med-ai-db-p0-04-fresh-disposable-restore-v4-ohio,PASS,review record,STOP
+CRV4-C015,V4 reviewed identity,e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529,e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529,PASS,review record,STOP
+CRV4-C016,V4 identity reused,true,true,PASS,review metadata,STOP
+CRV4-C017,V4 identity opaque,true,true,PASS,review metadata,STOP
+CRV4-C018,V4 hash recalculation claim,false,false,PASS,review metadata,STOP
+CRV4-C019,Exact contract field count,20,20,PASS,locked baseline,STOP
+CRV4-C020,Provider,Render,Render,PASS,contract fields,STOP
+CRV4-C021,Region,Ohio (US East),Ohio (US East),PASS,contract fields,STOP
+CRV4-C022,Engine family,PostgreSQL,PostgreSQL,PASS,contract fields,STOP
+CRV4-C023,Server major version,18,18,PASS,contract fields,STOP
+CRV4-C024,Instance type,Basic-256mb,Basic-256mb,PASS,contract fields,STOP
+CRV4-C025,Storage GB,1,1,PASS,contract fields,STOP
+CRV4-C026,Storage autoscaling,false,false,PASS,contract fields,STOP
+CRV4-C027,Read replica count,0,0,PASS,contract fields,STOP
+CRV4-C028,High availability,false,false,PASS,contract fields,STOP
+CRV4-C029,Connection pooling,false,false,PASS,contract fields,STOP
+CRV4-C030,Application attachment count,0,0,PASS,contract fields,STOP
+CRV4-C031,Network scope,UNATTACHED_NO_APPLICATION_TRAFFIC,UNATTACHED_NO_APPLICATION_TRAFFIC,PASS,contract fields,STOP
+CRV4-C032,External access scope,EXECUTION_TIME_SINGLE_OPERATOR_EGRESS_ALLOWLIST_ONLY,EXECUTION_TIME_SINGLE_OPERATOR_EGRESS_ALLOWLIST_ONLY,PASS,contract fields,STOP
+CRV4-C033,Cost ceiling USD,1.00,1.00,PASS,contract fields,STOP
+CRV4-C034,Maximum lifetime hours,72,72,PASS,contract fields,STOP
+CRV4-C035,Delete deadline hours,24,24,PASS,contract fields,STOP
+CRV4-C036,Target must be new,true,true,PASS,contract fields,STOP
+CRV4-C037,Target must be empty,true,true,PASS,contract fields,STOP
+CRV4-C038,Provisioning authorized,false,false,PASS,contract fields,STOP
+CRV4-C039,Active repository version,V4,V4,PASS,active pointer,STOP
+CRV4-C040,External binding state,UNBOUND,UNBOUND,PASS,active pointer,STOP
+CRV4-C041,Target selected,false,false,PASS,locked baseline,STOP
+CRV4-C042,Target created,false,false,PASS,locked baseline,STOP
+CRV4-C043,Raw provider identifier recorded,false,false,PASS,static scan,STOP
+CRV4-C044,Provider URL recorded,false,false,PASS,static scan,STOP
+CRV4-C045,Credential material recorded,false,false,PASS,static scan,STOP
+CRV4-C046,CI entrypoint changed,false,false,PASS,protected hash,STOP
+CRV4-C047,Central validator reachability,true,true,PASS,subprocess hook,STOP
+CRV4-C048,Database connection,false,false,PASS,execution boundaries,STOP
+CRV4-C049,Runner restore migration deployment,false,false,PASS,execution boundaries,STOP
+CRV4-C050,Manual or automatic retry,false,false,PASS,execution boundaries,STOP
+CRV4-C051,Sole next subject,FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V4,FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V4,PASS,locked baseline,STOP

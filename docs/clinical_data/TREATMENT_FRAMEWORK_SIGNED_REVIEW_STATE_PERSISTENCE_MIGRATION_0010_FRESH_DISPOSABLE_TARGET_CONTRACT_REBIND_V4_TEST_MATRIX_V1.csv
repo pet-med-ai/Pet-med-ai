@@ -1,0 +1,43 @@
+test_id,test,method,expected,status,on_failure
+CRV4-T001,Reject stage mismatch,mutate stage marker,NO-GO,DESIGNED,STOP
+CRV4-T002,Reject base commit mismatch,mutate locked base,NO-GO,DESIGNED,STOP
+CRV4-T003,Reject path addition,add tenth changed path,NO-GO,DESIGNED,STOP
+CRV4-T004,Reject path omission,remove authorized path,NO-GO,DESIGNED,STOP
+CRV4-T005,Reject V3 file drift,mutate protected V3 anchor,NO-GO,DESIGNED,STOP
+CRV4-T006,Reject V3 identity mismatch,mutate V3 identity,NO-GO,DESIGNED,STOP
+CRV4-T007,Reject missing absence token,remove decision token,NO-GO,DESIGNED,STOP
+CRV4-T008,Reject repository reproof claim,set repository reverified true,NO-GO,DESIGNED,STOP
+CRV4-T009,Reject V4 record mismatch,mutate review record,NO-GO,DESIGNED,STOP
+CRV4-T010,Reject V4 identity mismatch,mutate reviewed identity,NO-GO,DESIGNED,STOP
+CRV4-T011,Reject identity source mismatch,mutate identity source,NO-GO,DESIGNED,STOP
+CRV4-T012,Reject recalculation claim,set recalculation claim true,NO-GO,DESIGNED,STOP
+CRV4-T013,Reject missing contract field,remove one field,NO-GO,DESIGNED,STOP
+CRV4-T014,Reject extra contract field,add one field,NO-GO,DESIGNED,STOP
+CRV4-T015,Reject contract value mismatch,mutate one value,NO-GO,DESIGNED,STOP
+CRV4-T016,Reject contract type mismatch,change one JSON type,NO-GO,DESIGNED,STOP
+CRV4-T017,Reject V3 and V4 same name,set names equal,NO-GO,DESIGNED,STOP
+CRV4-T018,Reject V3 and V4 same identity,set identities equal,NO-GO,DESIGNED,STOP
+CRV4-T019,Reject selected target,set target selected true,NO-GO,DESIGNED,STOP
+CRV4-T020,Reject created target,set target created true,NO-GO,DESIGNED,STOP
+CRV4-T021,Reject external binding,set binding state bound,NO-GO,DESIGNED,STOP
+CRV4-T022,Reject provider resource identifier,insert raw provider identifier,NO-GO,DESIGNED,STOP
+CRV4-T023,Reject provider URL,insert provider URL,NO-GO,DESIGNED,STOP
+CRV4-T024,Reject database URI,insert database URI,NO-GO,DESIGNED,STOP
+CRV4-T025,Reject credential material,insert credential assignment,NO-GO,DESIGNED,STOP
+CRV4-T026,Reject manifest omission,remove manifest member,NO-GO,DESIGNED,STOP
+CRV4-T027,Reject manifest addition,add manifest member,NO-GO,DESIGNED,STOP
+CRV4-T028,Reject manifest digest mismatch,mutate protected member,NO-GO,DESIGNED,STOP
+CRV4-T029,Reject manifest byte mismatch,mutate byte count,NO-GO,DESIGNED,STOP
+CRV4-T030,Reject manifest self inclusion,include manifest as member,NO-GO,DESIGNED,STOP
+CRV4-T031,Reject pointer baseline mismatch,mutate baseline digest,NO-GO,DESIGNED,STOP
+CRV4-T032,Reject pointer version mismatch,mutate active version,NO-GO,DESIGNED,STOP
+CRV4-T033,Reject central hook removal,remove V4 subprocess hook,NO-GO,DESIGNED,STOP
+CRV4-T034,Reject central protected digest mismatch,mutate central V4 digest,NO-GO,DESIGNED,STOP
+CRV4-T035,Reject CI entrypoint drift,mutate CI script,NO-GO,DESIGNED,STOP
+CRV4-T036,Reject active migration implementation,add active 0010 migration file,NO-GO,DESIGNED,STOP
+CRV4-T037,Reject resource execution marker,set operation marker true,NO-GO,DESIGNED,STOP
+CRV4-T038,Reject retry marker,set retry marker true,NO-GO,DESIGNED,STOP
+CRV4-T039,Reject duplicate CSV identifier,duplicate row identifier,NO-GO,DESIGNED,STOP
+CRV4-T040,Reject unsafe symlink,replace package file with symlink,NO-GO,DESIGNED,STOP
+CRV4-T041,Validate positive package,run V4 validator,PASS,PASS,STOP
+CRV4-T042,Validate CI reachability,run central validator,PASS,PASS,STOP
