@@ -1,0 +1,23 @@
+{
+  "schema": "PMAI_P0_04_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_ACTIVE_POINTER_V1",
+  "stage_id": "PMAI-P0-04",
+  "work_bundle": "PMAI-P0-04-DISP-TARGET-REBIND-V4",
+  "pointer_version": 1,
+  "pointer_scope": "REPOSITORY_GOVERNANCE_ONLY",
+  "active_contract_version": "V4",
+  "active_review_record_id": "PMAI-P0-04-FDTP-AUTH-REVIEW-V4-20260823",
+  "active_target_logical_name": "pet-med-ai-db-p0-04-fresh-disposable-restore-v4-ohio",
+  "active_target_contract_identity_sha256": "e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529",
+  "active_locked_baseline_path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_LOCKED_BASELINE_V1.json",
+  "active_locked_baseline_sha256": "082bfecba5593ec26faa36cb0a61a9ee4df5b1bc11537193a01917bb24d60c65",
+  "previous_contract_version": "V3",
+  "previous_target_logical_name": "pet-med-ai-db-p0-04-fresh-disposable-restore-v3-ohio",
+  "previous_target_contract_identity_sha256": "e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744",
+  "previous_contract_state": "RETIRED_ABSENCE_VERIFIED_HISTORICAL",
+  "prior_v3_absence_evidence_result": "PASS_PMAI_P0_04_V3_TARGET_RETIREMENT_AND_ABSENCE_READ_ONLY_EVIDENCE_V1",
+  "external_resource_binding_state": "UNBOUND",
+  "target_selected": false,
+  "target_created": false,
+  "external_execution_authorized": false,
+  "sole_next_subject": "FRESH_DISPOSABLE_TARGET_PROVISIONING_EXTERNAL_EXECUTION_AUTHORIZATION_V4"
+}

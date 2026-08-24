@@ -1,0 +1,29 @@
+gate_id,gate,required,current,status,on_failure
+CRV4-G001,Remote main equals locked base,true,true,PASS,STOP
+CRV4-G002,Target branch absent before creation,true,true,PASS,STOP
+CRV4-G003,Repository permission verified,true,true,PASS,STOP
+CRV4-G004,Exact nine-path scope,true,true,PASS,STOP
+CRV4-G005,V3 historical files unchanged,true,true,PASS,STOP
+CRV4-G006,V3 absence decision exact,true,true,PASS,STOP
+CRV4-G007,V4 review record exact,true,true,PASS,STOP
+CRV4-G008,V4 reviewed identity exact,true,true,PASS,STOP
+CRV4-G009,V4 identity treated as opaque,true,true,PASS,STOP
+CRV4-G010,V4 identity recalculation claimed,false,false,PASS,STOP
+CRV4-G011,Exact 20-field contract,true,true,PASS,STOP
+CRV4-G012,Locked baseline valid,true,true,PASS,STOP
+CRV4-G013,Active pointer valid,true,true,PASS,STOP
+CRV4-G014,Package manifest valid,true,true,PASS,STOP
+CRV4-G015,Central validator invokes V4 validator,true,true,PASS,STOP
+CRV4-G016,CI entrypoint modified,false,false,PASS,STOP
+CRV4-G017,Secret or raw provider identifier present,false,false,PASS,STOP
+CRV4-G018,Active migration implementation present,false,false,PASS,STOP
+CRV4-G019,Merge authorized,false,false,HOLD_EXPECTED,REQUEST_SEPARATE_AUTHORIZATION
+CRV4-G020,External target provisioning authorized,false,false,HOLD_EXPECTED,REQUEST_SEPARATE_AUTHORIZATION
+CRV4-G021,Provider settings modification authorized,false,false,HOLD_EXPECTED,REQUEST_SEPARATE_AUTHORIZATION
+CRV4-G022,Database connection authorized,false,false,HOLD_EXPECTED,REQUEST_SEPARATE_AUTHORIZATION
+CRV4-G023,Runner execution authorized,false,false,HOLD_EXPECTED,REQUEST_SEPARATE_AUTHORIZATION
+CRV4-G024,Restore execution authorized,false,false,HOLD_EXPECTED,REQUEST_SEPARATE_AUTHORIZATION
+CRV4-G025,Migration execution authorized,false,false,HOLD_EXPECTED,REQUEST_SEPARATE_AUTHORIZATION
+CRV4-G026,Deployment authorized,false,false,HOLD_EXPECTED,REQUEST_SEPARATE_AUTHORIZATION
+CRV4-G027,Resource deletion authorized,false,false,HOLD_EXPECTED,REQUEST_SEPARATE_AUTHORIZATION
+CRV4-G028,Manual or automatic retry authorized,false,false,HOLD_EXPECTED,STOP

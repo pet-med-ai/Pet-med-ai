@@ -43,6 +43,24 @@ FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V3_VALIDATOR = 'scripts/
 ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_PREPARATION_V1_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_creation_and_activation_preparation_v1.py'
 ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_AUTHORIZATION_REVIEW_V1_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_creation_and_activation_authorization_review_v1.py'
 ACTIVE_RESTORE_RUNNER_V3_CREATION_AND_ACTIVATION_EXECUTION_AUTHORIZATION_V1_VALIDATOR = 'scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_creation_and_activation_execution_authorization_v1.py'
+FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_VALIDATOR = (
+    "scripts/validate_treatment_framework_signed_review_state_persistence_"
+    "migration_0010_fresh_disposable_target_contract_rebind_v4.py"
+)
+FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_VALIDATOR_SHA256 = (
+    "54566252e8097ec878c122ed95ce090c11cb623304f0b36fd7a91771b1c8ec74"
+)
+FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_MANIFEST = (
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_"
+    "MIGRATION_0010_FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_PACKAGE_"
+    "MANIFEST_V1.json"
+)
+FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_MANIFEST_SHA256 = (
+    "a6cb3a4a01bf7e18755338f950c03fc6c6cfbec69ae57d98f96a3003196ce025"
+)
+FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_PASS_MARKER = (
+    "fresh_disposable_target_contract_rebind_v4=PASS"
+)
 CI = 'scripts/ci_static_checks.sh'
 SMOKE = 'scripts/smoke_petmed.sh'
 TARGETS = ['docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md',
@@ -579,6 +597,45 @@ def main():
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=20,
         )
         need(result.returncode == 0, "shell syntax " + rel)
+    v4_validator_path = ROOT / FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_VALIDATOR
+    need(
+        v4_validator_path.is_file() and not v4_validator_path.is_symlink(),
+        "missing or unsafe V4 rebind validator",
+    )
+    need(
+        hashlib.sha256(v4_validator_path.read_bytes()).hexdigest()
+        == FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_VALIDATOR_SHA256,
+        "protected hash V4 rebind validator",
+    )
+    v4_manifest_path = ROOT / FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_MANIFEST
+    need(
+        v4_manifest_path.is_file() and not v4_manifest_path.is_symlink(),
+        "missing or unsafe V4 rebind manifest",
+    )
+    need(
+        hashlib.sha256(v4_manifest_path.read_bytes()).hexdigest()
+        == FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_MANIFEST_SHA256,
+        "protected hash V4 rebind manifest",
+    )
+    v4_result = subprocess.run(
+        [sys.executable, "-B", str(v4_validator_path)],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    need(v4_result.returncode == 0, "V4 rebind validator exit")
+    need(v4_result.stderr == "", "V4 rebind validator stderr")
+    need(
+        v4_result.stdout.splitlines().count(
+            FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_PASS_MARKER
+        ) == 1,
+        "V4 rebind validator PASS marker",
+    )
+    print(FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_PASS_MARKER)
     if args.require_complete:
         print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; disposable target provisioning and restore rehearsal are incomplete", file=sys.stderr)
         return 1
