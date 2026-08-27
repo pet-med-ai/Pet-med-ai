@@ -1,0 +1,39 @@
+test_id,test,method,expected,status,on_failure
+FDTPV4-T001,Accept exact positive package,run validator,PASS,DESIGNED,STOP
+FDTPV4-T002,Reject wrong base commit,mutate baseline,NO-GO,DESIGNED,STOP
+FDTPV4-T003,Reject wrong base tree,mutate baseline,NO-GO,DESIGNED,STOP
+FDTPV4-T004,Reject path addition,add changed path,NO-GO,DESIGNED,STOP
+FDTPV4-T005,Reject path omission,remove package path,NO-GO,DESIGNED,STOP
+FDTPV4-T006,Reject historical V3 drift,mutate protected file,NO-GO,DESIGNED,STOP
+FDTPV4-T007,Reject historical V4 rebind drift,mutate protected file,NO-GO,DESIGNED,STOP
+FDTPV4-T008,Reject CI entrypoint drift,mutate CI script,NO-GO,DESIGNED,STOP
+FDTPV4-T009,Reject wrong target logical name,mutate evidence,NO-GO,DESIGNED,STOP
+FDTPV4-T010,Reject wrong contract identity,mutate evidence,NO-GO,DESIGNED,STOP
+FDTPV4-T011,Reject recomputed-contract claim,set true,NO-GO,DESIGNED,STOP
+FDTPV4-T012,Reject target not Available,mutate status,NO-GO,DESIGNED,STOP
+FDTPV4-T013,Reject creation count above one,mutate count,NO-GO,DESIGNED,STOP
+FDTPV4-T014,Reject application attachment,mutate count,NO-GO,DESIGNED,STOP
+FDTPV4-T015,Reject nonzero open connections,mutate count,NO-GO,DESIGNED,STOP
+FDTPV4-T016,Reject nonempty final service rules,add CIDR,NO-GO,DESIGNED,STOP
+FDTPV4-T017,Reject public access enabled,set blocked false,NO-GO,DESIGNED,STOP
+FDTPV4-T018,Reject missing post-refresh persistence,set false,NO-GO,DESIGNED,STOP
+FDTPV4-T019,Reject raw provider resource identifier,inject raw identifier,NO-GO,DESIGNED,STOP
+FDTPV4-T020,Reject provider dashboard address,inject URL,NO-GO,DESIGNED,STOP
+FDTPV4-T021,Reject database URI,inject URI,NO-GO,DESIGNED,STOP
+FDTPV4-T022,Reject credential material,inject password assignment,NO-GO,DESIGNED,STOP
+FDTPV4-T023,Reject database connection marker,set true,NO-GO,DESIGNED,STOP
+FDTPV4-T024,Reject runner execution marker,set true,NO-GO,DESIGNED,STOP
+FDTPV4-T025,Reject restore marker,set true,NO-GO,DESIGNED,STOP
+FDTPV4-T026,Reject migration marker,set true,NO-GO,DESIGNED,STOP
+FDTPV4-T027,Reject deployment marker,set true,NO-GO,DESIGNED,STOP
+FDTPV4-T028,Reject deletion marker,set true,NO-GO,DESIGNED,STOP
+FDTPV4-T029,Reject manifest member omission,remove member,NO-GO,DESIGNED,STOP
+FDTPV4-T030,Reject manifest digest mismatch,mutate member,NO-GO,DESIGNED,STOP
+FDTPV4-T031,Reject manifest self inclusion,include manifest,NO-GO,DESIGNED,STOP
+FDTPV4-T032,Reject pointer binding mismatch,mutate pointer,NO-GO,DESIGNED,STOP
+FDTPV4-T033,Reject central hook omission,remove hook,NO-GO,DESIGNED,STOP
+FDTPV4-T034,Reject central protected digest mismatch,mutate digest,NO-GO,DESIGNED,STOP
+FDTPV4-T035,Reject duplicate CSV identifier,duplicate row,NO-GO,DESIGNED,STOP
+FDTPV4-T036,Reject unsafe symlink,replace package file,NO-GO,DESIGNED,STOP
+FDTPV4-T037,Reject temporary allowlist authorization,set true,NO-GO,DESIGNED,STOP
+FDTPV4-T038,Accept fail-closed next subject,validate pointer,PASS,DESIGNED,STOP

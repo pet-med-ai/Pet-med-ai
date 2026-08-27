@@ -1,0 +1,25 @@
+gate_id,scope,expected,current,status,on_failure
+FDTPV4-G001,Remote main baseline exact,true,true,PASS,STOP
+FDTPV4-G002,Authorized branch exact,true,true,PASS,STOP
+FDTPV4-G003,Exact nine-path scope,true,true,PASS,STOP
+FDTPV4-G004,Existing governance history byte exact,true,true,PASS,STOP
+FDTPV4-G005,Reviewed V4 contract exact,true,true,PASS,STOP
+FDTPV4-G006,One target creation only,true,true,PASS,STOP
+FDTPV4-G007,Target Available,true,true,PASS,STOP
+FDTPV4-G008,Target application attachments zero,true,true,PASS,STOP
+FDTPV4-G009,Target observed open connections zero,true,true,PASS,STOP
+FDTPV4-G010,Final service rule set empty,true,true,PASS,STOP
+FDTPV4-G011,Public external access blocked,true,true,PASS,STOP
+FDTPV4-G012,Network lockdown persisted after refresh,true,true,PASS,STOP
+FDTPV4-G013,Provider identity hash only,true,true,PASS,STOP
+FDTPV4-G014,Raw identifier or URL present,false,false,PASS,STOP
+FDTPV4-G015,Credential or connection material present,false,false,PASS,STOP
+FDTPV4-G016,Database connection authorized,false,false,HOLD_EXPECTED,STOP
+FDTPV4-G017,Runner or restore authorized,false,false,HOLD_EXPECTED,STOP
+FDTPV4-G018,Migration or deployment authorized,false,false,HOLD_EXPECTED,STOP
+FDTPV4-G019,Target deletion authorized,false,false,HOLD_EXPECTED,STOP
+FDTPV4-G020,Temporary single-operator allowlist authorized,false,false,HOLD_EXPECTED,STOP
+FDTPV4-G021,Package validator passes,true,true,PASS,STOP
+FDTPV4-G022,Central validator reaches package,true,true,PASS,STOP
+FDTPV4-G023,Next gate repository-only rebind,true,true,PASS,STOP
+FDTPV4-G024,Execution authority granted,false,false,HOLD_EXPECTED,STOP
