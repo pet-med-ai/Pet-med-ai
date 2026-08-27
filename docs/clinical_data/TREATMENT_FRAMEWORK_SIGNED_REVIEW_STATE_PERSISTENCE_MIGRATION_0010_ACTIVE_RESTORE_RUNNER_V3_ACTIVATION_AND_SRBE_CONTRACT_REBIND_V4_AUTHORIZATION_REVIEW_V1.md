@@ -1,0 +1,238 @@
+# PMAI-P0-04 Active Restore Runner V3 Activation and SRBE Contract Rebind V4 Authorization Review V1
+
+## Controlled review-only scope
+
+This repository package reviews the published V4 preparation contract and
+records eligibility for a later, separately authorized sanitized
+runtime-binding evidence (SRBE) collection-and-review action. It does not bind
+runtime identities, collect evidence, create or activate a runner, access a
+provider, read a credential, connect to a database, access a backup, restore,
+migrate, deploy, or delete a resource.
+
+```text
+stage_id=PMAI-P0-04
+substage=ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW_V1
+work_bundle=PMAI-P0-04-ARR-V3-ACT-SRBE-REBIND-V4-AUTH-REVIEW
+authorization_review_record_id=PMAI-P0-04-ARR-V3-ACT-SRBE-REBIND-V4-AUTH-REV-20260827
+stage_status=IN_PROGRESS
+package_status=ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW_RECORD_ONLY
+review_status=PROPOSED_APPROVE_SEPARATE_SRBE_COLLECTION_AND_REVIEW_EXECUTION_AUTHORIZATION_ELIGIBILITY_ONLY
+authorization_review_scope=REPOSITORY_STATIC_ANCHORS_AND_FUTURE_GATES_ONLY
+authorization_review_record_only=true
+current_execution_decision=HOLD_NO_RUNNER_SRBE_OR_EXTERNAL_EXECUTION
+repository=pet-med-ai/Pet-med-ai
+base_branch=main
+base_commit=98be892b5018058e6020f43caf6dd4d84a0f06b8
+base_tree_sha=a03646e32d147ce5e78653305eb263149b1104b9
+head_branch=pmai-p0-04-arr-v3-srbe-rebind-v4-auth-review
+risk_lane=YELLOW_REPOSITORY_ONLY
+changed_path_scope=EXACT_9_PATHS
+changed_path_sequence_sha256=3f0504a0eaaf5c8679ae2da1593680371ba5c544cd072cf8f2fc0520af9cf33f
+package_path_count=8
+manifest_member_count=7
+manifest_self_excluded=true
+authorization_single_use=true
+```
+
+## Published preparation baseline
+
+The review trusts only the already published repository artifacts below. The
+target facts remain merged sanitized evidence, not a live provider recheck.
+
+```text
+source_preparation_pr=18
+source_preparation_head_commit=195ac8990f64e062ca32ec3379035255de78d0df
+source_preparation_merge_commit=98be892b5018058e6020f43caf6dd4d84a0f06b8
+source_preparation_tree_sha=a03646e32d147ce5e78653305eb263149b1104b9
+source_preparation_ci_run_id=33071543545
+source_preparation_ci_run_number=224
+source_preparation_ci_status=PASS
+source_preparation_required_job_count=2
+preparation_record_id=PMAI-P0-04-ARR-V3-ACT-SRBE-REBIND-V4-PREP-20260827
+preparation_locked_baseline_sha256=dff8cb0d90dfb7c68be8afb7a21c62ac4d6dea14cd600b89409e0a5e93586f6c
+preparation_active_pointer_sha256=5fb6082e7f9a3a0d0e33eef37b4e136a42c7b8b57ee1c5a4bc7bd44a67171ece
+preparation_package_manifest_sha256=4e1e3b895f522e58917052d8af3e8bcdd6127ef9db2b4fc0cccff95124e2641c
+preparation_validator_sha256=7178853124e403080cdcc0c3bed63ec31c9acf5f791f5352fdd62373acdc770d
+offline_reviewer_sha256=c655571668758332f6501cb44b3d074600a405be7984c6110d4db30190f4ef87
+inert_collector_file_sha256=753f4eb9f1cef9c98b4fca934bbbc430b77aab028fd71f77d345f695ed383fb6
+collector_contract_sha256=1d4ce179cbd4ead48b6af7e3165bf7dd4e94eeef306c64cdcd40fa7788150a54
+runtime_observation_template_sha256=580a485ae62221ef4d2e3e598321bb9197e5083d0cb0926fdc85a1766544f1b2
+sanitized_collector_output_template_sha256=f65411c98bebc8f7773724d0ee9088faeac6f3b620c853079233c360921ceee8
+existing_preparation_package_byte_exact=true
+existing_v3_v4_historical_files_byte_exact=true
+```
+
+CI run 224 proves the repository merge commit only. It does not prove current
+target availability, lifecycle, network state, database identity, schema, or
+connectivity.
+
+## Static provenance retained without live access
+
+```text
+target_contract_identity_sha256=e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529
+target_service_identifier_sha256=3f0ed4e1cb1bbef10babb4d3ba7fa9ec03e048d7d30595389f30d0871bcdb4fe
+target_hashes_are_sanitized_provenance_only=true
+target_contract_hash_may_substitute_runtime_identity=false
+target_service_hash_may_substitute_runtime_identity=false
+target_live_metadata_revalidation=false
+target_live_revalidation_required_before_future_external_action=true
+target_status_available_from_live_recheck=false
+target_lifecycle_within_72h_from_live_recheck=false
+target_application_attachment_count_zero_from_live_recheck=false
+target_open_connection_count_zero_from_live_recheck=false
+final_service_inbound_ip_rule_set_empty_from_live_recheck=false
+public_external_access_blocked_from_live_recheck=false
+```
+
+The two target hashes identify a reviewed public contract and sanitized
+provider provenance. Neither is a database runtime identity or live-state
+evidence.
+
+## Candidate and inert tooling integrity
+
+```text
+restore_runner_v3_implementation_candidate_sha256=91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081
+implementation_candidate_repository_executable=false
+implementation_candidate_imported=false
+implementation_candidate_executed=false
+implementation_candidate_modified_by_review=false
+planned_active_runner_path=scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_v3.py
+planned_active_runner_path_present=false
+active_0010_migration_present=false
+collector_contract_sha256=1d4ce179cbd4ead48b6af7e3165bf7dd4e94eeef306c64cdcd40fa7788150a54
+collector_state=INERT_DRY_RUN_AND_SELF_TEST_ONLY
+reviewer_state=OFFLINE_SYNTHETIC_ONLY
+collector_or_reviewer_operational_mode_present=false
+collector_or_reviewer_external_capability_present=false
+raw_identifier_url_connection_or_credential_output=false
+```
+
+The implementation candidate hash is static provenance. Because an active
+rendered source does not exist, the candidate hash is not recorded as an
+observed active-source hash.
+
+## Runtime and authorization bindings remain unbound
+
+```text
+successor_activation_authorization_record_id=UNBOUND
+collection_execution_authorization_record_id=UNBOUND
+successor_activation_authorization_record_sha256=UNBOUND
+collection_execution_authorization_record_sha256=UNBOUND
+expected_active_source_sha256=UNBOUND
+expected_target_identity_sha256=UNBOUND
+forbidden_production_identity_sha256=UNBOUND
+forbidden_staging_identity_sha256=UNBOUND
+expected_schema_manifest_sha256=UNBOUND
+source_observation_bundle_sha256=UNBOUND
+target_available_recheck_evidence_sha256=UNBOUND
+target_lifecycle_evidence_sha256=UNBOUND
+target_application_attachment_recheck_evidence_sha256=UNBOUND
+target_open_connection_recheck_evidence_sha256=UNBOUND
+target_network_lockdown_recheck_evidence_sha256=UNBOUND
+runtime_binding_contract_complete=false
+collection_execution_authorized=false
+runtime_evidence_collected=false
+evidence_complete=false
+external_execution_authorized=false
+```
+
+Authorization-record hashes, when later reviewed, use SHA-256 over the exact
+UTF-8 record ID with no trailing LF. Runtime target identity and schema
+manifest hashes require separately reviewed deterministic normalization. This
+review does not calculate or populate them.
+
+## Post-effective eligibility boundary
+
+This eligibility becomes effective only after this exact nine-path package is
+published and a new GitHub CI Gate passes. It still grants no external action.
+
+```text
+post_effective_gate_exact_package_publication_required=true
+post_effective_gate_new_github_ci_pass_required=true
+post_effective_gate_srbe_collection_and_review_execution_authorization_eligible=true
+post_effective_gate_runner_creation_or_activation_authorization_eligible=false
+post_effective_gate_runner_execution_authorized=false
+post_effective_gate_restore_authorized=false
+post_effective_gate_migration_authorized=false
+post_effective_gate_deployment_authorized=false
+authorization_reuse_allowed=false
+```
+
+SRBE must be collected and reviewed under a later single-use authorization
+before runner creation or non-executing activation can become eligible.
+
+## Mandatory gates for any later SRBE action
+
+```text
+future_gate_01=THIS_AUTHORIZATION_REVIEW_PACKAGE_PUBLISHED_AND_NEW_CI_PASS
+future_gate_02=SEPARATE_SRBE_COLLECTION_AND_REVIEW_EXECUTION_AUTHORIZATION_EFFECTIVE
+future_gate_03=TARGET_LIVE_AVAILABLE_AND_LIFECYCLE_REVALIDATED
+future_gate_04=TARGET_APPLICATION_ATTACHMENTS_ZERO_REVALIDATED
+future_gate_05=TARGET_OPEN_CONNECTIONS_ZERO_REVALIDATED
+future_gate_06=TARGET_INBOUND_RULE_SET_EMPTY_REVALIDATED
+future_gate_07=TARGET_PUBLIC_EXTERNAL_ACCESS_BLOCKED_REVALIDATED
+future_gate_08=RUNTIME_TARGET_PRODUCTION_AND_STAGING_IDENTITIES_DISTINCT
+future_gate_09=AUTHORIZATION_AND_SCHEMA_HASHES_FORMAT_VALID_AND_DISTINCT
+future_gate_10=NO_RAW_IDENTIFIER_URL_CONNECTION_OR_CREDENTIAL_OUTPUT
+future_gate_11=PLANNED_ACTIVE_RUNNER_PATH_ABSENT
+future_gate_12=ACTIVE_0010_MIGRATION_ABSENT
+future_gate_13=LEGACY_CI_VALIDATOR_CUTOVER_REMAINS_SEPARATELY_AUTHORIZED
+future_gate_14=ALL_RUNNER_RESTORE_MIGRATION_AND_DEPLOYMENT_FLAGS_REMAIN_FALSE
+```
+
+Failure or ambiguity at any future gate is HOLD with no retry.
+
+## Legacy CI and active-path boundary
+
+```text
+legacy_ci_validator_cutover_required_before_active_path_creation=true
+legacy_ci_validator_cutover_authorized=false
+ci_static_checks_changed=false
+github_workflow_changed=false
+smoke_entrypoint_changed=false
+active_runner_creation_authorized=false
+active_runner_activation_authorized=false
+```
+
+This review does not modify the static CI entrypoint, workflow, smoke script,
+historical preparation package, collector, reviewer, templates, candidate, or
+any active runner path.
+
+## Fail-closed execution boundary
+
+```text
+render_readonly_access=false
+render_control_plane_write=false
+render_settings_change=false
+temporary_inbound_allowlist_change=false
+credential_or_connection_value_access=false
+database_connection=false
+database_read_write_export=false
+runtime_evidence_collection=false
+runner_creation=false
+runner_activation=false
+runner_import=false
+runner_execution=false
+backup_or_archive_access=false
+restore_execution=false
+pg_restore_or_psql_execution=false
+migration_creation_or_execution=false
+deployment=false
+target_deletion=false
+production_staging_v3_v4_resource_operations=false
+library_master_directory_update=false
+manual_retry=false
+automatic_retry=false
+```
+
+## Decision and sole next subject
+
+```text
+decision=GO_TO_SEPARATE_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1
+post_review_sole_next_subject=ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1
+sole_next_subject=ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1
+```
+
+This is eligibility to prepare and review a later authorization record. It is
+not authority to collect SRBE or perform any runner, provider, database,
+backup, restore, migration, deployment, or deletion action.

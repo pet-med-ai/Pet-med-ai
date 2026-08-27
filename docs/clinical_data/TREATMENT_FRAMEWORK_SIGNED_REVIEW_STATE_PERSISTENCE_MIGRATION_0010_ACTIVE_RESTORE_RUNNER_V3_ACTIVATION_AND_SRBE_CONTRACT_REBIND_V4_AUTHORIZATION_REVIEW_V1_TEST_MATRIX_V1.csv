@@ -1,0 +1,49 @@
+test_id,area,test_case,expected_result,runtime_access,status
+ARRV4AR-T001,scope,Exact base commit and tree,ACCEPT,none,DESIGNED
+ARRV4AR-T002,scope,Wrong base commit or tree,HOLD,none,DESIGNED
+ARRV4AR-T003,scope,Exact nine authorized paths,ACCEPT,none,DESIGNED
+ARRV4AR-T004,scope,Extra missing or renamed path,HOLD,none,DESIGNED
+ARRV4AR-T005,scope,More than one introduction commit,HOLD,none,DESIGNED
+ARRV4AR-T006,manifest,Seven sorted members with self exclusion,ACCEPT,none,DESIGNED
+ARRV4AR-T007,manifest,Manifest member byte or hash mismatch,HOLD,none,DESIGNED
+ARRV4AR-T008,manifest,Manifest includes itself or central validator,HOLD,none,DESIGNED
+ARRV4AR-T009,source,PR 18 merge and CI 224 anchors exact,ACCEPT,none,DESIGNED
+ARRV4AR-T010,source,Preparation PR commit tree or CI drift,HOLD,none,DESIGNED
+ARRV4AR-T011,history,Preparation package hashes exact,ACCEPT,none,DESIGNED
+ARRV4AR-T012,history,Preparation or historical file drift,HOLD,none,DESIGNED
+ARRV4AR-T013,provenance,Target contract and service hashes retained,ACCEPT,none,DESIGNED
+ARRV4AR-T014,provenance,Target hash used as runtime identity,HOLD,none,DESIGNED
+ARRV4AR-T015,provenance,Merged target evidence described as live,HOLD,none,DESIGNED
+ARRV4AR-T016,candidate,Implementation candidate hash exact and inert,ACCEPT,none,DESIGNED
+ARRV4AR-T017,candidate,Candidate changed executable imported or executed,HOLD,none,DESIGNED
+ARRV4AR-T018,candidate,Candidate hash used as observed active source,HOLD,none,DESIGNED
+ARRV4AR-T019,tooling,Collector and reviewer dry-run and self-test only,ACCEPT,none,DESIGNED
+ARRV4AR-T020,tooling,Collector or reviewer live file network DB credential mode,HOLD,none,DESIGNED
+ARRV4AR-T021,binding,All authorization record fields UNBOUND,ACCEPT,none,DESIGNED
+ARRV4AR-T022,binding,Any authorization record field populated,HOLD,none,DESIGNED
+ARRV4AR-T023,binding,All runtime identity fields UNBOUND,ACCEPT,none,DESIGNED
+ARRV4AR-T024,binding,Any runtime identity or schema field populated,HOLD,none,DESIGNED
+ARRV4AR-T025,evidence,All runtime evidence hashes UNBOUND,ACCEPT,none,DESIGNED
+ARRV4AR-T026,evidence,Any runtime evidence hash populated,HOLD,none,DESIGNED
+ARRV4AR-T027,evidence,Live observation boolean true,HOLD,none,DESIGNED
+ARRV4AR-T028,evidence,Runtime binding contract complete true,HOLD,none,DESIGNED
+ARRV4AR-T029,eligibility,SRBE authorization eligible only after publication,ACCEPT,none,DESIGNED
+ARRV4AR-T030,eligibility,Runner creation or activation eligible early,HOLD,none,DESIGNED
+ARRV4AR-T031,runner,Planned active runner path absent,ACCEPT,none,DESIGNED
+ARRV4AR-T032,runner,Planned active runner path present,HOLD,none,DESIGNED
+ARRV4AR-T033,migration,Active 0010 migration absent,ACCEPT,none,DESIGNED
+ARRV4AR-T034,migration,Active 0010 migration present,HOLD,none,DESIGNED
+ARRV4AR-T035,ci,Preparation validator remains PASS,ACCEPT,none,DESIGNED
+ARRV4AR-T036,ci,Authorization review hook executes after preparation,ACCEPT,none,DESIGNED
+ARRV4AR-T037,ci,CI workflow static entrypoint or smoke changed,HOLD,none,DESIGNED
+ARRV4AR-T038,central,Historical CURRENT and EFFECTIVE state preserved,ACCEPT,none,DESIGNED
+ARRV4AR-T039,central,Post-review effective overlay exact,ACCEPT,none,DESIGNED
+ARRV4AR-T040,central,Runtime or execution safety output becomes true,HOLD,none,DESIGNED
+ARRV4AR-T041,sensitive,Raw URL provider ID DB URI or credential absent,ACCEPT,none,DESIGNED
+ARRV4AR-T042,sensitive,Raw URL provider ID DB URI or credential present,HOLD,none,DESIGNED
+ARRV4AR-T043,external,Render provider network or target action required,HOLD,none,DESIGNED
+ARRV4AR-T044,external,Database backup runner restore migration or deploy action required,HOLD,none,DESIGNED
+ARRV4AR-T045,retry,Automatic or manual retry enabled,HOLD,none,DESIGNED
+ARRV4AR-T046,decision,Exact review GO and global execution HOLD,ACCEPT,none,DESIGNED
+ARRV4AR-T047,next,SRBE execution authorization is sole next subject,ACCEPT,none,DESIGNED
+ARRV4AR-T048,next,Runner creation activation or restore selected early,HOLD,none,DESIGNED
