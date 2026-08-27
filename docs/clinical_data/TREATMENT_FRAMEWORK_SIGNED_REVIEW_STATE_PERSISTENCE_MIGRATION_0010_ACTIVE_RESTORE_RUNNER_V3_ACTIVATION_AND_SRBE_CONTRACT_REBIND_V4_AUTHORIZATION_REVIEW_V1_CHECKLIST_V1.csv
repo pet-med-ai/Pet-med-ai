@@ -1,0 +1,49 @@
+item_id,control,current_state,required_state,status
+ARRV4AR-C001,Repository identity,pet-med-ai/Pet-med-ai,pet-med-ai/Pet-med-ai,PASS
+ARRV4AR-C002,Base branch,main,main,PASS
+ARRV4AR-C003,Base commit,98be892b5018058e6020f43caf6dd4d84a0f06b8,98be892b5018058e6020f43caf6dd4d84a0f06b8,PASS
+ARRV4AR-C004,Base tree,a03646e32d147ce5e78653305eb263149b1104b9,a03646e32d147ce5e78653305eb263149b1104b9,PASS
+ARRV4AR-C005,Source preparation pull request,18,18,PASS
+ARRV4AR-C006,Source preparation merge commit,98be892b5018058e6020f43caf6dd4d84a0f06b8,98be892b5018058e6020f43caf6dd4d84a0f06b8,PASS
+ARRV4AR-C007,Source preparation CI,224 PASS,224 PASS,PASS
+ARRV4AR-C008,Authorized path count,9,9,PASS
+ARRV4AR-C009,Authorized path sequence hash,3f0504a0eaaf5c8679ae2da1593680371ba5c544cd072cf8f2fc0520af9cf33f,3f0504a0eaaf5c8679ae2da1593680371ba5c544cd072cf8f2fc0520af9cf33f,PASS
+ARRV4AR-C010,Package path count,8,8,PASS
+ARRV4AR-C011,Manifest member count,7,7,PASS
+ARRV4AR-C012,Manifest self exclusion,true,true,PASS
+ARRV4AR-C013,Preparation package byte exact,true,true,PASS
+ARRV4AR-C014,Historical V3 and V4 files byte exact,true,true,PASS
+ARRV4AR-C015,Target contract provenance,e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529,e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529,PASS
+ARRV4AR-C016,Target service provenance,3f0ed4e1cb1bbef10babb4d3ba7fa9ec03e048d7d30595389f30d0871bcdb4fe,3f0ed4e1cb1bbef10babb4d3ba7fa9ec03e048d7d30595389f30d0871bcdb4fe,PASS
+ARRV4AR-C017,Target provenance substitution,false,false,PASS
+ARRV4AR-C018,Target live revalidation,false,false,PASS
+ARRV4AR-C019,Implementation candidate hash,91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081,91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081,PASS
+ARRV4AR-C020,Implementation candidate imported or executed,false,false,PASS
+ARRV4AR-C021,Collector contract hash,1d4ce179cbd4ead48b6af7e3165bf7dd4e94eeef306c64cdcd40fa7788150a54,1d4ce179cbd4ead48b6af7e3165bf7dd4e94eeef306c64cdcd40fa7788150a54,PASS
+ARRV4AR-C022,Collector and reviewer operational capability,false,false,PASS
+ARRV4AR-C023,Successor activation authorization,UNBOUND,UNBOUND,PASS
+ARRV4AR-C024,Collection execution authorization,UNBOUND,UNBOUND,PASS
+ARRV4AR-C025,Authorization record hashes,ALL_UNBOUND,ALL_UNBOUND,PASS
+ARRV4AR-C026,Runtime identity hashes,ALL_UNBOUND,ALL_UNBOUND,PASS
+ARRV4AR-C027,Runtime evidence hashes,ALL_UNBOUND,ALL_UNBOUND,PASS
+ARRV4AR-C028,Runtime binding contract complete,false,false,PASS
+ARRV4AR-C029,Runtime evidence collected,false,false,PASS
+ARRV4AR-C030,External execution authorized,false,false,PASS
+ARRV4AR-C031,SRBE authorization eligibility,true,true,PASS
+ARRV4AR-C032,Runner creation or activation eligibility,false,false,PASS
+ARRV4AR-C033,Runner execution authorized,false,false,PASS
+ARRV4AR-C034,Restore authorized,false,false,PASS
+ARRV4AR-C035,Planned active runner path present,false,false,PASS
+ARRV4AR-C036,Active 0010 migration present,false,false,PASS
+ARRV4AR-C037,Legacy CI cutover authorized,false,false,PASS
+ARRV4AR-C038,CI workflow and smoke changed,false,false,PASS
+ARRV4AR-C039,Render access or write,false,false,PASS
+ARRV4AR-C040,Credential or connection access,false,false,PASS
+ARRV4AR-C041,Database access or write,false,false,PASS
+ARRV4AR-C042,Backup archive or restore access,false,false,PASS
+ARRV4AR-C043,Runner creation activation import or execution,false,false,PASS
+ARRV4AR-C044,Migration deployment or deletion,false,false,PASS
+ARRV4AR-C045,Manual or automatic retry,false,false,PASS
+ARRV4AR-C046,Authorization review record only,true,true,PASS
+ARRV4AR-C047,Current execution decision,HOLD_NO_RUNNER_SRBE_OR_EXTERNAL_EXECUTION,HOLD_NO_RUNNER_SRBE_OR_EXTERNAL_EXECUTION,PASS
+ARRV4AR-C048,Sole next subject,ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1,ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1,PASS
