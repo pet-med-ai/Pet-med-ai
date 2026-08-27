@@ -5,6 +5,17 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 HOLD = 'HOLD_PMAI_P0_04_PENDING_DISPOSABLE_TARGET_PROVISIONING_RESTORE_REHEARSAL_AND_EXTERNAL_EVIDENCE'
 COMPLETENESS = 'PENDING_DISPOSABLE_TARGET_PROVISIONING_RESTORE_REHEARSAL_AND_EXTERNAL_EXECUTION'
+CURRENT_HOLD = (
+    'HOLD_PMAI_P0_04_V4_TARGET_AVAILABLE_AND_NETWORK_LOCKED_PENDING_'
+    'ACTIVE_RUNNER_AND_SRBE_CONTRACT_REBIND_V4'
+)
+CURRENT_COMPLETENESS = (
+    'V4_TARGET_PROVISIONING_AND_NETWORK_LOCKDOWN_EVIDENCE_COMPLETE_PENDING_'
+    'ACTIVE_RUNNER_SRBE_V4_REBIND_RESTORE_REHEARSAL_AND_EXTERNAL_EXECUTION'
+)
+CURRENT_NEXT_STEP = (
+    'PREPARE_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4'
+)
 DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md'
 CHECKLIST = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv'
 REGISTER = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_EVIDENCE_REGISTER_V1.csv'
@@ -60,6 +71,25 @@ FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_MANIFEST_SHA256 = (
 )
 FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_PASS_MARKER = (
     "fresh_disposable_target_contract_rebind_v4=PASS"
+)
+FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_VALIDATOR = (
+    "scripts/validate_treatment_framework_signed_review_state_persistence_"
+    "migration_0010_fresh_disposable_target_provisioning_execution_"
+    "evidence_v4.py"
+)
+FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_VALIDATOR_SHA256 = (
+    "cf065999ec6b43f875dc3cdb20c6bc503b9426b5d29fc0c380b4dc15118f1728"
+)
+FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_MANIFEST = (
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_"
+    "MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_"
+    "V4_PACKAGE_MANIFEST_V1.json"
+)
+FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_MANIFEST_SHA256 = (
+    "f64d2b3c5a0f91475778306adf2f96c78bc60ce9a51e1d474e5c978066709554"
+)
+FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_PASS_MARKER = (
+    "fresh_disposable_target_provisioning_execution_evidence_v4=PASS"
 )
 CI = 'scripts/ci_static_checks.sh'
 SMOKE = 'scripts/smoke_petmed.sh'
@@ -636,22 +666,70 @@ def main():
         "V4 rebind validator PASS marker",
     )
     print(FRESH_DISPOSABLE_TARGET_CONTRACT_REBIND_V4_PASS_MARKER)
+    v4_evidence_validator_path = (
+        ROOT / FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_VALIDATOR
+    )
+    need(
+        v4_evidence_validator_path.is_file()
+        and not v4_evidence_validator_path.is_symlink(),
+        "missing or unsafe V4 provisioning evidence validator",
+    )
+    need(
+        hashlib.sha256(v4_evidence_validator_path.read_bytes()).hexdigest()
+        == FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_VALIDATOR_SHA256,
+        "protected hash V4 provisioning evidence validator",
+    )
+    v4_evidence_manifest_path = (
+        ROOT / FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_MANIFEST
+    )
+    need(
+        v4_evidence_manifest_path.is_file()
+        and not v4_evidence_manifest_path.is_symlink(),
+        "missing or unsafe V4 provisioning evidence manifest",
+    )
+    need(
+        hashlib.sha256(v4_evidence_manifest_path.read_bytes()).hexdigest()
+        == FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_MANIFEST_SHA256,
+        "protected hash V4 provisioning evidence manifest",
+    )
+    v4_evidence_result = subprocess.run(
+        [sys.executable, "-B", str(v4_evidence_validator_path)],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    need(v4_evidence_result.returncode == 0, "V4 provisioning evidence validator exit")
+    need(v4_evidence_result.stderr == "", "V4 provisioning evidence validator stderr")
+    need(
+        v4_evidence_result.stdout.splitlines().count(
+            FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_PASS_MARKER
+        ) == 1,
+        "V4 provisioning evidence validator PASS marker",
+    )
+    print(FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_PASS_MARKER)
     if args.require_complete:
-        print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; disposable target provisioning and restore rehearsal are incomplete", file=sys.stderr)
+        print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; V4 runner/SRBE rebind and restore rehearsal are incomplete", file=sys.stderr)
         return 1
     for line in (
-        "stage_id=PMAI-P0-04", "stage_status=IN_PROGRESS", "evidence_completeness=" + COMPLETENESS,
+        "stage_id=PMAI-P0-04", "stage_status=IN_PROGRESS", "evidence_completeness=" + CURRENT_COMPLETENESS,
         "disposable_restore_governance_preparation_complete=true",
         "disposable_target_provisioning_governance_ready=true",
+        "v4_disposable_target_provisioned=true",
+        "v4_public_external_access_blocked=true",
+        "v4_external_resource_binding_state=BOUND_SANITIZED_HASH_ONLY",
         "disposable_restore_target_provisioning_authorized=false",
         "disposable_restore_execution_authorized=false", "restore_runner_created=false",
         "backup_restoreability_verified=false", "disposable_restore_rehearsal_complete=false",
         "corrected_migration_implementation_authorized=false", "p0_04_execution_authorized=false",
         "staging_0010_apply_authorized=false", "active_0010_migration_file_created=false",
         "database_write=false", "migration_executed=false", "production_database_write=false",
-        "decision=" + HOLD,
-        "next_step=RUN_LOCAL_VALIDATOR_AND_CI_STATIC_GUARDS_THEN_COMMIT_GOVERNANCE_PREPARATION",
-        "ALL PASS: PMAI-P0-04 disposable restore rehearsal governance preparation",
+        "decision=" + CURRENT_HOLD,
+        "next_step=" + CURRENT_NEXT_STEP,
+        "ALL PASS: PMAI-P0-04 V4 target provisioned and network locked governance",
     ): print(line)
     return 0
 if __name__ == "__main__": raise SystemExit(main())

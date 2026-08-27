@@ -1,0 +1,43 @@
+control_id,control,expected,current,status,evidence,on_failure
+FDTPV4-C001,Stage identity,PMAI-P0-04,PMAI-P0-04,PASS,evidence document,STOP
+FDTPV4-C002,Work bundle identity,PMAI-P0-04-DISP-TARGET-PROVISION-EVID-V4,PMAI-P0-04-DISP-TARGET-PROVISION-EVID-V4,PASS,locked baseline,STOP
+FDTPV4-C003,Repository identity,pet-med-ai/Pet-med-ai,pet-med-ai/Pet-med-ai,PASS,evidence document,STOP
+FDTPV4-C004,Base commit,8d48f29930d2849de9f03cfeeb050a917dd3f6d5,8d48f29930d2849de9f03cfeeb050a917dd3f6d5,PASS,git baseline,STOP
+FDTPV4-C005,Base tree,72dee05677050d0004d4a5b955f206c0de1accd2,72dee05677050d0004d4a5b955f206c0de1accd2,PASS,git baseline,STOP
+FDTPV4-C006,Exact changed paths,9,9,PASS,authorized scope,STOP
+FDTPV4-C007,V4 review record,PMAI-P0-04-FDTP-AUTH-REVIEW-V4-20260823,PMAI-P0-04-FDTP-AUTH-REVIEW-V4-20260823,PASS,review anchor,STOP
+FDTPV4-C008,V4 contract identity,e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529,e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529,PASS,review anchor,STOP
+FDTPV4-C009,Contract identity opaque,true,true,PASS,evidence document,STOP
+FDTPV4-C010,Contract hash recalculation,false,false,PASS,evidence document,STOP
+FDTPV4-C011,Target logical name,pet-med-ai-db-p0-04-fresh-disposable-restore-v4-ohio,pet-med-ai-db-p0-04-fresh-disposable-restore-v4-ohio,PASS,readonly Render evidence,STOP
+FDTPV4-C012,Provider,Render,Render,PASS,readonly Render evidence,STOP
+FDTPV4-C013,Region,Ohio (US East),Ohio (US East),PASS,readonly Render evidence,STOP
+FDTPV4-C014,Engine and version,PostgreSQL 18,PostgreSQL 18,PASS,readonly Render evidence,STOP
+FDTPV4-C015,Plan,Basic-256mb,Basic-256mb,PASS,readonly Render evidence,STOP
+FDTPV4-C016,Storage,1 GB,1 GB,PASS,readonly Render evidence,STOP
+FDTPV4-C017,Storage autoscaling,false,false,PASS,readonly Render evidence,STOP
+FDTPV4-C018,Read replicas,0,0,PASS,readonly Render evidence,STOP
+FDTPV4-C019,High availability,false,false,PASS,readonly Render evidence,STOP
+FDTPV4-C020,Connection pooling,false,false,PASS,readonly Render evidence,STOP
+FDTPV4-C021,Application attachments,0,0,PASS,readonly Render evidence,STOP
+FDTPV4-C022,Target creation count,1,1,PASS,execution history,STOP
+FDTPV4-C023,Target status,AVAILABLE,AVAILABLE,PASS,readonly Render evidence,STOP
+FDTPV4-C024,Open connections,0,0,PASS,readonly Render evidence,STOP
+FDTPV4-C025,First network save persisted,false,false,PASS,execution history,STOP
+FDTPV4-C026,Separate resave persisted,true,true,PASS,post-refresh Render evidence,STOP
+FDTPV4-C027,Final service inbound rules,[],[],PASS,post-refresh Render evidence,STOP
+FDTPV4-C028,Public external access blocked,true,true,PASS,post-refresh Render evidence,STOP
+FDTPV4-C029,Workspace rules changed,false,false,PASS,execution history,STOP
+FDTPV4-C030,Provider identity binding,HASH_ONLY,HASH_ONLY,PASS,active pointer,STOP
+FDTPV4-C031,Raw provider identifier recorded,false,false,PASS,static scan,STOP
+FDTPV4-C032,Credential or connection material recorded,false,false,PASS,static scan,STOP
+FDTPV4-C033,Database connected,false,false,PASS,current boundary,STOP
+FDTPV4-C034,Runner or restore executed,false,false,PASS,current boundary,STOP
+FDTPV4-C035,Migration or deployment executed,false,false,PASS,current boundary,STOP
+FDTPV4-C036,Target deletion performed,false,false,PASS,current boundary,STOP
+FDTPV4-C037,Historical V3 and V4 files changed,false,false,PASS,protected hashes,STOP
+FDTPV4-C038,CI entrypoint changed,false,false,PASS,protected hash,STOP
+FDTPV4-C039,Package manifest valid,true,true,PASS,manifest validator,STOP
+FDTPV4-C040,Central validator hook present,true,true,PASS,central validator,STOP
+FDTPV4-C041,Runtime authority granted,false,false,PASS,current boundary,STOP
+FDTPV4-C042,Sole next subject,ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION,ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION,PASS,active pointer,STOP

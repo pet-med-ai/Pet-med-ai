@@ -1,0 +1,52 @@
+{
+  "schema": "PMAI_P0_04_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_PACKAGE_MANIFEST_V1",
+  "stage_id": "PMAI-P0-04",
+  "work_bundle": "PMAI-P0-04-DISP-TARGET-PROVISION-EVID-V4",
+  "repository": "pet-med-ai/Pet-med-ai",
+  "base_branch": "main",
+  "base_commit": "8d48f29930d2849de9f03cfeeb050a917dd3f6d5",
+  "base_tree_sha": "72dee05677050d0004d4a5b955f206c0de1accd2",
+  "authorized_changed_path_count": 9,
+  "package_path_count": 8,
+  "manifest_member_count": 7,
+  "manifest_self_excluded": true,
+  "central_integration_path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py",
+  "ci_entrypoint_changed": false,
+  "files": [
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4.md",
+      "bytes": 8642,
+      "sha256": "a4b33d0a34517f30ee919648cc5f1fab47ef42aeaacff3b24f98ea4d185a510d"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_ACTIVE_POINTER_V1.json",
+      "bytes": 2299,
+      "sha256": "916bc762d99959879afe82e2154f47264530e65fc64cf158993db8361a0691ac"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_CHECKLIST_V1.csv",
+      "bytes": 3907,
+      "sha256": "21c126d76842576151dc0840e786ac45827f57e25733055d473b22972452c94d"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_GO_NO_GO_V1.csv",
+      "bytes": 1632,
+      "sha256": "d2fcb26f7d157b13f0a2de6206ece22be66c697b86a6d9c3bdcb76ba685df77b"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_LOCKED_BASELINE_V1.json",
+      "bytes": 5995,
+      "sha256": "24b0ba181a6b2301d7377b52085d9f7f292c917b4c1c4faba5f9877beeee58df"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_TEST_MATRIX_V1.csv",
+      "bytes": 2944,
+      "sha256": "7255ba5e5a29ac1df892159c811cf7b045139fd552bd492fdee8964174f23fca"
+    },
+    {
+      "path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_fresh_disposable_target_provisioning_execution_evidence_v4.py",
+      "bytes": 36916,
+      "sha256": "cf065999ec6b43f875dc3cdb20c6bc503b9426b5d29fc0c380b4dc15118f1728"
+    }
+  ]
+}
