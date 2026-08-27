@@ -1,0 +1,38 @@
+item_id,control,current_state,required_state,status
+ARRV4-C001,Repository identity,pet-med-ai/Pet-med-ai,pet-med-ai/Pet-med-ai,PASS
+ARRV4-C002,Base branch,main,main,PASS
+ARRV4-C003,Base commit,c5b272d13ece67e2f86482eeac6023d8cd969049,c5b272d13ece67e2f86482eeac6023d8cd969049,PASS
+ARRV4-C004,Base tree,91c3fd0aa7dc9b02d1aceacd73a3b786bb04f204,91c3fd0aa7dc9b02d1aceacd73a3b786bb04f204,PASS
+ARRV4-C005,Authorized path count,13,13,PASS
+ARRV4-C006,Authorized path sequence hash,448efcf5ccafa9f93b46f2d2bd705068103637a6e11632c423993b2d4d03d529,448efcf5ccafa9f93b46f2d2bd705068103637a6e11632c423993b2d4d03d529,PASS
+ARRV4-C007,Package path count,12,12,PASS
+ARRV4-C008,Manifest member count,11,11,PASS
+ARRV4-C009,Manifest self exclusion,true,true,PASS
+ARRV4-C010,V4 evidence pull request,17,17,PASS
+ARRV4-C011,V4 evidence merge commit,c5b272d13ece67e2f86482eeac6023d8cd969049,c5b272d13ece67e2f86482eeac6023d8cd969049,PASS
+ARRV4-C012,V4 evidence active pointer hash,916bc762d99959879afe82e2154f47264530e65fc64cf158993db8361a0691ac,916bc762d99959879afe82e2154f47264530e65fc64cf158993db8361a0691ac,PASS
+ARRV4-C013,V4 target contract provenance,e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529,e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529,PASS
+ARRV4-C014,V4 service identifier provenance,3f0ed4e1cb1bbef10babb4d3ba7fa9ec03e048d7d30595389f30d0871bcdb4fe,3f0ed4e1cb1bbef10babb4d3ba7fa9ec03e048d7d30595389f30d0871bcdb4fe,PASS
+ARRV4-C015,V4 target facts source,MERGED_SANITIZED_EVIDENCE,MERGED_SANITIZED_EVIDENCE,PASS
+ARRV4-C016,Live target metadata revalidation,false,false,PASS
+ARRV4-C017,Future live revalidation required,true,true,PASS
+ARRV4-C018,Prior V3 target state,RETIRED_ABSENCE_VERIFIED_HISTORICAL,RETIRED_ABSENCE_VERIFIED_HISTORICAL,PASS
+ARRV4-C019,Prior V3 authorization reusable,false,false,PASS
+ARRV4-C020,V3 and V4 historical files byte exact,true,true,PASS
+ARRV4-C021,Implementation candidate hash,91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081,91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081,PASS
+ARRV4-C022,Successor activation authorization,UNBOUND,UNBOUND,PASS
+ARRV4-C023,Collection execution authorization,UNBOUND,UNBOUND,PASS
+ARRV4-C024,Runtime hash bindings,ALL_UNBOUND,ALL_UNBOUND,PASS
+ARRV4-C025,Runtime binding contract complete,false,false,PASS
+ARRV4-C026,Contract or service hash substitutes runtime identity,false,false,PASS
+ARRV4-C027,Collector mode,INERT_DRY_RUN_AND_SELF_TEST_ONLY,INERT_DRY_RUN_AND_SELF_TEST_ONLY,PASS
+ARRV4-C028,Collector external capability,false,false,PASS
+ARRV4-C029,Reviewer mode,OFFLINE_SYNTHETIC_ONLY,OFFLINE_SYNTHETIC_ONLY,PASS
+ARRV4-C030,Reviewer external capability,false,false,PASS
+ARRV4-C031,Planned active runner path present,false,false,PASS
+ARRV4-C032,Active 0010 migration present,false,false,PASS
+ARRV4-C033,Legacy CI cutover authorized,false,false,PASS
+ARRV4-C034,CI workflow and smoke changed,false,false,PASS
+ARRV4-C035,External operation performed,false,false,PASS
+ARRV4-C036,Preparation decision,GO_TO_SEPARATE_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW,GO_TO_SEPARATE_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW,PASS
+ARRV4-C037,Sole next subject,ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW,ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW,PASS

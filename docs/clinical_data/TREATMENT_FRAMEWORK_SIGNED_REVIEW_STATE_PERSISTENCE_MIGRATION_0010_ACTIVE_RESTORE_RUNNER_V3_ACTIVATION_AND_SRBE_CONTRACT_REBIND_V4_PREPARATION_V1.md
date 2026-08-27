@@ -1,0 +1,226 @@
+# PMAI-P0-04 Active Restore Runner V3 Activation and SRBE Contract Rebind V4 Preparation V1
+
+## Controlled repository-only scope
+
+This package prepares a successor V4 governance contract for Active Restore
+Runner V3 activation and sanitized runtime-binding evidence (SRBE). It binds
+only merged repository evidence. It does not re-open Render, change an inbound
+rule, read a credential, connect to a database, collect runtime evidence,
+create or activate a runner, access a backup, restore, migrate, deploy, or
+delete a resource.
+
+```text
+stage_id=PMAI-P0-04
+substage=ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1
+work_bundle=PMAI-P0-04-ARR-V3-ACT-SRBE-REBIND-V4-PREP
+preparation_record_id=PMAI-P0-04-ARR-V3-ACT-SRBE-REBIND-V4-PREP-20260827
+stage_status=IN_PROGRESS
+package_status=ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_ONLY
+preparation_status=COMPLETE_REPOSITORY_ONLY_ALL_SUCCESSOR_BINDINGS_UNBOUND
+current_execution_decision=HOLD_NO_RUNNER_SRBE_OR_EXTERNAL_EXECUTION
+authorization_record_id=PMAI_P0_04_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_REPOSITORY_PATCH_CONTROLLED_EXECUTION_V1
+repository=pet-med-ai/Pet-med-ai
+expected_github_login=zhaohaisheng967-dotcom
+expected_repository_permission=write
+pre_patch_remote_readonly_revalidation=true
+base_branch=main
+base_commit=c5b272d13ece67e2f86482eeac6023d8cd969049
+base_tree_sha=91c3fd0aa7dc9b02d1aceacd73a3b786bb04f204
+head_branch=pmai-p0-04-arr-v3-srbe-rebind-v4-prep
+expected_local_head_branch_absent_at_precheck=true
+expected_remote_head_branch_absent_at_precheck=true
+create_isolated_branch_from_expected_base=true
+risk_lane=YELLOW_REPOSITORY_ONLY
+changed_path_scope=EXACT_13_PATHS
+maximum_changed_path_count=13
+package_path_count=12
+manifest_member_count=11
+maximum_commit_count=1
+maximum_push_count=1
+repository_patch_authorized=true
+repository_commit_authorized=true
+repository_push_authorized=true
+pull_request_creation_authorized=false
+merge_authorized=false
+branch_deletion_authorized=false
+force_push_authorized=false
+additional_commit_authorized=false
+ci_retry_authorized=false
+library_master_directory_update=false
+authorization_single_use=true
+```
+
+## Merged V4 target-evidence provenance
+
+The resource facts below are copied from the sanitized package merged by PR
+#17. They are not a live provider recheck and do not extend the target's
+lifetime. Any later external action must separately revalidate lifecycle,
+availability, attachments, connections, and network rules.
+
+```text
+source_v4_evidence_pr=17
+source_v4_evidence_head_commit=b34b60b79a3dbd17ace576eb4dfa09d56a877968
+source_v4_evidence_merge_commit=c5b272d13ece67e2f86482eeac6023d8cd969049
+source_v4_evidence_tree_sha=91c3fd0aa7dc9b02d1aceacd73a3b786bb04f204
+source_v4_evidence_record_id=PMAI-P0-04-FDTP-EXEC-EVID-V4-20260826
+source_v4_evidence_active_pointer_sha256=916bc762d99959879afe82e2154f47264530e65fc64cf158993db8361a0691ac
+source_v4_evidence_manifest_sha256=f64d2b3c5a0f91475778306adf2f96c78bc60ce9a51e1d474e5c978066709554
+source_v4_evidence_validator_sha256=cf065999ec6b43f875dc3cdb20c6bc503b9426b5d29fc0c380b4dc15118f1728
+review_record_id=PMAI-P0-04-FDTP-AUTH-REVIEW-V4-20260823
+target_logical_name=pet-med-ai-db-p0-04-fresh-disposable-restore-v4-ohio
+target_contract_identity_sha256=e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529
+target_service_identifier_sha256=3f0ed4e1cb1bbef10babb4d3ba7fa9ec03e048d7d30595389f30d0871bcdb4fe
+target_status_from_merged_evidence=AVAILABLE
+target_application_attachment_count_from_merged_evidence=0
+target_open_connection_count_from_merged_evidence=0
+final_service_inbound_ip_rule_set_from_merged_evidence=[]
+public_external_access_blocked_from_merged_evidence=true
+target_live_metadata_revalidation=false
+target_live_revalidation_required_before_future_external_action=true
+```
+
+The target-contract hash identifies the reviewed public contract. The service
+hash is sanitized provider provenance. Neither value is a runtime database
+identity and neither may fill any runtime-binding field.
+
+## Immutable V3 history
+
+The V3 activation authorization and V3 SRBE package remain historical records
+bound to a retired target. They are preserved byte exact and cannot authorize
+or review a V4 action.
+
+```text
+prior_v3_target_contract_identity_sha256=e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744
+prior_v3_target_state=RETIRED_ABSENCE_VERIFIED_HISTORICAL
+prior_v3_activation_authorization_record_id=PMAI-P0-04-ARR-V3-CA-EXEC-AUTH-V1-20260816
+prior_v3_activation_authorization_doc_sha256=3f518dc9735060f4c74d9c0832f7228f0860cd244947573c80037e5962a384c1
+prior_v3_srbe_locked_baseline_sha256=152fb13e8feb5c019263a56d4a28fc6bcc6a6ad2b0c537385aea4f22c7b08fc8
+prior_v3_srbe_package_manifest_sha256=4439e3a4d86b9e8017ac29260631d7a0c16b9182bd7833a0cbc2e8c6e38d1855
+prior_v3_activation_or_srbe_authorization_reuse=false
+existing_v3_and_v4_historical_files_byte_exact=true
+```
+
+## Successor activation and runtime-binding envelope
+
+The reviewed Restore Runner V3 implementation candidate remains inert text and
+is reused by byte identity. No active source is materialized in this package.
+Every successor authorization and runtime binding stays explicitly unbound.
+
+```text
+restore_runner_v3_implementation_candidate_sha256=91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081
+implementation_candidate_repository_executable=false
+planned_active_runner_path=scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_v3.py
+planned_active_runner_path_present=false
+active_0010_migration_present=false
+successor_activation_authorization_record_id=UNBOUND
+collection_execution_authorization_record_id=UNBOUND
+expected_active_source_sha256=UNBOUND
+expected_target_identity_sha256=UNBOUND
+forbidden_production_identity_sha256=UNBOUND
+forbidden_staging_identity_sha256=UNBOUND
+expected_schema_manifest_sha256=UNBOUND
+runtime_binding_contract_complete=false
+target_contract_hash_may_substitute_runtime_identity=false
+service_identifier_hash_may_substitute_runtime_identity=false
+authorization_record_hash_normalization=SHA256_UTF8_EXACT_RECORD_ID_NO_LF
+future_target_application_attachment_count_zero=false
+future_target_open_connection_count_zero=false
+future_final_service_inbound_ip_rule_set_empty=false
+future_public_external_access_blocked=false
+```
+
+## Inert successor tooling
+
+The collector candidate is stored as `.py.txt`. The collector and reviewer
+have only `--dry-run` and `--self-test`. Their tests use deterministic synthetic
+values in memory, emit only lowercase SHA-256 values and booleans, and always
+remain HOLD. There is no operational review mode.
+
+Future runtime collection requires separate evidence hashes and false-to-true
+review of target availability, lifecycle, zero application attachments, zero
+open connections, an empty service inbound-rule set, and blocked public
+external access. Authorization-record hashes use SHA-256 over the exact UTF-8
+record ID with no trailing LF; they are not authorization-document byte hashes.
+
+```text
+successor_inert_collector_candidate_created=true
+collector_contract_sha256=1d4ce179cbd4ead48b6af7e3165bf7dd4e94eeef306c64cdcd40fa7788150a54
+collector_candidate_repository_executable=false
+collector_live_runtime_adapter_present=false
+collector_live_collection_cli_present=false
+collector_filesystem_input_present=false
+collector_filesystem_output_present=false
+collector_network_client_present=false
+collector_database_driver_present=false
+collector_credential_integration_present=false
+collector_backup_or_archive_access_present=false
+collector_subprocess_execution_present=false
+collector_dynamic_output_types=LOWERCASE_SHA256_OR_BOOLEAN_ONLY
+successor_offline_evidence_reviewer_created=true
+reviewer_operational_review_cli_present=false
+reviewer_external_access=false
+reviewer_runtime_evidence_collection=false
+reviewer_synthetic_fixture_tests_only=true
+raw_identifier_url_connection_or_credential_output=false
+```
+
+Apart from the fixed public schema identifier, the JSON templates contain only
+`UNBOUND` sentinels and false booleans. They contain no live database name,
+server address, port, provider identifier, connection value, credential,
+relation name, or archive path.
+
+## Legacy CI boundary
+
+Existing historical activation validators intentionally require the planned
+active runner path to remain absent. This preparation does not weaken them and
+does not change the CI or smoke entrypoints.
+
+```text
+legacy_ci_validator_cutover_required_before_active_path_creation=true
+legacy_ci_validator_cutover_authorized=false
+ci_entrypoint_changed=false
+github_workflow_changed=false
+smoke_entrypoint_changed=false
+active_runner_creation_authorized=false
+active_runner_activation_authorized=false
+```
+
+A future authorization review must retain this HOLD or separately define a
+validated CI cutover before any active path can be created.
+
+## Fail-closed execution boundary
+
+```text
+render_readonly_access=false
+render_control_plane_write=false
+render_settings_change=false
+temporary_inbound_allowlist_change=false
+credential_or_connection_value_access=false
+database_connection=false
+database_read_write_export=false
+runtime_evidence_collection=false
+runner_creation=false
+runner_activation=false
+runner_import=false
+runner_execution=false
+backup_or_archive_access=false
+restore_execution=false
+pg_restore_or_psql_execution=false
+migration_creation_or_execution=false
+deployment=false
+target_deletion=false
+production_staging_v3_v4_resource_operations=false
+manual_retry=false
+automatic_retry=false
+```
+
+## Decision and sole next subject
+
+```text
+decision=GO_TO_SEPARATE_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW
+sole_next_subject=ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW
+```
+
+This decision makes only a separate repository authorization review eligible.
+It grants no runner, SRBE collection, provider, credential, database, restore,
+migration, deployment, or deletion authority.
