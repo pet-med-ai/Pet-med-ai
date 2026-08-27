@@ -42,6 +42,20 @@ AUTHORIZATION_REVIEW_EFFECTIVE_CURRENT_NEXT_STEP = (
     'PREPARE_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_'
     'COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1'
 )
+SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_HOLD = (
+    'HOLD_PMAI_P0_04_PENDING_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_'
+    'BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_CONTROLLED_EXECUTION_'
+    'CONFIRMATION'
+)
+SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_COMPLETENESS = (
+    'ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_'
+    'AND_REVIEW_V4_EXECUTION_AUTHORIZATION_COMPLETE_PENDING_ACTION_TIME_'
+    'CONFIRMATION_RUNTIME_BINDINGS_RESTORE_REHEARSAL_AND_EXTERNAL_EXECUTION'
+)
+SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_NEXT_STEP = (
+    'CONFIRM_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_'
+    'COLLECTION_AND_REVIEW_V4_CONTROLLED_EXECUTION_V1'
+)
 DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md'
 CHECKLIST = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv'
 REGISTER = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_EVIDENCE_REGISTER_V1.csv'
@@ -156,6 +170,27 @@ ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_RE
 ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW_PASS_MARKER = (
     "active_restore_runner_v3_activation_and_srbe_contract_rebind_"
     "v4_authorization_review=PASS"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_VALIDATOR = (
+    "scripts/validate_treatment_framework_signed_review_state_persistence_"
+    "migration_0010_active_restore_runner_v3_sanitized_runtime_binding_"
+    "evidence_collection_and_review_v4_execution_authorization_v1.py"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_VALIDATOR_SHA256 = (
+    "ba94353b6363051c800be4b90541c4bf0083d77b65a5d6d0b77a7ab67529a35f"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_MANIFEST = (
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_"
+    "MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_"
+    "EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_PACKAGE_"
+    "MANIFEST_V1.json"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_MANIFEST_SHA256 = (
+    "fe3d3f82ed13186c97d6938df130622eb6894eba741d4c03a010faa1e851af9c"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_PASS_MARKER = (
+    "active_restore_runner_v3_sanitized_runtime_binding_evidence_"
+    "collection_and_review_v4_execution_authorization=PASS"
 )
 CI = 'scripts/ci_static_checks.sh'
 SMOKE = 'scripts/smoke_petmed.sh'
@@ -877,6 +912,59 @@ def main():
         "V4 runner/SRBE rebind authorization review validator PASS marker",
     )
     print(ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW_PASS_MARKER)
+    srbe_v4_execution_authorization_validator_path = (
+        ROOT
+        / ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_VALIDATOR
+    )
+    need(
+        srbe_v4_execution_authorization_validator_path.is_file()
+        and not srbe_v4_execution_authorization_validator_path.is_symlink(),
+        "missing or unsafe V4 SRBE collection/review execution authorization validator",
+    )
+    need(
+        hashlib.sha256(srbe_v4_execution_authorization_validator_path.read_bytes()).hexdigest()
+        == ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_VALIDATOR_SHA256,
+        "protected hash V4 SRBE collection/review execution authorization validator",
+    )
+    srbe_v4_execution_authorization_manifest_path = (
+        ROOT
+        / ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_MANIFEST
+    )
+    need(
+        srbe_v4_execution_authorization_manifest_path.is_file()
+        and not srbe_v4_execution_authorization_manifest_path.is_symlink(),
+        "missing or unsafe V4 SRBE collection/review execution authorization manifest",
+    )
+    need(
+        hashlib.sha256(srbe_v4_execution_authorization_manifest_path.read_bytes()).hexdigest()
+        == ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_MANIFEST_SHA256,
+        "protected hash V4 SRBE collection/review execution authorization manifest",
+    )
+    srbe_v4_execution_authorization_result = subprocess.run(
+        [sys.executable, "-B", str(srbe_v4_execution_authorization_validator_path)],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    need(
+        srbe_v4_execution_authorization_result.returncode == 0,
+        "V4 SRBE collection/review execution authorization validator exit",
+    )
+    need(
+        srbe_v4_execution_authorization_result.stderr == "",
+        "V4 SRBE collection/review execution authorization validator stderr",
+    )
+    need(
+        srbe_v4_execution_authorization_result.stdout.splitlines().count(
+            ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_PASS_MARKER
+        ) == 1,
+        "V4 SRBE collection/review execution authorization validator PASS marker",
+    )
+    print(ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_PASS_MARKER)
     if args.require_complete:
         print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; SRBE collection/review runtime bindings and restore rehearsal are incomplete", file=sys.stderr)
         return 1
@@ -897,8 +985,13 @@ def main():
         "next_step=" + CURRENT_NEXT_STEP,
         "v4_runner_srbe_rebind_preparation_complete=true",
         "v4_runner_srbe_rebind_authorization_review_complete=true",
+        "v4_runner_srbe_collection_review_execution_authorization_complete=true",
         "runtime_binding_contract_complete=false",
+        "srbe_collection_evidence_complete=false",
+        "current_collection_execution_authorized=false",
+        "current_external_execution_authorized=false",
         "post_effective_gate_srbe_collection_and_review_execution_authorization_eligible=true",
+        "post_effective_gate_srbe_collection_and_review_execution_authorized=false",
         "post_effective_gate_runner_creation_or_activation_authorization_eligible=false",
         "effective_evidence_completeness=" + EFFECTIVE_CURRENT_COMPLETENESS,
         "effective_decision=" + EFFECTIVE_CURRENT_HOLD,
@@ -906,6 +999,9 @@ def main():
         "authorization_review_effective_evidence_completeness=" + AUTHORIZATION_REVIEW_EFFECTIVE_CURRENT_COMPLETENESS,
         "authorization_review_effective_decision=" + AUTHORIZATION_REVIEW_EFFECTIVE_CURRENT_HOLD,
         "authorization_review_effective_next_step=" + AUTHORIZATION_REVIEW_EFFECTIVE_CURRENT_NEXT_STEP,
+        "srbe_execution_authorization_effective_evidence_completeness=" + SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_COMPLETENESS,
+        "srbe_execution_authorization_effective_decision=" + SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_HOLD,
+        "srbe_execution_authorization_effective_next_step=" + SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_NEXT_STEP,
         "ALL PASS: PMAI-P0-04 V4 target provisioned and network locked governance",
     ): print(line)
     return 0

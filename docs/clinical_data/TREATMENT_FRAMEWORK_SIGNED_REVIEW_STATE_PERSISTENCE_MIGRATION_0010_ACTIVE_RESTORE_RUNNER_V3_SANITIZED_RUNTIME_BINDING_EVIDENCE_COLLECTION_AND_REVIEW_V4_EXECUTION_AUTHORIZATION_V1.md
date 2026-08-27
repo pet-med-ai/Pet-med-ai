@@ -1,0 +1,586 @@
+# Treatment Framework Signed Review State Persistence Migration 0010
+## Active Restore Runner V3 Sanitized Runtime Binding Evidence Collection and Review V4 Execution Authorization V1
+
+This repository-only record defines a proposed one-time authorization envelope
+for a later sanitized runtime-binding evidence (SRBE) collection and offline
+review action against the exact V4 disposable target. It defines a hash-locked
+collection-phase output schema and a hash-locked, non-executable operational
+procedure contract. It does not create a live adapter or perform that
+procedure.
+
+The project owner's authorization in the current conversation applies only to
+this repository static authorization envelope. It is not the separately
+required one-time action-time confirmation. This package does not access
+Render, read a credential or connection value, connect to a database, collect
+runtime evidence, create or activate a runner, access a backup, restore,
+migrate, deploy, or delete any resource.
+
+## 1. Canonical execution-authorization record
+
+~~~text
+stage_id=PMAI-P0-04
+substage=ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1
+authorization_subject=ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1
+work_bundle=PMAI-P0-04-ARR-V3-SRBE-COLLECT-REVIEW-V4-EXEC-AUTH
+authorization_id=PMAI_P0_04_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_REPOSITORY_PATCH_CONTROLLED_EXECUTION_V1
+stage_status=IN_PROGRESS
+package_status=ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_RECORD_ONLY
+review_status=PROPOSED_APPROVE_FUTURE_SINGLE_USE_SRBE_COLLECTION_AND_OFFLINE_REVIEW_ACTION_ENVELOPE
+authorization_record_id=PMAI-P0-04-ARR-V3-SRBE-COLLECT-REVIEW-V4-EXEC-AUTH-V1-20260827
+collection_execution_authorization_record_id=PMAI-P0-04-ARR-V3-SRBE-COLLECT-REVIEW-V4-EXEC-AUTH-V1-20260827
+collection_execution_authorization_record_sha256=4ccd131dd2da45fbe3016f3a9a5d0ea253cbf821c95cd7e80e5a46438459a2dc
+authorization_recorded_date=2026-08-27
+governance_subject_authority_source=EXPLICIT_USER_AUTHORIZATION_IN_CURRENT_CONVERSATION_20260827
+authorization_record_scope=REPOSITORY_STATIC_AUTHORIZATION_ENVELOPE_ONLY
+authorization_record_only=true
+current_turn_scope=REPOSITORY_ONLY_AUTHORIZATION_RECORD
+approver_role=PROJECT_OWNER_OPERATOR
+operator_role=PROJECT_OWNER_OPERATOR
+authorization_scope=ONE_EXACT_V4_TARGET_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_OFFLINE_REVIEW_ACTION_ONLY
+authorization_effective_gate=EXACT_PACKAGE_APPLIED_COMMITTED_PUSHED_NEW_GITHUB_CI_PASS_AND_SEPARATE_ONE_TIME_CONTROLLED_EXECUTION_CONFIRMATION
+authorization_scope_recorded=true
+current_execution_decision=HOLD_NO_RUNTIME_COLLECTION_OR_EXTERNAL_EXECUTION
+current_collection_execution_authorized=false
+current_external_execution_authorized=false
+current_runtime_evidence_collection_authorized=false
+post_effective_gate_collection_execution_eligible=true
+post_effective_gate_collection_execution_authorized=false
+separate_action_time_confirmation_required=true
+one_time_action_confirmation_present=false
+current_collection_attempts_authorized=0
+post_confirmation_collection_attempts_authorized=1
+collection_attempts_consumed=0
+authorization_single_use=true
+authorization_reuse_allowed=false
+manual_retry=false
+automatic_retry=false
+~~~
+
+Exact publication and a new passing GitHub CI Gate make this single-use action
+envelope eligible, not executable. A later confirmation must name the
+published commit, the new CI Gate, this exact authorization record ID and
+record hash, the collection-phase output-schema hash, and the reviewed
+operational-procedure-contract hash. Missing, stale, mismatched, or ambiguous
+input is HOLD with no collection attempt.
+
+The authorization-record hash is SHA-256 over the exact UTF-8 record ID with
+no trailing LF. It is not the byte hash of this Markdown document.
+
+## 2. Trusted merged authorization-review baseline
+
+~~~text
+repository=pet-med-ai/Pet-med-ai
+base_branch=main
+base_commit=11d5253d7a592c13f5a262f6ceef08046fb73866
+base_tree_sha=c3600d0913950460dfa1e044fe1759972390d012
+expected_base_commit=11d5253d7a592c13f5a262f6ceef08046fb73866
+expected_base_tree_sha=c3600d0913950460dfa1e044fe1759972390d012
+expected_github_login=zhaohaisheng967-dotcom
+expected_repository_permission=write
+head_branch=pmai-p0-04-arr-v3-srbe-v4-exec-auth
+expected_local_head_branch_absent=true
+expected_remote_head_branch_absent=true
+create_isolated_branch=true
+source_authorization_review_pr=19
+source_authorization_review_head_commit=56d31819bff4b271e9d265b032156741e8a20beb
+source_authorization_review_merge_commit=11d5253d7a592c13f5a262f6ceef08046fb73866
+source_authorization_review_tree_sha=c3600d0913950460dfa1e044fe1759972390d012
+source_authorization_review_ci_run_id=33077607028
+source_authorization_review_ci_run_number=226
+source_authorization_review_ci_status=PASS
+source_authorization_review_ci_required_jobs=Frontend build gate,Static backend and release validators
+source_authorization_review_ci_required_job_1=Frontend build gate
+source_authorization_review_ci_required_job_2=Static backend and release validators
+source_authorization_review_record_id=PMAI-P0-04-ARR-V3-ACT-SRBE-REBIND-V4-AUTH-REV-20260827
+source_authorization_review_main_sha256=0070eba77fceee826d78151d68f2d9a1cdd16cb8a027b1e2155c7cdb6cf224d8
+source_authorization_review_active_pointer_sha256=da27b4576bb316e83d2d5e6e266661bb01c7bf4bcb28c82c2cd6e815c1b12121
+source_authorization_review_checklist_sha256=618cdf514fc6873b104e9ff74d0fd51b349063c3e8ce59e6e97e30dfc1a5a064
+source_authorization_review_go_no_go_sha256=212e408dfbd4a25e64f69e0901cd5d5e6525f97ad467561508a7fc06755eda51
+source_authorization_review_locked_baseline_sha256=72920802e1de0c43a09a72d998c09fc7a9a8818cc9486fcca3b9757587862819
+source_authorization_review_package_manifest_sha256=9731c13d92de806bd26992f8cab24e8101cc89d0aaaa2fd9520eb904133405d7
+source_authorization_review_test_matrix_sha256=a21e810f754755b243e5fb238dd3652642ee0a3af6bbb10e2bd354d8b0b627c4
+source_authorization_review_validator_sha256=aab8a648154e23dc4dd9b73b3f8a9ad0c6788ecb74b7000a888d9a05df360d8b
+source_authorization_review_package_byte_exact=true
+source_authorization_review_ci_proves_repository_merge_only=true
+~~~
+
+PR 19 and CI run 226 prove the merged repository tree and static validation
+only. They do not prove current target availability, lifecycle, application
+attachments, connections, network state, database identity, schema, or
+connectivity.
+
+## 3. Published preparation and historical anchors
+
+~~~text
+source_preparation_pr=18
+source_preparation_head_commit=195ac8990f64e062ca32ec3379035255de78d0df
+source_preparation_merge_commit=98be892b5018058e6020f43caf6dd4d84a0f06b8
+source_preparation_tree_sha=a03646e32d147ce5e78653305eb263149b1104b9
+source_preparation_ci_run_id=33071543545
+source_preparation_ci_run_number=224
+source_preparation_ci_status=PASS
+preparation_record_id=PMAI-P0-04-ARR-V3-ACT-SRBE-REBIND-V4-PREP-20260827
+preparation_locked_baseline_sha256=dff8cb0d90dfb7c68be8afb7a21c62ac4d6dea14cd600b89409e0a5e93586f6c
+preparation_active_pointer_sha256=5fb6082e7f9a3a0d0e33eef37b4e136a42c7b8b57ee1c5a4bc7bd44a67171ece
+preparation_package_manifest_sha256=4e1e3b895f522e58917052d8af3e8bcdd6127ef9db2b4fc0cccff95124e2641c
+preparation_validator_sha256=7178853124e403080cdcc0c3bed63ec31c9acf5f791f5352fdd62373acdc770d
+offline_reviewer_sha256=c655571668758332f6501cb44b3d074600a405be7984c6110d4db30190f4ef87
+inert_collector_file_sha256=753f4eb9f1cef9c98b4fca934bbbc430b77aab028fd71f77d345f695ed383fb6
+collector_contract_sha256=1d4ce179cbd4ead48b6af7e3165bf7dd4e94eeef306c64cdcd40fa7788150a54
+runtime_observation_template_sha256=580a485ae62221ef4d2e3e598321bb9197e5083d0cb0926fdc85a1766544f1b2
+sanitized_collector_output_template_sha256=f65411c98bebc8f7773724d0ee9088faeac6f3b620c853079233c360921ceee8
+preserve_existing_preparation_package_byte_exact=true
+preserve_existing_authorization_review_package_byte_exact=true
+preserve_existing_v3_v4_historical_files_byte_exact=true
+preserve_existing_collector_reviewer_and_templates_byte_exact=true
+~~~
+
+The published inert collector and offline reviewer remain source-integrity
+anchors. Neither is an operational adapter, and their dry-run or synthetic
+self-test behavior cannot be represented as live collection evidence.
+
+## 4. Exact immutable target, candidate, and inert-tooling anchors
+
+~~~text
+target_logical_name=pet-med-ai-db-p0-04-fresh-disposable-restore-v4-ohio
+target_contract_identity_sha256=e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529
+target_service_identifier_sha256=3f0ed4e1cb1bbef10babb4d3ba7fa9ec03e048d7d30595389f30d0871bcdb4fe
+target_hashes_are_sanitized_provenance_only=true
+target_contract_hash_may_substitute_runtime_identity=false
+target_service_hash_may_substitute_runtime_identity=false
+target_live_metadata_revalidation=false
+target_live_revalidation_required_at_action_time=true
+restore_runner_v3_implementation_candidate_sha256=91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081
+implementation_candidate_repository_executable=false
+implementation_candidate_imported=false
+implementation_candidate_executed=false
+implementation_candidate_modified_by_authorization=false
+collector_contract_sha256=1d4ce179cbd4ead48b6af7e3165bf7dd4e94eeef306c64cdcd40fa7788150a54
+collector_state=INERT_DRY_RUN_AND_SELF_TEST_ONLY
+reviewer_state=OFFLINE_SYNTHETIC_ONLY
+collector_live_runtime_adapter_present=false
+collector_live_collection_cli_present=false
+collector_or_reviewer_external_capability_present=false
+planned_active_runner_path=scripts/run_treatment_framework_signed_review_state_persistence_migration_0010_disposable_restore_v3.py
+planned_active_runner_path_present=false
+active_0010_migration_present=false
+~~~
+
+The two target hashes are public sanitized provenance. The implementation
+candidate hash is inert source provenance. None may substitute for a runtime
+database identity, schema manifest, live-state observation, or operational
+adapter.
+
+## 5. Current runtime and evidence state remains unbound
+
+~~~text
+successor_activation_authorization_record_id=UNBOUND
+successor_activation_authorization_record_sha256=UNBOUND
+expected_active_source_sha256=UNBOUND
+expected_target_identity_sha256=UNBOUND
+forbidden_production_identity_sha256=UNBOUND
+forbidden_staging_identity_sha256=UNBOUND
+expected_schema_manifest_sha256=UNBOUND
+source_observation_bundle_sha256=UNBOUND
+target_available_recheck_evidence_sha256=UNBOUND
+target_lifecycle_evidence_sha256=UNBOUND
+target_application_attachment_recheck_evidence_sha256=UNBOUND
+target_open_connection_recheck_evidence_sha256=UNBOUND
+target_network_lockdown_recheck_evidence_sha256=UNBOUND
+runtime_evidence_collected=false
+srbe_collection_evidence_complete=false
+runtime_binding_contract_complete=false
+evidence_complete=false
+collection_execution_authorized=false
+runtime_evidence_collection_authorized=false
+external_execution_authorized=false
+target_status_available_from_live_recheck=false
+target_lifecycle_within_72h_from_live_recheck=false
+target_application_attachment_count_zero_from_live_recheck=false
+target_open_connection_count_zero_from_live_recheck=false
+final_service_inbound_ip_rule_set_empty_from_live_recheck=false
+public_external_access_blocked_from_live_recheck=false
+~~~
+
+UNBOUND is a fail-closed sentinel, not a hash. This record must not populate a
+runtime or evidence field, infer a live fact from merged repository evidence,
+or substitute a target-contract, service, candidate, collector, authorization,
+or procedure hash for a runtime value.
+
+## 6. Hash-locked collection-phase output schema
+
+~~~text
+define_hash_locked_collection_phase_output_schema=true
+collection_phase_output_schema_id=PMAI_P0_04_ARR_V3_SRBE_COLLECTION_PHASE_OUTPUT_V4_V1
+collection_phase_output_schema_hash_normalization=SHA256_UTF8_EXACT_ORDERED_LINES_WITH_TRAILING_LF
+collection_phase_output_schema_sha256=5653dd33e114a6280c2f99d6fe3dbccb41f50b7cc483cf007575e51f9dd44683
+collection_phase_output_schema_defined=true
+collection_phase_output_schema_hash_locked=true
+collection_phase_successor_activation_authorization_may_remain_unbound=true
+collection_phase_expected_active_source_may_remain_unbound=true
+collection_phase_schema_must_not_claim_runtime_binding_complete=true
+collection_phase_dynamic_output_types=LOWERCASE_SHA256_BOOLEAN_AND_FIXED_PUBLIC_SCHEMA_ONLY
+~~~
+
+collection_phase_output_schema_contract_begin
+
+~~~text
+schema=fixed:PMAI_P0_04_ARR_V3_SRBE_COLLECTION_PHASE_OUTPUT_V4_V1
+collection_execution_authorization_record_sha256=lowercase_sha256
+collection_execution_authorized=boolean
+collector_contract_sha256=lowercase_sha256
+evidence_complete=boolean
+expected_active_source_sha256=lowercase_sha256_or_UNBOUND
+expected_schema_manifest_sha256=lowercase_sha256
+expected_target_identity_sha256=lowercase_sha256
+final_service_inbound_ip_rule_set_empty=boolean
+fixture_only=boolean
+forbidden_production_identity_sha256=lowercase_sha256
+forbidden_staging_identity_sha256=lowercase_sha256
+operational_collection_procedure_contract_sha256=lowercase_sha256
+public_external_access_blocked=boolean
+raw_connection_values_disclosed=boolean
+runtime_binding_contract_complete=boolean
+source_observation_bundle_sha256=lowercase_sha256
+srbe_collection_evidence_complete=boolean
+successor_activation_authorization_record_sha256=lowercase_sha256_or_UNBOUND
+target_application_attachment_count_zero=boolean
+target_application_attachment_recheck_evidence_sha256=lowercase_sha256
+target_available_recheck_evidence_sha256=lowercase_sha256
+target_lifecycle_evidence_sha256=lowercase_sha256
+target_lifecycle_within_72h=boolean
+target_network_lockdown_recheck_evidence_sha256=lowercase_sha256
+target_open_connection_count_zero=boolean
+target_open_connection_recheck_evidence_sha256=lowercase_sha256
+target_status_available=boolean
+~~~
+
+collection_phase_output_schema_contract_end
+
+The schema hash is computed over only the ordered contract lines between the
+markers, encoded as UTF-8 with one LF after every line, including the final
+line. The markers and Markdown fence are excluded.
+
+SRBE collection completeness is deliberately narrower than full runtime
+binding completeness:
+
+1. srbe_collection_evidence_complete may become true only when the separately
+   confirmed procedure produces all required collection-phase hashes and true
+   live-state gates, with fixture_only and raw_connection_values_disclosed
+   false.
+2. successor_activation_authorization_record_sha256 and
+   expected_active_source_sha256 may remain UNBOUND during this collection
+   phase because no successor activation record or active runner exists.
+3. runtime_binding_contract_complete must remain false while either permitted
+   collection-phase UNBOUND value remains unbound.
+4. evidence_complete must remain false until both
+   srbe_collection_evidence_complete and runtime_binding_contract_complete are
+   true in a later, separately authorized subject.
+
+Thus a valid collection-phase record may establish SRBE collection evidence
+without claiming that the successor runner runtime-binding contract is
+complete.
+
+## 7. Hash-locked non-executable operational procedure contract
+
+~~~text
+define_hash_locked_operational_collection_procedure_contract=true
+operational_collection_procedure_contract_id=PMAI_P0_04_ARR_V3_SRBE_OPERATIONAL_COLLECTION_PROCEDURE_V4_V1
+operational_collection_procedure_contract_hash_normalization=SHA256_UTF8_EXACT_ORDERED_LINES_WITH_TRAILING_LF
+operational_collection_procedure_contract_sha256=760275782eec85de09ae5dd0ac6955bec6b215886b6afc5a05fd1888bc45e1a5
+operational_collection_procedure_contract_defined=true
+operational_collection_procedure_contract_reviewed=true
+operational_collection_procedure_contract_hash_locked=true
+operational_collection_procedure_contract_available=true
+operational_collection_procedure_contract_executable=false
+operational_collection_adapter_creation=false
+operational_collection_adapter_present=false
+inert_collector_may_not_be_represented_as_live_adapter=true
+action_time_confirmation_must_name_reviewed_procedure_contract_sha256=true
+~~~
+
+operational_collection_procedure_contract_begin
+
+~~~text
+contract=fixed:PMAI_P0_04_ARR_V3_SRBE_OPERATIONAL_COLLECTION_PROCEDURE_V4_V1
+procedure_form=NON_EXECUTABLE_ORDERED_CONTRACT_ONLY
+provider=RENDER
+target_logical_name=pet-med-ai-db-p0-04-fresh-disposable-restore-v4-ohio
+collection_phase_output_schema_sha256=5653dd33e114a6280c2f99d6fe3dbccb41f50b7cc483cf007575e51f9dd44683
+collection_attempt_limit=1
+step_01=VERIFY_ACTION_TIME_ONE_TIME_CONFIRMATION_NAMES_THIS_PROCEDURE_CONTRACT_SHA256
+step_02=VERIFY_EXACT_TARGET_AND_STATIC_PROVENANCE_HASHES
+step_03=READ_ONLY_RECHECK_EXACT_V4_TARGET_INFO_APPLICATION_ATTACHMENTS_AND_NETWORK
+step_04=REQUIRE_STATUS_AVAILABLE_AND_LIFECYCLE_AGE_AT_MOST_72_HOURS
+step_05=REQUIRE_APPLICATION_ATTACHMENT_COUNT_ZERO_AND_OPEN_CONNECTION_COUNT_ZERO
+step_06=REQUIRE_INITIAL_INBOUND_IP_RULE_SET_EMPTY_AND_PUBLIC_EXTERNAL_ACCESS_BLOCKED
+step_07=DERIVE_FORBIDDEN_PRODUCTION_AND_STAGING_IDENTITY_HASHES_WITHOUT_DATABASE_CONNECTION
+step_08=IF_TARGET_DATABASE_METADATA_READ_REQUIRED_ADD_EXACT_SINGLE_OPERATOR_IPV4_CIDR_32_AND_SAVE_ONCE
+step_09=IF_REQUIRED_CONNECT_ONLY_TO_EXACT_V4_TARGET_FOR_READ_ONLY_IDENTITY_AND_SCHEMA_METADATA
+step_10=NORMALIZE_AND_HASH_EPHEMERAL_VALUES_IN_MEMORY_WITH_NO_RAW_OUTPUT
+step_11=CLOSE_EXACT_V4_TARGET_DATABASE_CONNECTION_BEFORE_CLEANUP
+step_12=FINALLY_IF_TEMPORARY_RULE_ADDED_REMOVE_EXACT_RULE_AND_SAVE_ONCE
+step_13=FINALLY_READ_ONLY_VERIFY_EMPTY_INBOUND_RULE_SET_AND_PUBLIC_EXTERNAL_ACCESS_BLOCKED
+step_14=EMIT_ONLY_HASH_LOCKED_COLLECTION_PHASE_OUTPUT_SCHEMA_AND_STOP
+temporary_allowlist=EXACT_SINGLE_OPERATOR_IPV4_CIDR_32_ONLY_IF_DATABASE_METADATA_READ_REQUIRED
+maximum_allowlist_add_save_count=1
+maximum_allowlist_remove_save_count=1
+initial_inbound_ip_rule_set=[]
+final_inbound_ip_rule_set=[]
+target_database_scope=READ_ONLY_IDENTITY_AND_SCHEMA_METADATA_ONLY
+production_database_connection=false
+staging_database_connection=false
+target_database_write=false
+database_export=false
+raw_value_output=false
+collector_input_persistence=false
+credential_or_connection_value_persistence=false
+runner_creation_activation_import_or_execution=false
+backup_archive_restore_migration_deployment_or_deletion=false
+temporary_rule_removal_in_finally=true
+cleanup_required_on_success_failure_or_ambiguity=true
+success_rule=STOP_AFTER_SANITIZED_OUTPUT_AND_FINALLY_CLEANUP
+failure_rule=HOLD_NO_RETRY_AND_FINALLY_CLEANUP
+ambiguity_rule=HOLD_NO_RETRY_AND_FINALLY_CLEANUP
+retry_rule=NO_MANUAL_OR_AUTOMATIC_RETRY
+inert_collector_is_live_adapter=false
+operational_adapter_supplied_by_contract=false
+~~~
+
+operational_collection_procedure_contract_end
+
+The procedure-contract hash is computed over only the ordered contract lines
+between the markers, encoded as UTF-8 with one LF after every line, including
+the final line. The markers and Markdown fence are excluded.
+
+This is a reviewed sequence and constraint contract, not executable code. It
+does not provide a provider client, database driver, credential integration,
+live CLI, input channel, output channel, or adapter. The inert collector may
+be used only as a reviewed pure normalization core by a future separately
+authorized adapter; its existence does not satisfy the adapter gate and may
+not be presented as operational collection capability.
+
+## 8. Proposed future exact V4 action envelope
+
+~~~text
+proposed_future_action_scope=EXACT_V4_TARGET_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_OFFLINE_REVIEW_ONLY
+proposed_future_render_target_info_apps_network_readonly_revalidation=true
+proposed_future_target_status_required=AVAILABLE
+proposed_future_target_lifecycle_max_hours=72
+proposed_future_target_application_attachment_count_required=0
+proposed_future_target_open_connection_count_required=0
+proposed_future_initial_inbound_ip_rule_set_required=[]
+proposed_future_final_inbound_ip_rule_set_required=[]
+proposed_future_public_external_access_blocked_required=true
+proposed_future_temporary_allowlist=EXACT_SINGLE_OPERATOR_IPV4_CIDR_32_ONLY_IF_DATABASE_METADATA_READ_REQUIRED
+proposed_future_maximum_allowlist_add_save_count=1
+proposed_future_maximum_allowlist_remove_save_count=1
+proposed_future_target_database_scope=READ_ONLY_IDENTITY_AND_SCHEMA_METADATA_ONLY
+proposed_future_production_database_connection=false
+proposed_future_staging_database_connection=false
+proposed_future_raw_value_output=false
+proposed_future_output_types=LOWERCASE_SHA256_BOOLEAN_AND_FIXED_PUBLIC_SCHEMA_ONLY
+proposed_future_cleanup_required_on_success_failure_or_ambiguity=true
+proposed_future_runner_creation_activation_import_or_execution=false
+proposed_future_backup_restore_migration_deployment_or_deletion=false
+~~~
+
+These fields describe only what a later action-time confirmation may authorize.
+They grant no current Render read, allowlist change, connection-value access,
+target database connection, or evidence collection. If a target metadata read
+is later confirmed, the one exact operator IPv4 /32 is conditional, never a
+range, and may be added and saved at most once. The finally path must remove
+that exact rule if it was added, save at most once, and recheck the empty final
+rule set and blocked public external access on success, failure, or ambiguity.
+
+Production and staging database connections remain outside the proposed
+action. The only proposed database scope is read-only identity and schema
+metadata from the exact V4 disposable target, when required, with no table
+data read, write, export, restore, migration, or raw-value output.
+
+## 9. Mandatory future action-time preflight and attempt rules
+
+Before any future collection action, every gate below must pass:
+
+1. This exact nine-path package is published on main and a new GitHub CI Gate
+   passes for its exact merge tree.
+2. A separate one-time controlled-execution confirmation names the published
+   commit and tree, CI Gate, collection authorization record ID and hash,
+   output-schema hash, procedure-contract hash, target provenance hashes,
+   candidate hash, and collector-contract hash.
+3. The exact procedure-contract and output-schema hashes recompute from their
+   ordered LF-terminated lines.
+4. The exact V4 target is revalidated read-only as AVAILABLE, at most 72 hours
+   old, with zero application attachments, zero open connections, an empty
+   initial inbound-rule set, and blocked public external access.
+5. Target, production, and staging database identity hashes are mechanically
+   derived and pairwise distinct; production and staging databases are not
+   connected.
+6. The planned active-runner path remains absent and no active migration 0010
+   exists.
+7. The inert collector is used only behind a separately supplied operational
+   adapter and is never represented as that adapter.
+8. All ephemeral identifiers, connection values, credentials, and relation
+   names remain in memory and only the hash-locked sanitized schema is emitted.
+9. If the one permitted /32 rule is added, the finally path removes it and
+   verifies the exact final empty rule set and blocked public external access.
+10. Every runner, backup, restore, migration, deployment, deletion, production,
+    and staging execution gate remains false.
+
+Failure or ambiguity is HOLD with finally cleanup and no retry. Starting the
+confirmed collection procedure consumes the one attempt whether it succeeds,
+fails, or ends ambiguously. This repository record consumes no attempt.
+
+## 10. Exact repository patch scope
+
+~~~text
+risk_lane=YELLOW_REPOSITORY_ONLY
+changed_path_scope=EXACT_9_PATHS
+maximum_changed_path_count=9
+maximum_new_file_count=8
+maximum_existing_file_modification_count=1
+package_path_count=8
+manifest_member_count=7
+manifest_self_excluded=true
+changed_path_sequence_normalization=UTF8_EACH_PATH_PLUS_LF_IN_DECLARED_ORDER
+changed_path_sequence_sha256=414cd0d429832d7d349dd32a0d458353339b58cb0ba88a89a297a3add96450ff
+allowed_changed_path_1=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1.md
+allowed_changed_path_2=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_ACTIVE_POINTER_V1.json
+allowed_changed_path_3=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_CHECKLIST_V1.csv
+allowed_changed_path_4=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_GO_NO_GO_V1.csv
+allowed_changed_path_5=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_LOCKED_BASELINE_V1.json
+allowed_changed_path_6=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_PACKAGE_MANIFEST_V1.json
+allowed_changed_path_7=docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_TEST_MATRIX_V1.csv
+allowed_changed_path_8=scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_sanitized_runtime_binding_evidence_collection_and_review_v4_execution_authorization_v1.py
+allowed_changed_path_9=scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py
+modify_ci_static_checks=false
+modify_github_workflows=false
+modify_smoke_entrypoint=false
+~~~
+
+The scope hash is SHA-256 over the nine paths above in declared order, each
+encoded as UTF-8 and followed by one LF. No other path belongs to this package.
+
+The authorized repository publication envelope is separately bounded:
+
+~~~text
+run_preparation_validator=true
+run_source_authorization_review_validator=true
+run_new_execution_authorization_validator=true
+run_central_validator=true
+run_ci_static_guards=true
+commit=true
+commit_message=PMAI-P0-04: Record V4 sanitized runtime binding evidence collection and review execution authorization
+push_branch=true
+publication_transport=CHATGPT_GITHUB_CONNECTOR_GIT_DATA_API
+publication_semantics=ONE_LOGICAL_PUSH_EQUIVALENT
+maximum_commit_count=1
+maximum_logical_push_count=1
+maximum_blob_create_count=9
+maximum_tree_create_count=1
+maximum_remote_commit_create_count=1
+maximum_branch_create_count=1
+maximum_ref_update_count=0
+remote_commit_sha_may_differ_from_local_commit=true
+required_remote_parent_commit=11d5253d7a592c13f5a262f6ceef08046fb73866
+required_remote_tree_must_equal_verified_local_tree=true
+post_push_github_ci_observation=true
+post_push_ci_observation_window_seconds=600
+pull_request_creation=false
+merge=false
+branch_deletion=false
+force_push=false
+additional_commit=false
+ci_retry=false
+~~~
+
+These publication values authorize at most the exact repository package and
+one logical push equivalent. They do not authorize a pull request, merge,
+branch deletion, force push, additional commit, CI retry, or any runtime or
+external-resource action.
+
+## 11. Current repository-only and external-action boundary
+
+~~~text
+repository_only=true
+render_readonly_access=false
+render_control_plane_write=false
+render_settings_change=false
+temporary_inbound_allowlist_change=false
+credential_or_connection_value_access=false
+database_connection=false
+database_read_write_export=false
+runtime_evidence_collection=false
+runner_creation=false
+runner_activation=false
+runner_import=false
+runner_execution=false
+backup_or_archive_access=false
+restore_execution=false
+pg_restore_or_psql_execution=false
+migration_creation_or_execution=false
+deployment=false
+target_deletion=false
+production_staging_v3_v4_resource_operations=false
+library_master_directory_update=false
+operational_collection_adapter_creation=false
+operational_collection_adapter_present=false
+raw_identifier_url_connection_or_credential_capture=false
+manual_retry=false
+automatic_retry=false
+~~~
+
+The true repository_only value describes the scope of this record. It does not
+make any external, runtime, evidence, or runner field true.
+
+## 12. Fail-closed stop rules
+
+~~~text
+stop_on_base_or_tree_drift=true
+stop_on_head_branch_existing=true
+stop_on_source_pr_merge_tree_or_ci_mismatch=true
+stop_on_source_review_hash_or_historical_anchor_mismatch=true
+stop_on_changed_path_scope_count_or_hash_mismatch=true
+stop_on_existing_preparation_review_or_historical_file_change=true
+stop_on_ci_workflow_static_entrypoint_or_smoke_change=true
+stop_on_any_runtime_or_evidence_hash_populated=true
+stop_on_successor_activation_or_active_source_binding_populated=true
+stop_on_runtime_binding_contract_complete_true=true
+stop_on_current_collection_or_external_execution_authority_true=true
+stop_on_merged_target_evidence_represented_as_live_revalidation=true
+stop_on_target_contract_service_or_candidate_hash_substitution=true
+stop_on_inert_collector_misrepresented_as_operational=true
+stop_on_collection_phase_schema_missing_or_claiming_full_runtime_completion=true
+stop_on_operational_collection_procedure_missing_or_not_hash_locked=true
+stop_on_planned_active_runner_path_present=true
+stop_on_active_0010_migration_present=true
+stop_on_raw_identifier_url_connection_or_credential_capture=true
+stop_on_any_render_database_runner_restore_migration_or_deployment_action=true
+stop_on_validator_or_static_guard_failure=true
+stop_on_publication_failure_or_uncertain_remote_state=true
+stop_on_unexpected_external_operation=true
+~~~
+
+The action-time procedure also fails closed on any target mismatch, stale
+observation, non-/32 allowlist value, extra allowlist add or remove save,
+non-empty final inbound-rule set, public external access, raw output, failed
+cleanup, or uncertain cleanup state.
+
+## 13. Decision and sole next subject
+
+~~~text
+decision=GO_TO_SEPARATE_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_CONTROLLED_EXECUTION_CONFIRMATION_V1
+post_review_sole_next_subject=ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_CONTROLLED_EXECUTION_CONFIRMATION_V1
+sole_next_subject=ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_CONTROLLED_EXECUTION_CONFIRMATION_V1
+actual_collection_execution_authorized=false
+actual_runtime_evidence_collection_authorized=false
+actual_external_execution_authorized=false
+~~~
+
+After exact repository publication and a new GitHub CI PASS, the sole next
+subject is a separate one-time controlled-execution confirmation that names
+the exact published and hash-locked action envelope. This authorization record
+does not itself grant that confirmation and does not authorize actual
+collection, Render access, a temporary allowlist change, credential or
+connection-value access, target database access, runner activity, backup
+access, restore, migration, deployment, deletion, or retry.

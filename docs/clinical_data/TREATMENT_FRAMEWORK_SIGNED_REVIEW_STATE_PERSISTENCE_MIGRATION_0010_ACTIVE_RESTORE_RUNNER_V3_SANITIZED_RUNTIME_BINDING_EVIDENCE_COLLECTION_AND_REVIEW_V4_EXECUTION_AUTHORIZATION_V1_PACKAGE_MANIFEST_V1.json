@@ -1,0 +1,58 @@
+{
+  "schema": "PMAI_P0_04_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_PACKAGE_MANIFEST_V1",
+  "stage_id": "PMAI-P0-04",
+  "substage": "ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1",
+  "work_bundle": "PMAI-P0-04-ARR-V3-SRBE-COLLECT-REVIEW-V4-EXEC-AUTH",
+  "collection_execution_authorization_record_id": "PMAI-P0-04-ARR-V3-SRBE-COLLECT-REVIEW-V4-EXEC-AUTH-V1-20260827",
+  "repository": "pet-med-ai/Pet-med-ai",
+  "base_branch": "main",
+  "base_commit": "11d5253d7a592c13f5a262f6ceef08046fb73866",
+  "base_tree_sha": "c3600d0913950460dfa1e044fe1759972390d012",
+  "head_branch": "pmai-p0-04-arr-v3-srbe-v4-exec-auth",
+  "authorized_changed_path_count": 9,
+  "authorized_changed_path_sequence_sha256": "414cd0d429832d7d349dd32a0d458353339b58cb0ba88a89a297a3add96450ff",
+  "package_path_count": 8,
+  "manifest_member_count": 7,
+  "manifest_self_excluded": true,
+  "central_integration_path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py",
+  "ci_entrypoint_changed": false,
+  "github_workflow_changed": false,
+  "smoke_entrypoint_changed": false,
+  "files": [
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1.md",
+      "bytes": 31427,
+      "sha256": "25f27029077540c859ffb11371ddb4873a1302d71a315c479c51467b52dbf66e"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_ACTIVE_POINTER_V1.json",
+      "bytes": 6005,
+      "sha256": "95e373986571b260ed392395dd2fb5d415d66f61f82e5ca6521429b4768959e8"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_CHECKLIST_V1.csv",
+      "bytes": 19947,
+      "sha256": "b5f89fa5818a4d87befba8cc65fbe7dbc787e5a222de7dafa72e15f6b5676b99"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_GO_NO_GO_V1.csv",
+      "bytes": 8141,
+      "sha256": "092ec716a7904711b5372b5389a9e63a682d726b917a8801cc55239d1952531c"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_LOCKED_BASELINE_V1.json",
+      "bytes": 16055,
+      "sha256": "895a320b6e973db098b82b7169c03c99908c8580e2fe8bf5f1b638648276d440"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_V1_TEST_MATRIX_V1.csv",
+      "bytes": 12717,
+      "sha256": "80835ad9c0d95f668b23f703b36defa4dfdbc59801d2d0b518a31149bd5dffb0"
+    },
+    {
+      "path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_sanitized_runtime_binding_evidence_collection_and_review_v4_execution_authorization_v1.py",
+      "bytes": 58522,
+      "sha256": "ba94353b6363051c800be4b90541c4bf0083d77b65a5d6d0b77a7ab67529a35f"
+    }
+  ]
+}
