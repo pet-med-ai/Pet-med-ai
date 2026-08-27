@@ -16,6 +16,19 @@ CURRENT_COMPLETENESS = (
 CURRENT_NEXT_STEP = (
     'PREPARE_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4'
 )
+EFFECTIVE_CURRENT_HOLD = (
+    'HOLD_PMAI_P0_04_PENDING_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_'
+    'CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW'
+)
+EFFECTIVE_CURRENT_COMPLETENESS = (
+    'ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_'
+    'PREPARATION_COMPLETE_PENDING_AUTHORIZATION_REVIEW_RESTORE_REHEARSAL_'
+    'AND_EXTERNAL_EXECUTION'
+)
+EFFECTIVE_CURRENT_NEXT_STEP = (
+    'PREPARE_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_'
+    'V4_AUTHORIZATION_REVIEW'
+)
 DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md'
 CHECKLIST = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv'
 REGISTER = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_EVIDENCE_REGISTER_V1.csv'
@@ -90,6 +103,26 @@ FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_MANIFEST_SHA256 = (
 )
 FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_PASS_MARKER = (
     "fresh_disposable_target_provisioning_execution_evidence_v4=PASS"
+)
+ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_VALIDATOR = (
+    "scripts/validate_treatment_framework_signed_review_state_persistence_"
+    "migration_0010_active_restore_runner_v3_activation_and_srbe_contract_"
+    "rebind_v4_preparation_v1.py"
+)
+ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_VALIDATOR_SHA256 = (
+    "7178853124e403080cdcc0c3bed63ec31c9acf5f791f5352fdd62373acdc770d"
+)
+ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_MANIFEST = (
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_"
+    "MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_"
+    "REBIND_V4_PREPARATION_V1_PACKAGE_MANIFEST_V1.json"
+)
+ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_MANIFEST_SHA256 = (
+    "4e1e3b895f522e58917052d8af3e8bcdd6127ef9db2b4fc0cccff95124e2641c"
+)
+ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_PASS_MARKER = (
+    "active_restore_runner_v3_activation_and_srbe_contract_rebind_"
+    "v4_preparation=PASS"
 )
 CI = 'scripts/ci_static_checks.sh'
 SMOKE = 'scripts/smoke_petmed.sh'
@@ -711,8 +744,55 @@ def main():
         "V4 provisioning evidence validator PASS marker",
     )
     print(FRESH_DISPOSABLE_TARGET_PROVISIONING_EXECUTION_EVIDENCE_V4_PASS_MARKER)
+    v4_rebind_preparation_validator_path = (
+        ROOT
+        / ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_VALIDATOR
+    )
+    need(
+        v4_rebind_preparation_validator_path.is_file()
+        and not v4_rebind_preparation_validator_path.is_symlink(),
+        "missing or unsafe V4 runner/SRBE rebind preparation validator",
+    )
+    need(
+        hashlib.sha256(v4_rebind_preparation_validator_path.read_bytes()).hexdigest()
+        == ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_VALIDATOR_SHA256,
+        "protected hash V4 runner/SRBE rebind preparation validator",
+    )
+    v4_rebind_preparation_manifest_path = (
+        ROOT
+        / ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_MANIFEST
+    )
+    need(
+        v4_rebind_preparation_manifest_path.is_file()
+        and not v4_rebind_preparation_manifest_path.is_symlink(),
+        "missing or unsafe V4 runner/SRBE rebind preparation manifest",
+    )
+    need(
+        hashlib.sha256(v4_rebind_preparation_manifest_path.read_bytes()).hexdigest()
+        == ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_MANIFEST_SHA256,
+        "protected hash V4 runner/SRBE rebind preparation manifest",
+    )
+    v4_rebind_preparation_result = subprocess.run(
+        [sys.executable, "-B", str(v4_rebind_preparation_validator_path)],
+        cwd=ROOT,
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=30,
+        check=False,
+    )
+    need(v4_rebind_preparation_result.returncode == 0, "V4 runner/SRBE rebind preparation validator exit")
+    need(v4_rebind_preparation_result.stderr == "", "V4 runner/SRBE rebind preparation validator stderr")
+    need(
+        v4_rebind_preparation_result.stdout.splitlines().count(
+            ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_PASS_MARKER
+        ) == 1,
+        "V4 runner/SRBE rebind preparation validator PASS marker",
+    )
+    print(ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_PASS_MARKER)
     if args.require_complete:
-        print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; V4 runner/SRBE rebind and restore rehearsal are incomplete", file=sys.stderr)
+        print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; V4 runner/SRBE authorization review and restore rehearsal are incomplete", file=sys.stderr)
         return 1
     for line in (
         "stage_id=PMAI-P0-04", "stage_status=IN_PROGRESS", "evidence_completeness=" + CURRENT_COMPLETENESS,
@@ -729,6 +809,11 @@ def main():
         "database_write=false", "migration_executed=false", "production_database_write=false",
         "decision=" + CURRENT_HOLD,
         "next_step=" + CURRENT_NEXT_STEP,
+        "v4_runner_srbe_rebind_preparation_complete=true",
+        "runtime_binding_contract_complete=false",
+        "effective_evidence_completeness=" + EFFECTIVE_CURRENT_COMPLETENESS,
+        "effective_decision=" + EFFECTIVE_CURRENT_HOLD,
+        "effective_next_step=" + EFFECTIVE_CURRENT_NEXT_STEP,
         "ALL PASS: PMAI-P0-04 V4 target provisioned and network locked governance",
     ): print(line)
     return 0

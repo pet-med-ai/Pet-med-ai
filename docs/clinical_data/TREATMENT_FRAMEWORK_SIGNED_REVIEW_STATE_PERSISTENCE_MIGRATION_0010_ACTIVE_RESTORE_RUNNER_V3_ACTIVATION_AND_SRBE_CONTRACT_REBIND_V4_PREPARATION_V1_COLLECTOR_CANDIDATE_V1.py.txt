@@ -1,0 +1,350 @@
+#!/usr/bin/env python3
+"""Inert hash-contract candidate for the PMAI-P0-04 V4 SRBE rebind.
+
+This repository artifact has only ``--dry-run`` and ``--self-test`` modes. It
+has no live collection adapter, file input, network client, provider SDK,
+credential integration, database driver, backup access, subprocess execution,
+runner integration, or output-file writer. Runtime bindings remain UNBOUND.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import re
+import sys
+from typing import Mapping, NoReturn, Sequence
+
+
+sys.dont_write_bytecode = True
+
+UNBOUND = "UNBOUND"
+TARGET_CONTRACT_IDENTITY_SHA256 = (
+    "e1cba6bc207fa4654d3155ef4abd8d818d8fd4323ce990446bc680fd15522529"
+)
+TARGET_SERVICE_IDENTIFIER_SHA256 = (
+    "3f0ed4e1cb1bbef10babb4d3ba7fa9ec03e048d7d30595389f30d0871bcdb4fe"
+)
+PRIOR_V3_TARGET_CONTRACT_IDENTITY_SHA256 = (
+    "e57fbfce3e490cdf185f83e9e376b20fe0ef665fbe293a512a6298d8a6420744"
+)
+IMPLEMENTATION_CANDIDATE_SHA256 = (
+    "91b9ba1da8cc290fd94a17b4c57c673be0a805ae25f1ddb0ace69922ff9e2081"
+)
+
+RUNTIME_HASH_KEYS = {
+    "expected_active_source_sha256",
+    "expected_schema_manifest_sha256",
+    "expected_target_identity_sha256",
+    "forbidden_production_identity_sha256",
+    "forbidden_staging_identity_sha256",
+}
+AUTHORIZATION_HASH_KEYS = {
+    "collection_execution_authorization_record_sha256",
+    "successor_activation_authorization_record_sha256",
+}
+EVIDENCE_HASH_KEYS = {
+    "source_observation_bundle_sha256",
+    "target_application_attachment_recheck_evidence_sha256",
+    "target_available_recheck_evidence_sha256",
+    "target_lifecycle_evidence_sha256",
+    "target_network_lockdown_recheck_evidence_sha256",
+    "target_open_connection_recheck_evidence_sha256",
+}
+OUTPUT_HASH_KEYS = RUNTIME_HASH_KEYS | AUTHORIZATION_HASH_KEYS | EVIDENCE_HASH_KEYS | {
+    "collector_contract_sha256"
+}
+OUTPUT_BOOLEAN_KEYS = {
+    "collection_execution_authorized",
+    "evidence_complete",
+    "final_service_inbound_ip_rule_set_empty",
+    "fixture_only",
+    "public_external_access_blocked",
+    "raw_connection_values_disclosed",
+    "target_application_attachment_count_zero",
+    "target_lifecycle_within_72h",
+    "target_open_connection_count_zero",
+    "target_status_available",
+}
+OUTPUT_KEYS = OUTPUT_HASH_KEYS | OUTPUT_BOOLEAN_KEYS
+CANDIDATE_FORBIDDEN_BINDING_KEYS = OUTPUT_HASH_KEYS - {
+    "expected_active_source_sha256"
+}
+
+CONTRACT_DESCRIPTOR = {
+    "authorization_record_normalization": "SHA256(UTF8(exact_record_id),NO_LF)",
+    "collection_execution_authorization_record_id": UNBOUND,
+    "dynamic_console_value_types": ["boolean", "lowercase_sha256"],
+    "identity_normalization": (
+        "UTF8(database)+NUL+UTF8(server_address)+NUL+UTF8(port)+LF"
+    ),
+    "implementation_candidate_sha256": IMPLEMENTATION_CANDIDATE_SHA256,
+    "live_collection_adapter_present": False,
+    "runtime_binding_contract_complete": False,
+    "schema": "PMAI_P0_04_ARR_V3_V4_REBIND_INERT_SRBE_COLLECTOR_CONTRACT_V1",
+    "schema_manifest_normalization": (
+        "UTF8(CONCAT(SORT(relations),EACH_PLUS_LF))"
+    ),
+    "successor_activation_authorization_record_id": UNBOUND,
+    "supported_cli_modes": ["dry-run", "self-test"],
+    "target_contract_identity_sha256": TARGET_CONTRACT_IDENTITY_SHA256,
+    "target_service_identifier_sha256": TARGET_SERVICE_IDENTIFIER_SHA256,
+}
+
+
+class Hold(RuntimeError):
+    """Fixed stop code whose digest can be emitted without input disclosure."""
+
+
+class InertArgumentParser(argparse.ArgumentParser):
+    def error(self, message: str) -> NoReturn:
+        del message
+        raise Hold("ARGUMENT_CONTRACT_MISMATCH")
+
+
+def need(condition: bool, code: str) -> None:
+    if not condition:
+        raise Hold(code)
+
+
+def sha256_bytes(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def canonical_json_bytes(value: object) -> bytes:
+    try:
+        return json.dumps(
+            value,
+            ensure_ascii=True,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("ascii")
+    except (TypeError, ValueError, UnicodeError) as exc:
+        raise Hold("CANONICAL_JSON_INVALID") from exc
+
+
+def is_sha256(value: object) -> bool:
+    return isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value) is not None
+
+
+def collector_contract_sha256() -> str:
+    return sha256_bytes(canonical_json_bytes(CONTRACT_DESCRIPTOR))
+
+
+def runtime_binding_template() -> dict[str, str]:
+    return {
+        "collection_execution_authorization_record_sha256": UNBOUND,
+        "expected_active_source_sha256": UNBOUND,
+        "expected_schema_manifest_sha256": UNBOUND,
+        "expected_target_identity_sha256": UNBOUND,
+        "forbidden_production_identity_sha256": UNBOUND,
+        "forbidden_staging_identity_sha256": UNBOUND,
+        "successor_activation_authorization_record_sha256": UNBOUND,
+    }
+
+
+def validate_unbound_preparation_state(value: Mapping[str, object]) -> None:
+    expected = AUTHORIZATION_HASH_KEYS | RUNTIME_HASH_KEYS
+    need(set(value) == expected, "UNBOUND_KEY_SET_MISMATCH")
+    need(all(value[key] == UNBOUND for key in expected), "RUNTIME_BINDING_NOT_UNBOUND")
+    need(TARGET_CONTRACT_IDENTITY_SHA256 not in value.values(), "CONTRACT_HASH_SUBSTITUTION")
+    need(TARGET_SERVICE_IDENTIFIER_SHA256 not in value.values(), "SERVICE_HASH_SUBSTITUTION")
+
+
+def normalize_identity(database: str, server_address: str, port: str) -> str:
+    for item in (database, server_address, port):
+        need(isinstance(item, str) and 1 <= len(item) <= 253, "IDENTITY_COMPONENT_INVALID")
+        need("\0" not in item and "\r" not in item and "\n" not in item, "IDENTITY_CONTROL_CHARACTER")
+    need(re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", database) is not None, "DATABASE_NAME_FORMAT_INVALID")
+    need(re.fullmatch(r"[A-Za-z0-9.-]{1,253}", server_address) is not None, "SERVER_ADDRESS_FORMAT_INVALID")
+    need(".." not in server_address and not server_address.startswith(".") and not server_address.endswith("."), "SERVER_ADDRESS_INVALID")
+    need(re.fullmatch(r"[1-9][0-9]{0,4}", port) is not None, "PORT_FORMAT_INVALID")
+    need(1 <= int(port) <= 65535 and str(int(port)) == port, "PORT_RANGE_INVALID")
+    payload = (database + "\0" + server_address + "\0" + port + "\n").encode("utf-8")
+    return sha256_bytes(payload)
+
+
+def normalize_schema_manifest(relations: Sequence[str]) -> str:
+    need(isinstance(relations, (list, tuple)) and 1 <= len(relations) <= 4096, "RELATIONS_INVALID")
+    need(all(isinstance(item, str) and 1 <= len(item) <= 256 for item in relations), "RELATION_INVALID")
+    need(len(relations) == len(set(relations)), "RELATION_DUPLICATE")
+    for relation in relations:
+        need("\0" not in relation and "\r" not in relation and "\n" not in relation, "RELATION_CONTROL_CHARACTER")
+    payload = "".join(item + "\n" for item in sorted(relations)).encode("utf-8")
+    return sha256_bytes(payload)
+
+
+def normalize_authorization_record_id(record_id: str) -> str:
+    need(isinstance(record_id, str) and 1 <= len(record_id) <= 256, "AUTHORIZATION_RECORD_ID_INVALID")
+    need(re.fullmatch(r"[A-Za-z0-9_-]+", record_id) is not None, "AUTHORIZATION_RECORD_ID_FORMAT")
+    return sha256_bytes(record_id.encode("utf-8"))
+
+
+def synthetic_hash(label: str) -> str:
+    return sha256_bytes(("v4-rebind-synthetic:" + label).encode("ascii"))
+
+
+def synthetic_record() -> dict[str, object]:
+    record: dict[str, object] = {
+        "collection_execution_authorization_record_sha256": normalize_authorization_record_id("SYNTHETIC-COLLECTION-AUTHORIZATION"),
+        "collection_execution_authorized": False,
+        "collector_contract_sha256": collector_contract_sha256(),
+        "evidence_complete": False,
+        "expected_active_source_sha256": synthetic_hash("active-source"),
+        "expected_schema_manifest_sha256": normalize_schema_manifest(["fixture.alpha", "fixture.beta"]),
+        "expected_target_identity_sha256": normalize_identity("fixture_target", "192.0.2.10", "5432"),
+        "final_service_inbound_ip_rule_set_empty": False,
+        "fixture_only": True,
+        "forbidden_production_identity_sha256": normalize_identity("fixture_production", "192.0.2.20", "5432"),
+        "forbidden_staging_identity_sha256": normalize_identity("fixture_staging", "192.0.2.30", "5432"),
+        "public_external_access_blocked": False,
+        "raw_connection_values_disclosed": False,
+        "source_observation_bundle_sha256": synthetic_hash("observation"),
+        "successor_activation_authorization_record_sha256": normalize_authorization_record_id("SYNTHETIC-ACTIVATION-AUTHORIZATION"),
+        "target_application_attachment_count_zero": False,
+        "target_application_attachment_recheck_evidence_sha256": synthetic_hash("attachments"),
+        "target_available_recheck_evidence_sha256": synthetic_hash("available"),
+        "target_lifecycle_evidence_sha256": synthetic_hash("lifecycle"),
+        "target_lifecycle_within_72h": False,
+        "target_network_lockdown_recheck_evidence_sha256": synthetic_hash("network-lockdown"),
+        "target_open_connection_count_zero": False,
+        "target_open_connection_recheck_evidence_sha256": synthetic_hash("open-connections"),
+        "target_status_available": False,
+    }
+    validate_hash_boolean_record(record)
+    return record
+
+
+def validate_hash_boolean_record(value: Mapping[str, object]) -> None:
+    need(set(value) == OUTPUT_KEYS, "OUTPUT_KEY_SET_MISMATCH")
+    for key in OUTPUT_HASH_KEYS:
+        need(is_sha256(value[key]), "OUTPUT_SHA256_INVALID")
+    for key in OUTPUT_BOOLEAN_KEYS:
+        need(type(value[key]) is bool, "OUTPUT_BOOLEAN_INVALID")
+    hash_values = [str(value[key]) for key in sorted(OUTPUT_HASH_KEYS)]
+    need(len(hash_values) == len(set(hash_values)), "OUTPUT_HASHES_NOT_DISTINCT")
+    forbidden = {
+        TARGET_CONTRACT_IDENTITY_SHA256,
+        TARGET_SERVICE_IDENTIFIER_SHA256,
+        PRIOR_V3_TARGET_CONTRACT_IDENTITY_SHA256,
+    }
+    need(all(item not in forbidden for item in hash_values), "PROVENANCE_HASH_SUBSTITUTION")
+    need(
+        all(value[key] != IMPLEMENTATION_CANDIDATE_SHA256 for key in CANDIDATE_FORBIDDEN_BINDING_KEYS),
+        "IMPLEMENTATION_CANDIDATE_BINDING_DOMAIN_MISMATCH",
+    )
+    need(value["raw_connection_values_disclosed"] is False, "RAW_VALUE_DISCLOSURE")
+    need(value["fixture_only"] is True, "FIXTURE_ONLY_REQUIRED")
+    need(value["collection_execution_authorized"] is False, "COLLECTION_AUTHORIZATION_FORBIDDEN")
+    need(value["evidence_complete"] is False, "LIVE_EVIDENCE_COMPLETENESS_FORBIDDEN")
+    need(value["target_status_available"] is False, "LIVE_TARGET_STATUS_FORBIDDEN")
+    need(value["target_lifecycle_within_72h"] is False, "LIVE_TARGET_LIFECYCLE_FORBIDDEN")
+    need(value["target_application_attachment_count_zero"] is False, "LIVE_ATTACHMENT_RECHECK_FORBIDDEN")
+    need(value["target_open_connection_count_zero"] is False, "LIVE_CONNECTION_RECHECK_FORBIDDEN")
+    need(value["final_service_inbound_ip_rule_set_empty"] is False, "LIVE_NETWORK_RULE_RECHECK_FORBIDDEN")
+    need(value["public_external_access_blocked"] is False, "LIVE_PUBLIC_ACCESS_RECHECK_FORBIDDEN")
+
+
+def boundary_status() -> dict[str, bool]:
+    return {
+        "archive_accessed": False,
+        "backup_accessed": False,
+        "credential_accessed": False,
+        "database_connected": False,
+        "deployment_performed": False,
+        "filesystem_input_read": False,
+        "filesystem_output_written": False,
+        "git_write_performed": False,
+        "migration_created": False,
+        "migration_executed": False,
+        "network_accessed": False,
+        "provider_control_plane_accessed": False,
+        "resource_deleted": False,
+        "restore_executed": False,
+        "runner_activated": False,
+        "runner_created": False,
+        "runner_executed": False,
+        "runner_imported": False,
+        "runtime_evidence_collected": False,
+        "target_accessed": False,
+    }
+
+
+def emit_hash_boolean(value: Mapping[str, object]) -> None:
+    need(all(type(item) is bool or is_sha256(item) for item in value.values()), "CONSOLE_VALUE_TYPE_FORBIDDEN")
+    print(json.dumps(value, ensure_ascii=True, sort_keys=True, separators=(",", ":")))
+
+
+def dry_run() -> int:
+    validate_unbound_preparation_state(runtime_binding_template())
+    result: dict[str, object] = {
+        "collector_contract_sha256": collector_contract_sha256(),
+        "hold": True,
+        "live_collection_adapter_present": False,
+        "runtime_binding_contract_complete": False,
+        "self_test_only": True,
+        "target_contract_provenance_sha256": TARGET_CONTRACT_IDENTITY_SHA256,
+        "target_service_provenance_sha256": TARGET_SERVICE_IDENTIFIER_SHA256,
+    }
+    result.update(boundary_status())
+    emit_hash_boolean(result)
+    return 0
+
+
+def self_test() -> int:
+    validate_unbound_preparation_state(runtime_binding_template())
+    record = synthetic_record()
+    candidate_target_substitution = dict(record)
+    candidate_target_substitution["expected_target_identity_sha256"] = IMPLEMENTATION_CANDIDATE_SHA256
+    candidate_target_rejected = False
+    try:
+        validate_hash_boolean_record(candidate_target_substitution)
+    except Hold:
+        candidate_target_rejected = True
+    need(candidate_target_rejected, "CANDIDATE_TARGET_SUBSTITUTION_REJECTION_FAILED")
+    result = dict(record)
+    result.update(boundary_status())
+    result.update(
+        {
+            "candidate_target_substitution_rejected": True,
+            "hold": True,
+            "release_eligible": False,
+            "self_test": True,
+        }
+    )
+    emit_hash_boolean(result)
+    return 0
+
+
+def parser() -> InertArgumentParser:
+    value = InertArgumentParser(add_help=False, description=__doc__)
+    modes = value.add_mutually_exclusive_group(required=True)
+    modes.add_argument("--dry-run", action="store_true")
+    modes.add_argument("--self-test", action="store_true")
+    return value
+
+
+def main(argv: Sequence[str] | None = None) -> int:
+    args = parser().parse_args(argv)
+    return dry_run() if args.dry_run else self_test()
+
+
+def entrypoint() -> int:
+    try:
+        return main()
+    except Exception:
+        result: dict[str, object] = {
+            "error_code_sha256": sha256_bytes(b"INERT_COLLECTOR_HOLD"),
+            "hold": True,
+            "runtime_evidence_collected": False,
+        }
+        result.update(boundary_status())
+        try:
+            emit_hash_boolean(result)
+        except Exception:
+            print('{"hold":true}')
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(entrypoint())

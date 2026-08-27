@@ -1,0 +1,41 @@
+test_id,area,test_case,expected_result,runtime_access,status
+ARRV4-T001,scope,Expected base commit and tree,ACCEPT,none,DESIGNED
+ARRV4-T002,scope,Wrong base commit or tree,HOLD,none,DESIGNED
+ARRV4-T003,scope,Exact thirteen authorized paths,ACCEPT,none,DESIGNED
+ARRV4-T004,scope,Extra missing or renamed path,HOLD,none,DESIGNED
+ARRV4-T005,scope,More than one introduction commit,HOLD,none,DESIGNED
+ARRV4-T006,manifest,Eleven sorted members with self exclusion,ACCEPT,none,DESIGNED
+ARRV4-T007,manifest,Member byte count or hash mismatch,HOLD,none,DESIGNED
+ARRV4-T008,manifest,Manifest includes itself or central validator,HOLD,none,DESIGNED
+ARRV4-T009,history,Exact V4 evidence anchors,ACCEPT,none,DESIGNED
+ARRV4-T010,history,V4 evidence anchor drift,HOLD,none,DESIGNED
+ARRV4-T011,history,Exact V3 historical hashes,ACCEPT,none,DESIGNED
+ARRV4-T012,history,V3 historical byte drift,HOLD,none,DESIGNED
+ARRV4-T013,binding,All preparation bindings UNBOUND,ACCEPT,none,DESIGNED
+ARRV4-T014,binding,Any preparation binding populated,HOLD,none,DESIGNED
+ARRV4-T015,binding,Target contract hash used as runtime target identity,HOLD,none,DESIGNED
+ARRV4-T016,binding,Service hash used as runtime target identity,HOLD,none,DESIGNED
+ARRV4-T017,binding,Runtime binding hashes are not distinct,HOLD,none,DESIGNED
+ARRV4-T018,collector,Collector dry run,ACCEPT_HOLD_ONLY,none,DESIGNED
+ARRV4-T019,collector,Collector synthetic self test,ACCEPT_HOLD_ONLY,none,DESIGNED
+ARRV4-T020,collector,Collector live input or output CLI,HOLD,none,DESIGNED
+ARRV4-T021,collector,Collector network database credential or subprocess import,HOLD,none,DESIGNED
+ARRV4-T022,collector,Collector console emits nonboolean nonhash value,HOLD,none,DESIGNED
+ARRV4-T023,reviewer,Reviewer dry run,ACCEPT_HOLD_ONLY,none,DESIGNED
+ARRV4-T024,reviewer,Reviewer synthetic self test,ACCEPT_HOLD_ONLY,none,DESIGNED
+ARRV4-T025,reviewer,Reviewer operational review or file CLI,HOLD,none,DESIGNED
+ARRV4-T026,reviewer,Reviewer accepts fixture as release evidence,HOLD,none,DESIGNED
+ARRV4-T027,reviewer,Collector contract hash mismatch,HOLD,none,DESIGNED
+ARRV4-T028,reviewer,Live-looking synthetic flags,HOLD,none,DESIGNED
+ARRV4-T029,identity,Raw URL provider identifier database URI or credential,HOLD,none,DESIGNED
+ARRV4-T030,runner,Planned active runner path absent,ACCEPT,none,DESIGNED
+ARRV4-T031,runner,Planned active runner path present,HOLD,none,DESIGNED
+ARRV4-T032,migration,Active 0010 migration absent,ACCEPT,none,DESIGNED
+ARRV4-T033,migration,Active 0010 migration present,HOLD,none,DESIGNED
+ARRV4-T034,ci,Historical V4 evidence validator remains PASS,ACCEPT,none,DESIGNED
+ARRV4-T035,ci,Preparation validator central hook executes once,ACCEPT,none,DESIGNED
+ARRV4-T036,ci,CI workflow or smoke hash drift,HOLD,none,DESIGNED
+ARRV4-T037,central,Preparation complete and runtime contract incomplete,ACCEPT,none,DESIGNED
+ARRV4-T038,central,Execution authorization safety flag becomes true,HOLD,none,DESIGNED
+ARRV4-T039,decision,Exact preparation GO and global HOLD,ACCEPT,none,DESIGNED
+ARRV4-T040,external,Any provider database runner restore migration or deploy operation,HOLD,none,DESIGNED

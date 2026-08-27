@@ -1,0 +1,78 @@
+{
+  "schema": "PMAI_P0_04_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1_PACKAGE_MANIFEST_V1",
+  "stage_id": "PMAI-P0-04",
+  "substage": "ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1",
+  "work_bundle": "PMAI-P0-04-ARR-V3-ACT-SRBE-REBIND-V4-PREP",
+  "preparation_record_id": "PMAI-P0-04-ARR-V3-ACT-SRBE-REBIND-V4-PREP-20260827",
+  "repository": "pet-med-ai/Pet-med-ai",
+  "base_branch": "main",
+  "base_commit": "c5b272d13ece67e2f86482eeac6023d8cd969049",
+  "base_tree_sha": "91c3fd0aa7dc9b02d1aceacd73a3b786bb04f204",
+  "head_branch": "pmai-p0-04-arr-v3-srbe-rebind-v4-prep",
+  "authorized_changed_path_count": 13,
+  "authorized_changed_path_sequence_sha256": "448efcf5ccafa9f93b46f2d2bd705068103637a6e11632c423993b2d4d03d529",
+  "package_path_count": 12,
+  "manifest_member_count": 11,
+  "manifest_self_excluded": true,
+  "central_integration_path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_staging_migration_apply.py",
+  "ci_entrypoint_changed": false,
+  "github_workflow_changed": false,
+  "smoke_entrypoint_changed": false,
+  "files": [
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1.md",
+      "bytes": 10069,
+      "sha256": "f9268fe11137461576297db741239f77d617c6866a4359f2482eaa20aefc89ed"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1_ACTIVE_POINTER_V1.json",
+      "bytes": 2514,
+      "sha256": "5fb6082e7f9a3a0d0e33eef37b4e136a42c7b8b57ee1c5a4bc7bd44a67171ece"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1_CHECKLIST_V1.csv",
+      "bytes": 3431,
+      "sha256": "6e140261a6d52ab2c7345659be7e4ef0507b5850792b25951ee738b7b9f96f46"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1_COLLECTOR_CANDIDATE_V1.py.txt",
+      "bytes": 14580,
+      "sha256": "753f4eb9f1cef9c98b4fca934bbbc430b77aab028fd71f77d345f695ed383fb6"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1_GO_NO_GO_V1.csv",
+      "bytes": 1665,
+      "sha256": "5a8682c3547d0d63c09c02826108c1d2a2bc081bf2a339451cd6db8518317e1c"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1_LOCKED_BASELINE_V1.json",
+      "bytes": 7940,
+      "sha256": "dff8cb0d90dfb7c68be8afb7a21c62ac4d6dea14cd600b89409e0a5e93586f6c"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1_RUNTIME_OBSERVATION_TEMPLATE_V1.json",
+      "bytes": 1188,
+      "sha256": "580a485ae62221ef4d2e3e598321bb9197e5083d0cb0926fdc85a1766544f1b2"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1_SANITIZED_COLLECTOR_OUTPUT_TEMPLATE_V1.json",
+      "bytes": 1185,
+      "sha256": "f65411c98bebc8f7773724d0ee9088faeac6f3b620c853079233c360921ceee8"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_PREPARATION_V1_TEST_MATRIX_V1.csv",
+      "bytes": 3135,
+      "sha256": "e0a61f02d548c1583a888ee3db165aba33436da1e27c6df0682d8dc4bc2cd131"
+    },
+    {
+      "path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_activation_and_srbe_contract_rebind_v4_evidence_review_v1.py",
+      "bytes": 13400,
+      "sha256": "c655571668758332f6501cb44b3d074600a405be7984c6110d4db30190f4ef87"
+    },
+    {
+      "path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_activation_and_srbe_contract_rebind_v4_preparation_v1.py",
+      "bytes": 55681,
+      "sha256": "7178853124e403080cdcc0c3bed63ec31c9acf5f791f5352fdd62373acdc770d"
+    }
+  ]
+}
