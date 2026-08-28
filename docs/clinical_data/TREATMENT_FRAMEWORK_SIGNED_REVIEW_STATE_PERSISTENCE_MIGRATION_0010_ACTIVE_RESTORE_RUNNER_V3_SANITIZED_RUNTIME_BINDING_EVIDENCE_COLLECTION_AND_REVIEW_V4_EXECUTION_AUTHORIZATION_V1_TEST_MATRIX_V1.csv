@@ -1,0 +1,102 @@
+test_id,scenario,method,expected,status,decision_if_failed
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T001,canonical execution authorization package,static validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T002,base commit mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T003,base tree mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T004,source PR is not 19,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T005,source head merge or tree mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T006,source CI is not Gate 226 PASS,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T007,source review record id mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T008,source review artifact or validator hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T009,changed path count is not nine,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T010,changed path missing extra renamed or reordered,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T011,changed path sequence hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T012,manifest membership or self exclusion mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T013,preparation review or historical file changed,repository diff,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T014,CI workflow static entrypoint or smoke changed,repository diff,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T015,collection authorization record id mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T016,collection authorization record SHA256 mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T017,current collection execution authority promoted,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T018,current external execution authority promoted,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T019,current runtime evidence collection authority promoted,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T020,post effective eligibility confused with authorization,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T021,post effective collection eligibility false,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T022,post effective collection authority true,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T023,one time confirmation inferred or marked present,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T024,current attempts authorized nonzero,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T025,post confirmation attempt limit not one,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T026,attempts consumed nonzero,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T027,automatic retry enabled,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T028,manual retry enabled,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T029,authorization reuse enabled,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T030,target contract or service hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T031,target contract or service hash used as runtime identity,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T032,merged target evidence represented as live revalidation,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T033,implementation candidate hash mismatch or substitution,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T034,collector contract hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T035,planned active runner path present,repository scan,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T036,active migration 0010 present,repository scan,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T037,successor activation authorization id populated,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T038,successor activation authorization hash populated,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T039,expected active source hash populated,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T040,expected target identity hash populated,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T041,forbidden production or staging identity hash populated,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T042,expected schema manifest hash populated,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T043,source observation bundle hash populated,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T044,any target recheck evidence hash populated,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T045,runtime evidence collected true,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T046,SRBE collection evidence complete true,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T047,runtime binding contract complete true,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T048,evidence complete true,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T049,collection phase output schema missing,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T050,collection output keeps successor activation authorization UNBOUND,static schema review,ACCEPT,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T051,collection output keeps expected active source UNBOUND,static schema review,ACCEPT,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T052,collection output with permitted UNBOUND fields claims runtime binding complete,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T053,collection phase schema claims complete runtime binding,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T054,operational collection procedure missing,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T055,operational collection procedure not hash locked,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T056,action confirmation omits reviewed procedure SHA256,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T057,inert collector remains dry run and self test only,repository scan,ACCEPT,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T058,inert collector represented as operational live adapter,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T059,operational adapter created or added by package,repository scan,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T060,proposed action scope broader than exact V4 target collection and offline review,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T061,target AVAILABLE recheck fails or is ambiguous,action time gate,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T062,target lifecycle exceeds 72 hours,action time gate,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T063,application attachment count nonzero,action time gate,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T064,open connection count nonzero,action time gate,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T065,initial inbound IP rule set not empty,action time gate,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T066,temporary allowlist broader than one operator IPv4 CIDR 32,action time gate,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T067,allowlist add save count exceeds one,action time gate,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T068,allowlist remove save count exceeds one,action time gate,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T069,final inbound IP rule set not empty,action time gate,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T070,public external access not blocked after cleanup,action time gate,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T071,database access exceeds identity and schema metadata read only,action time instrumentation,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T072,production database connection attempted,action time instrumentation,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T073,staging database connection attempted,action time instrumentation,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T074,raw provider identifier URL connection or credential captured,static and action time scan,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T075,raw database or schema value emitted,static and action time scan,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T076,output contains type outside lowercase SHA256 boolean and fixed public schema,static reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T077,cleanup omitted after success failure or ambiguity,action time instrumentation,HOLD,DESIGNED,CLEANUP_AND_HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T078,Render readonly access performed before confirmation,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T079,Render control plane write or settings change performed by package,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T080,credential or connection value access performed by package,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T081,database connection or read write export performed by package,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T082,runtime evidence collection performed by package,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T083,runner creation attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T084,runner activation attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T085,runner import attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T086,runner execution attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T087,backup or archive access attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T088,restore pg_restore or psql attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T089,migration creation or execution attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T090,deployment or target deletion attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T091,unexpected external operation,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T092,validator or static guard failure,local repository validation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T093,publication failure or uncertain remote state,publication observation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T094,exact authorization envelope with confirmation absent,static validator,HOLD_CURRENT_BUT_ELIGIBLE_POST_EFFECTIVE,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T095,operational procedure contract SHA256 mismatch,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T096,operational procedure contract not defined,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T097,operational procedure contract not reviewed,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T098,operational procedure contract not hash locked,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T099,operational procedure contract not available,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T100,operational procedure form executable,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-T101,operational procedure executed by repository package,synthetic instrumentation,HOLD,DESIGNED,HOLD

@@ -1,0 +1,68 @@
+gate_id,gate,required,current,status,decision_if_failed
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G001,exact repository and base branch,pet-med-ai/Pet-med-ai|main,pet-med-ai/Pet-med-ai|main,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G002,exact base commit and tree,11d5253d7a592c13f5a262f6ceef08046fb73866|c3600d0913950460dfa1e044fe1759972390d012,11d5253d7a592c13f5a262f6ceef08046fb73866|c3600d0913950460dfa1e044fe1759972390d012,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G003,source authorization review PR,19,19,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G004,source authorization review merge and tree,11d5253d_exact|c3600d0_exact,11d5253d_exact|c3600d0_exact,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G005,source authorization review CI,226|PASS,226|PASS,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G006,source authorization review artifact hashes,ALL_8_EXACT,ALL_8_EXACT,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G007,exact nine path scope,9,9,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G008,changed path sequence hash,414cd0d429832d7d349dd32a0d458353339b58cb0ba88a89a297a3add96450ff,414cd0d429832d7d349dd32a0d458353339b58cb0ba88a89a297a3add96450ff,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G009,collection authorization record id and hash,EXACT,EXACT,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G010,repository static authorization envelope only,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G011,current collection execution authorized,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G012,current external execution authorized,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G013,current runtime evidence collection authorized,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G014,post effective collection execution eligible,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G015,post effective collection execution authorized,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G016,one time action confirmation,true,false,HOLD,SEPARATE_ACTION_TIME_CONFIRMATION_REQUIRED
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G017,current collection attempts authorized,0,0,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G018,post confirmation attempt limit,1,1,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G019,collection attempts consumed,0,0,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G020,no retry or authorization reuse,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G021,target contract and service provenance hashes,EXACT,EXACT,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G022,target hashes are sanitized provenance only,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G023,target live revalidation,AT_ACTION_TIME_REQUIRED,NOT_PERFORMED,HOLD,WAIT_FOR_ONE_TIME_CONFIRMATION
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G024,implementation candidate and collector contract hashes,EXACT,EXACT,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G025,planned active runner path,ABSENT,ABSENT,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G026,active 0010 migration,ABSENT,ABSENT,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G027,all runtime identity fields,UNBOUND,UNBOUND,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G028,all runtime evidence fields,UNBOUND,UNBOUND,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G029,runtime evidence collected,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G030,SRBE collection evidence complete,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G031,runtime binding contract complete,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G032,evidence complete,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G033,hash locked collection phase output schema,DEFINED,DEFINED,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G034,collection phase successor activation authorization may remain unbound,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G035,collection phase expected active source may remain unbound,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G036,collection phase may claim runtime binding complete,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G037,hash locked operational collection procedure contract,REQUIRED,REQUIRED,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G038,action confirmation names reviewed procedure contract SHA256,true,false,HOLD,SEPARATE_HASH_NAMING_CONFIRMATION_REQUIRED
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G039,operational collection adapter present,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G040,inert collector represented as live,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G041,exact proposed future action scope,EXACT_V4_TARGET_SRBE_COLLECTION_AND_OFFLINE_REVIEW,EXACT_V4_TARGET_SRBE_COLLECTION_AND_OFFLINE_REVIEW,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G042,future target status,AVAILABLE,NOT_REVALIDATED,HOLD,WAIT_FOR_ONE_TIME_CONFIRMATION
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G043,future target lifecycle maximum hours,72,NOT_REVALIDATED,HOLD,WAIT_FOR_ONE_TIME_CONFIRMATION
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G044,future application attachment count,0,NOT_REVALIDATED,HOLD,WAIT_FOR_ONE_TIME_CONFIRMATION
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G045,future open connection count,0,NOT_REVALIDATED,HOLD,WAIT_FOR_ONE_TIME_CONFIRMATION
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G046,future initial inbound IP rule set,[],NOT_REVALIDATED,HOLD,WAIT_FOR_ONE_TIME_CONFIRMATION
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G047,future final inbound IP rule set,[],NOT_REVALIDATED,HOLD,CLEANUP_AND_STOP
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G048,future public external access blocked,true,NOT_REVALIDATED,HOLD,CLEANUP_AND_STOP
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G049,temporary allowlist boundary,ONE_OPERATOR_IPV4_CIDR_32_IF_REQUIRED,NOT_USED,HOLD,WAIT_FOR_ONE_TIME_CONFIRMATION
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G050,allowlist add and remove save maximum,1|1,1|1,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G051,database scope,READ_ONLY_IDENTITY_AND_SCHEMA_METADATA_ONLY,NOT_ACCESSED,HOLD,WAIT_FOR_ONE_TIME_CONFIRMATION
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G052,production or staging database connection,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G053,raw value output,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G054,sanitized output allowlist,LOWERCASE_SHA256_BOOLEAN_AND_FIXED_PUBLIC_SCHEMA_ONLY,DEFINED,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G055,cleanup on success failure or ambiguity,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G056,current runner creation activation import and execution,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G057,current restore pg_restore and psql execution,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G058,current migration creation or execution,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G059,current deployment or target deletion,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G060,current raw identifier URL connection or credential capture,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G061,operational collection procedure contract SHA256,760275782eec85de09ae5dd0ac6955bec6b215886b6afc5a05fd1888bc45e1a5,760275782eec85de09ae5dd0ac6955bec6b215886b6afc5a05fd1888bc45e1a5,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G062,operational collection procedure defined reviewed hash locked and available,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G063,operational collection procedure form,NON_EXECUTABLE_ORDERED_CONTRACT_ONLY,NON_EXECUTABLE_ORDERED_CONTRACT_ONLY,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G064,operational collection adapter creation and presence,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G065,operational collection procedure current execution,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G066,authorization envelope review decision,PROPOSED_APPROVE_FUTURE_SINGLE_USE_ENVELOPE,PROPOSED_APPROVE_FUTURE_SINGLE_USE_ENVELOPE,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V4-EXEC-AUTH-G067,global execution decision,HOLD_NO_RUNTIME_COLLECTION_OR_EXTERNAL_EXECUTION,HOLD_NO_RUNTIME_COLLECTION_OR_EXTERNAL_EXECUTION,PASS,HOLD
