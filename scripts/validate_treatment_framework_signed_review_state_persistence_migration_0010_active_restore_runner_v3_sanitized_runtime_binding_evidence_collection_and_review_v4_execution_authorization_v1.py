@@ -35,6 +35,7 @@ AUTHORIZATION_RECORD_SHA256 = (
 )
 BASE_COMMIT = "11d5253d7a592c13f5a262f6ceef08046fb73866"
 BASE_TREE = "c3600d0913950460dfa1e044fe1759972390d012"
+INTRODUCTION_TREE = "fced41e8ee5960e6860c38896e8888424fc211b9"
 HEAD_BRANCH = "pmai-p0-04-arr-v3-srbe-v4-exec-auth"
 SOURCE_HEAD = "56d31819bff4b271e9d265b032156741e8a20beb"
 SOURCE_MERGE = BASE_COMMIT
@@ -125,6 +126,7 @@ MANIFEST_MEMBERS = (
     VALIDATOR,
 )
 EXPECTED_CHANGED_PATHS = (*PACKAGE_PATHS, CENTRAL)
+REPAIR_PATHS = (MANIFEST, VALIDATOR, CENTRAL)
 
 SOURCE_PREFIX = (
     "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_"
@@ -408,7 +410,10 @@ def rows(relative: str, fieldnames: list[str]) -> list[dict[str, str]]:
 
 def marker(source: str, key: str) -> str:
     values = re.findall(r"(?m)^" + re.escape(key) + r"=([^\r\n]+)$", source)
-    need(values and len(set(values)) == 1, "marker consistency " + key)
+    if not values:
+        raise ValueError("missing governed marker " + key)
+    if len(set(values)) != 1:
+        raise ValueError("conflicting governed marker " + key)
     return values[0]
 
 
@@ -447,7 +452,7 @@ def current_changed_paths() -> list[str]:
     return sorted(set(tracked + untracked), key=lambda value: value.encode("utf-8"))
 
 
-def introduction_commit() -> str | None:
+def effective_package_anchor() -> str | None:
     head = git("rev-parse", "HEAD")
     need(git("rev-parse", BASE_COMMIT + "^{tree}") == BASE_TREE, "base tree")
     if head == BASE_COMMIT:
@@ -469,12 +474,42 @@ def introduction_commit() -> str | None:
     need(len(parents) == 1 and parents[0] == BASE_COMMIT, "introduction parent")
     paths = git_lines("diff", "--name-only", BASE_COMMIT + ".." + introduction)
     need(paths == list(EXPECTED_CHANGED_PATHS), "introduction changed paths")
-    if head != introduction:
-        first_parent = git_lines("rev-list", "--first-parent", BASE_COMMIT + ".." + head)
-        need(introduction not in first_parent, "linear additional commit after introduction")
-        protected = git_lines("diff", "--name-only", introduction + ".." + head, "--", *PACKAGE_PATHS)
-        need(not protected, "execution authorization package changed after introduction")
-    return introduction
+    need(git("rev-parse", introduction + "^{tree}") == INTRODUCTION_TREE, "introduction tree")
+    working_tracked = git_lines("diff", "--name-only", "HEAD")
+    working_untracked = git_lines("ls-files", "--others", "--exclude-standard")
+    working_paths = sorted(
+        set(working_tracked + working_untracked),
+        key=lambda value: value.encode("utf-8"),
+    )
+    if working_paths:
+        need(head == introduction, "working repair requires introduction HEAD")
+        need(working_paths == list(REPAIR_PATHS), "working repair paths")
+        need(current_changed_paths() == list(EXPECTED_CHANGED_PATHS), "working overall changed paths")
+        return None
+    repair_commits = git_lines(
+        "rev-list",
+        "--reverse",
+        introduction + ".." + head,
+        "--",
+        *EXPECTED_CHANGED_PATHS,
+    )
+    need(len(repair_commits) <= 1, "repair commit count")
+    if not repair_commits:
+        return introduction
+    repair = repair_commits[0]
+    repair_parents = git_lines("show", "-s", "--format=%P", repair)
+    need(len(repair_parents) == 1 and repair_parents[0] == introduction, "repair parent")
+    repair_paths = git_lines("diff", "--name-only", introduction + ".." + repair)
+    need(repair_paths == list(REPAIR_PATHS), "repair changed paths")
+    protected = git_lines(
+        "diff",
+        "--name-only",
+        repair + ".." + head,
+        "--",
+        *EXPECTED_CHANGED_PATHS,
+    )
+    need(not protected, "execution authorization package changed after repair")
+    return repair
 
 
 def git_blob_text(commit: str, relative: str) -> str:
@@ -510,30 +545,121 @@ def literal_assignments(source: str) -> dict[str, Any]:
 
 def contract_lines(source: str, begin: str, end: str) -> tuple[str, ...]:
     lines = source.splitlines()
-    need(lines.count(begin) == 1 and lines.count(end) == 1, "contract markers " + begin)
+    if lines.count(begin) != 1 or lines.count(end) != 1:
+        raise ValueError("contract marker uniqueness " + begin)
     start = lines.index(begin)
     stop = lines.index(end)
-    need(start < stop, "contract order " + begin)
-    value = lines[start + 1 : stop]
-    while value and value[0] == "":
-        value.pop(0)
-    while value and value[-1] == "":
-        value.pop()
-    if value and value[0] == "~~~text":
-        value.pop(0)
-    if value and value[-1] == "~~~":
-        value.pop()
-    while value and value[0] == "":
-        value.pop(0)
-    while value and value[-1] == "":
-        value.pop()
-    return tuple(value)
+    if start >= stop:
+        raise ValueError("contract marker order " + begin)
+    envelope = lines[start + 1 : stop]
+    if (
+        len(envelope) < 4
+        or envelope[0] != ""
+        or envelope[1] != "~~~text"
+        or envelope[-2] != "~~~"
+        or envelope[-1] != ""
+    ):
+        raise ValueError("contract envelope " + begin)
+    return tuple(envelope[2:-2])
+
+
+def document_marker_scope(source: str) -> str:
+    lines = source.splitlines()
+    specifications = (
+        (
+            "collection_phase_output_schema_contract_begin",
+            "collection_phase_output_schema_contract_end",
+            OUTPUT_SCHEMA_LINES,
+        ),
+        (
+            "operational_collection_procedure_contract_begin",
+            "operational_collection_procedure_contract_end",
+            PROCEDURE_LINES,
+        ),
+    )
+    ranges: list[tuple[int, int]] = []
+    for begin, end, expected in specifications:
+        actual = contract_lines(source, begin, end)
+        if actual != expected:
+            raise ValueError("contract byte exactness " + begin)
+        ranges.append((lines.index(begin), lines.index(end)))
+    if ranges[0][1] >= ranges[1][0]:
+        raise ValueError("contract block order")
+    scoped = [
+        line
+        for index, line in enumerate(lines)
+        if not any(start <= index <= stop for start, stop in ranges)
+    ]
+    return "\n".join(scoped) + "\n"
 
 
 def require_document_value(source: str, key: str, expected: str) -> None:
+    try:
+        actual = marker(source, key)
+    except ValueError as error:
+        need(False, str(error))
+        return
+    need(actual == expected, "document marker " + key)
+
+
+def validate_document_negative_tests() -> None:
+    key = "current_collection_execution_authorized"
+    expected = "false"
+
+    def synthetic_document(
+        marker_lines: tuple[str, ...],
+        schema_lines: tuple[str, ...] = OUTPUT_SCHEMA_LINES,
+    ) -> str:
+        prefix = "\n".join(marker_lines)
+        if prefix:
+            prefix += "\n"
+        return (
+            prefix
+            + "collection_phase_output_schema_contract_begin\n\n~~~text\n"
+            + "\n".join(schema_lines)
+            + "\n~~~\n\ncollection_phase_output_schema_contract_end\n"
+            + "operational_collection_procedure_contract_begin\n\n~~~text\n"
+            + "\n".join(PROCEDURE_LINES)
+            + "\n~~~\n\noperational_collection_procedure_contract_end\n"
+        )
+
+    def case_passes(
+        marker_lines: tuple[str, ...],
+        schema_lines: tuple[str, ...] = OUTPUT_SCHEMA_LINES,
+    ) -> bool:
+        try:
+            scoped = document_marker_scope(synthetic_document(marker_lines, schema_lines))
+            return marker(scoped, key) == expected
+        except ValueError:
+            return False
+
+    cases = (
+        ("single expected value", (key + "=false",), True),
+        ("duplicate identical expected values", (key + "=false", key + "=false"), True),
+        ("missing value", (), False),
+        ("single wrong value", (key + "=true",), False),
+        ("expected then conflicting value", (key + "=false", key + "=true"), False),
+        ("conflicting then expected value", (key + "=true", key + "=false"), False),
+        ("unbound then bound value", (key + "=UNBOUND", key + "=false"), False),
+    )
+    for label, marker_lines, expected_result in cases:
+        need(case_passes(marker_lines) is expected_result, "negative test " + label)
+    contract_key = "collection_execution_authorized"
+    try:
+        contract_scope = document_marker_scope(
+            synthetic_document((contract_key + "=false",))
+        )
+        contract_scope_isolated = marker(contract_scope, contract_key) == "false"
+    except ValueError:
+        contract_scope_isolated = False
+    need(contract_scope_isolated, "negative test contract type marker scope isolation")
+    mutated_schema = tuple(
+        contract_key + "=true" if line == contract_key + "=boolean" else line
+        for line in OUTPUT_SCHEMA_LINES
+    )
     need(
-        source.splitlines().count(key + "=" + expected) >= 1,
-        "document marker " + key,
+        not case_passes((key + "=false",), mutated_schema),
+        "negative test contract block mutation",
     )
 
 
@@ -578,6 +704,11 @@ def validate_source_anchors() -> None:
 
 def validate_document() -> None:
     source = text(DOC)
+    try:
+        governed_source = document_marker_scope(source)
+    except ValueError as error:
+        need(False, str(error))
+        return
     required = {
         "stage_id": STAGE_ID,
         "substage": SUBSTAGE,
@@ -642,7 +773,7 @@ def validate_document() -> None:
         "sole_next_subject": NEXT_SUBJECT,
     }
     for key, expected in required.items():
-        require_document_value(source, key, expected)
+        require_document_value(governed_source, key, expected)
     source_hash_markers = {
         "source_authorization_review_main_sha256": SOURCE_REVIEW_HASHES[SOURCE_PREFIX + ".md"],
         "source_authorization_review_active_pointer_sha256": SOURCE_REVIEW_HASHES[SOURCE_PREFIX + "_ACTIVE_POINTER_V1.json"],
@@ -654,9 +785,9 @@ def validate_document() -> None:
         "source_authorization_review_validator_sha256": SOURCE_REVIEW_HASHES[SOURCE_VALIDATOR],
     }
     for key, expected in source_hash_markers.items():
-        require_document_value(source, key, expected)
+        require_document_value(governed_source, key, expected)
     for key in UNBOUND_FIELDS:
-        require_document_value(source, key, "UNBOUND")
+        require_document_value(governed_source, key, "UNBOUND")
     false_fields = (
         "current_collection_execution_authorized",
         "current_external_execution_authorized",
@@ -708,17 +839,31 @@ def validate_document() -> None:
         "proposed_future_cleanup_required_on_success_failure_or_ambiguity",
     )
     for key in false_fields:
-        require_document_value(source, key, "false")
+        require_document_value(governed_source, key, "false")
     for key in true_fields:
-        require_document_value(source, key, "true")
+        require_document_value(governed_source, key, "true")
     for key in EXECUTION_FALSE_FIELDS:
-        require_document_value(source, key, "false")
-    schema_block = "\n".join(OUTPUT_SCHEMA_LINES) + "\n"
-    procedure_block = "\n".join(PROCEDURE_LINES) + "\n"
+        require_document_value(governed_source, key, "false")
     need(contract_sha256(OUTPUT_SCHEMA_LINES) == OUTPUT_SCHEMA_SHA256, "validator output schema hash")
     need(contract_sha256(PROCEDURE_LINES) == PROCEDURE_SHA256, "validator procedure hash")
-    need(source.count(schema_block) == 1, "document exact collection phase output schema block")
-    need(source.count(procedure_block) == 1, "document exact operational collection procedure block")
+    need(
+        contract_lines(
+            source,
+            "collection_phase_output_schema_contract_begin",
+            "collection_phase_output_schema_contract_end",
+        )
+        == OUTPUT_SCHEMA_LINES,
+        "document exact collection phase output schema block",
+    )
+    need(
+        contract_lines(
+            source,
+            "operational_collection_procedure_contract_begin",
+            "operational_collection_procedure_contract_end",
+        )
+        == PROCEDURE_LINES,
+        "document exact operational collection procedure block",
+    )
 
 
 def validate_baseline_and_pointer() -> None:
@@ -1046,7 +1191,7 @@ def validate_manifest() -> None:
     need(CENTRAL not in {item["path"] for item in files}, "central manifest exclusion")
 
 
-def validate_central(introduction: str | None) -> None:
+def validate_central(effective_anchor: str | None) -> None:
     source = text(CENTRAL)
     assignments = literal_assignments(source)
     stem = "ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION"
@@ -1097,7 +1242,7 @@ def validate_central(introduction: str | None) -> None:
     )
     for line in required_outputs:
         need(source.count(line) >= 1, "central safety output " + line)
-    normalized = source if introduction is None else git_blob_text(introduction, CENTRAL)
+    normalized = source if effective_anchor is None else git_blob_text(effective_anchor, CENTRAL)
     for name in (stem + "_VALIDATOR_SHA256", stem + "_MANIFEST_SHA256"):
         pattern = (
             r"(" + re.escape(name) + r"\s*=\s*\(\s*[\"'])"
@@ -1131,13 +1276,14 @@ def main() -> int:
         "changed path sort",
     )
     need(path_sequence_sha256(EXPECTED_CHANGED_PATHS) == EXPECTED_PATH_SEQUENCE_SHA256, "changed path sequence hash")
-    introduction = introduction_commit()
+    effective_anchor = effective_package_anchor()
     validate_source_anchors()
+    validate_document_negative_tests()
     validate_document()
     validate_baseline_and_pointer()
     validate_csvs()
     validate_manifest()
-    validate_central(introduction)
+    validate_central(effective_anchor)
     validate_no_sensitive_material()
     print(PASS_MARKER)
     print("stage_id=" + STAGE_ID)
