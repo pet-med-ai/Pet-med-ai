@@ -1,0 +1,268 @@
+test_id,scenario,method,expected,status,decision_if_failed
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T001,canonical package static validation,dedicated validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T002,remote base commit mismatch,synthetic mutation,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T003,remote base tree mismatch,synthetic mutation,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T004,source PR or CI mismatch,synthetic mutation,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T005,head branch collision,synthetic repository,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T006,dirty anchored workspace,synthetic repository,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T007,path missing extra renamed or reordered,synthetic mutation,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T008,path sequence hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T009,changed path count not thirteen,synthetic mutation,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T010,manifest member count not eleven,synthetic mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T011,manifest includes itself,synthetic mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T012,manifest member byte hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T013,V4 protected record changed,repository diff,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T014,planned active runner path present,repository scan,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T015,active migration 0010 present,repository scan,HOLD,DESIGNED,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T016,V4 confirmation represented reusable,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T017,V4 attempt carried to V5,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T018,V5 live authority promoted by package,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T019,V5 current attempts nonzero,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T020,repository patch consumes attempt,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T021,target provider tuple canonical fixture,pure unit test,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T022,provider hostname uppercase alias,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T023,provider hostname one trailing dot alias,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T024,provider hostname repeated trailing dot,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T025,provider hostname empty label,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T026,provider hostname IP literal,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T027,provider hostname URI or credential form,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T028,provider hostname whitespace or control,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T029,provider hostname Unicode ambiguity,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T030,provider port leading zero sign or whitespace,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T031,provider port outside valid range,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T032,database identifier delimiter or control,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T033,target production identity collision,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T034,target staging identity collision,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T035,production staging identity collision,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T036,provider identity swapped with DB observed identity,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T037,target contract or service hash substituted for runtime identity,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T038,wrong Render service binding,synthetic provider,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T039,wrong TLS hostname port or database,synthetic connection,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T040,production endpoint connection attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T041,staging endpoint connection attempt,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T042,canonical empty manifest LF hash,pure unit test,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T043,empty manifest without final LF,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T044,manifest has one relation,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T045,manifest duplicate relation,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T046,manifest unexpected namespace or kind,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T047,manifest control Unicode or case ambiguity,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T048,manifest missing or extra structural field,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T049,manifest truncation marker,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T050,post restore hash populated in V5 result,synthetic result,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T051,post restore evidence true in V5 result,synthetic result,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T052,runtime binding complete true in V5 result,synthetic result,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T053,SRBE complete true in V5 result,synthetic result,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T054,evidence complete true in V5 result,synthetic result,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T055,valid exact runtime observation,manual schema check,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T056,runtime observation missing key,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T057,runtime observation extra key,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T058,runtime observation duplicate JSON key,strict JSON parser,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T059,runtime observation bool as integer or string,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T060,runtime observation uppercase short or sentinel hash,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T061,valid exact SUCCESS result,offline reviewer,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T062,valid exact HOLD result,offline reviewer,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T063,result satisfies both envelope branches,manual schema check,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T064,result satisfies neither envelope branch,manual schema check,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T065,SUCCESS missing extra or duplicate key,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T066,HOLD missing extra or duplicate key,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T067,SUCCESS provider hashes not pairwise distinct,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T068,SUCCESS digest binding swapped or colliding,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T069,SUCCESS live gate false,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T070,SUCCESS pre restore complete false,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T071,SUCCESS fixture only true,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T072,SUCCESS raw disclosed true,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T073,HOLD non enum error or stage code,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T074,HOLD arbitrary text field,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T075,HOLD runtime evidence emitted true,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T076,HOLD raw disclosed true,synthetic mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T077,canonical JSON order compactness and single LF,byte validator,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T078,multiple stdout objects or extra line,synthetic CLI,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T079,nonempty stderr on accepted result,synthetic CLI,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T080,NaN Infinity or invalid UTF8,strict JSON parser,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T081,secret canary in output,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T082,secret canary in exception stderr or log,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T083,secret canary digest used as error oracle,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T084,raw URL hostname database or relation canary,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T085,SQL DML statement,static SQL allowlist,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T086,SQL DDL statement,static SQL allowlist,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T087,SQL COPY CALL or DO statement,static SQL allowlist,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T088,SQL multiple statement,static SQL allowlist,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T089,SQL dynamic identifier,static SQL allowlist,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T090,SQL user table SELECT,static SQL allowlist,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T091,SQL stored or volatile function,static SQL allowlist,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T092,transaction read only disabled,synthetic database,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T093,search path not pg catalog,synthetic database,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T094,TLS verification disabled,synthetic connection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T095,timeout or rollback omitted,static adapter scan,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T096,attempt reservation before external call,synthetic ordering,PASS,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T097,external call before attempt reservation,synthetic ordering,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T098,concurrent attempt reservation,synthetic concurrency,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T099,restart with existing ledger,synthetic restart,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T100,partial or unreadable ledger,synthetic fault,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T101,attempt binding hash mismatch,synthetic mutation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T102,attempt ledger deletion or reuse,synthetic mutation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T103,fault before provider revalidation,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T104,fault after provider revalidation,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T105,target not AVAILABLE,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T106,target lifecycle over 72 hours,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T107,target attachments nonzero,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T108,target connections nonzero,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T109,initial allowlist nonempty,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T110,initial public access not blocked,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T111,allowlist value not one operator IPv4 slash32,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T112,allowlist add save count exceeds one,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T113,fault after allowlist add,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T114,allowlist recheck mismatch,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T115,fault after connection material access,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T116,fault after database connect,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T117,fault after readonly setup,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T118,fault after database identity,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T119,fault after schema manifest,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T120,database close failure,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T121,allowlist removal failure,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T122,allowlist remove save count exceeds one,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T123,final allowlist not empty,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T124,final public access not blocked,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T125,final network recheck ambiguous,phase fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T126,cleanup receipt not independently authenticated,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T127,instrumentation receipt not bound to execution,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T128,adapter source or import provenance mismatch,static reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T129,symlink or import injection,static reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T130,dry run emits exact HOLD and empty stderr,adapter CLI,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T131,self test emits exact HOLD and empty stderr,adapter CLI,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T132,reviewer self test uses only synthetic evidence,reviewer CLI,PASS,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T133,collect once without injected live ports,adapter CLI,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T134,repository validation performs network call,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T135,repository validation accesses credential,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T136,repository validation connects database,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T137,repository validation mutates allowlist,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T138,repository validation starts runner or restore,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T139,dedicated validator stderr nonempty,local validation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T140,central validator stderr nonempty,local validation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T141,post commit validator exit nonzero,local validation,HOLD,DESIGNED,HOLD_NO_PUSH
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T142,post commit dirty worktree,local validation,HOLD,DESIGNED,HOLD_NO_PUSH
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T143,push not fast forward or wrong branch,publication audit,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T144,push remote state ambiguous,publication audit,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T145,PR creation attempted,publication instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T146,merge attempted,publication instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T147,manual CI dispatch or retry attempted,publication instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T148,new live action before merge CI confirmation,action preflight,HOLD,DESIGNED,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T149,collect once without injected ports emits LIVE_PORTS_NOT_INJECTED,adapter CLI,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T150,repository CLI live flag or live file input,adapter CLI,HOLD,DESIGNED,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T151,Git commit OID not lowercase forty hex,synthetic authorization,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T152,Git tree OID mislabeled or supplied as SHA256,synthetic authorization,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T153,operator run ID hash missing malformed or sentinel,synthetic authorization,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T154,operator CIDR hash missing malformed or sentinel,synthetic authorization,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T155,raw operator run ID enters attempt binding,static adapter scan,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T156,raw operator CIDR enters attempt binding,static adapter scan,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T157,operator CIDR hash does not match in memory CIDR,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T158,expected target provider hash mismatch,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T159,expected production provider hash mismatch,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T160,expected staging provider hash mismatch,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T161,expected provider hashes swapped,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T162,provider pairwise distinct but not authorization equal,synthetic provider,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T163,missing package manifest binding,synthetic authorization,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T164,wrong execution harness binding,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T165,wrong Render port implementation binding,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T166,wrong database port implementation binding,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T167,wrong attempt ledger implementation binding,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T168,wrong cleanup supervisor binding,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T169,wrong runtime provenance implementation binding,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T170,wrong dependency set binding,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T171,wrong independent signer implementation binding,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T172,ledger and attestation key IDs equal,synthetic authorization,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T173,Attempt Binding V2 missing field or extra field,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T174,Attempt Binding V1 substituted,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T175,runtime provenance observation before ledger reservation,synthetic ordering,PASS,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T176,runtime provenance call after reservation,synthetic ordering,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T177,runtime provenance dirty worktree,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T178,runtime provenance wrong Git HEAD or tree,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T179,runtime provenance wrong invocation or import isolation,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T180,runtime provenance source schema procedure or manifest mismatch,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T181,runtime provenance receipt not bound to Attempt Binding V2,synthetic mutation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T182,public collection API accepts caller clock,signature scan,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T183,target timestamp stale future or clock ambiguous,pure unit test,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T184,runtime observation keys differ from SUCCESS minus outcome,schema validator,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T185,runtime observation not built before result wrapping,synthetic instrumentation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T186,ADAPTER state known not started with reserved true,schema mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T187,ADAPTER state consumed with consumed false,schema mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T188,ADAPTER state cleanup completed without final verification,schema mutation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T189,ADAPTER state final verified without cleanup required,schema mutation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T190,UNVERIFIED reviewer input not fixed conservative combo,schema mutation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T191,reviewer rejection falsely claims known not started,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T192,adapter output provenance not ADAPTER_STATE_MACHINE,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T193,independent attestation sidecar absent,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T194,independent attestation sidecar duplicate noncanonical or extra key,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T195,independent attestation HMAC tampered,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T196,independent attestation result observation hash mismatch,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T197,independent attestation replayed for different run or authorization,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T198,attestation key FD absent malformed or standard descriptor,synthetic anonymous pipe,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T199,attestation key FD is file TTY or socket,synthetic FD,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T200,attestation HMAC key short long zero or reused,synthetic anonymous pipe,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T201,attestation key ID mismatch,synthetic anonymous pipe,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T202,attestation key appears in argv env disk output or exception,secret canary,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T203,reviewer self test inherits live receipt or key variables,controlled environment,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T204,legacy independent receipt hash variables supplied,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T205,review file without absolute attestation file,reviewer CLI,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T206,TLS connect options evidence mismatch,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T207,TLS negotiated session evidence missing or invalid,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T208,peer endpoint evidence differs from target tuple,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T209,fixed SQL ordered trace missing extra repeated or reordered,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T210,ledger directory relative inside repo symlink or not owner private,synthetic filesystem,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T211,ledger record symlink hardlink FIFO device or wrong mode,synthetic filesystem,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T212,ledger HMAC invalid wrong key or wrong binding,synthetic ledger,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T213,ledger lock fsync or parent fsync ambiguity,fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T214,ledger state CAS stale receipt or sequence,fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T215,ledger next record remains after crash,subprocess kill test,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T216,ledger process restart attempts resume unlock reset or delete,synthetic restart,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T217,ledger concurrent reservation has more than one winner,multiprocess synthetic,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T218,external action lacks durable prior intent state,synthetic ordering,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T219,adapter process killed after allowlist add,subprocess kill test,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T220,adapter process killed after database connect,subprocess kill test,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T221,cleanup supervisor absent stale or implementation mismatch,synthetic supervisor,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T222,cleanup supervisor fails CIDR ownership proof,synthetic supervisor,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T223,cleanup supervisor removal or final recheck ambiguous,fault injection,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T224,anti rollback witness absent or stale,synthetic controller,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T225,one shot key issuer repeats key after restart,synthetic controller,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T226,merge CI and confirmation present but concrete B components absent,action preflight,HOLD,DESIGNED,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T227,live preflight missing any concrete component hash,action preflight,HOLD,DESIGNED,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T228,live preflight missing separate authenticated keys or witness,action preflight,HOLD,DESIGNED,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T229,live preflight HOLD performs any Render database credential or network call,synthetic instrumentation,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T230,SUCCESS not exact forty one fields,schema mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T231,runtime observation not exact forty fields,schema mutation,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T232,target connection V1 substituted for V2,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T233,target connection V2 runtime provenance omitted,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T234,TLS readonly V1 substituted for V2,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T235,TLS V2 connect timeout missing or not ten seconds,pure unit test,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T236,database execution evidence not exact nineteen fields,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T237,database execution evidence raw address emitted,secret and identifier canary,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T238,instrumentation binding not exact ten fields,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T239,instrumentation V1 substituted for V2,offline reviewer,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T240,supervisor armed receipt absent before allowlist add,synthetic ordering,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T241,supervisor final receipt absent after final network recheck,synthetic ordering,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T242,supervisor armed or final receipt not authenticated durable and attempt bound,offline reviewer,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T243,runtime provenance HMAC key ID absent malformed or sentinel,synthetic authorization,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T244,any two of ledger provenance and attestation key IDs equal,synthetic authorization,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T245,runtime provenance key FD absent standard descriptor file TTY or socket,synthetic FD,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T246,runtime provenance key short long or all zero,synthetic anonymous pipe,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T247,runtime provenance key ID mismatch,synthetic anonymous pipe,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T248,runtime provenance canonical record HMAC tampered or replayed,synthetic provenance,HOLD,DESIGNED,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T249,ledger reservation or external call before provenance HMAC verification,synthetic ordering,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T250,runtime provenance key remains in buffer argv environment disk or output,key canary,HOLD,DESIGNED,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T251,current repository CLI reads supplied runtime provenance key,controlled environment,HOLD,DESIGNED,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T252,CURRENT_MAIN_COMMIT_TREE_PR_AND_CI_ANCHORS_EXACT,repository anchor validation,PASS,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T253,HELD_DA4D347_NOT_REPLACEMENT_ANCESTOR,repository ancestry validation,PASS,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T254,CURRENT_V4_VALIDATOR_MANIFEST_AND_SIX_IMMUTABLE_MEMBERS_EXACT,protected byte hash validation,PASS,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T255,V4_OWNED_PROJECTION_PRESERVED_UNDER_V5_SUCCESSOR,pinned V4 projection validation,PASS,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T256,LEGITIMATE_V5_SUCCESSOR_NOT_COUNTED_AS_SECOND_V4_REPAIR,pinned V4 history validation,PASS,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T257,SUCCESSOR_COMMIT_MESSAGE_NO_TERMINAL_LF_ACCEPTED,pinned V4 synthetic validation,PASS,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T258,SUCCESSOR_COMMIT_MESSAGE_SINGLE_TERMINAL_LF_ACCEPTED,pinned V4 synthetic validation,PASS,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T259,MULTIPLE_TERMINAL_LF_REJECTED,pinned V4 synthetic mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T260,CR_CRLF_NUL_AND_INVALID_UTF8_REJECTED,pinned V4 synthetic mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T261,EXTRA_BODY_TRAILER_BOUNDARY_WHITESPACE_AND_CONTROL_REJECTED,pinned V4 synthetic mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T262,SECOND_V4_REPAIR_OR_IMMUTABLE_PACKAGE_MUTATION_REJECTED,pinned V4 history mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T263,UNAUTHORIZED_V4_CLOSURE_OR_PROJECTION_CHANGE_REJECTED,pinned V4 closure mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T264,V5_HOOK_ORDER_ISOLATION_ENVIRONMENT_AND_MARKER_VIOLATION_REJECTED,V5 AST projection mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T265,V5_MANIFEST_PIN_OR_OWNED_PROJECTION_MISMATCH_REJECTED,V5 closure mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T266,HISTORY_PARENT_TREE_PATH_SUBJECT_PARALLEL_PENDING_OR_HELD_ANCESTOR_AMBIGUITY_REJECTED,pinned V4 and V5 history mutation,HOLD,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-T267,TRANSPARENT_SUCCESSOR_PUBLICATION_MERGE_POSITIVE_CONTROL,pinned V4 synthetic validation,PASS,DESIGNED,HOLD_NO_COMMIT

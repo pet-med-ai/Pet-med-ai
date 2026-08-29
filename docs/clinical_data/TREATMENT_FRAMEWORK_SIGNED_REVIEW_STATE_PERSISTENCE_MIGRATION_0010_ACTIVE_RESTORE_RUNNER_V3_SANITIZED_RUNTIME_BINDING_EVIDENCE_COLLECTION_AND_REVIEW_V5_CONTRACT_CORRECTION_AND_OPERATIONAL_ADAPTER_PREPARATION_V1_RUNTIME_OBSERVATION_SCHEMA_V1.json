@@ -1,0 +1,178 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pmai:p0-04:srbe:v5:runtime-observation-schema:v1",
+  "title": "PMAI P0-04 SRBE V5 sanitized runtime observation",
+  "description": "Operative exact hash-and-boolean-only in-memory observation produced after a future separately authorized pre-restore read-only collection. Its required keys and property keys are exactly the SUCCESS result keys with outcome removed; the adapter must construct and validate this object before result wrapping, and the independent HMAC sidecar binds the SHA-256 of its exact canonical JSON line. Raw provider, database, schema, credential, connection, exception, and relation values are forbidden. Expected provider identities, runtime provenance, Attempt Binding V2, ledger state, TLS connect and negotiated session, endpoint, fixed SQL trace, instrumentation, cleanup, and final-network evidence are independently authenticated outside this object and cross-checked by the operational reviewer.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "adapter_contract_sha256",
+    "authorization_record_sha256",
+    "attempt_binding_sha256",
+    "attempt_ledger_receipt_sha256",
+    "runtime_provenance_observation_receipt_sha256",
+    "provider_observation_sha256",
+    "target_provider_identity_sha256",
+    "forbidden_production_provider_identity_sha256",
+    "forbidden_staging_provider_identity_sha256",
+    "database_observation_sha256",
+    "database_execution_evidence_sha256",
+    "fixed_sql_trace_sha256",
+    "target_database_observed_identity_sha256",
+    "target_connection_binding_sha256",
+    "tls_readonly_contract_sha256",
+    "pre_restore_schema_manifest_sha256",
+    "expected_pre_restore_schema_manifest_sha256",
+    "operational_collection_procedure_contract_sha256",
+    "reviewer_sha256",
+    "instrumentation_receipt_sha256",
+    "cleanup_receipt_sha256",
+    "cleanup_supervisor_armed_receipt_sha256",
+    "cleanup_supervisor_final_receipt_sha256",
+    "target_status_available",
+    "target_lifecycle_within_72h",
+    "target_application_attachment_count_zero",
+    "target_open_connection_count_zero",
+    "initial_inbound_ip_rule_set_empty",
+    "final_inbound_ip_rule_set_empty",
+    "public_external_access_blocked",
+    "collection_attempt_consumed",
+    "pre_restore_readonly_collection_complete",
+    "post_restore_schema_evidence_collected",
+    "runtime_binding_contract_complete",
+    "srbe_collection_evidence_complete",
+    "evidence_complete",
+    "raw_connection_values_disclosed",
+    "fixture_only",
+    "expected_post_restore_schema_manifest_sha256"
+  ],
+  "properties": {
+    "schema": {
+      "const": "PMAI_P0_04_SRBE_V5_SANITIZED_RUNTIME_OBSERVATION_V1"
+    },
+    "adapter_contract_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "authorization_record_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "attempt_binding_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "attempt_ledger_receipt_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "runtime_provenance_observation_receipt_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "provider_observation_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "target_provider_identity_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "forbidden_production_provider_identity_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "forbidden_staging_provider_identity_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "database_observation_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "database_execution_evidence_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "fixed_sql_trace_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "target_database_observed_identity_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "target_connection_binding_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "tls_readonly_contract_sha256": {
+      "const": "4f9afb65990161559a449bc2ceef49804e90c6da6583060cc35a3dffbca94129"
+    },
+    "pre_restore_schema_manifest_sha256": {
+      "const": "f87acbf36011fa8656e82f1cb6067614a59d019e32ea36781fe1dc2ceb4fc010"
+    },
+    "expected_pre_restore_schema_manifest_sha256": {
+      "const": "f87acbf36011fa8656e82f1cb6067614a59d019e32ea36781fe1dc2ceb4fc010"
+    },
+    "operational_collection_procedure_contract_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "reviewer_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "instrumentation_receipt_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "cleanup_receipt_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "cleanup_supervisor_armed_receipt_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "cleanup_supervisor_final_receipt_sha256": {
+      "$ref": "#/$defs/lowercaseSha256"
+    },
+    "target_status_available": {
+      "const": true
+    },
+    "target_lifecycle_within_72h": {
+      "const": true
+    },
+    "target_application_attachment_count_zero": {
+      "const": true
+    },
+    "target_open_connection_count_zero": {
+      "const": true
+    },
+    "initial_inbound_ip_rule_set_empty": {
+      "const": true
+    },
+    "final_inbound_ip_rule_set_empty": {
+      "const": true
+    },
+    "public_external_access_blocked": {
+      "const": true
+    },
+    "collection_attempt_consumed": {
+      "const": true
+    },
+    "pre_restore_readonly_collection_complete": {
+      "const": true
+    },
+    "post_restore_schema_evidence_collected": {
+      "const": false
+    },
+    "runtime_binding_contract_complete": {
+      "const": false
+    },
+    "srbe_collection_evidence_complete": {
+      "const": false
+    },
+    "evidence_complete": {
+      "const": false
+    },
+    "raw_connection_values_disclosed": {
+      "const": false
+    },
+    "fixture_only": {
+      "const": false
+    },
+    "expected_post_restore_schema_manifest_sha256": {
+      "const": "UNBOUND"
+    }
+  },
+  "$defs": {
+    "lowercaseSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

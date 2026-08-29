@@ -13,6 +13,16 @@ SRBE_V4_SANITIZED_CHILD_ENV_ITEMS = (
     ("LC_ALL", "C"),
     ("PATH", "/usr/local/bin:/usr/bin:/bin"),
 )
+SRBE_V5_SANITIZED_CHILD_ENV_ITEMS = (
+    ("GIT_CONFIG_GLOBAL", "/dev/null"),
+    ("GIT_CONFIG_NOSYSTEM", "1"),
+    ("GIT_NO_REPLACE_OBJECTS", "1"),
+    ("GIT_OPTIONAL_LOCKS", "0"),
+    ("GIT_TERMINAL_PROMPT", "0"),
+    ("LANG", "C"),
+    ("LC_ALL", "C"),
+    ("PATH", "/usr/local/bin:/usr/bin:/bin"),
+)
 HOLD = 'HOLD_PMAI_P0_04_PENDING_DISPOSABLE_TARGET_PROVISIONING_RESTORE_REHEARSAL_AND_EXTERNAL_EVIDENCE'
 COMPLETENESS = 'PENDING_DISPOSABLE_TARGET_PROVISIONING_RESTORE_REHEARSAL_AND_EXTERNAL_EXECUTION'
 CURRENT_HOLD = (
@@ -65,6 +75,21 @@ SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_COMPLETENESS = (
 SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_NEXT_STEP = (
     'CONFIRM_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_'
     'COLLECTION_AND_REVIEW_V4_CONTROLLED_EXECUTION_V1'
+)
+SRBE_V5_CONTRACT_ADAPTER_PREPARATION_EFFECTIVE_CURRENT_HOLD = (
+    'HOLD_PMAI_P0_04_PENDING_V5_PREPARATION_PUBLICATION_AND_SEPARATELY_'
+    'HASH_LOCKED_LIVE_HARNESS_PORTS_LEDGER_SUPERVISOR_ATTESTATION_AND_'
+    'NEW_SINGLE_USE_CONFIRMATION'
+)
+SRBE_V5_CONTRACT_ADAPTER_PREPARATION_EFFECTIVE_CURRENT_COMPLETENESS = (
+    'V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_COMPLETE_'
+    'PENDING_PUBLICATION_POSTMERGE_CI_CONCRETE_LIVE_BOUNDARIES_AND_NEW_'
+    'SINGLE_USE_LIVE_CONFIRMATION'
+)
+SRBE_V5_CONTRACT_ADAPTER_PREPARATION_EFFECTIVE_CURRENT_NEXT_STEP = (
+    'PUBLISH_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_'
+    'THEN_PREPARE_SEPARATELY_AUTHORIZED_HASH_LOCKED_LIVE_HARNESS_PORTS_'
+    'LEDGER_SUPERVISOR_AND_ATTESTATION_ORIGIN'
 )
 DOC = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_V1.md'
 CHECKLIST = 'docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_STAGING_MIGRATION_APPLY_CHECKLIST_V1.csv'
@@ -201,6 +226,28 @@ ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIE
 ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_PASS_MARKER = (
     "active_restore_runner_v3_sanitized_runtime_binding_evidence_"
     "collection_and_review_v4_execution_authorization=PASS"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_VALIDATOR = (
+    "scripts/validate_treatment_framework_signed_review_state_persistence_"
+    "migration_0010_active_restore_runner_v3_sanitized_runtime_binding_"
+    "evidence_collection_and_review_v5_contract_correction_and_operational_"
+    "adapter_preparation_v1.py"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_VALIDATOR_SHA256 = (
+    "80c64646de57bcca87dfeffc967547a30a3bd4d3b13ca89caa30c0aeb73af7ca"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_MANIFEST = (
+    "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_"
+    "MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_"
+    "EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_"
+    "ADAPTER_PREPARATION_V1_PACKAGE_MANIFEST_V1.json"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_MANIFEST_SHA256 = (
+    "2b4e3fa201a7ef2b8d47a81e37c138fcc91e5c4599967405e708ea87af3f2a5f"
+)
+ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_PASS_MARKER = (
+    "active_restore_runner_v3_sanitized_runtime_binding_evidence_collection_"
+    "and_review_v5_contract_correction_and_operational_adapter_preparation=PASS"
 )
 CI = 'scripts/ci_static_checks.sh'
 SMOKE = 'scripts/smoke_petmed.sh'
@@ -983,6 +1030,68 @@ def main():
     )
     print(ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_PASS_MARKER)
     # <<< pmai_p0_04_v4_execution_authorization_integration_owned_v1
+    # >>> pmai_p0_04_v5_contract_adapter_preparation_integration_owned_v1
+    srbe_v5_adapter_preparation_validator_path = (
+        ROOT
+        / ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_VALIDATOR
+    )
+    need(
+        srbe_v5_adapter_preparation_validator_path.is_file()
+        and not srbe_v5_adapter_preparation_validator_path.is_symlink(),
+        "missing or unsafe V5 SRBE contract-correction/adapter-preparation validator",
+    )
+    need(
+        hashlib.sha256(srbe_v5_adapter_preparation_validator_path.read_bytes()).hexdigest()
+        == ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_VALIDATOR_SHA256,
+        "protected hash V5 SRBE contract-correction/adapter-preparation validator",
+    )
+    srbe_v5_adapter_preparation_manifest_path = (
+        ROOT
+        / ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_MANIFEST
+    )
+    need(
+        srbe_v5_adapter_preparation_manifest_path.is_file()
+        and not srbe_v5_adapter_preparation_manifest_path.is_symlink(),
+        "missing or unsafe V5 SRBE contract-correction/adapter-preparation manifest",
+    )
+    need(
+        hashlib.sha256(srbe_v5_adapter_preparation_manifest_path.read_bytes()).hexdigest()
+        == ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_MANIFEST_SHA256,
+        "protected hash V5 SRBE contract-correction/adapter-preparation manifest",
+    )
+    srbe_v5_adapter_preparation_result = subprocess.run(
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            str(srbe_v5_adapter_preparation_validator_path),
+        ],
+        cwd=ROOT,
+        env=dict(SRBE_V5_SANITIZED_CHILD_ENV_ITEMS),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        timeout=120,
+        check=False,
+    )
+    need(
+        srbe_v5_adapter_preparation_result.returncode == 0,
+        "V5 SRBE contract-correction/adapter-preparation validator exit",
+    )
+    need(
+        srbe_v5_adapter_preparation_result.stderr == "",
+        "V5 SRBE contract-correction/adapter-preparation validator stderr",
+    )
+    need(
+        srbe_v5_adapter_preparation_result.stdout.splitlines().count(
+            ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_PASS_MARKER
+        )
+        == 1,
+        "V5 SRBE contract-correction/adapter-preparation validator PASS marker",
+    )
+    print(ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_PASS_MARKER)
+    # <<< pmai_p0_04_v5_contract_adapter_preparation_integration_owned_v1
     if args.require_complete:
         print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; SRBE collection/review runtime bindings and restore rehearsal are incomplete", file=sys.stderr)
         return 1
@@ -1020,6 +1129,28 @@ def main():
         "srbe_execution_authorization_effective_evidence_completeness=" + SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_COMPLETENESS,
         "srbe_execution_authorization_effective_decision=" + SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_HOLD,
         "srbe_execution_authorization_effective_next_step=" + SRBE_EXECUTION_AUTHORIZATION_EFFECTIVE_CURRENT_NEXT_STEP,
+        # >>> pmai_p0_04_v5_contract_adapter_preparation_output_owned_v1
+        "v4_controlled_execution_confirmation_superseded=true",
+        "v4_collection_attempts_consumed=0",
+        "v5_contract_correction_and_operational_adapter_preparation_complete=true",
+        "v5_live_execution_authorized=false",
+        "v5_current_attempts_authorized=0",
+        "repository_patch_consumes_no_collection_attempt=true",
+        "v5_live_preconditions_complete=false",
+        "v5_execution_harness_present=false",
+        "v5_concrete_render_port_present=false",
+        "v5_concrete_database_port_present=false",
+        "v5_authenticated_attempt_ledger_present=false",
+        "v5_crash_safe_cleanup_supervisor_present=false",
+        "v5_independent_attestation_origin_present=false",
+        "render_access=false",
+        "database_connection=false",
+        "credential_access=false",
+        "allowlist_mutation_execution=false",
+        "srbe_v5_contract_adapter_preparation_effective_evidence_completeness=" + SRBE_V5_CONTRACT_ADAPTER_PREPARATION_EFFECTIVE_CURRENT_COMPLETENESS,
+        "srbe_v5_contract_adapter_preparation_effective_decision=" + SRBE_V5_CONTRACT_ADAPTER_PREPARATION_EFFECTIVE_CURRENT_HOLD,
+        "srbe_v5_contract_adapter_preparation_effective_next_step=" + SRBE_V5_CONTRACT_ADAPTER_PREPARATION_EFFECTIVE_CURRENT_NEXT_STEP,
+        # <<< pmai_p0_04_v5_contract_adapter_preparation_output_owned_v1
         "ALL PASS: PMAI-P0-04 V4 target provisioned and network locked governance",
     ): print(line)
     return 0

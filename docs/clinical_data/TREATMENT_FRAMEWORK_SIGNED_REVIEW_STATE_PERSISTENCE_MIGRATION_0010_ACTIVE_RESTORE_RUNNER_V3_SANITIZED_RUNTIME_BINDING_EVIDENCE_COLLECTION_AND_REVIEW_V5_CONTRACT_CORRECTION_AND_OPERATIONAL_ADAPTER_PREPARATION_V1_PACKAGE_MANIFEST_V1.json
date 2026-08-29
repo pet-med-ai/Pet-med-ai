@@ -1,0 +1,97 @@
+{
+  "schema": "PMAI_P0_04_ACTIVE_RESTORE_RUNNER_V3_SRBE_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_PACKAGE_MANIFEST_V1",
+  "stage_id": "PMAI-P0-04",
+  "substage": "ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_V1",
+  "repository": "pet-med-ai/Pet-med-ai",
+  "replacement_revision": 2,
+  "package_record_id": "PMAI-P0-04-ARR-V3-SRBE-V5-CONTRACT-ADAPTER-PREP-REPLACEMENT-V2-20260829",
+  "package_record_id_sha256": "d265596288da1729bcc428349d4491d1c87fbc02a03224281d2bcc0fd42b65ae",
+  "package_recorded_date": "2026-08-29",
+  "authorization_id": "PMAI_P0_04_ACTIVE_RESTORE_RUNNER_V3_SRBE_V5_POST_V4_COMPATIBILITY_MERGE_REPLACEMENT_REBUILD_EXACT_13_PATH_REPOSITORY_PATCH_CONTROLLED_EXECUTION_V1",
+  "authorization_id_sha256": "395d54b50459a7c392263fe4fe69bbd280ba272cc64c1be6e003e18dd498f253",
+  "base_commit": "19327dd0c1c5141d391716d6844f230ec35efa6a",
+  "base_tree_sha": "1c1a4cd8053b47107d47a9df3b281d1bac487e78",
+  "source_pull_request": 21,
+  "base_github_ci_run_id": 33245499297,
+  "base_github_ci_run_number": 230,
+  "base_github_ci_status": "PASS",
+  "base_github_ci_event": "push",
+  "base_github_ci_run_attempt": 1,
+  "base_github_ci_terminal_status": "completed",
+  "base_github_ci_conclusion": "success",
+  "base_central_validator_sha256": "48f23d4f0a14ba883bd1e9696ec09ec424f91e9de6305ec75583c4da02816936",
+  "head_branch": "pmai-p0-04-arr-v3-srbe-v5-operational-adapter-prep-v2",
+  "commit_message": "PMAI-P0-04: Rebuild V5 SRBE operational adapter",
+  "current_v4_validator_sha256": "75db3110bb2996a186ebe42c8e78985972ed37b6a1f775041d7dc9ef399be2c9",
+  "current_v4_manifest_sha256": "6b95631a2adc707707e55af68045c47440a2ca0fd3b8fd75c20e8d24a3ca9362",
+  "current_v4_owned_central_projection_sha256": "be245ca676bc7b57aac2db164ac49bf2e7593834c7cdd63f4fe33faaf0c0fd21",
+  "central_v5_owned_projection_sha256": "c0687e3d16fe2fc16f625f8ff027d0b66541281801e9134454db0f10cb2384ad",
+  "held_v5_commit": "da4d347066c464b0ad8799acc9a26802469488ed",
+  "held_v5_tree": "e55fa46f65562a82c44f4bc5524d45dcb4f5bd49",
+  "held_v5_commit_must_not_be_replacement_ancestor": true,
+  "authorized_changed_path_count": 13,
+  "authorized_changed_path_sequence_sha256": "59e58e5f3511fe8f666b3f9391d61a1814b140b4f73e4d437c5816ef97042a31",
+  "package_path_count": 12,
+  "manifest_member_count": 11,
+  "manifest_self_excluded": true,
+  "ci_static_checks_changed": false,
+  "smoke_petmed_changed": false,
+  "github_workflow_changed": false,
+  "files": [
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_V1.md",
+      "bytes": 37501,
+      "sha256": "670c3d06887e6382374be918362c069b9b07e4bbbfc1dfc89eca39433daa960b"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_V1_ACTIVE_POINTER_V1.json",
+      "bytes": 4895,
+      "sha256": "05944e2b503b2cb194ebbff7c910033b5495e834256e88fa51b60f1268cd7b4e"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_V1_CHECKLIST_V1.csv",
+      "bytes": 14948,
+      "sha256": "ca3af08d9dca4191eac3c9c71c38af41d6e2b493e251d5b5636dbd8487d4c2f8"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_V1_GO_NO_GO_V1.csv",
+      "bytes": 8044,
+      "sha256": "b4bf229f05082daa2b5be6be7e0f7a5b46f6b7d88670d6c756f32d8970fea485"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_V1_LOCKED_BASELINE_V1.json",
+      "bytes": 16496,
+      "sha256": "b7c8047f9ade7b0e7b57e2902c9f802c70fac22ff62c4d69054bd209e6ed1f8a"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_V1_RUNTIME_OBSERVATION_SCHEMA_V1.json",
+      "bytes": 6140,
+      "sha256": "de1de37b6479baf5fde48812eb23ce57766f34e696ab103cefd7617c607c7dab"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_V1_SANITIZED_RESULT_SCHEMA_V1.json",
+      "bytes": 15462,
+      "sha256": "9efd2c3b8261a5141e7af3f16ab0099312dc6e564fa48c376c70582a067c3850"
+    },
+    {
+      "path": "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_MIGRATION_0010_ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V5_CONTRACT_CORRECTION_AND_OPERATIONAL_ADAPTER_PREPARATION_V1_TEST_MATRIX_V1.csv",
+      "bytes": 32232,
+      "sha256": "76fd61e810f0e645eaa88d1588fcfcf6c71df7ffe4babb53e11969277cb6a643"
+    },
+    {
+      "path": "scripts/collect_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_sanitized_runtime_binding_evidence_collection_and_review_v5_operational_adapter_v1.py",
+      "bytes": 143392,
+      "sha256": "8925ab01c0ac06398f659fecf3cc72de2f309eff4fe9be35ea19edf3ac9cf980"
+    },
+    {
+      "path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_sanitized_runtime_binding_evidence_collection_and_review_v5_contract_correction_and_operational_adapter_preparation_v1.py",
+      "bytes": 87516,
+      "sha256": "80c64646de57bcca87dfeffc967547a30a3bd4d3b13ca89caa30c0aeb73af7ca"
+    },
+    {
+      "path": "scripts/validate_treatment_framework_signed_review_state_persistence_migration_0010_active_restore_runner_v3_sanitized_runtime_binding_evidence_review_v5_operational_v1.py",
+      "bytes": 56775,
+      "sha256": "915302e6fb3fa1f88d3ec4db5d68c622458abdd66243e59742de9c548dafb0af"
+    }
+  ]
+}
