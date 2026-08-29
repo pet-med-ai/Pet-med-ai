@@ -3,6 +3,16 @@
 import argparse, ast, csv, glob, hashlib, re, subprocess, sys
 from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
+SRBE_V4_SANITIZED_CHILD_ENV_ITEMS = (
+    ("GIT_CONFIG_GLOBAL", "/dev/null"),
+    ("GIT_CONFIG_NOSYSTEM", "1"),
+    ("GIT_NO_REPLACE_OBJECTS", "1"),
+    ("GIT_OPTIONAL_LOCKS", "0"),
+    ("GIT_TERMINAL_PROMPT", "0"),
+    ("LANG", "C"),
+    ("LC_ALL", "C"),
+    ("PATH", "/usr/local/bin:/usr/bin:/bin"),
+)
 HOLD = 'HOLD_PMAI_P0_04_PENDING_DISPOSABLE_TARGET_PROVISIONING_RESTORE_REHEARSAL_AND_EXTERNAL_EVIDENCE'
 COMPLETENESS = 'PENDING_DISPOSABLE_TARGET_PROVISIONING_RESTORE_REHEARSAL_AND_EXTERNAL_EXECUTION'
 CURRENT_HOLD = (
@@ -177,7 +187,7 @@ ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIE
     "evidence_collection_and_review_v4_execution_authorization_v1.py"
 )
 ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_VALIDATOR_SHA256 = (
-    "d10bfa15ee12d137f21da2d4a1f21d96c5be2378c4a112cc29e1eee421bb4785"
+    "75db3110bb2996a186ebe42c8e78985972ed37b6a1f775041d7dc9ef399be2c9"
 )
 ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_MANIFEST = (
     "docs/clinical_data/TREATMENT_FRAMEWORK_SIGNED_REVIEW_STATE_PERSISTENCE_"
@@ -186,7 +196,7 @@ ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIE
     "MANIFEST_V1.json"
 )
 ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_MANIFEST_SHA256 = (
-    "fc6e579f3842a0eef1502a290d3b54a9f267328aacbeb1c4a03311bbceb05768"
+    "6b95631a2adc707707e55af68045c47440a2ca0fd3b8fd75c20e8d24a3ca9362"
 )
 ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_PASS_MARKER = (
     "active_restore_runner_v3_sanitized_runtime_binding_evidence_"
@@ -912,6 +922,7 @@ def main():
         "V4 runner/SRBE rebind authorization review validator PASS marker",
     )
     print(ACTIVE_RESTORE_RUNNER_V3_ACTIVATION_AND_SRBE_CONTRACT_REBIND_V4_AUTHORIZATION_REVIEW_PASS_MARKER)
+    # >>> pmai_p0_04_v4_execution_authorization_integration_owned_v1
     srbe_v4_execution_authorization_validator_path = (
         ROOT
         / ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_VALIDATOR
@@ -941,8 +952,14 @@ def main():
         "protected hash V4 SRBE collection/review execution authorization manifest",
     )
     srbe_v4_execution_authorization_result = subprocess.run(
-        [sys.executable, "-B", str(srbe_v4_execution_authorization_validator_path)],
+        [
+            sys.executable,
+            "-I",
+            "-B",
+            str(srbe_v4_execution_authorization_validator_path),
+        ],
         cwd=ROOT,
+        env=dict(SRBE_V4_SANITIZED_CHILD_ENV_ITEMS),
         stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -965,6 +982,7 @@ def main():
         "V4 SRBE collection/review execution authorization validator PASS marker",
     )
     print(ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_PASS_MARKER)
+    # <<< pmai_p0_04_v4_execution_authorization_integration_owned_v1
     if args.require_complete:
         print("NO-GO: PMAI-P0-04 remains IN_PROGRESS; SRBE collection/review runtime bindings and restore rehearsal are incomplete", file=sys.stderr)
         return 1
