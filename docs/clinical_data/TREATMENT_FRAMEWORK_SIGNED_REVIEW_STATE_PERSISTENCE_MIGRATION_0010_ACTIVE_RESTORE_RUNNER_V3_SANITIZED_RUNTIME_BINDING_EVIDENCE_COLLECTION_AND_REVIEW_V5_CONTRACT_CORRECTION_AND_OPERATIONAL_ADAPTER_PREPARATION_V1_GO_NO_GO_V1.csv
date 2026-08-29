@@ -1,0 +1,74 @@
+gate_id,gate,required,current,status,decision_if_failed
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G001,repository base anchor exact,true,true,PASS,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G002,source CI Gate 230 PASS,true,true,PASS,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G003,exact isolated branch,true,true,PASS,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G004,exact thirteen path scope,true,true,PASS,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G005,path sequence SHA exact,true,true,PASS,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G006,six immutable V4 package members plus current validator and manifest byte exact,true,true,PASS,HOLD_NO_WRITE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G007,V4 action superseded and unconsumed,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G008,V5 live authority absent,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G009,current V5 attempt authority zero,0,0,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G010,provider identities one canonical domain,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G011,database observed identity separate,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G012,cross domain identity substitution forbidden,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G013,provider identity pairwise separation enforced,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G014,empty structural manifest hash exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G015,post restore hash remains UNBOUND,UNBOUND,UNBOUND,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G016,success limited to pre restore readonly collection,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G017,post restore SRBE runtime and evidence remain incomplete,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G018,runtime observation schema strict,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G019,result envelopes mutually exclusive,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G020,failure codes fixed and public,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G021,raw and free text output prohibited,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G022,arbitrary secret derived hashes prohibited,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G023,future durable attempt reservation pre external,true,true,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G024,future attempt ledger uncertainty fail closed,true,true,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G025,adapter fixed SQL and readonly controls,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G026,adapter TLS verify full and endpoint binding,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G027,adapter catalog metadata only,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G028,database writes and table rows prohibited,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G029,outermost finally cleanup contract,true,true,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G030,independent final network recheck required,true,true,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G031,independent instrumentation and cleanup review required,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G032,synthetic tests mock all external effects,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G033,live adapter execution by patch,false,false,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G034,Render or database access by patch,false,false,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G035,credential or allowlist access by patch,false,false,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G036,runner restore migration deploy delete by patch,false,false,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G037,package manifest closure,true,PENDING,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G038,dedicated validator passes,true,PENDING,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G039,adapter and reviewer offline self tests pass,true,PENDING,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G040,central validator passes,true,PENDING,DESIGNED,HOLD_NO_COMMIT
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G041,post commit clean validation exit zero,true,PENDING,DESIGNED,HOLD_NO_PUSH
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G042,repository push authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G043,pull request authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G044,merge authority,false,false,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G045,current repository package decision,STATIC_PREPARATION_ONLY,STATIC_PREPARATION_ONLY,PASS,HOLD_LIVE
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G046,future live decision before new merge CI confirmation,HOLD,HOLD,PASS,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G047,repository CLI exposes live mode,false,false,PASS,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G048,merge CI and new confirmation alone permit live,false,false,PASS,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G049,Attempt Binding V2 locks operator Git manifest and all concrete implementations,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G050,expected target production staging provider hashes authorization bound,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G051,runtime provenance independently observed before reservation,true,true,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G052,operative runtime observation exact SUCCESS minus outcome,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G053,HOLD attempt state and provenance invariants schema encoded,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G054,unverified reviewer state conservatively uncertain and consumed,true,true,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G055,independent HMAC sidecar over complete runtime evidence,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G056,independent HMAC key anonymous FD and separate key ID,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G057,TLS connect negotiated endpoint and fixed SQL evidence required,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G058,future concrete Render port available,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G059,future concrete database port available,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G060,future credential broker and execution harness available,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G061,future authenticated ledger deployed and hash locked,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G062,future independent signer deployed and hash locked,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G063,future crash safe cleanup supervisor deployed and hash locked,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G064,future runtime provenance and dependency set hash locked,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G065,future independent ledger runtime provenance and attestation keys provisioned,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G066,future external anti rollback witness durably grants once,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G067,future kill restart and filesystem fault tests pass,true,false,HOLD_LIVE,HOLD_NO_LIVE_EXECUTION
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G068,V2 TLS target connection database execution and instrumentation contracts exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G069,SUCCESS has forty one fields and runtime observation has forty,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G070,success binds supervisor armed and final receipts,true,true,PASS,HOLD_NO_RETRY
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G071,runtime provenance HMAC key authorization and Attempt Binding V2 field exact,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G072,three independent HMAC key IDs pairwise distinct,true,true,PASS,HOLD
+PMAI-P0-04-ARR-V3-SRBE-V5-PREP-G073,current repository reads no runtime provenance key,true,true,PASS,HOLD_NO_LIVE_EXECUTION

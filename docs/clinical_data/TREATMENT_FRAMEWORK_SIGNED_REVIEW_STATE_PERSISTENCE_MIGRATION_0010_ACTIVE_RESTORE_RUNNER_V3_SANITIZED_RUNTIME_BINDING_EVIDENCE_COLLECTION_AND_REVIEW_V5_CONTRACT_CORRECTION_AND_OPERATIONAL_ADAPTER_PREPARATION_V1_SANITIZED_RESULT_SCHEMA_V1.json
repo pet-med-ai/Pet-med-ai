@@ -1,0 +1,485 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:pmai:p0-04:srbe:v5:sanitized-result-schema:v1",
+  "title": "PMAI P0-04 SRBE V5 sanitized collection result",
+  "description": "Mutually exclusive sanitized SUCCESS and HOLD envelopes. SUCCESS wraps the exact operative runtime observation; HOLD includes explicit attempt-state provenance and uses a fixed conservative state for unauthenticated reviewer input. No raw provider, database, schema, credential, connection, exception, traceback, response-body, or relation value is permitted.",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/successEnvelope"
+    },
+    {
+      "$ref": "#/$defs/holdEnvelope"
+    }
+  ],
+  "$defs": {
+    "lowercaseSha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "successEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "outcome",
+        "adapter_contract_sha256",
+        "authorization_record_sha256",
+        "attempt_binding_sha256",
+        "attempt_ledger_receipt_sha256",
+        "runtime_provenance_observation_receipt_sha256",
+        "provider_observation_sha256",
+        "target_provider_identity_sha256",
+        "forbidden_production_provider_identity_sha256",
+        "forbidden_staging_provider_identity_sha256",
+        "database_observation_sha256",
+        "database_execution_evidence_sha256",
+        "fixed_sql_trace_sha256",
+        "target_database_observed_identity_sha256",
+        "target_connection_binding_sha256",
+        "tls_readonly_contract_sha256",
+        "pre_restore_schema_manifest_sha256",
+        "expected_pre_restore_schema_manifest_sha256",
+        "operational_collection_procedure_contract_sha256",
+        "reviewer_sha256",
+        "instrumentation_receipt_sha256",
+        "cleanup_receipt_sha256",
+        "cleanup_supervisor_armed_receipt_sha256",
+        "cleanup_supervisor_final_receipt_sha256",
+        "target_status_available",
+        "target_lifecycle_within_72h",
+        "target_application_attachment_count_zero",
+        "target_open_connection_count_zero",
+        "initial_inbound_ip_rule_set_empty",
+        "final_inbound_ip_rule_set_empty",
+        "public_external_access_blocked",
+        "collection_attempt_consumed",
+        "pre_restore_readonly_collection_complete",
+        "post_restore_schema_evidence_collected",
+        "runtime_binding_contract_complete",
+        "srbe_collection_evidence_complete",
+        "evidence_complete",
+        "raw_connection_values_disclosed",
+        "fixture_only",
+        "expected_post_restore_schema_manifest_sha256"
+      ],
+      "properties": {
+        "schema": {
+          "const": "PMAI_P0_04_SRBE_V5_SANITIZED_COLLECTION_RESULT_V1"
+        },
+        "outcome": {
+          "const": "SUCCESS"
+        },
+        "adapter_contract_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "authorization_record_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "attempt_binding_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "attempt_ledger_receipt_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "runtime_provenance_observation_receipt_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "provider_observation_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "target_provider_identity_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "forbidden_production_provider_identity_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "forbidden_staging_provider_identity_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "database_observation_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "database_execution_evidence_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "fixed_sql_trace_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "target_database_observed_identity_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "target_connection_binding_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "tls_readonly_contract_sha256": {
+          "const": "4f9afb65990161559a449bc2ceef49804e90c6da6583060cc35a3dffbca94129"
+        },
+        "pre_restore_schema_manifest_sha256": {
+          "const": "f87acbf36011fa8656e82f1cb6067614a59d019e32ea36781fe1dc2ceb4fc010"
+        },
+        "expected_pre_restore_schema_manifest_sha256": {
+          "const": "f87acbf36011fa8656e82f1cb6067614a59d019e32ea36781fe1dc2ceb4fc010"
+        },
+        "operational_collection_procedure_contract_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "reviewer_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "instrumentation_receipt_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "cleanup_receipt_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "cleanup_supervisor_armed_receipt_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "cleanup_supervisor_final_receipt_sha256": {
+          "$ref": "#/$defs/lowercaseSha256"
+        },
+        "target_status_available": {
+          "const": true
+        },
+        "target_lifecycle_within_72h": {
+          "const": true
+        },
+        "target_application_attachment_count_zero": {
+          "const": true
+        },
+        "target_open_connection_count_zero": {
+          "const": true
+        },
+        "initial_inbound_ip_rule_set_empty": {
+          "const": true
+        },
+        "final_inbound_ip_rule_set_empty": {
+          "const": true
+        },
+        "public_external_access_blocked": {
+          "const": true
+        },
+        "collection_attempt_consumed": {
+          "const": true
+        },
+        "pre_restore_readonly_collection_complete": {
+          "const": true
+        },
+        "post_restore_schema_evidence_collected": {
+          "const": false
+        },
+        "runtime_binding_contract_complete": {
+          "const": false
+        },
+        "srbe_collection_evidence_complete": {
+          "const": false
+        },
+        "evidence_complete": {
+          "const": false
+        },
+        "raw_connection_values_disclosed": {
+          "const": false
+        },
+        "fixture_only": {
+          "const": false
+        },
+        "expected_post_restore_schema_manifest_sha256": {
+          "const": "UNBOUND"
+        }
+      }
+    },
+    "holdEnvelope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "outcome",
+        "error_code",
+        "stage_code",
+        "hold",
+        "attempt_state",
+        "state_provenance",
+        "attempt_reserved",
+        "collection_attempt_consumed",
+        "cleanup_required",
+        "cleanup_completed",
+        "final_network_state_verified",
+        "runtime_evidence_emitted",
+        "raw_connection_values_disclosed"
+      ],
+      "properties": {
+        "schema": {
+          "const": "PMAI_P0_04_SRBE_V5_SANITIZED_COLLECTION_RESULT_V1"
+        },
+        "outcome": {
+          "const": "HOLD"
+        },
+        "error_code": {
+          "enum": [
+            "ARGUMENT_CONTRACT_MISMATCH",
+            "LIVE_PORTS_NOT_INJECTED",
+            "AUTHORIZATION_INVALID",
+            "AUTHORIZATION_BINDING_MISMATCH",
+            "ATTEMPT_LEDGER_UNAVAILABLE",
+            "LEDGER_AUTHENTICATION_FAILED",
+            "ATTEMPT_ALREADY_CONSUMED",
+            "ATTEMPT_LEDGER_UNCERTAIN",
+            "TARGET_NOT_AVAILABLE",
+            "TARGET_TOO_OLD",
+            "TARGET_ATTACHMENTS_NONZERO",
+            "TARGET_CONNECTIONS_NONZERO",
+            "INITIAL_ALLOWLIST_NOT_EMPTY",
+            "PUBLIC_ACCESS_NOT_BLOCKED",
+            "IDENTITY_DOMAIN_MISMATCH",
+            "IDENTITY_SEPARATION_FAILED",
+            "RUNTIME_PROVENANCE_INVALID",
+            "RUNTIME_PROVENANCE_UNAVAILABLE",
+            "RUNTIME_COMPONENT_BINDING_MISMATCH",
+            "PORT_IMPLEMENTATION_UNBOUND",
+            "ALLOWLIST_ADD_FAILED",
+            "ALLOWLIST_RECHECK_FAILED",
+            "CONNECTION_MATERIAL_INVALID",
+            "DATABASE_CONNECT_FAILED",
+            "DATABASE_READONLY_CONTRACT_FAILED",
+            "TLS_EVIDENCE_INVALID",
+            "TLS_NEGOTIATION_INVALID",
+            "FIXED_SQL_TRACE_INVALID",
+            "DATABASE_OBSERVATION_INVALID",
+            "SCHEMA_MANIFEST_MISMATCH",
+            "DATABASE_CLOSE_FAILED",
+            "ALLOWLIST_REMOVE_FAILED",
+            "FINAL_ALLOWLIST_NOT_EMPTY",
+            "FINAL_PUBLIC_ACCESS_NOT_BLOCKED",
+            "INSTRUMENTATION_INCOMPLETE",
+            "INDEPENDENT_ATTESTATION_INVALID",
+            "CLEANUP_SUPERVISOR_UNAVAILABLE",
+            "CLEANUP_SUPERVISOR_UNCERTAIN",
+            "ANTI_ROLLBACK_WITNESS_UNAVAILABLE",
+            "CLEANUP_UNCERTAIN",
+            "INTERNAL_FAILURE",
+            "CONTROLLED_EXECUTION_HOLD"
+          ]
+        },
+        "stage_code": {
+          "enum": [
+            "PRECHECK",
+            "RUNTIME_PROVENANCE",
+            "ATTEMPT_RESERVATION",
+            "PROVIDER_INITIAL_REVALIDATION",
+            "ALLOWLIST_ADD",
+            "ALLOWLIST_REVALIDATION",
+            "CONNECTION_MATERIAL",
+            "DATABASE_CONNECT",
+            "DATABASE_READONLY_SETUP",
+            "DATABASE_IDENTITY",
+            "SCHEMA_MANIFEST",
+            "DATABASE_CLOSE",
+            "ALLOWLIST_REMOVE",
+            "FINAL_NETWORK_REVALIDATION",
+            "ATTEMPT_FINALIZATION",
+            "CLEANUP_SUPERVISOR",
+            "CLEANUP_SUPERVISOR_ARM",
+            "CLEANUP_SUPERVISOR_FINALIZE",
+            "INDEPENDENT_ATTESTATION",
+            "ANTI_ROLLBACK_WITNESS",
+            "COMPLETE",
+            "OUTPUT_VALIDATION"
+          ]
+        },
+        "hold": {
+          "const": true
+        },
+        "attempt_state": {
+          "enum": [
+            "KNOWN_NOT_STARTED",
+            "CONSUMED",
+            "UNCERTAIN"
+          ]
+        },
+        "state_provenance": {
+          "enum": [
+            "ADAPTER_STATE_MACHINE",
+            "UNVERIFIED_REVIEW_INPUT"
+          ]
+        },
+        "attempt_reserved": {
+          "type": "boolean"
+        },
+        "collection_attempt_consumed": {
+          "type": "boolean"
+        },
+        "cleanup_required": {
+          "type": "boolean"
+        },
+        "cleanup_completed": {
+          "type": "boolean"
+        },
+        "final_network_state_verified": {
+          "type": "boolean"
+        },
+        "runtime_evidence_emitted": {
+          "const": false
+        },
+        "raw_connection_values_disclosed": {
+          "const": false
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "state_provenance"
+            ],
+            "properties": {
+              "state_provenance": {
+                "const": "UNVERIFIED_REVIEW_INPUT"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "attempt_state": {
+                "const": "UNCERTAIN"
+              },
+              "attempt_reserved": {
+                "const": true
+              },
+              "collection_attempt_consumed": {
+                "const": true
+              },
+              "cleanup_required": {
+                "const": true
+              },
+              "cleanup_completed": {
+                "const": false
+              },
+              "final_network_state_verified": {
+                "const": false
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "state_provenance"
+            ],
+            "properties": {
+              "state_provenance": {
+                "const": "ADAPTER_STATE_MACHINE"
+              }
+            }
+          },
+          "then": {
+            "oneOf": [
+              {
+                "properties": {
+                  "attempt_state": {
+                    "const": "KNOWN_NOT_STARTED"
+                  },
+                  "attempt_reserved": {
+                    "const": false
+                  },
+                  "collection_attempt_consumed": {
+                    "const": false
+                  },
+                  "cleanup_required": {
+                    "const": false
+                  },
+                  "cleanup_completed": {
+                    "const": false
+                  },
+                  "final_network_state_verified": {
+                    "const": false
+                  }
+                }
+              },
+              {
+                "allOf": [
+                  {
+                    "properties": {
+                      "attempt_state": {
+                        "const": "CONSUMED"
+                      },
+                      "attempt_reserved": {
+                        "const": true
+                      },
+                      "collection_attempt_consumed": {
+                        "const": true
+                      }
+                    }
+                  },
+                  {
+                    "oneOf": [
+                      {
+                        "properties": {
+                          "cleanup_required": {
+                            "const": false
+                          },
+                          "cleanup_completed": {
+                            "const": false
+                          },
+                          "final_network_state_verified": {
+                            "const": false
+                          }
+                        }
+                      },
+                      {
+                        "properties": {
+                          "cleanup_required": {
+                            "const": true
+                          },
+                          "cleanup_completed": {
+                            "const": true
+                          },
+                          "final_network_state_verified": {
+                            "const": true
+                          }
+                        }
+                      },
+                      {
+                        "properties": {
+                          "cleanup_required": {
+                            "const": true
+                          },
+                          "cleanup_completed": {
+                            "const": false
+                          },
+                          "final_network_state_verified": {
+                            "const": false
+                          }
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "properties": {
+                  "attempt_state": {
+                    "const": "UNCERTAIN"
+                  },
+                  "attempt_reserved": {
+                    "const": true
+                  },
+                  "collection_attempt_consumed": {
+                    "const": true
+                  },
+                  "cleanup_required": {
+                    "const": true
+                  },
+                  "cleanup_completed": {
+                    "const": false
+                  },
+                  "final_network_state_verified": {
+                    "const": false
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}
