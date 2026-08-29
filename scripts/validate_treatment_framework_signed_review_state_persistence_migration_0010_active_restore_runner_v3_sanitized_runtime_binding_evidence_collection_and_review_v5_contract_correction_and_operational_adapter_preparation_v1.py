@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import csv
+from dataclasses import dataclass
 import hashlib
 import json
 import os
@@ -12,7 +13,7 @@ import re
 import stat
 import subprocess
 import sys
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence
 
 
 sys.dont_write_bytecode = True
@@ -39,6 +40,36 @@ SOURCE_CI_STATUS = "completed"
 SOURCE_CI_CONCLUSION = "success"
 HEAD_BRANCH = "pmai-p0-04-arr-v3-srbe-v5-operational-adapter-prep-v2"
 COMMIT_MESSAGE = "PMAI-P0-04: Rebuild V5 SRBE operational adapter"
+INTRODUCTION_COMMIT = "6bbb5dfc9b00772f7225a6a18840da23b15ae778"
+INTRODUCTION_TREE = "0ff211b1920d527c81aef0769b9eb06d03c8051e"
+PUBLISHED_MERGE_COMMIT = "697a134ae025f62685d0a746a18ed1d1e1d1680e"
+PUBLISHED_MERGE_TREE = "0ff211b1920d527c81aef0769b9eb06d03c8051e"
+PUBLISHED_MERGE_PARENTS = (BASE_COMMIT, INTRODUCTION_COMMIT)
+COMPATIBILITY_CORRECTION_BRANCH = (
+    "pmai-p0-04-v5-validator-successor-compat-correction"
+)
+COMPATIBILITY_CORRECTION_SUBJECT = (
+    "PMAI-P0-04: Correct V5 validator successor compatibility"
+)
+COMPATIBILITY_CORRECTION_AUTHORIZATION_ID = (
+    "PMAI_P0_04_ACTIVE_RESTORE_RUNNER_V3_SRBE_V5_VALIDATOR_SUCCESSOR_"
+    "COMPATIBILITY_EXACT_3_PATH_REPOSITORY_PATCH_CONTROLLED_EXECUTION_V1"
+)
+COMPATIBILITY_CORRECTION_AUTHORIZATION_ID_SHA256 = (
+    "e38fe1e08dfc488d46157c0ec89636a2a1723868c72b50be773dd71bb0fb649e"
+)
+COMPATIBILITY_CORRECTION_PATH_SEQUENCE_SHA256 = (
+    "14e69395d27385eb7521b01c3f807ee3bf443b0dba1d87ee67dc854af7e65bba"
+)
+PUBLISHED_VALIDATOR_SHA256 = (
+    "80c64646de57bcca87dfeffc967547a30a3bd4d3b13ca89caa30c0aeb73af7ca"
+)
+PUBLISHED_MANIFEST_SHA256 = (
+    "2b4e3fa201a7ef2b8d47a81e37c138fcc91e5c4599967405e708ea87af3f2a5f"
+)
+PUBLISHED_CENTRAL_SHA256 = (
+    "0001563d53db087d9e67bb2de1002b5fbd1c9d86bf6fa01d81a13c2ad390e351"
+)
 PACKAGE_RECORD_ID = (
     "PMAI-P0-04-ARR-V3-SRBE-V5-CONTRACT-ADAPTER-PREP-REPLACEMENT-V2-"
     "20260829"
@@ -168,6 +199,23 @@ MANIFEST_MEMBERS = (
     ADAPTER,
     VALIDATOR,
     REVIEWER,
+)
+IMMUTABLE_PACKAGE_PATHS = (
+    DOC,
+    POINTER,
+    CHECKLIST,
+    GO_NO_GO,
+    BASELINE,
+    RUNTIME_SCHEMA,
+    RESULT_SCHEMA,
+    TEST_MATRIX,
+    ADAPTER,
+    REVIEWER,
+)
+PACKAGE_CLOSURE_PATHS = (MANIFEST, VALIDATOR)
+AUTHORIZED_CORRECTION_PATHS = (MANIFEST, VALIDATOR, CENTRAL)
+CORRECTION_PATHS = tuple(
+    sorted(AUTHORIZED_CORRECTION_PATHS, key=lambda value: value.encode("utf-8"))
 )
 
 V4_PREFIX = (
@@ -538,10 +586,51 @@ def git_lines(*arguments: str) -> list[str]:
     return value.splitlines() if value else []
 
 
+def parse_git_nul_paths(payload: bytes) -> list[str]:
+    if payload == b"":
+        return []
+    if not payload.endswith(b"\0"):
+        raise ValueError("HISTORY_AMBIGUITY")
+    raw_paths = payload[:-1].split(b"\0")
+    if any(value == b"" for value in raw_paths):
+        raise ValueError("HISTORY_AMBIGUITY")
+    try:
+        values = [value.decode("utf-8", errors="strict") for value in raw_paths]
+    except UnicodeDecodeError:
+        raise ValueError("HISTORY_AMBIGUITY") from None
+    if len(values) != len(set(values)):
+        raise ValueError("HISTORY_AMBIGUITY")
+    return values
+
+
+def git_paths(*arguments: str) -> list[str]:
+    need("-z" in arguments, "git path command NUL mode")
+    result = subprocess.run(
+        [str(GIT_EXECUTABLE), *arguments],
+        cwd=ROOT,
+        env=sanitized_subprocess_env(),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+    )
+    need(result.returncode == 0, "git path command exit")
+    need(result.stderr == b"", "git path command stderr")
+    try:
+        return parse_git_nul_paths(result.stdout)
+    except ValueError as error:
+        need(False, str(error))
+        return []
+
+
 def current_changed_paths() -> list[str]:
-    values = set(git_lines("diff", "--name-only", "HEAD"))
-    values.update(git_lines("diff", "--cached", "--name-only", "HEAD"))
-    values.update(git_lines("ls-files", "--others", "--exclude-standard"))
+    values = set(
+        git_paths("diff", "--name-only", "--no-renames", "-z", "HEAD")
+    )
+    values.update(
+        git_paths("ls-files", "-z", "--others", "--exclude-standard")
+    )
     return sorted(values, key=lambda item: item.encode("utf-8"))
 
 
@@ -555,11 +644,216 @@ def base_has_path(relative: str) -> bool:
     return result.returncode == 0
 
 
-def commit_message_bytes(commit: str) -> bytes:
-    raw = git("cat-file", "commit", commit).stdout.encode("utf-8")
-    parts = raw.split(b"\n\n", 1)
-    need(len(parts) == 2, "commit object message boundary")
-    return parts[1]
+def canonical_commit_message_body(message_bytes: bytes) -> str:
+    if type(message_bytes) is not bytes:
+        raise ValueError("git commit message bytes")
+    if b"\0" in message_bytes or b"\r" in message_bytes:
+        raise ValueError("git commit message bytes")
+    if message_bytes.endswith(b"\n\n"):
+        raise ValueError("git commit message terminal newline ambiguity")
+    if message_bytes.endswith(b"\n"):
+        message_bytes = message_bytes[:-1]
+    try:
+        return message_bytes.decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        raise ValueError("git commit message UTF-8") from None
+
+
+def canonical_single_line_commit_subject(subject: str) -> bool:
+    if type(subject) is not str or subject == "":
+        return False
+    if subject[0].isspace() or subject[-1].isspace():
+        return False
+    return all(
+        character.isprintable()
+        and ord(character) >= 0x20
+        and ord(character) != 0x7F
+        and (character == " " or not character.isspace())
+        for character in subject
+    )
+
+
+def git_commit_message(commit: str) -> str:
+    result = subprocess.run(
+        [str(GIT_EXECUTABLE), "cat-file", "commit", commit],
+        cwd=ROOT,
+        env=sanitized_subprocess_env(),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+    )
+    need(result.returncode == 0, "git commit object " + commit)
+    need(result.stderr == b"", "git commit object stderr " + commit)
+    parts = result.stdout.split(b"\n\n", 1)
+    need(
+        len(parts) == 2 and parts[0].startswith(b"tree "),
+        "git commit object format",
+    )
+    try:
+        return canonical_commit_message_body(parts[1])
+    except ValueError as error:
+        need(False, str(error))
+        return ""
+
+
+def git_is_ancestor(ancestor: str, descendant: str) -> bool:
+    result = git("merge-base", "--is-ancestor", ancestor, descendant, check=False)
+    need(result.returncode in {0, 1}, "git ancestry status")
+    need(result.stdout == "" and result.stderr == "", "git ancestry output")
+    return result.returncode == 0
+
+
+def git_blob_bytes(commit: str, relative: str) -> bytes:
+    result = subprocess.run(
+        [str(GIT_EXECUTABLE), "show", commit + ":" + relative],
+        cwd=ROOT,
+        env=sanitized_subprocess_env(),
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        timeout=30,
+        check=False,
+    )
+    need(result.returncode == 0, "git blob " + relative)
+    need(result.stderr == b"", "git blob stderr " + relative)
+    return result.stdout
+
+
+def git_blob_text(commit: str, relative: str) -> str:
+    try:
+        return git_blob_bytes(commit, relative).decode("utf-8", errors="strict")
+    except UnicodeDecodeError:
+        need(False, "git blob UTF-8 " + relative)
+        return ""
+
+
+def strict_json_bytes(payload: bytes) -> object:
+    def pairs(values: list[tuple[str, object]]) -> dict[str, object]:
+        result: dict[str, object] = {}
+        for key, value in values:
+            if key in result:
+                raise ValueError("MANIFEST_STRUCTURE_MISMATCH")
+            result[key] = value
+        return result
+
+    try:
+        source = payload.decode("utf-8", errors="strict")
+        return json.loads(source, object_pairs_hook=pairs)
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        raise ValueError("MANIFEST_STRUCTURE_MISMATCH") from None
+
+
+def manifest_closure_valid(commit: str, manifest_bytes: bytes) -> bool:
+    try:
+        value = strict_json_bytes(manifest_bytes)
+        if type(value) is not dict or type(value.get("files")) is not list:
+            return False
+        files = value["files"]
+        if len(files) != len(MANIFEST_MEMBERS):
+            return False
+        for entry, relative in zip(files, MANIFEST_MEMBERS, strict=True):
+            if type(entry) is not dict or set(entry) != {"path", "bytes", "sha256"}:
+                return False
+            blob = git_blob_bytes(commit, relative)
+            if (
+                entry["path"] != relative
+                or type(entry["bytes"]) is not int
+                or entry["bytes"] != len(blob)
+                or entry["sha256"] != hashlib.sha256(blob).hexdigest()
+            ):
+                return False
+        return all(
+            git_blob_bytes(commit, relative)
+            == git_blob_bytes(PUBLISHED_MERGE_COMMIT, relative)
+            for relative in IMMUTABLE_PACKAGE_PATHS
+        )
+    except (KeyError, TypeError, ValueError, ValidationError):
+        return False
+
+
+def normalized_manifest_correction_bytes(payload: bytes) -> bytes:
+    pattern = re.compile(
+        rb'("path": "'
+        + re.escape(VALIDATOR.encode("utf-8"))
+        + rb'",\n      "bytes": )[0-9]+(,\n      "sha256": ")'
+        rb'[0-9a-f]{64}("\n    })'
+    )
+    normalized, count = pattern.subn(
+        rb"\1<NORMALIZED_BYTES>\2<NORMALIZED_SHA256>\3", payload
+    )
+    if count != 1:
+        raise ValueError("MANIFEST_STRUCTURE_MISMATCH")
+    return normalized
+
+
+def normalized_central_v5_pin_bytes(payload: bytes) -> bytes:
+    normalized = payload
+    for name in CENTRAL_V5_NORMALIZED_ASSIGNMENTS:
+        pattern = re.compile(
+            rb"("
+            + re.escape(name.encode("utf-8"))
+            + rb"\s*=\s*\(\s*[\"'])[0-9a-f]{64}([\"']\s*\))"
+        )
+        normalized, count = pattern.subn(
+            rb"\1<NORMALIZED_SHA256>\2", normalized, count=1
+        )
+        if count != 1:
+            raise ValueError("UNAUTHORIZED_V5_CLOSURE_CHANGE")
+    return normalized
+
+
+def commit_v5_bindings_valid(commit: str, central_source: str) -> bool:
+    try:
+        _, values = unique_top_level_literals(
+            central_source, CENTRAL_V5_OWNED_ASSIGNMENTS
+        )
+        validator_bytes = git_blob_bytes(commit, VALIDATOR)
+        manifest_bytes = git_blob_bytes(commit, MANIFEST)
+        if (
+            values[CENTRAL_V5_STEM + "_VALIDATOR_SHA256"]
+            != hashlib.sha256(validator_bytes).hexdigest()
+            or values[CENTRAL_V5_STEM + "_MANIFEST_SHA256"]
+            != hashlib.sha256(manifest_bytes).hexdigest()
+            or not manifest_closure_valid(commit, manifest_bytes)
+        ):
+            return False
+    except (KeyError, TypeError, ValueError, ValidationError, SyntaxError):
+        return False
+    return True
+
+
+def correction_delta_valid(commit: str) -> bool:
+    try:
+        candidate_manifest = git_blob_bytes(commit, MANIFEST)
+        baseline_manifest = git_blob_bytes(PUBLISHED_MERGE_COMMIT, MANIFEST)
+        candidate_central = git_blob_bytes(commit, CENTRAL)
+        baseline_central = git_blob_bytes(PUBLISHED_MERGE_COMMIT, CENTRAL)
+        return (
+            normalized_manifest_correction_bytes(candidate_manifest)
+            == normalized_manifest_correction_bytes(baseline_manifest)
+            and normalized_central_v5_pin_bytes(candidate_central)
+            == normalized_central_v5_pin_bytes(baseline_central)
+        )
+    except (ValueError, ValidationError):
+        return False
+
+
+def working_correction_delta_valid() -> bool:
+    try:
+        candidate_manifest = path(MANIFEST).read_bytes()
+        baseline_manifest = git_blob_bytes(PUBLISHED_MERGE_COMMIT, MANIFEST)
+        candidate_central = path(CENTRAL).read_bytes()
+        baseline_central = git_blob_bytes(PUBLISHED_MERGE_COMMIT, CENTRAL)
+        return (
+            normalized_manifest_correction_bytes(candidate_manifest)
+            == normalized_manifest_correction_bytes(baseline_manifest)
+            and normalized_central_v5_pin_bytes(candidate_central)
+            == normalized_central_v5_pin_bytes(baseline_central)
+        )
+    except (OSError, ValueError, ValidationError):
+        return False
 
 
 def exact_marker_block(source: str, begin: str, end: str) -> tuple[str, int, int]:
@@ -700,8 +994,43 @@ def expect_projection_failure(source: str, label: str) -> None:
     raise ValidationError("central V5 negative projection " + label)
 
 
+def expect_projection_mismatch(source: str, label: str) -> None:
+    try:
+        value = central_v5_owned_projection(source)
+    except (ValidationError, SyntaxError, ValueError):
+        return
+    need(
+        value != CENTRAL_V5_OWNED_PROJECTION_SHA256,
+        "central V5 projection mutation " + label,
+    )
+
+
 def validate_v5_projection_synthetic_tests(source: str) -> None:
     indented_begin = "    " + CENTRAL_V5_INTEGRATION_BEGIN
+    v5_pass_marker_name = CENTRAL_V5_STEM + "_PASS_MARKER"
+    v4_pass_marker_name = (
+        "ACTIVE_RESTORE_RUNNER_V3_SANITIZED_RUNTIME_BINDING_EVIDENCE_"
+        "COLLECTION_AND_REVIEW_V4_EXECUTION_AUTHORIZATION_PASS_MARKER"
+    )
+    v5_command = (
+        "        [\n"
+        "            sys.executable,\n"
+        '            "-I",\n'
+        '            "-B",\n'
+        "            str(srbe_v5_adapter_preparation_validator_path),\n"
+        "        ],\n"
+    )
+    v5_pass_check = (
+        "            " + v5_pass_marker_name + "\n"
+        "        )\n"
+        "        == 1,"
+    )
+    safe_exit_label = (
+        '"V5 SRBE contract-correction/adapter-preparation validator exit"'
+    )
+    need(source.count(v5_command) == 1, "central V5 invocation command anchor")
+    need(source.count(v5_pass_check) == 1, "central V5 PASS binding anchor")
+    need(source.count(safe_exit_label) == 1, "central V5 failure label anchor")
     expect_projection_failure(
         source.replace(indented_begin, indented_begin + "\n" + indented_begin, 1),
         "duplicate marker",
@@ -717,6 +1046,55 @@ def validate_v5_projection_synthetic_tests(source: str) -> None:
     expect_projection_failure(
         source.replace(CENTRAL_V5_INTEGRATION_END, CENTRAL_V5_INTEGRATION_BEGIN, 1),
         "marker ambiguity",
+    )
+    expect_projection_failure(
+        source.replace(v5_command, v5_command.replace('            "-I",\n', "", 1), 1),
+        "missing isolated flag",
+    )
+    expect_projection_failure(
+        source.replace(v5_command, v5_command.replace('            "-B",\n', "", 1), 1),
+        "missing no-bytecode flag",
+    )
+    expect_projection_mismatch(
+        source.replace(
+            "str(srbe_v5_adapter_preparation_validator_path)",
+            '"/tmp/unbound-validator.py"',
+            1,
+        ),
+        "validator path escape",
+    )
+    expect_projection_mismatch(
+        source.replace(
+            v5_pass_check,
+            v5_pass_check.replace(v5_pass_marker_name, v4_pass_marker_name),
+            1,
+        ),
+        "PASS marker alias",
+    )
+    expect_projection_mismatch(
+        source.replace(
+            v5_pass_check,
+            v5_pass_check.replace(v5_pass_marker_name, json.dumps(PASS_MARKER)),
+            1,
+        ),
+        "unbound PASS marker",
+    )
+    expect_projection_mismatch(
+        source.replace(
+            safe_exit_label,
+            safe_exit_label + " + srbe_v5_adapter_preparation_result.stderr",
+            1,
+        ),
+        "sensitive failure message",
+    )
+    expect_projection_failure(
+        source.replace(
+            "    # <<< pmai_p0_04_v5_contract_adapter_preparation_integration_owned_v1",
+            "        print(os.environ)\n"
+            "    # <<< pmai_p0_04_v5_contract_adapter_preparation_integration_owned_v1",
+            1,
+        ),
+        "sensitive output",
     )
 
 
@@ -795,6 +1173,551 @@ def validate_repository_identity() -> None:
         need(git_dir == common_dir, "ordinary worktree common-dir relation")
 
 
+@dataclass(frozen=True)
+class HistoryRecord:
+    oid: str
+    parents: tuple[str, ...]
+    subject: str
+    tree: str
+    changed_paths: tuple[str, ...]
+    second_parent_changed_paths: tuple[str, ...]
+    central_projection_sha256: str | None
+    bindings_valid: bool
+    correction_delta_valid: bool
+    ephemeral_pr_test_merge: bool = False
+
+
+@dataclass(frozen=True)
+class HistoryDecision:
+    compatibility_correction: str
+    publication_merge: str | None
+    successor_central_commits: tuple[str, ...]
+    successor_publication_merges: tuple[str, ...]
+    history_lineage: tuple[str, ...]
+    pending_successor: str | None
+    ephemeral_pr_test_merge: str | None
+
+
+def classify_postpublication_history(
+    records: tuple[HistoryRecord, ...],
+) -> HistoryDecision:
+    correction: HistoryRecord | None = None
+    publication_merge: HistoryRecord | None = None
+    published_anchor: HistoryRecord | None = None
+    pending_successor: HistoryRecord | None = None
+    successors: list[str] = []
+    successor_merges: list[str] = []
+    lineage: list[str] = []
+    ephemeral_pr_test_merge: str | None = None
+    immutable = set(IMMUTABLE_PACKAGE_PATHS)
+    closure = set(PACKAGE_CLOSURE_PATHS)
+    relevant_paths = set(PACKAGE_PATHS) | {CENTRAL}
+    for record in records:
+        if ephemeral_pr_test_merge is not None:
+            raise ValueError("HISTORY_AMBIGUITY")
+        changed = set(record.changed_paths)
+        second_parent_changed = set(record.second_parent_changed_paths)
+        if (
+            len(changed) != len(record.changed_paths)
+            or len(second_parent_changed) != len(record.second_parent_changed_paths)
+        ):
+            raise ValueError("HISTORY_AMBIGUITY")
+        if len(record.parents) == 2:
+            if correction is not None and publication_merge is None:
+                merge_subject = re.fullmatch(
+                    r"Merge pull request #[1-9][0-9]* from pet-med-ai/"
+                    + re.escape(COMPATIBILITY_CORRECTION_BRANCH)
+                    + r"\n\n"
+                    + re.escape(COMPATIBILITY_CORRECTION_SUBJECT),
+                    record.subject,
+                )
+                ephemeral_subject = re.fullmatch(
+                    r"Merge ([0-9a-f]{7,40}) into ([0-9a-f]{7,40})",
+                    record.subject,
+                )
+                ephemeral_subject_valid = (
+                    record.ephemeral_pr_test_merge
+                    and ephemeral_subject is not None
+                    and record.parents[1].startswith(ephemeral_subject.group(1))
+                    and record.parents[0].startswith(ephemeral_subject.group(2))
+                )
+                if (
+                    record.parents != (PUBLISHED_MERGE_COMMIT, correction.oid)
+                    or (merge_subject is None and not ephemeral_subject_valid)
+                    or record.tree != correction.tree
+                    or record.changed_paths != CORRECTION_PATHS
+                    or second_parent_changed
+                    or record.central_projection_sha256
+                    != CENTRAL_V5_OWNED_PROJECTION_SHA256
+                    or not record.bindings_valid
+                    or not record.correction_delta_valid
+                ):
+                    raise ValueError("HISTORY_AMBIGUITY")
+                if ephemeral_subject_valid:
+                    ephemeral_pr_test_merge = record.oid
+                    continue
+                publication_merge = record
+                published_anchor = record
+                lineage.append(record.oid)
+                continue
+            if (
+                correction is None
+                or publication_merge is None
+                or published_anchor is None
+                or pending_successor is None
+            ):
+                raise ValueError("HISTORY_AMBIGUITY")
+            successor_merge_subject = re.fullmatch(
+                r"Merge pull request #[1-9][0-9]* from pet-med-ai/"
+                r"pmai-p0-04-[a-z0-9](?:[a-z0-9-]{0,126}[a-z0-9])?"
+                r"\n\n"
+                + re.escape(pending_successor.subject),
+                record.subject,
+            )
+            ephemeral_subject = re.fullmatch(
+                r"Merge ([0-9a-f]{7,40}) into ([0-9a-f]{7,40})",
+                record.subject,
+            )
+            ephemeral_subject_valid = (
+                record.ephemeral_pr_test_merge
+                and ephemeral_subject is not None
+                and record.parents[1].startswith(ephemeral_subject.group(1))
+                and record.parents[0].startswith(ephemeral_subject.group(2))
+            )
+            if (
+                record.parents != (pending_successor.parents[0], pending_successor.oid)
+                or (successor_merge_subject is None and not ephemeral_subject_valid)
+                or record.tree != pending_successor.tree
+                or record.changed_paths != pending_successor.changed_paths
+                or second_parent_changed
+                or record.central_projection_sha256
+                != CENTRAL_V5_OWNED_PROJECTION_SHA256
+                or not record.bindings_valid
+            ):
+                raise ValueError("HISTORY_AMBIGUITY")
+            if ephemeral_subject_valid:
+                ephemeral_pr_test_merge = record.oid
+                continue
+            successor_merges.append(record.oid)
+            published_anchor = record
+            pending_successor = None
+            lineage.append(record.oid)
+            continue
+        if len(record.parents) != 1:
+            raise ValueError("HISTORY_AMBIGUITY")
+        if not changed & relevant_paths:
+            continue
+        if changed & immutable:
+            raise ValueError("IMMUTABLE_V5_PACKAGE_MEMBER_MUTATION")
+        if changed & closure:
+            if correction is not None:
+                raise ValueError("SECOND_COMPATIBILITY_CORRECTION")
+            if (
+                record.parents != (PUBLISHED_MERGE_COMMIT,)
+                or record.subject != COMPATIBILITY_CORRECTION_SUBJECT
+                or record.changed_paths != CORRECTION_PATHS
+            ):
+                raise ValueError("UNAUTHORIZED_V5_CLOSURE_CHANGE")
+            if (
+                record.central_projection_sha256
+                != CENTRAL_V5_OWNED_PROJECTION_SHA256
+            ):
+                raise ValueError("UNAUTHORIZED_V5_PROJECTION_CHANGE")
+            if not record.bindings_valid:
+                raise ValueError("MANIFEST_HASH_MISMATCH")
+            if not record.correction_delta_valid:
+                raise ValueError("UNAUTHORIZED_V5_CLOSURE_CHANGE")
+            correction = record
+            published_anchor = record
+            lineage.append(record.oid)
+            continue
+        if CENTRAL in changed:
+            if not canonical_single_line_commit_subject(record.subject):
+                raise ValueError("HISTORY_AMBIGUITY")
+            if (
+                correction is None
+                or publication_merge is None
+                or published_anchor is None
+                or pending_successor is not None
+            ):
+                raise ValueError("HISTORY_AMBIGUITY")
+            if (
+                record.central_projection_sha256
+                != CENTRAL_V5_OWNED_PROJECTION_SHA256
+            ):
+                raise ValueError("UNAUTHORIZED_V5_PROJECTION_CHANGE")
+            if not record.bindings_valid:
+                raise ValueError("MANIFEST_HASH_MISMATCH")
+            successors.append(record.oid)
+            pending_successor = record
+            lineage.append(record.oid)
+    if correction is None:
+        raise ValueError("HISTORY_AMBIGUITY")
+    return HistoryDecision(
+        compatibility_correction=correction.oid,
+        publication_merge=(publication_merge.oid if publication_merge else None),
+        successor_central_commits=tuple(successors),
+        successor_publication_merges=tuple(successor_merges),
+        history_lineage=tuple(lineage),
+        pending_successor=(pending_successor.oid if pending_successor else None),
+        ephemeral_pr_test_merge=ephemeral_pr_test_merge,
+    )
+
+
+def validate_history_ancestry(
+    decision: HistoryDecision, is_ancestor: Any
+) -> None:
+    if (
+        not decision.history_lineage
+        or decision.history_lineage[0] != decision.compatibility_correction
+        or not is_ancestor(PUBLISHED_MERGE_COMMIT, decision.history_lineage[0])
+    ):
+        raise ValueError("HISTORY_AMBIGUITY")
+    if any(
+        not is_ancestor(ancestor, descendant)
+        for ancestor, descendant in zip(
+            decision.history_lineage, decision.history_lineage[1:]
+        )
+    ):
+        raise ValueError("HISTORY_AMBIGUITY")
+
+
+def exact_pr_merge_ref_points_to_head(head: str) -> bool:
+    matches = []
+    for line in git_lines(
+        "for-each-ref",
+        "--format=%(objectname) %(refname)",
+        "refs/remotes/pull",
+        "refs/pull",
+    ):
+        fields = line.split()
+        if (
+            len(fields) == 2
+            and fields[0] == head
+            and re.fullmatch(
+                r"refs/(?:remotes/)?pull/[1-9][0-9]*/merge", fields[1]
+            )
+            is not None
+        ):
+            matches.append(fields[1])
+    return len(matches) == 1
+
+
+def history_record(commit: str, head: str) -> HistoryRecord:
+    parents = tuple(git_value("show", "-s", "--format=%P", commit).split())
+    changed_paths = (
+        tuple(
+            git_paths(
+                "diff",
+                "--name-only",
+                "--no-renames",
+                "-z",
+                parents[0] + ".." + commit,
+            )
+        )
+        if parents
+        else ()
+    )
+    second_parent_changed_paths = (
+        tuple(
+            git_paths(
+                "diff",
+                "--name-only",
+                "--no-renames",
+                "-z",
+                parents[1] + ".." + commit,
+            )
+        )
+        if len(parents) == 2
+        else ()
+    )
+    projection = None
+    bindings_valid = True
+    delta_valid = False
+    if CENTRAL in set(changed_paths) | set(second_parent_changed_paths):
+        central_source = git_blob_text(commit, CENTRAL)
+        try:
+            projection = central_v5_owned_projection(central_source)
+        except (SyntaxError, ValueError, ValidationError):
+            projection = "INVALID"
+        bindings_valid = commit_v5_bindings_valid(commit, central_source)
+        delta_valid = correction_delta_valid(commit)
+    return HistoryRecord(
+        oid=commit,
+        parents=parents,
+        subject=git_commit_message(commit),
+        tree=git_value("rev-parse", commit + "^{tree}"),
+        changed_paths=changed_paths,
+        second_parent_changed_paths=second_parent_changed_paths,
+        central_projection_sha256=projection,
+        bindings_valid=bindings_valid,
+        correction_delta_valid=delta_valid,
+        ephemeral_pr_test_merge=(
+            commit == head
+            and len(parents) == 2
+            and git_value("rev-parse", "--abbrev-ref", "HEAD") == "HEAD"
+            and exact_pr_merge_ref_points_to_head(head)
+        ),
+    )
+
+
+def history_record_is_relevant(record: HistoryRecord) -> bool:
+    return bool(set(record.changed_paths) & (set(PACKAGE_PATHS) | {CENTRAL}))
+
+
+def validate_ancestry_merge_orientation(
+    records: tuple[HistoryRecord, ...], is_ancestor: Any
+) -> None:
+    for record in records:
+        if len(record.parents) > 1 and not is_ancestor(
+            PUBLISHED_MERGE_COMMIT, record.parents[0]
+        ):
+            raise ValueError("HISTORY_AMBIGUITY")
+
+
+def working_context(
+    head: str, branch: str, working_paths: tuple[str, ...]
+) -> str:
+    if not working_paths:
+        return "clean"
+    changed = set(working_paths)
+    if len(changed) != len(working_paths):
+        raise ValueError("HISTORY_AMBIGUITY")
+    if head == PUBLISHED_MERGE_COMMIT:
+        if (
+            branch != COMPATIBILITY_CORRECTION_BRANCH
+            or len(working_paths) != len(CORRECTION_PATHS)
+            or changed != set(CORRECTION_PATHS)
+        ):
+            raise ValueError("UNAUTHORIZED_V5_CLOSURE_CHANGE")
+        return "compatibility_correction"
+    if changed.intersection(PACKAGE_PATHS):
+        raise ValueError("UNAUTHORIZED_V5_CLOSURE_CHANGE")
+    if CENTRAL not in changed or re.fullmatch(
+        r"pmai-p0-04-[a-z0-9](?:[a-z0-9-]{0,126}[a-z0-9])?", branch
+    ) is None:
+        raise ValueError("HISTORY_AMBIGUITY")
+    return "successor"
+
+
+def validate_working_history_context(
+    context: str, decision: HistoryDecision
+) -> None:
+    if context == "successor" and (
+        decision.publication_merge is None
+        or decision.pending_successor is not None
+    ):
+        raise ValueError("HISTORY_AMBIGUITY")
+
+
+def validate_historical_anchors() -> None:
+    need(git_value("rev-parse", BASE_COMMIT + "^{tree}") == BASE_TREE, "base tree")
+    need(
+        tuple(git_value("show", "-s", "--format=%P", BASE_COMMIT).split())
+        == BASE_PARENTS,
+        "base parent sequence",
+    )
+    need(
+        hashlib.sha256(git_blob_bytes(BASE_COMMIT, CENTRAL)).hexdigest()
+        == BASE_CENTRAL_SHA256,
+        "base central hash",
+    )
+    need(
+        git_value("rev-parse", INTRODUCTION_COMMIT + "^{tree}")
+        == INTRODUCTION_TREE,
+        "introduction tree",
+    )
+    need(
+        tuple(git_value("show", "-s", "--format=%P", INTRODUCTION_COMMIT).split())
+        == (BASE_COMMIT,),
+        "introduction parent",
+    )
+    need(
+        git_value("rev-list", "--count", BASE_COMMIT + ".." + INTRODUCTION_COMMIT)
+        == "1",
+        "one introduction commit",
+    )
+    need(
+        git_commit_message(INTRODUCTION_COMMIT) == COMMIT_MESSAGE,
+        "introduction commit message",
+    )
+    need(
+        git_paths(
+            "diff",
+            "--name-only",
+            "--no-renames",
+            "-z",
+            BASE_COMMIT + ".." + INTRODUCTION_COMMIT,
+        )
+        == list(EXPECTED_CHANGED_PATHS),
+        "introduction exact paths",
+    )
+    need(
+        git_value("rev-parse", PUBLISHED_MERGE_COMMIT + "^{tree}")
+        == PUBLISHED_MERGE_TREE,
+        "published merge tree",
+    )
+    need(
+        tuple(
+            git_value("show", "-s", "--format=%P", PUBLISHED_MERGE_COMMIT).split()
+        )
+        == PUBLISHED_MERGE_PARENTS,
+        "published merge parents",
+    )
+    need(
+        git_commit_message(PUBLISHED_MERGE_COMMIT)
+        == (
+            "Merge pull request #22 from pet-med-ai/"
+            + HEAD_BRANCH
+            + "\n\n"
+            + COMMIT_MESSAGE
+        ),
+        "published merge message",
+    )
+    need(
+        git_paths(
+            "diff",
+            "--name-only",
+            "--no-renames",
+            "-z",
+            BASE_COMMIT + ".." + PUBLISHED_MERGE_COMMIT,
+        )
+        == list(EXPECTED_CHANGED_PATHS),
+        "published merge first-parent paths",
+    )
+    need(
+        git_paths(
+            "diff",
+            "--name-only",
+            "--no-renames",
+            "-z",
+            INTRODUCTION_COMMIT + ".." + PUBLISHED_MERGE_COMMIT,
+        )
+        == [],
+        "published merge second-parent paths",
+    )
+    need(
+        git_lines(
+            "rev-list",
+            "--reverse",
+            "--full-history",
+            BASE_COMMIT + ".." + PUBLISHED_MERGE_COMMIT,
+            "--",
+            *PACKAGE_PATHS,
+        )
+        == [INTRODUCTION_COMMIT, PUBLISHED_MERGE_COMMIT],
+        "unique historical V5 rebuild",
+    )
+    for relative, expected in (
+        (VALIDATOR, PUBLISHED_VALIDATOR_SHA256),
+        (MANIFEST, PUBLISHED_MANIFEST_SHA256),
+        (CENTRAL, PUBLISHED_CENTRAL_SHA256),
+    ):
+        need(
+            hashlib.sha256(
+                git_blob_bytes(PUBLISHED_MERGE_COMMIT, relative)
+            ).hexdigest()
+            == expected,
+            "published protected hash " + relative,
+        )
+    held_presence = git(
+        "cat-file", "-e", HELD_V5_COMMIT + "^{commit}", check=False
+    )
+    if held_presence.returncode == 0:
+        need(
+            git_value("rev-parse", HELD_V5_COMMIT + "^{tree}") == HELD_V5_TREE,
+            "held V5 tree",
+        )
+        need(
+            git_value("rev-parse", HELD_V5_COMMIT + "^") == HELD_V5_PARENT,
+            "held V5 parent",
+        )
+        need(
+            not git_is_ancestor(HELD_V5_COMMIT, "HEAD"),
+            "held V5 is ancestor",
+        )
+
+
+def validate_repository_history() -> bool:
+    validate_historical_anchors()
+    head = git_value("rev-parse", "HEAD")
+    need(
+        git_is_ancestor(PUBLISHED_MERGE_COMMIT, head),
+        "published merge is not ancestor",
+    )
+    working_paths = current_changed_paths()
+    current_branch = git_value("rev-parse", "--abbrev-ref", "HEAD")
+    try:
+        context = working_context(head, current_branch, tuple(working_paths))
+    except ValueError as error:
+        need(False, str(error))
+        return False
+    if context == "compatibility_correction":
+        need(
+            working_correction_delta_valid(),
+            "unauthorized V5 compatibility correction delta",
+        )
+        return False
+    ancestry_commits = git_lines(
+        "rev-list",
+        "--reverse",
+        "--topo-order",
+        "--ancestry-path",
+        PUBLISHED_MERGE_COMMIT + ".." + head,
+    )
+    ancestry_records = tuple(
+        history_record(commit, head) for commit in ancestry_commits
+    )
+    try:
+        validate_ancestry_merge_orientation(ancestry_records, git_is_ancestor)
+        decision = classify_postpublication_history(
+            tuple(
+                record
+                for record in ancestry_records
+                if history_record_is_relevant(record)
+            )
+        )
+        validate_working_history_context(context, decision)
+        validate_history_ancestry(decision, git_is_ancestor)
+    except ValueError as error:
+        need(False, str(error))
+        return False
+    history_anchor = decision.history_lineage[-1]
+    need(git_is_ancestor(history_anchor, head), "V5 history anchor is not ancestor")
+    if decision.publication_merge is None:
+        need(
+            (
+                head == decision.compatibility_correction
+                and current_branch == COMPATIBILITY_CORRECTION_BRANCH
+            )
+            or decision.ephemeral_pr_test_merge == head,
+            "unpublished compatibility correction context",
+        )
+    if decision.pending_successor is not None:
+        need(
+            (
+                head == decision.pending_successor
+                and re.fullmatch(
+                    r"pmai-p0-04-[a-z0-9](?:[a-z0-9-]{0,126}[a-z0-9])?",
+                    current_branch,
+                )
+                is not None
+            )
+            or decision.ephemeral_pr_test_merge == head,
+            "unpublished successor context",
+        )
+    expected_modes = {MANIFEST: "100644", VALIDATOR: "100755", CENTRAL: "100755"}
+    for relative, expected_mode in expected_modes.items():
+        entry = git("ls-tree", decision.compatibility_correction, "--", relative).stdout
+        fields = entry.split(None, 1)
+        need(
+            len(fields) == 2 and fields[0] == expected_mode,
+            "compatibility correction tree mode " + relative,
+        )
+    need(current_changed_paths() == [], "postcommit worktree dirty")
+    return True
+
+
 def validate_git_scope() -> bool:
     need(
         hashlib.sha256(PACKAGE_RECORD_ID.encode("utf-8")).hexdigest()
@@ -806,71 +1729,462 @@ def validate_git_scope() -> bool:
         == AUTHORIZATION_ID_SHA256,
         "authorization ID hash",
     )
-    need(git_value("rev-parse", BASE_COMMIT + "^{tree}") == BASE_TREE, "base tree")
     need(
-        tuple(git_value("show", "-s", "--format=%P", BASE_COMMIT).split())
-        == BASE_PARENTS,
-        "base parent sequence",
+        hashlib.sha256(
+            COMPATIBILITY_CORRECTION_AUTHORIZATION_ID.encode("utf-8")
+        ).hexdigest()
+        == COMPATIBILITY_CORRECTION_AUTHORIZATION_ID_SHA256,
+        "compatibility correction authorization ID hash",
     )
-    base_central = git("show", BASE_COMMIT + ":" + CENTRAL).stdout.encode("utf-8")
-    need(hashlib.sha256(base_central).hexdigest() == BASE_CENTRAL_SHA256, "base central hash")
-    held_presence = git("cat-file", "-e", HELD_V5_COMMIT + "^{commit}", check=False)
-    if held_presence.returncode == 0:
-        need(git_value("rev-parse", HELD_V5_COMMIT + "^{tree}") == HELD_V5_TREE, "held V5 tree")
-        need(git_value("rev-parse", HELD_V5_COMMIT + "^") == HELD_V5_PARENT, "held V5 parent")
-        need(
-            git("merge-base", "--is-ancestor", HELD_V5_COMMIT, "HEAD", check=False).returncode
-            != 0,
-            "held V5 is replacement ancestor",
-        )
-    need(tuple(sorted(EXPECTED_CHANGED_PATHS, key=lambda item: item.encode("utf-8"))) == EXPECTED_CHANGED_PATHS, "declared path order")
+    need(
+        tuple(sorted(EXPECTED_CHANGED_PATHS, key=lambda item: item.encode("utf-8")))
+        == EXPECTED_CHANGED_PATHS,
+        "declared path order",
+    )
     need(len(EXPECTED_CHANGED_PATHS) == 13, "changed path count")
     need(len(PACKAGE_PATHS) == 12, "package path count")
     need(len(MANIFEST_MEMBERS) == 11, "manifest member count")
-    need(changed_path_sha256(EXPECTED_CHANGED_PATHS) == EXPECTED_PATH_SEQUENCE_SHA256, "path sequence hash")
+    need(
+        changed_path_sha256(EXPECTED_CHANGED_PATHS)
+        == EXPECTED_PATH_SEQUENCE_SHA256,
+        "path sequence hash",
+    )
+    need(
+        changed_path_sha256(CORRECTION_PATHS)
+        == COMPATIBILITY_CORRECTION_PATH_SEQUENCE_SHA256,
+        "correction path sequence hash",
+    )
     for relative in PACKAGE_PATHS:
         need(not base_has_path(relative), "package path existed at base " + relative)
     need(base_has_path(CENTRAL), "central absent at base")
+    return validate_repository_history()
 
-    head = git_value("rev-parse", "HEAD")
-    if head == BASE_COMMIT:
-        need(git_value("branch", "--show-current") == HEAD_BRANCH, "precommit branch")
-        need(current_changed_paths() == list(EXPECTED_CHANGED_PATHS), "precommit exact paths")
-        return False
 
-    introductions = git_lines("log", "--diff-filter=A", "--format=%H", "--", DOC)
-    need(len(introductions) == 1, "introduction count")
-    introduction = introductions[0]
-    need(git_value("show", "-s", "--format=%P", introduction) == BASE_COMMIT, "introduction parent")
-    need(git_value("rev-list", "--count", BASE_COMMIT + ".." + introduction) == "1", "one introduction commit")
-    need(git_value("show", "-s", "--format=%s", introduction) == COMMIT_MESSAGE, "commit message")
-    need(commit_message_bytes(introduction) == (COMMIT_MESSAGE + "\n").encode("utf-8"), "exact commit message bytes")
+def history_variant(record: HistoryRecord, **changes: object) -> HistoryRecord:
+    values = dict(record.__dict__)
+    values.update(changes)
+    return HistoryRecord(**values)
+
+
+def expect_contract_error(
+    action: Any, expected: str, label: str
+) -> None:
+    actual = None
+    try:
+        action()
+    except ValueError as error:
+        actual = str(error)
+    need(actual == expected, "synthetic negative test " + label)
+
+
+def validate_successor_compatibility_synthetic_tests() -> None:
     need(
-        git_lines("diff-tree", "--root", "--no-commit-id", "--name-only", "-r", introduction)
-        == list(EXPECTED_CHANGED_PATHS),
-        "introduction exact paths",
+        parse_git_nul_paths(b" \0allowed \0") == [" ", "allowed "],
+        "NUL path parser preserves boundary whitespace",
     )
-    need(
-        git("merge-base", "--is-ancestor", introduction, "HEAD", check=False).returncode
-        == 0,
-        "introduction not ancestor",
-    )
-    if git_value("branch", "--show-current") == HEAD_BRANCH:
-        need(head == introduction, "authorized branch advanced after introduction")
-    if head != introduction:
-        need(
-            git_lines(
-                "diff",
-                "--name-only",
-                introduction + "..HEAD",
-                "--",
-                *EXPECTED_CHANGED_PATHS,
-            )
-            == [],
-            "authorized path drift after introduction",
+    for payload, label in (
+        (b"allowed", "missing NUL terminator"),
+        (b"allowed\0allowed\0", "duplicate path"),
+        (b"\xff\0", "non-UTF-8 path"),
+    ):
+        expect_contract_error(
+            lambda value=payload: parse_git_nul_paths(value),
+            "HISTORY_AMBIGUITY",
+            "NUL path parser " + label,
         )
-    need(current_changed_paths() == [], "postcommit worktree dirty")
-    return True
+
+    correction_subject_bytes = COMPATIBILITY_CORRECTION_SUBJECT.encode("utf-8")
+    need(
+        canonical_commit_message_body(correction_subject_bytes)
+        == COMPATIBILITY_CORRECTION_SUBJECT,
+        "commit message no terminal LF positive control",
+    )
+    need(
+        canonical_commit_message_body(correction_subject_bytes + b"\n")
+        == COMPATIBILITY_CORRECTION_SUBJECT,
+        "commit message single terminal LF positive control",
+    )
+    need(
+        canonical_commit_message_body(b" leading boundary \n")
+        == " leading boundary ",
+        "commit message boundary whitespace preservation",
+    )
+    need(
+        canonical_commit_message_body(b"title\nbody\n") == "title\nbody",
+        "commit message internal newline preservation",
+    )
+    for payload, expected_error, label in (
+        (
+            correction_subject_bytes + b"\n\n",
+            "git commit message terminal newline ambiguity",
+            "multiple terminal LF",
+        ),
+        (correction_subject_bytes + b"\r", "git commit message bytes", "bare CR"),
+        (correction_subject_bytes + b"\r\n", "git commit message bytes", "CRLF"),
+        (correction_subject_bytes + b"\0", "git commit message bytes", "NUL"),
+        (b"\xff", "git commit message UTF-8", "invalid UTF-8"),
+    ):
+        expect_contract_error(
+            lambda value=payload: canonical_commit_message_body(value),
+            expected_error,
+            "commit message " + label,
+        )
+
+    projection = CENTRAL_V5_OWNED_PROJECTION_SHA256
+    correction = HistoryRecord(
+        oid="c" * 40,
+        parents=(PUBLISHED_MERGE_COMMIT,),
+        subject=COMPATIBILITY_CORRECTION_SUBJECT,
+        tree="synthetic-correction-tree",
+        changed_paths=CORRECTION_PATHS,
+        second_parent_changed_paths=(),
+        central_projection_sha256=projection,
+        bindings_valid=True,
+        correction_delta_valid=True,
+    )
+    correction_decision = classify_postpublication_history((correction,))
+    need(
+        correction_decision.compatibility_correction == correction.oid
+        and correction_decision.publication_merge is None,
+        "exact compatibility correction positive control",
+    )
+    need(
+        working_context(
+            PUBLISHED_MERGE_COMMIT,
+            COMPATIBILITY_CORRECTION_BRANCH,
+            CORRECTION_PATHS,
+        )
+        == "compatibility_correction",
+        "compatibility correction dirty-worktree positive control",
+    )
+    validate_working_history_context("clean", correction_decision)
+    need(
+        correction_decision.pending_successor is None,
+        "clean postcommit correction positive control",
+    )
+
+    for subject_bytes, label in (
+        (b" " + correction_subject_bytes + b"\n", "leading whitespace"),
+        (correction_subject_bytes + b" \n", "trailing whitespace"),
+        (correction_subject_bytes + b"\t\n", "trailing tab"),
+        (correction_subject_bytes + b" changed\n", "wrong subject"),
+        (correction_subject_bytes + b"\nbody\n", "extra body"),
+        (
+            correction_subject_bytes + b"\n\nSigned-off-by: synthetic\n",
+            "extra trailer",
+        ),
+    ):
+        altered = history_variant(
+            correction,
+            oid="subject-" + label.replace(" ", "-"),
+            subject=canonical_commit_message_body(subject_bytes),
+        )
+        expect_contract_error(
+            lambda record=altered: classify_postpublication_history((record,)),
+            "UNAUTHORIZED_V5_CLOSURE_CHANGE",
+            "correction subject " + label,
+        )
+
+    for altered, expected, label in (
+        (
+            history_variant(correction, parents=("0" * 40,)),
+            "UNAUTHORIZED_V5_CLOSURE_CHANGE",
+            "wrong correction parent",
+        ),
+        (
+            history_variant(correction, changed_paths=(MANIFEST, VALIDATOR)),
+            "UNAUTHORIZED_V5_CLOSURE_CHANGE",
+            "missing correction central path",
+        ),
+        (
+            history_variant(correction, central_projection_sha256="0" * 64),
+            "UNAUTHORIZED_V5_PROJECTION_CHANGE",
+            "V5 projection drift",
+        ),
+        (
+            history_variant(correction, bindings_valid=False),
+            "MANIFEST_HASH_MISMATCH",
+            "manifest hash mismatch",
+        ),
+        (
+            history_variant(correction, correction_delta_valid=False),
+            "UNAUTHORIZED_V5_CLOSURE_CHANGE",
+            "non-pin central or manifest change",
+        ),
+    ):
+        expect_contract_error(
+            lambda record=altered: classify_postpublication_history((record,)),
+            expected,
+            label,
+        )
+
+    immutable_change = HistoryRecord(
+        oid="i" * 40,
+        parents=(correction.oid,),
+        subject="PMAI-P0-04: Synthetic immutable mutation",
+        tree="synthetic-immutable-tree",
+        changed_paths=(DOC,),
+        second_parent_changed_paths=(),
+        central_projection_sha256=None,
+        bindings_valid=True,
+        correction_delta_valid=False,
+    )
+    expect_contract_error(
+        lambda: classify_postpublication_history((correction, immutable_change)),
+        "IMMUTABLE_V5_PACKAGE_MEMBER_MUTATION",
+        "immutable V5 member mutation",
+    )
+    expect_contract_error(
+        lambda: classify_postpublication_history(
+            (correction, history_variant(correction, oid="d" * 40))
+        ),
+        "SECOND_COMPATIBILITY_CORRECTION",
+        "second compatibility correction",
+    )
+
+    publication_merge = HistoryRecord(
+        oid="d" * 40,
+        parents=(PUBLISHED_MERGE_COMMIT, correction.oid),
+        subject=(
+            "Merge pull request #123 from pet-med-ai/"
+            + COMPATIBILITY_CORRECTION_BRANCH
+            + "\n\n"
+            + COMPATIBILITY_CORRECTION_SUBJECT
+        ),
+        tree=correction.tree,
+        changed_paths=CORRECTION_PATHS,
+        second_parent_changed_paths=(),
+        central_projection_sha256=projection,
+        bindings_valid=True,
+        correction_delta_valid=True,
+    )
+    published_decision = classify_postpublication_history(
+        (correction, publication_merge)
+    )
+    need(
+        published_decision.publication_merge == publication_merge.oid,
+        "compatibility publication merge positive control",
+    )
+    ephemeral_correction_merge = history_variant(
+        publication_merge,
+        oid="7" * 40,
+        subject="Merge " + correction.oid + " into " + PUBLISHED_MERGE_COMMIT,
+        ephemeral_pr_test_merge=True,
+    )
+    ephemeral_correction_decision = classify_postpublication_history(
+        (correction, ephemeral_correction_merge)
+    )
+    need(
+        ephemeral_correction_decision.publication_merge is None
+        and ephemeral_correction_decision.ephemeral_pr_test_merge
+        == ephemeral_correction_merge.oid,
+        "synthetic correction PR merge positive control",
+    )
+    for altered, label in (
+        (history_variant(publication_merge, parents=(correction.oid, PUBLISHED_MERGE_COMMIT)), "reversed merge parents"),
+        (history_variant(publication_merge, tree="wrong-tree"), "wrong merge tree"),
+        (history_variant(publication_merge, changed_paths=tuple(reversed(CORRECTION_PATHS))), "wrong merge path order"),
+        (history_variant(publication_merge, second_parent_changed_paths=(CENTRAL,)), "nonempty second-parent diff"),
+        (history_variant(publication_merge, parents=(PUBLISHED_MERGE_COMMIT, correction.oid, "e" * 40)), "octopus merge"),
+    ):
+        expect_contract_error(
+            lambda record=altered: classify_postpublication_history(
+                (correction, record)
+            ),
+            "HISTORY_AMBIGUITY",
+            label,
+        )
+    wrong_ephemeral_correction_sha = history_variant(
+        ephemeral_correction_merge,
+        oid="8" * 40,
+        subject="Merge " + "0" * 40 + " into " + PUBLISHED_MERGE_COMMIT,
+    )
+    expect_contract_error(
+        lambda: classify_postpublication_history(
+            (correction, wrong_ephemeral_correction_sha)
+        ),
+        "HISTORY_AMBIGUITY",
+        "ephemeral correction merge parent binding",
+    )
+
+    successor = HistoryRecord(
+        oid="5" * 40,
+        parents=(publication_merge.oid,),
+        subject="PMAI-P0-04: Synthetic successor integration",
+        tree="synthetic-successor-tree",
+        changed_paths=(CENTRAL, "scripts/synthetic_successor_validator.py"),
+        second_parent_changed_paths=(),
+        central_projection_sha256=projection,
+        bindings_valid=True,
+        correction_delta_valid=False,
+    )
+    successor_decision = classify_postpublication_history(
+        (correction, publication_merge, successor)
+    )
+    need(
+        successor_decision.successor_central_commits == (successor.oid,)
+        and successor_decision.pending_successor == successor.oid,
+        "LEGITIMATE_SUCCESSOR_CENTRAL_EVOLUTION_NOT_COUNTED_AS_V5_PACKAGE_MUTATION",
+    )
+    validate_history_ancestry(
+        successor_decision,
+        lambda ancestor, descendant: (ancestor, descendant)
+        in {
+            (PUBLISHED_MERGE_COMMIT, correction.oid),
+            (correction.oid, publication_merge.oid),
+            (publication_merge.oid, successor.oid),
+        },
+    )
+    expect_contract_error(
+        lambda: validate_working_history_context("successor", successor_decision),
+        "HISTORY_AMBIGUITY",
+        "parallel pending successor",
+    )
+    for subject, label in (
+        ("", "empty"),
+        (" leading", "leading whitespace"),
+        ("trailing ", "trailing whitespace"),
+        ("line\nbody", "extra body"),
+        ("control\x1b", "control character"),
+        ("bidi\u202e", "bidi control"),
+    ):
+        altered = history_variant(successor, oid="s-" + label, subject=subject)
+        expect_contract_error(
+            lambda record=altered: classify_postpublication_history(
+                (correction, publication_merge, record)
+            ),
+            "HISTORY_AMBIGUITY",
+            "successor subject " + label,
+        )
+    for altered, expected, label in (
+        (history_variant(successor, central_projection_sha256="f" * 64), "UNAUTHORIZED_V5_PROJECTION_CHANGE", "successor projection drift"),
+        (history_variant(successor, bindings_valid=False), "MANIFEST_HASH_MISMATCH", "successor closure drift"),
+    ):
+        expect_contract_error(
+            lambda record=altered: classify_postpublication_history(
+                (correction, publication_merge, record)
+            ),
+            expected,
+            label,
+        )
+
+    successor_merge = HistoryRecord(
+        oid="6" * 40,
+        parents=(publication_merge.oid, successor.oid),
+        subject=(
+            "Merge pull request #124 from pet-med-ai/"
+            "pmai-p0-04-synthetic-successor\n\n"
+            + successor.subject
+        ),
+        tree=successor.tree,
+        changed_paths=successor.changed_paths,
+        second_parent_changed_paths=(),
+        central_projection_sha256=projection,
+        bindings_valid=True,
+        correction_delta_valid=False,
+    )
+    merged_decision = classify_postpublication_history(
+        (correction, publication_merge, successor, successor_merge)
+    )
+    need(
+        merged_decision.successor_publication_merges == (successor_merge.oid,)
+        and merged_decision.history_lineage[-1] == successor_merge.oid,
+        "transparent successor publication merge positive control",
+    )
+    for altered, label in (
+        (
+            history_variant(successor_merge, subject="Merge synthetic successor"),
+            "successor merge subject",
+        ),
+        (
+            history_variant(successor_merge, tree="wrong-successor-tree"),
+            "successor merge tree",
+        ),
+        (
+            history_variant(
+                successor_merge,
+                changed_paths=(*successor.changed_paths, "scripts/unexpected.py"),
+            ),
+            "successor merge paths",
+        ),
+        (
+            history_variant(
+                successor_merge,
+                second_parent_changed_paths=(CENTRAL,),
+            ),
+            "successor merge second-parent diff",
+        ),
+        (
+            history_variant(
+                successor_merge,
+                parents=(successor.oid, publication_merge.oid),
+            ),
+            "successor merge parent order",
+        ),
+    ):
+        expect_contract_error(
+            lambda record=altered: classify_postpublication_history(
+                (correction, publication_merge, successor, record)
+            ),
+            "HISTORY_AMBIGUITY",
+            label,
+        )
+    ephemeral_successor_merge = history_variant(
+        successor_merge,
+        oid="9" * 40,
+        subject="Merge " + successor.oid + " into " + publication_merge.oid,
+        ephemeral_pr_test_merge=True,
+    )
+    ephemeral_successor_decision = classify_postpublication_history(
+        (correction, publication_merge, successor, ephemeral_successor_merge)
+    )
+    need(
+        ephemeral_successor_decision.pending_successor == successor.oid
+        and ephemeral_successor_decision.ephemeral_pr_test_merge
+        == ephemeral_successor_merge.oid,
+        "synthetic successor PR merge positive control",
+    )
+    wrong_ephemeral_successor_sha = history_variant(
+        ephemeral_successor_merge,
+        oid="b" * 40,
+        subject="Merge " + "0" * 40 + " into " + publication_merge.oid,
+    )
+    expect_contract_error(
+        lambda: classify_postpublication_history(
+            (
+                correction,
+                publication_merge,
+                successor,
+                wrong_ephemeral_successor_sha,
+            )
+        ),
+        "HISTORY_AMBIGUITY",
+        "ephemeral successor merge parent binding",
+    )
+    second_successor = history_variant(
+        successor,
+        oid="a" * 40,
+        parents=(successor.oid,),
+    )
+    expect_contract_error(
+        lambda: classify_postpublication_history(
+            (correction, publication_merge, successor, second_successor)
+        ),
+        "HISTORY_AMBIGUITY",
+        "second pending successor",
+    )
+    expect_contract_error(
+        lambda: validate_history_ancestry(
+            successor_decision,
+            lambda ancestor, descendant: (ancestor, descendant)
+            in {
+                (PUBLISHED_MERGE_COMMIT, correction.oid),
+                (correction.oid, publication_merge.oid),
+            },
+        ),
+        "HISTORY_AMBIGUITY",
+        "parallel successor ancestry",
+    )
 
 
 def validate_modes() -> None:
@@ -2013,6 +3327,7 @@ def main() -> int:
     validate_modes()
     validate_v4_protection()
     run_pinned_v4_validator()
+    validate_successor_compatibility_synthetic_tests()
     validate_successor_test_matrix()
     validate_contract_artifacts()
     validate_json_schemas()
