@@ -1,0 +1,31 @@
+name: Consult history preservation
+
+on:
+  pull_request:
+    paths:
+      - backend/main.py
+      - backend/consult_history_merge.py
+      - tests/test_consult_history_merge.py
+      - .github/workflows/consult-history-preservation.yml
+
+permissions:
+  contents: read
+
+jobs:
+  history-preservation:
+    name: History preservation synthetic and static checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run isolated synthetic tests and parse route wiring
+        run: python -B tests/test_consult_history_merge.py
