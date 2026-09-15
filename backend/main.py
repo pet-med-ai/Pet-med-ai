@@ -6,6 +6,8 @@ from pathlib import Path                    # ← 新增：定位 knowledge-base
 from typing import Optional, List, Dict, Any
 import os
 import json
+import hashlib
+import hmac
 from datetime import datetime
 from uuid import uuid4
 
@@ -338,6 +340,10 @@ class AIConsultSessionSaveCaseOut(BaseModel):
     case_id: int
     session_id: str
     message: str = "saved"
+
+class AIConsultSessionUpdateCaseIn(BaseModel):
+    # Optional request body preserves compatibility with existing clients.
+    expected_preview_token: str = Field(min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
 
 class AIConsultSessionDeleteOut(BaseModel):
     session_id: str
@@ -1177,8 +1183,40 @@ def ai_consult_session_save_case(
     }
 
 
-@app.post("/api/ai/consult/session/{session_id}/update-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
-def ai_consult_session_update_case(
+CONSULT_UPDATE_FIELDS = ("chief_complaint", "history", "exam_findings", "analysis", "treatment", "prognosis")
+
+
+def _consult_update_snapshot(session, obj, case_fields):
+    before = {name: getattr(obj, name) for name in CONSULT_UPDATE_FIELDS}
+    proposed = dict(before)
+    proposed.update(case_fields)
+    proposed["chief_complaint"] = session.text
+    proposed["history"] = preserve_consult_history(obj.history, case_fields["history"])
+    current_exam = (obj.exam_findings or "").strip()
+    source_line = f"由动态问诊更新；原始会话：{session.session_uid}"
+    if not current_exam:
+        proposed["exam_findings"] = source_line
+    elif "原始会话" not in current_exam:
+        proposed["exam_findings"] = f"{current_exam}\n{source_line}"
+    # Detect changes since preview. This is not an atomic concurrency lock.
+    fingerprint = json.dumps({
+        "case_id": obj.id, "session_id": session.session_uid,
+        "patient_name": obj.patient_name, "species": obj.species,
+        "case_updated_at": str(obj.updated_at), "session_updated_at": str(session.updated_at),
+        "answers": session.answers, "result": session.result,
+        "before": before, "proposed": proposed,
+    }, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return {
+        "case_id": obj.id, "session_id": session.session_uid,
+        "patient_name": obj.patient_name, "species": obj.species,
+        "before": before, "proposed": proposed,
+        "preview_token": hashlib.sha256(fingerprint.encode("utf-8")).hexdigest(),
+        "message": "preview",
+    }
+
+
+@app.post("/api/ai/consult/session/{session_id}/preview-update-case", response_model=dict, tags=["ai"])
+def ai_consult_session_preview_update_case(
     session_id: str,
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
@@ -1195,21 +1233,40 @@ def ai_consult_session_update_case(
     if not obj or getattr(obj, "owner_id", None) != getattr(user, "id", None):
         raise HTTPException(status_code=404, detail="Case not found")
 
+    return _consult_update_snapshot(session, obj, _consult_session_to_case_fields(session))
+
+
+@app.post("/api/ai/consult/session/{session_id}/update-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
+def ai_consult_session_update_case(
+    session_id: str,
+    data: Optional[AIConsultSessionUpdateCaseIn] = None,
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user),
+):
+    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Consult session not found")
+    assert_consult_session_access(session, user, allow_unowned=False)
+
+    if not getattr(session, "case_id", None):
+        raise HTTPException(status_code=400, detail="Consult session is not bound to a case")
+
+    obj = db.get(Case, session.case_id)
+    if not obj or getattr(obj, "owner_id", None) != getattr(user, "id", None):
+        raise HTTPException(status_code=404, detail="Case not found")
+
     case_fields = _consult_session_to_case_fields(session)
+    snapshot = _consult_update_snapshot(session, obj, case_fields)
+    if data is not None and not hmac.compare_digest(data.expected_preview_token, snapshot["preview_token"]):
+        raise HTTPException(status_code=409, detail="病例或问诊内容已改变，请重新预览并核对。")
+    proposed = snapshot["proposed"]
 
-    obj.chief_complaint = session.text
+    obj.chief_complaint = proposed["chief_complaint"]
     obj.history = preserve_consult_history(obj.history, case_fields["history"])
-    obj.analysis = case_fields["analysis"]
-    obj.treatment = case_fields["treatment"]
-    obj.prognosis = case_fields["prognosis"]
-
-    source_line = f"由动态问诊更新；原始会话：{session.session_uid}"
-    current_exam = (obj.exam_findings or "").strip()
-    if current_exam:
-        if "原始会话" not in current_exam:
-            obj.exam_findings = f"{current_exam}\n{source_line}"
-    else:
-        obj.exam_findings = source_line
+    obj.analysis = proposed["analysis"]
+    obj.treatment = proposed["treatment"]
+    obj.prognosis = proposed["prognosis"]
+    obj.exam_findings = proposed["exam_findings"]
 
     obj.updated_at = datetime.utcnow()
     session.updated_at = datetime.utcnow()
