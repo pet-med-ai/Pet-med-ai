@@ -9,6 +9,11 @@ import json
 from datetime import datetime
 from uuid import uuid4
 
+try:
+    from backend.consult_history_merge import preserve_consult_history
+except ModuleNotFoundError:
+    from consult_history_merge import preserve_consult_history
+
 from sqlalchemy.orm import Session
 from sqlalchemy import inspect
 from pydantic import BaseModel, Field
@@ -1193,7 +1198,7 @@ def ai_consult_session_update_case(
     case_fields = _consult_session_to_case_fields(session)
 
     obj.chief_complaint = session.text
-    obj.history = case_fields["history"]
+    obj.history = preserve_consult_history(obj.history, case_fields["history"])
     obj.analysis = case_fields["analysis"]
     obj.treatment = case_fields["treatment"]
     obj.prognosis = case_fields["prognosis"]
