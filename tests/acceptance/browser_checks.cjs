@@ -14,6 +14,9 @@ let browser, context, page, auth;
 const fields = ['patient_name','species','sex','age_info','breed','weight','coat_color','owner_name','owner_phone','chief_complaint','history','exam_findings','analysis','treatment','prognosis'];
 const saveRegion = () => page.getByRole('region', { name: '首次保存病例核对', exact: true });
 const updateRegion = () => page.getByRole('region', { name: '更新已绑定病例核对', exact: true });
+// React updates textarea text content as well as its value. Anchor the label's
+// visible caption, so entered history does not change Playwright's label match.
+const historyInput = () => page.locator('label').filter({ has: page.getByText('既往史', { exact: true }) }).locator('textarea');
 const responseFor = (suffix, method='POST') => page.waitForResponse(r => new URL(r.url()).pathname.endsWith(suffix) && r.request().method() === method);
 async function record(name) {
   passed.push(name);
@@ -64,7 +67,7 @@ async function startCase(name) {
     await page.getByLabel(label, { exact: true }).fill(value);
   }
   await page.getByLabel('主诉（必填）', { exact: true }).fill('合成犬呕吐两次，精神正常');
-  await page.getByLabel('既往史', { exact: true }).fill('医生原始病史🐾\n既往用药需要保留。');
+  await historyInput().fill('医生原始病史🐾\n既往用药需要保留。');
   await page.getByLabel('体检/化验摘要', { exact: true }).fill('合成体检记录');
   const create = responseFor('/api/ai/consult/session');
   await page.getByRole('button', { name: '提交分析（不入库）', exact: true }).click();
@@ -112,7 +115,7 @@ async function main() {
   await expect(saveRegion().getByRole('button',{ name:'确认并保存病例',exact:true })).toBeDisabled();
   await saveRegion().getByLabel('已核对本次保存内容',{exact:true}).check();
   const history = '医生修改后病史🐾\n原文尾部空白保留。  \n';
-  await page.getByLabel('既往史',{exact:true}).fill(history);
+  await historyInput().fill(history);
   await expect(saveRegion().getByText('内容已修改，原确认失效，请重新核对。',{exact:true})).toBeVisible();
   await expect(saveRegion().getByRole('button',{ name:'确认并保存病例',exact:true })).toHaveCount(0);
   p = await preview(); assert(p.history.startsWith(history));
@@ -176,7 +179,7 @@ async function main() {
   await page.route('**/api/ai/consult/session/'+sid, route => rejectRead && route.request().method()==='GET' ? route.abort('failed') : route.continue());
   await confirm();
   await expect(saveRegion().getByText('暂时无法回读，保存结果待核对。已保留输入和核对内容，请先核对保存结果。',{exact:true})).toBeVisible();
-  await expect(page.getByLabel('既往史',{exact:true})).toHaveValue('医生原始病史🐾\n既往用药需要保留。');
+  await expect(historyInput()).toHaveValue('医生原始病史🐾\n既往用药需要保留。');
   rejectRead=false;
   await saveRegion().getByRole('button',{name:'核对保存结果',exact:true}).click();
   await checkSaved(sid,p); assert.equal(savePosts,1);
