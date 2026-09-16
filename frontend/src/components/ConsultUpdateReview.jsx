@@ -12,7 +12,7 @@ const matches = (record, preview) => record?.id === preview.case_id &&
   fields.every(([name]) => record[name] === preview.proposed[name]);
 
 // Mounted per bound session/case. Late responses cannot replace a newer preview.
-export default function ConsultUpdateReview({ sessionId, caseId, revision, allowed, blocked, hasPendingAnswers, onUpdated, onReturnToEdit, onWorkingChange }) {
+export default function ConsultUpdateReview({ sessionId, caseId, revision, allowed, blocked, hasPendingAnswers, onUpdated, onReturnToEdit, onWorkingChange, contentRevision }) {
   const [preview, setPreview] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [phase, setPhase] = useState("idle");
@@ -23,6 +23,9 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
   const latest = useRef(revision);
   latest.current = revision;
   const previewRevision = useRef(null);
+  const latestContent = useRef(contentRevision ?? revision);
+  latestContent.current = contentRevision ?? revision;
+  const previewContent = useRef(null);
   const invalidated = preview && previewRevision.current !== revision;
   const working = ["previewing", "saving", "checking"].includes(phase);
   const unresolved = phase === "uncertain";
@@ -44,6 +47,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
       }
       if (data.case_id !== caseId || data.session_id !== sessionId || !data.preview_token) throw new Error("Invalid preview");
       previewRevision.current = requestedRevision;
+      previewContent.current = latestContent.current;
       setPreview(data); setPhase("review");
     } catch {
       if (mounted.current) { setPhase("idle"); setMessage("无法获取更新预览。请检查登录状态和网络后重试。"); }
@@ -59,7 +63,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
       if (matches(data, snapshot)) {
         setPhase("verified"); setMessage("已回读病例，本次核对的六项内容一致。");
         // Refreshing the list must not turn successful readback into a failed save.
-        Promise.resolve(onUpdated?.(data, { inputsChanged: previewRevision.current !== latest.current })).catch(() => {});
+        Promise.resolve(onUpdated?.(data, { inputsChanged: previewContent.current !== latestContent.current })).catch(() => {});
       } else {
         setPhase("uncertain"); setMessage("当前病例与核对内容不一致。请查看已保存病例，再重新预览；请勿直接重复提交。");
       }

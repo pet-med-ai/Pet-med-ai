@@ -9,7 +9,8 @@ its content comes from the server response, with a warning for later input edits
 
 Five application files are changed: App.jsx, ConsultSaveReview.jsx,
 ConsultUpdateReview.jsx, and new ConsultWorkbench.jsx / ConsultWorkbench.css.
-The workflow binds each of their exact Git blobs and rejects any other backend,
+Two existing React test files also add a regression for step navigation after
+failed readback. The workflow binds all seven exact Git blobs and rejects other backend,
 frontend, knowledge-base or root Python dependency change from the baseline.
 Artifacts record the actual tested HEAD. APIs, database logic and the previous
 complete-history display fix are unchanged. Existing PR remains draft; no merge
@@ -51,11 +52,13 @@ Q&A blocks with repeated numbering, CRLF/whitespace/Unicode, literal HTML, long
 text wrapping, and empty history. Print checks verify Chromium print styles;
 they do not certify physical printer output or PDF pagination.
 
-The browser suite retains the original 14 scenarios and adds four workbench
+The browser suite retains the original 14 scenarios and adds five workbench
 checks: step access before a session/save exists, mobile intake layout with
-retained input, return-to-edit with fresh confirmation, and server-backed saved
-content. The failed-readback scenario also navigates to intake and back before
-retrying GET, without a second save POST.
+retained input, return-to-edit with fresh confirmation, server-backed saved
+content, and edits after saving that do not alter the saved view. The failed-readback scenario also navigates to intake and back before
+retrying GET, without a second save POST or an incorrect unsaved-input warning.
+Navigation can invalidate a confirmation without counting as a content edit;
+content revision is tracked separately for the readback receipt.
 
 Prior evidence: run 35066070839 on f503eba7 passed 12 PostgreSQL assertions and
 14 browser scenarios. Those historical results do not establish that this new

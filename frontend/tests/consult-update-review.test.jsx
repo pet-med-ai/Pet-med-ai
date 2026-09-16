@@ -141,3 +141,18 @@ test("a response to an unmounted session cannot refresh another session", async 
   assert.equal(refreshes, 0);
   assert.equal(requests.filter(r => r.method === "get").length, 0);
 });
+
+
+test("navigation during unresolved update is not an input edit", async () => {
+  const receipts = [];
+  revise({ contentRevision: "same-input", onUpdated: (record, receipt) => receipts.push({record, receipt}) });
+  await click("核对更新内容"); check();
+  adapter = async config => { if (config.method === "get") throw new Error("Read failed"); return response(config, {case_id: 7}); };
+  await click("确认并更新病例");
+  revise({ revision: "returned-to-intake", contentRevision: "same-input" });
+  adapter = async config => response(config, saved);
+  await click("核对保存结果");
+  assert.equal(writes().length, 1);
+  assert.equal(receipts.length, 1);
+  assert.equal(receipts[0].receipt.inputsChanged, false);
+});

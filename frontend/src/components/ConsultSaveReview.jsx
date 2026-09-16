@@ -8,7 +8,7 @@ const fields = [...metadata, ...clinical];
 const button = { padding: "8px 12px", border: "1px solid #94a3b8", borderRadius: 6, cursor: "pointer" };
 const caseMatches = (record, snapshot) => fields.every(([key]) => record[key] === snapshot[key]);
 
-export default function ConsultSaveReview({ sessionId, payload, revision, allowed, blocked, hasPendingAnswers, onSaved, onBound, onReturnToEdit, onWorkingChange }) {
+export default function ConsultSaveReview({ sessionId, payload, revision, allowed, blocked, hasPendingAnswers, onSaved, onBound, onReturnToEdit, onWorkingChange, contentRevision }) {
   const [preview, setPreview] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [phase, setPhase] = useState("idle");
@@ -21,6 +21,9 @@ export default function ConsultSaveReview({ sessionId, payload, revision, allowe
   latest.current = context;
   const snapshotContext = useRef(null);
   const reviewedPayload = useRef(null);
+  const latestContent = useRef(contentRevision ?? context);
+  latestContent.current = contentRevision ?? context;
+  const previewContent = useRef(null);
   const invalidated = preview && snapshotContext.current !== context;
   const working = ["previewing", "saving", "checking"].includes(phase);
 
@@ -42,7 +45,7 @@ export default function ConsultSaveReview({ sessionId, payload, revision, allowe
       const { data } = await api.get(`/api/cases/${session.case_id}`, { timeout: 15000 });
       if (!mounted.current) return;
       if (data.id === session.case_id && caseMatches(data, snapshot)) {
-        const inputsChanged = snapshotContext.current !== latest.current;
+        const inputsChanged = previewContent.current !== latestContent.current;
         setPhase("verified"); setMessage("已回读病例，基本信息与本次核对的保存内容一致。" + (inputsChanged ? "保存期间另有输入修改，这些修改尚未保存。" : ""));
         Promise.resolve().then(() => { if (mounted.current) return onSaved?.(data, { inputsChanged }); }).catch(() => {});
       } else {
@@ -67,6 +70,7 @@ export default function ConsultSaveReview({ sessionId, payload, revision, allowe
       }
       if (data.session_id !== sessionId || !data.preview_token) throw new Error("Invalid preview");
       snapshotContext.current = requestedContext;
+      previewContent.current = latestContent.current;
       reviewedPayload.current = body;
       setPreview(data);
       if (data.case_id) { setBoundId(data.case_id); await readSaved(data); }

@@ -161,3 +161,17 @@ test("late save response after session unmount cannot bind another session", asy
   assert.equal(receipts.length, 0);
   assert.equal(requests.filter(r => r.method === "get").length, 0);
 });
+
+
+test("navigation invalidates confirmation without claiming unchanged input is unsaved", async () => {
+  revise({ contentRevision: "same-input" });
+  await click("核对保存内容"); check();
+  adapter = async config => { if (config.method === "get") throw new Error("Read failed"); return normal(config); };
+  await click("确认并保存病例");
+  revise({ revision: "returned-to-intake", contentRevision: "same-input" });
+  adapter = async config => normal(config);
+  await click("核对保存结果");
+  assert.equal(writes().length, 1);
+  assert.equal(receipts.length, 1);
+  assert.equal(receipts[0].receipt.inputsChanged, false);
+});

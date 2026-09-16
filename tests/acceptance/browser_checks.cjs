@@ -160,6 +160,13 @@ async function main() {
   await record('first_save_fifteen_fields_real_readback');
   await record('workbench_saved_panel_shows_server_readback');
   await goStep(1);
+  await historyInput().fill(history+'新增未保存补记');
+  await goStep(3);
+  await expect(readbackRegion().getByText('当前输入另有修改，尚未保存；下方仍是上次回读的病例内容。',{exact:true})).toBeVisible();
+  assert.equal(await readbackRegion().getByRole('region',{name:'完整病史',exact:true}).locator('pre').textContent(),saved.history);
+  await record('workbench_unsaved_edits_do_not_change_saved_view');
+  await goStep(1);
+  await historyInput().fill(history);
   await page.getByPlaceholder('请填写对当前追问的回答',{exact:true}).fill('合成后续补问回答');
   await goStep(2);
   await expect(updateRegion().getByRole('button',{name:'核对更新内容',exact:true})).toBeDisabled();
@@ -266,6 +273,7 @@ async function main() {
   rejectRead=false;
   await saveRegion().getByRole('button',{name:'核对保存结果',exact:true}).click();
   await checkSaved(sid,p); assert.equal(savePosts,1);
+  await expect(readbackRegion().getByText('当前输入另有修改，尚未保存；下方仍是上次回读的病例内容。',{exact:true})).toHaveCount(0);
   await record('readback_failure_preserves_inputs_and_retries_get_only');
   assert.deepEqual(external,[]); assert.deepEqual(pageErrors,[]);
   await record('no_external_requests_or_uncaught_browser_errors');

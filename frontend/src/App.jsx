@@ -1318,6 +1318,7 @@ function Home() {
                 sessionId={consultSessionId}
                 onReturnToEdit={() => changeWorkbenchStep(1)}
                 onWorkingChange={setWorkbenchBusy}
+                contentRevision={workbenchRevision}
                 payload={buildConsultSaveCasePayload()}
                 revision={JSON.stringify([reviewNavigationVersion, consultAnswers, result, followupAnswer, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId])}
                 allowed={isAuthed && !auditReviewRequired}
@@ -1343,6 +1344,7 @@ function Home() {
                 sessionId={consultSessionId}
                 onReturnToEdit={() => changeWorkbenchStep(1)}
                 onWorkingChange={setWorkbenchBusy}
+                contentRevision={workbenchRevision}
                 caseId={savedConsultCaseId}
                 allowed={isAuthed && !auditReviewRequired}
                 blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting}
