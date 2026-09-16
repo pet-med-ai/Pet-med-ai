@@ -1,0 +1,96 @@
+name: Consult browser and PostgreSQL acceptance
+
+on:
+  pull_request:
+    paths:
+      - 'tests/acceptance/**'
+      - '.github/workflows/consult-browser-postgres.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic-acceptance:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      PMAI_SYNTHETIC_ACCEPTANCE: PR26
+      PMAI_ACCEPTANCE_OUT: ${{ github.workspace }}/acceptance-results
+      DATABASE_URL: postgresql://pmai_acceptance@127.0.0.1:55432/pmai_acceptance
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Bind unchanged application to reviewed candidate
+        run: |
+          mkdir -p acceptance-results
+          git rev-parse HEAD > acceptance-results/test-commit.txt
+          git diff --exit-code d8dd219d9daaf00ba7f865990c3236dca165d280 HEAD -- backend frontend knowledge-base requirements.txt
+          git rev-parse d8dd219d9daaf00ba7f865990c3236dca165d280 > acceptance-results/application-commit.txt
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies and Chromium
+        run: |
+          python -m pip install -r requirements.txt -r backend/requirements.txt
+          npm install --prefix frontend
+          npm install --prefix "$RUNNER_TEMP/pmai-browser-deps" --no-package-lock @playwright/test@1.55.0
+          "$RUNNER_TEMP/pmai-browser-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Start fresh native PostgreSQL (no Docker)
+        run: |
+          test -x /usr/lib/postgresql/16/bin/initdb
+          /usr/lib/postgresql/16/bin/initdb -D "$RUNNER_TEMP/pmai-pgdata" -U pmai_acceptance --auth=trust --encoding=UTF8 --no-locale
+          mkdir "$RUNNER_TEMP/pmai-pgsocket"
+          /usr/lib/postgresql/16/bin/pg_ctl -D "$RUNNER_TEMP/pmai-pgdata" -l "$PMAI_ACCEPTANCE_OUT/postgres.log" -o "-h 127.0.0.1 -p 55432 -k $RUNNER_TEMP/pmai-pgsocket" -w start
+          /usr/lib/postgresql/16/bin/createdb -h 127.0.0.1 -p 55432 -U pmai_acceptance pmai_acceptance
+      - name: PostgreSQL real routes and concurrent transactions
+        run: |
+          set -o pipefail
+          python tests/acceptance/postgres_checks.py 2>&1 | tee acceptance-results/postgres-checks.log
+          python tests/acceptance/postgres_checks.py --readback 2>&1 | tee acceptance-results/restart-readback.log
+      - name: Build and serve exact application locally
+        env:
+          VITE_API_BASE: http://127.0.0.1:18026
+        run: |
+          npm --prefix frontend run build
+          python tests/acceptance/fixture.py > acceptance-results/backend.log 2>&1 &
+          echo "$!" > acceptance-results/backend.pid
+          frontend/node_modules/.bin/vite preview frontend --host 127.0.0.1 --port 5173 --strictPort > acceptance-results/frontend.log 2>&1 &
+          echo "$!" > acceptance-results/frontend.pid
+          python - <<'PY'
+          import time, urllib.request
+          for url in ['http://127.0.0.1:18026/healthz', 'http://127.0.0.1:5173/']:
+              for attempt in range(30):
+                  try:
+                      with urllib.request.urlopen(url, timeout=1) as response:
+                          assert response.status == 200
+                      break
+                  except Exception:
+                      if attempt == 29: raise
+                      time.sleep(1)
+          PY
+      - name: Real Chromium consultation save and readback
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/browser_checks.cjs 2>&1 | tee acceptance-results/browser-checks.log
+      - name: Stop test processes
+        if: always()
+        run: |
+          for file in acceptance-results/backend.pid acceptance-results/frontend.pid; do
+            if test -f "$file"; then kill "$(cat "$file")" 2>/dev/null || true; fi
+          done
+          if test -f "$RUNNER_TEMP/pmai-pgdata/postmaster.pid"; then
+            /usr/lib/postgresql/16/bin/pg_ctl -D "$RUNNER_TEMP/pmai-pgdata" -m fast -w stop
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}
+          path: acceptance-results/
+          retention-days: 14

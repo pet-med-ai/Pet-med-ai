@@ -1,0 +1,147 @@
+"""Real JWT, routes, SQL transactions and independent connections on PostgreSQL."""
+import json
+import sys
+from concurrent.futures import ThreadPoolExecutor
+from threading import Barrier
+from unittest.mock import patch
+from uuid import uuid4
+import fixture as f
+from fastapi.testclient import TestClient
+from sqlalchemy import text
+
+checks = []
+client = TestClient(f.main.app)
+PASSWORD = 'Synthetic-PR26-only-20260916'
+
+
+def call(method, path, headers=None, expected=200, **kw):
+    r = client.request(method, path, headers=headers, **kw)
+    assert r.status_code == expected, (path, r.status_code, r.text)
+    return r.json()
+
+
+def login(name):
+    return {'Authorization': 'Bearer ' + call('POST', '/auth/login', data={'username': name+'@example.com', 'password': PASSWORD})['access_token']}
+
+
+def record(name):
+    checks.append(name)
+    print('PASS:', name, flush=True)
+    filename = 'postgres-restart.json' if '--readback' in sys.argv else 'postgres-checks.json'
+    (f.OUT / filename).write_text(json.dumps({'passed': checks}, ensure_ascii=False, indent=2))
+
+
+def count():
+    with f.db.engine.connect() as c:
+        return c.execute(text('SELECT count(*) FROM cases')).scalar_one()
+
+
+def read(cid, auth):
+    f.db.engine.dispose()
+    return call('GET', f'/api/cases/{cid}', auth)
+
+
+if '--readback' in sys.argv:
+    expected = json.loads((f.OUT / 'restart-expected.json').read_text())
+    auth = login('pg-owner')
+    assert read(expected['case_id'], auth) == expected['record']
+    assert call('GET', expected['session_url'], auth)['case_id'] == expected['case_id']
+    record('fresh_process_relogin_and_readback')
+    sys.exit(0)
+
+f.prepare_empty_database()
+for name in ['pg-owner', 'pg-other', 'browser-owner']:
+    call('POST', '/auth/signup', json={'email': name+'@example.com', 'password': PASSWORD})
+owner, other = login('pg-owner'), login('pg-other')
+with f.db.SessionLocal() as s:
+    owner_id = s.query(f.models.User).filter_by(email='pg-owner@example.com').one().id
+record('native_postgresql_real_auth_no_overrides')
+sid = call('POST', '/api/ai/consult/session', owner, json={'text': '合成犬，呕吐两次，精神正常', 'species': 'dog'})['session_id']
+url = '/api/ai/consult/session/' + sid
+call('POST', url+'/answer', owner, json={'question': '合成补问', 'answer': '持续两天，合成数据'})
+body = {'patient_name': 'PG合成犬🐾', 'species': 'dog', 'sex': 'M', 'age_info': '4岁', 'breed': '合成品种',
+        'weight': '5kg', 'coat_color': '白', 'owner_name': '合成主人', 'owner_phone': 'synthetic-only',
+        'chief_complaint': '医生核对主诉', 'history': '  原始病史🐾\r\n必须保留尾部空格。  \n\t',
+        'exam_findings': '合成体检', 'structured_intake_answers': {'sections': [{'title': '病史', 'answers': [{'label': '用药', 'answer': '合成补充病史'}]}]}}
+before = count()
+p = call('POST', url+'/preview-case', owner, json=body)
+assert count() == before and call('GET', url, owner)['case_id'] is None
+assert p['history'].startswith(body['history']) and '合成补充病史' in p['history']
+record('preview_no_case_write_unicode_and_structured_history')
+for key in body:
+    changed = {**body, key: {} if key == 'structured_intake_answers' else 'changed', 'expected_preview_token': p['preview_token']}
+    call('POST', url+'/save-case', owner, expected=409, json=changed)
+assert count() == before
+record('all_input_changes_reject_stale_confirmation_without_write')
+for suffix in ['/preview-case', '/save-case']:
+    call('POST', url+suffix, expected=401, json=body)
+    call('POST', url+suffix, other, expected=404, json=body)
+assert count() == before
+record('authentication_and_foreign_owner_rejected')
+saved = call('POST', url+'/save-case', owner, json={**body, 'expected_preview_token': p['preview_token']})
+cid = saved['case_id']; current = read(cid, owner)
+assert all(current[k] == p[k] for k in f.main.CONSULT_SAVE_FIELDS)
+assert count() == before+1
+record('fifteen_fields_match_independent_postgresql_readback')
+again = call('POST', url+'/save-case', owner, json={**body, 'history': 'do not overwrite'})
+assert again['case_id'] == cid and again['message'] == 'already_saved'
+assert read(cid, owner) == current and count() == before+1
+record('duplicate_save_same_case_no_overwrite')
+call('POST', url+'/answer', owner, json={'question': '后续补问', 'answer': '后续合成内容'})
+assert read(cid, owner) == current
+up = call('POST', url+'/preview-update-case', owner)
+assert up['proposed']['history'].startswith(current['history'])
+call('POST', url+'/answer', owner, json={'question': '再次补问', 'answer': '使预览失效'})
+call('POST', url+'/update-case', owner, expected=409, json={'expected_preview_token': up['preview_token']})
+assert read(cid, owner) == current
+record('followup_and_stale_update_do_not_write_case')
+up = call('POST', url+'/preview-update-case', owner)
+call('POST', url+'/update-case', owner, json={'expected_preview_token': up['preview_token']})
+current = read(cid, owner)
+assert all(current[k] == up['proposed'][k] for k in f.main.CONSULT_UPDATE_FIELDS)
+assert current['history'].startswith(p['history'])
+record('six_update_fields_match_history_original_retained')
+up = call('POST', url+'/preview-update-case', owner)
+call('POST', url+'/update-case', owner, json={'expected_preview_token': up['preview_token']})
+assert read(cid, owner)['history'] == current['history']
+record('identical_update_does_not_duplicate_history')
+(f.OUT / 'restart-expected.json').write_text(json.dumps({'case_id': cid, 'record': read(cid, owner), 'session_url': url}, ensure_ascii=False))
+
+
+def race(unowned):
+    session_id = uuid4().hex
+    with f.db.SessionLocal() as s:
+        s.add(f.models.ConsultSession(session_uid=session_id, owner_id=None if unowned else owner_id,
+              text='合成并发保存', answers=[], result={'risk_level': 'low'})); s.commit()
+    baseline = count()
+    preview = call('POST', f'/api/ai/consult/session/{session_id}/preview-case', owner, json=body)
+    request = {**body, 'expected_preview_token': preview['preview_token']}
+    barrier = Barrier(2, timeout=15)
+    original = f.main._consult_save_snapshot
+    def snapshot(*args):
+        result = original(*args); barrier.wait(); return result
+    def worker(auth):
+        with TestClient(f.main.app) as c:
+            return c.post(f'/api/ai/consult/session/{session_id}/save-case', headers=auth, json=request)
+    # Only a scheduling barrier is inserted; auth, routes and SQL are unchanged.
+    with patch.object(f.main, '_consult_save_snapshot', side_effect=snapshot):
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(worker, h) for h in [owner, other if unowned else owner]]
+            responses = [x.result(timeout=25) for x in futures]
+    assert sorted(r.status_code for r in responses) == ([200,404] if unowned else [200,200]), [(r.status_code,r.text) for r in responses]
+    assert count() == baseline+1, 'Losing transaction left an orphan case'
+    success = [r.json() for r in responses if r.status_code == 200]
+    assert len({r['case_id'] for r in success}) == 1
+    with f.db.SessionLocal() as s:
+        row = s.query(f.models.ConsultSession).filter_by(session_uid=session_id).one()
+        case = s.get(f.models.Case, row.case_id)
+        assert case.owner_id == row.owner_id and case.id == success[0]['case_id']
+        if not unowned: assert case.owner_id == owner_id
+    if unowned:
+        loser = owner if responses[0].status_code == 404 else other
+        call('GET', f"/api/cases/{success[0]['case_id']}", loser, expected=404)
+
+
+race(False); record('same_owner_simultaneous_save_one_case_no_orphan')
+race(True); record('two_owner_unowned_race_single_owner_loser_cannot_read')
+client.close(); f.db.engine.dispose()
