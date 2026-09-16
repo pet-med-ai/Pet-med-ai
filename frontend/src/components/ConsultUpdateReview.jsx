@@ -13,7 +13,9 @@ const matches = (record, preview) => record?.id === preview.case_id &&
 
 // Mounted per bound session/case. Late responses cannot replace a newer preview.
 export default function ConsultUpdateReview({ sessionId, caseId, revision, allowed, blocked, hasPendingAnswers, onUpdated, onReturnToEdit, onWorkingChange, contentRevision, historyAddendum = "" }) {
-  const inputRevision = JSON.stringify([revision, historyAddendum]);
+  const [syncNote, setSyncNote] = useState(null);
+  const updateMode = historyAddendum.trim() && syncNote !== historyAddendum ? "history_only" : "consult_sync";
+  const inputRevision = JSON.stringify([revision, historyAddendum, updateMode]);
   const [preview, setPreview] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [phase, setPhase] = useState("idle");
@@ -27,13 +29,14 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
   updatedCallback.current = onUpdated;
   const previewRevision = useRef(null);
   const latestContent = useRef(null);
-  latestContent.current = JSON.stringify([contentRevision ?? revision, historyAddendum]);
+  latestContent.current = JSON.stringify([contentRevision ?? revision, historyAddendum, updateMode]);
   const previewContent = useRef(null);
   const invalidated = preview && previewRevision.current !== inputRevision;
   const working = ["previewing", "saving", "checking"].includes(phase);
   const unresolved = phase === "uncertain";
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => { setSyncNote(null); }, [historyAddendum]);
   useEffect(() => { onWorkingChange?.(working); return () => onWorkingChange?.(false); }, [working, onWorkingChange]);
   useEffect(() => { setConfirmed(false); }, [inputRevision, allowed, blocked, hasPendingAnswers]);
 
@@ -43,15 +46,16 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
     const requestedRevision = latest.current;
     setPhase("previewing"); setMessage(""); setConfirmed(false); setPreview(null); setReadback(null);
     try {
-      const { data } = await api.post(`/api/ai/consult/session/${encodeURIComponent(sessionId)}/preview-update-case`, { history_addendum: historyAddendum }, { timeout: 15000 });
+      const { data } = await api.post(`/api/ai/consult/session/${encodeURIComponent(sessionId)}/preview-update-case`, { history_addendum: historyAddendum, update_mode: updateMode }, { timeout: 15000 });
       if (!mounted.current) return;
       if (requestedRevision !== latest.current) {
         setPhase("idle"); setMessage("内容已修改，请重新核对保存内容。"); return;
       }
       if (data.case_id !== caseId || data.session_id !== sessionId || !data.preview_token) throw new Error("Invalid preview");
+      if (data.update_mode !== updateMode || data.history_addendum !== historyAddendum) throw new Error("Preview scope mismatch");
       previewRevision.current = requestedRevision;
       previewContent.current = latestContent.current;
-      setPreview({ ...data, history_addendum: historyAddendum }); setPhase("review");
+      setPreview(data); setPhase("review");
     } catch {
       if (mounted.current) { setPhase("idle"); setMessage("无法获取更新预览。请检查登录状态和网络后重试。"); }
     } finally { busy.current = false; }
@@ -83,6 +87,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
     try {
       await api.post(`/api/ai/consult/session/${encodeURIComponent(sessionId)}/update-case`, {
         expected_preview_token: snapshot.preview_token,
+        update_mode: snapshot.update_mode,
         ...(snapshot.history_addendum ? { history_addendum: snapshot.history_addendum } : {}),
       }, { timeout: 30000 });
       if (mounted.current) await checkSaved(snapshot);
@@ -114,7 +119,13 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
         <li aria-current={preview && phase !== "verified" ? "step" : undefined}>保存前核对</li>
         <li aria-current={phase === "verified" ? "step" : undefined}>病例回看</li>
       </ol>
-      <p style={{ fontSize: 13 }}>本次更新包括已提交的问诊记录及下方医生病史补记。保留全部已保存病史，追加不同摘要和补记；其他字段按预览更新。首页其他输入不会自动写回。补记不会自动重新分析，此确认不代表诊断签署。</p>
+      <p style={{ fontSize: 13 }}>已保存的主诉与体检原文保持不变。填写医生补记时，默认只追加病史；如需同步已提交问诊的 AI 分析、建议处理和风险提示，请明确选择并重新核对。首页其他输入不会自动写回，补记不会自动重新分析，此确认不代表诊断签署。</p>
+      {!!historyAddendum.trim() && <label style={{ display: "block", margin: "12px 0" }}>本次更新范围
+        <select aria-label="本次更新范围" value={updateMode} disabled={working || unresolved || blocked} onChange={e => setSyncNote(e.target.value === "consult_sync" ? historyAddendum : null)}>
+          <option value="history_only">仅追加医生病史补记</option>
+          <option value="consult_sync">同时同步已提交问诊结果</option>
+        </select>
+      </label>}
       {!allowed && <p role="status">请先登录并完成本轮 AI 建议人工覆核。</p>}
       {hasPendingAnswers && <p role="status">有尚未提交的追问或补充病史，请先提交本轮回答，再核对保存内容。</p>}
       {invalidated && phase !== "verified" && <p role="status">内容已修改，原确认失效，请重新核对。</p>}
@@ -126,6 +137,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
       {preview && (
         <div style={{ marginTop: 14 }}>
           <p><strong>{preview.patient_name || "未命名病例"}</strong> · 病例 #{preview.case_id}</p>
+          <p role="status">{preview.update_mode === "history_only" ? "本次只追加医生病史补记，其他五项内容保持不变。" : "本次同步已提交问诊的摘要、AI 分析、建议处理及风险提示；已保存主诉和体检保持不变。"}</p>
           {preview.history_addendum?.trim() && <section aria-label="本次医生病史补记"><strong>本次医生病史补记</strong><pre style={textBlock}>{preview.history_addendum}</pre></section>}
           {fields.map(([name, label]) => (
             <details key={name} open={name === "history"} style={{ borderTop: "1px solid #dbeafe", padding: "10px 0" }}>

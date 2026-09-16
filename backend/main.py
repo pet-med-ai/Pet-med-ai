@@ -3,7 +3,7 @@ from fastapi import FastAPI, APIRouter, Depends, HTTPException, Response, Reques
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles  # ← 新增：用于挂载静态目录
 from pathlib import Path                    # ← 新增：定位 knowledge-base 目录
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Literal
 import os
 import json
 import hashlib
@@ -346,6 +346,7 @@ class AIConsultSessionSaveCaseOut(BaseModel):
 
 class AIConsultSessionUpdatePreviewIn(BaseModel):
     history_addendum: str = Field(default="", max_length=20000, strict=True)
+    update_mode: Literal["consult_sync", "history_only"] = "consult_sync"
 
 class AIConsultSessionUpdateCaseIn(AIConsultSessionUpdatePreviewIn):
     # Optional request body preserves compatibility with existing clients.
@@ -1179,20 +1180,18 @@ def ai_consult_session_save_case(
 CONSULT_UPDATE_FIELDS = ("chief_complaint", "history", "exam_findings", "analysis", "treatment", "prognosis")
 
 
-def _consult_update_snapshot(session, obj, case_fields, history_addendum=""):
+def _consult_update_snapshot(session, obj, case_fields, history_addendum="", update_mode="consult_sync"):
     before = {name: getattr(obj, name) for name in CONSULT_UPDATE_FIELDS}
     proposed = dict(before)
-    proposed.update(case_fields)
-    proposed["chief_complaint"] = session.text
-    proposed["history"] = preserve_consult_history(obj.history, case_fields["history"])
+    if update_mode == "consult_sync":
+        proposed.update({name: case_fields[name] for name in ("analysis", "treatment", "prognosis")})
+        proposed["history"] = preserve_consult_history(obj.history, case_fields["history"])
+    elif not history_addendum.strip():
+        raise HTTPException(status_code=400, detail="仅补记模式需要填写医生病史补记。")
     if history_addendum.strip():
         proposed["history"] = preserve_consult_history(proposed["history"], "【医生病史补记】\n" + history_addendum)
-    current_exam = (obj.exam_findings or "").strip()
-    source_line = f"由动态问诊更新；原始会话：{session.session_uid}"
-    if not current_exam:
-        proposed["exam_findings"] = source_line
-    elif "原始会话" not in current_exam:
-        proposed["exam_findings"] = f"{current_exam}\n{source_line}"
+    # Chief complaint and examination are clinician-owned saved text. Neither
+    # mode substitutes the older intake prompt or rewrites its whitespace.
     # The fingerprint binds the exact addendum, including whitespace. The write
     # route locks the session and case before recomputing it on PostgreSQL.
     fingerprint = json.dumps({
@@ -1202,12 +1201,14 @@ def _consult_update_snapshot(session, obj, case_fields, history_addendum=""):
         "answers": session.answers, "result": session.result,
         "before": before, "proposed": proposed,
         "history_addendum": history_addendum,
+        "update_mode": update_mode,
     }, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return {
         "case_id": obj.id, "session_id": session.session_uid,
         "patient_name": obj.patient_name, "species": obj.species,
         "before": before, "proposed": proposed,
         "history_addendum": history_addendum,
+        "update_mode": update_mode,
         "preview_token": hashlib.sha256(fingerprint.encode("utf-8")).hexdigest(),
         "message": "preview",
     }
@@ -1232,7 +1233,7 @@ def ai_consult_session_preview_update_case(
     if not obj or getattr(obj, "owner_id", None) != getattr(user, "id", None):
         raise HTTPException(status_code=404, detail="Case not found")
 
-    return _consult_update_snapshot(session, obj, _consult_session_to_case_fields(session), data.history_addendum if data else "")
+    return _consult_update_snapshot(session, obj, _consult_session_to_case_fields(session), data.history_addendum if data else "", data.update_mode if data else "consult_sync")
 
 
 @app.post("/api/ai/consult/session/{session_id}/update-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
@@ -1256,7 +1257,8 @@ def ai_consult_session_update_case(
 
     case_fields = _consult_session_to_case_fields(session)
     history_addendum = data.history_addendum if data else ""
-    snapshot = _consult_update_snapshot(session, obj, case_fields, history_addendum)
+    update_mode = data.update_mode if data else "consult_sync"
+    snapshot = _consult_update_snapshot(session, obj, case_fields, history_addendum, update_mode)
     if data is not None and not hmac.compare_digest(data.expected_preview_token, snapshot["preview_token"]):
         raise HTTPException(status_code=409, detail="病例或问诊内容已改变，请重新预览并核对。")
     proposed = snapshot["proposed"]

@@ -114,7 +114,7 @@ class HistoryPreservationTests(unittest.TestCase):
         self.assertEqual(ast.dump(merges[1]), ast.dump(ast.parse('preserve_consult_history(proposed["history"], "【医生病史补记】\\n" + history_addendum)', mode="eval").body))
         calls = [node for node in ast.walk(route) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_consult_update_snapshot"]
         self.assertEqual(len(calls), 1)
-        self.assertEqual(ast.dump(calls[0]), ast.dump(ast.parse('_consult_update_snapshot(session, obj, case_fields, history_addendum)', mode="eval").body))
+        self.assertEqual(ast.dump(calls[0]), ast.dump(ast.parse('_consult_update_snapshot(session, obj, case_fields, history_addendum, update_mode)', mode="eval").body))
 
 
 if __name__ == "__main__":

@@ -240,6 +240,79 @@ class ConsultUpdatePreviewTests(unittest.TestCase):
         self.assertEqual(self.note_update(note, self.note_preview(note)).status_code, 200)
         self.assertTrue(self.read()["history"].startswith(changed))
 
+    def scoped_preview(self, note, mode):
+        r = self.client.post(self.url + "/preview-update-case", headers=self.owner_headers, json={"history_addendum": note, "update_mode": mode})
+        self.assertEqual(r.status_code, 200, r.text)
+        return r.json()
+
+    def scoped_update(self, note, mode, preview):
+        return self.client.post(self.url + "/update-case", headers=self.owner_headers,
+                                json={"history_addendum": note, "update_mode": mode, "expected_preview_token": preview["preview_token"]})
+
+    def test_history_only_changes_exactly_history_not_other_doctor_fields(self):
+        before = self.read(); note = "  新增补记🐾\r\n保留空格。  "
+        p = self.scoped_preview(note, "history_only")
+        self.assertEqual(p["update_mode"], "history_only")
+        self.assertEqual(self.read(), before)
+        for key in main.CONSULT_UPDATE_FIELDS:
+            if key != "history": self.assertEqual(p["proposed"][key], before[key])
+        self.assertNotIn("合成回答", p["proposed"]["history"])
+        self.assertEqual(self.scoped_update(note, "history_only", p).status_code, 200)
+        after = self.read()
+        self.assertEqual(after["history"], p["proposed"]["history"])
+        self.assertEqual({k:v for k,v in after.items() if k != "history"}, {k:v for k,v in before.items() if k != "history"})
+
+    def test_sync_keeps_chief_and_exam_bytes_including_empty_values(self):
+        for chief, exam in [("  医生确认主诉🐾\r\n ", "  确认体检\r\n "), ("", "")]:
+            self.change_case(chief_complaint=chief, exam_findings=exam)
+            p = self.scoped_preview("", "consult_sync")
+            self.assertEqual(p["proposed"]["chief_complaint"], chief)
+            self.assertEqual(p["proposed"]["exam_findings"], exam)
+            self.assertEqual(self.scoped_update("", "consult_sync", p).status_code, 200)
+            current = self.read()
+            self.assertEqual(current["chief_complaint"], chief)
+            self.assertEqual(current["exam_findings"], exam)
+            self.assertIn("合成回答", current["history"])
+
+    def test_scope_changed_or_omitted_cannot_reuse_history_only_confirmation(self):
+        note = "本次补记"; p = self.scoped_preview(note, "history_only"); before = self.read()
+        self.assertEqual(self.scoped_update(note, "consult_sync", p).status_code, 409)
+        self.assertEqual(self.note_update(note, p).status_code, 409)
+        self.assertEqual(self.read(), before)
+        other = self.scoped_preview(note, "consult_sync")
+        self.assertNotEqual(other["preview_token"], p["preview_token"])
+        self.assertEqual(self.scoped_update(note, "history_only", other).status_code, 409)
+
+    def test_invalid_scope_and_blank_history_only_cannot_write(self):
+        before = self.read()
+        for suffix in ["/preview-update-case", "/update-case"]:
+            for mode in ["unknown", None, 1, {}]:
+                r = self.client.post(self.url+suffix, headers=self.owner_headers, json={"history_addendum":"note", "update_mode":mode, "expected_preview_token":"0"*64})
+                self.assertEqual(r.status_code, 422)
+            r = self.client.post(self.url+suffix, headers=self.owner_headers, json={"history_addendum":" \n\t", "update_mode":"history_only", "expected_preview_token":"0"*64})
+            self.assertEqual(r.status_code, 400)
+        self.assertEqual(self.read(), before)
+
+    def test_history_only_repeated_note_never_imports_pending_consult_summary(self):
+        note = "只补记一次"
+        for index in range(2):
+            p = self.scoped_preview(note, "history_only")
+            self.assertEqual(self.scoped_update(note, "history_only", p).status_code, 200)
+        current = self.read()
+        self.assertEqual(current["history"].count(note), 1)
+        self.assertNotIn("合成回答", current["history"])
+        self.assertEqual(current["analysis"], "原分析")
+
+    def test_history_only_detects_intervening_change_to_preserved_fields(self):
+        note = "本次补记"; p = self.scoped_preview(note, "history_only")
+        self.change_case(treatment="另一医生更新治疗")
+        current = self.read()
+        self.assertEqual(self.scoped_update(note, "history_only", p).status_code, 409)
+        self.assertEqual(self.read(), current)
+        p = self.scoped_preview(note, "history_only")
+        self.assertEqual(self.scoped_update(note, "history_only", p).status_code, 200)
+        self.assertEqual(self.read()["treatment"], current["treatment"])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

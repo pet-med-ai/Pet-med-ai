@@ -169,12 +169,12 @@ record('identical_or_blank_addendum_does_not_append_again')
 # Hold the real session row so BOTH actual HTTP requests demonstrably wait on
 # PostgreSQL locks. No snapshot, route, result, auth or SQL implementation mock.
 notes = ['并发医生甲补记', '并发医生乙补记']
-previews = [call('POST', url+'/preview-update-case', owner, json={'history_addendum': n}) for n in notes]
+previews = [call('POST', url+'/preview-update-case', owner, json={'history_addendum': n, 'update_mode': 'history_only'}) for n in notes]
 barrier = Barrier(2, timeout=10)
 def note_worker(index):
     with TestClient(f.main.app) as c:
         barrier.wait()
-        return c.post(url+'/update-case', headers=owner, json={'history_addendum': notes[index], 'expected_preview_token': previews[index]['preview_token']})
+        return c.post(url+'/update-case', headers=owner, json={'history_addendum': notes[index], 'update_mode': 'history_only', 'expected_preview_token': previews[index]['preview_token']})
 with f.db.engine.connect() as lock:
     transaction = lock.begin()
     lock.execute(text('SELECT id FROM consult_sessions WHERE session_uid=:sid FOR UPDATE'), {'sid': sid})
@@ -196,10 +196,45 @@ winner = next(n for n,r in enumerate(results) if r.status_code == 200)
 loser = 1-winner
 written = read(cid, owner)['history']
 assert written.startswith(once) and notes[winner] in written and notes[loser] not in written
-np = call('POST', url+'/preview-update-case', owner, json={'history_addendum': notes[loser]})
-call('POST', url+'/update-case', owner, json={'history_addendum': notes[loser], 'expected_preview_token': np['preview_token']})
+np = call('POST', url+'/preview-update-case', owner, json={'history_addendum': notes[loser], 'update_mode': 'history_only'})
+call('POST', url+'/update-case', owner, json={'history_addendum': notes[loser], 'update_mode': 'history_only', 'expected_preview_token': np['preview_token']})
 final = read(cid, owner)['history']
 assert final.startswith(written) and all(final.count(n) == 1 for n in notes)
 record('two_blocked_addendum_writers_conflict_then_repreview_preserves_both')
 (f.OUT / 'restart-expected.json').write_text(json.dumps({'case_id': cid, 'record': read(cid, owner), 'session_url': url}, ensure_ascii=False))
+
+# Preserve unrelated clinician fields while adding notes, with real routes.
+protected = {'chief_complaint': '  PG医生确认主诉🐾\r\n ', 'exam_findings': '  PG体检原文\r\n ',
+             'analysis': 'PG医生分析', 'treatment': 'PG医生治疗', 'prognosis': 'PG医生风险'}
+call('PUT', '/api/cases/'+str(cid), owner, json=protected)
+prior = read(cid, owner); note = 'PG仅补记模式新增记录'
+np = call('POST', url+'/preview-update-case', owner, json={'history_addendum': note, 'update_mode':'history_only'})
+assert np['update_mode'] == 'history_only' and all(np['proposed'][k] == prior[k] for k in protected)
+assert read(cid, owner) == prior
+for invalid in [{'history_addendum':note, 'update_mode':'consult_sync'}, {'history_addendum':note}]:
+    call('POST', url+'/update-case', owner, expected=409, json={**invalid,'expected_preview_token':np['preview_token']})
+assert read(cid, owner) == prior
+record('update_scope_changed_or_omitted_rejects_without_writing')
+call('POST', url+'/update-case', owner, json={'history_addendum':note,'update_mode':'history_only','expected_preview_token':np['preview_token']})
+current = read(cid, owner)
+assert current['history'] == np['proposed']['history']
+assert {k:v for k,v in current.items() if k!='history'} == {k:v for k,v in prior.items() if k!='history'}
+record('history_only_preserves_every_other_case_field_exactly')
+np = call('POST', url+'/preview-update-case', owner, json={'history_addendum':'后续补记','update_mode':'history_only'})
+call('PUT','/api/cases/'+str(cid),owner,json={'treatment':'另一医生修改后的治疗'})
+changed = read(cid,owner)
+call('POST',url+'/update-case',owner,expected=409,json={'history_addendum':'后续补记','update_mode':'history_only','expected_preview_token':np['preview_token']})
+assert read(cid,owner) == changed
+np = call('POST',url+'/preview-update-case',owner,json={'history_addendum':'后续补记','update_mode':'history_only'})
+call('POST',url+'/update-case',owner,json={'history_addendum':'后续补记','update_mode':'history_only','expected_preview_token':np['preview_token']})
+assert read(cid,owner)['treatment'] == changed['treatment']
+record('history_only_repreview_preserves_intervening_doctor_treatment')
+np = call('POST',url+'/preview-update-case',owner,json={'history_addendum':'','update_mode':'consult_sync'})
+assert all(np['proposed'][k] == protected[k] for k in ['chief_complaint','exam_findings'])
+assert np['proposed']['analysis'] != protected['analysis']
+call('POST',url+'/update-case',owner,json={'history_addendum':'','update_mode':'consult_sync','expected_preview_token':np['preview_token']})
+current = read(cid,owner)
+assert all(current[k] == np['proposed'][k] for k in f.main.CONSULT_UPDATE_FIELDS)
+record('explicit_consult_sync_preserves_doctor_chief_and_exam_bytes')
+(f.OUT / 'restart-expected.json').write_text(json.dumps({'case_id':cid,'record':current,'session_url':url},ensure_ascii=False))
 client.close(); f.db.engine.dispose()

@@ -1,14 +1,22 @@
 # PR26 browser and PostgreSQL acceptance
 
-Application baseline: `b7bd032fb22627fa2f50e9757d0ad0220fb11d4c`.
-This candidate adds an explicit doctor-history addendum input for a bound case.
-The exact note participates in update preview and its fingerprint. Confirmation
-appends the note to the full preserved history; it does not replace earlier text.
-Changing or omitting the note invalidates confirmation. Identical complete note
-blocks are not appended twice. This text deduplication is not record identity.
-Other unsubmitted intake fields are explicitly excluded from bound updates.
-The note does not rerun AI analysis. The existing six-field preview, AI review
-requirement and server readback remain in effect.
+Application baseline: `a97e31ac29d18d6620aa288a1fd5b4e01611e455`.
+This candidate protects already-saved clinician content when adding a history note.
+The React flow defaults a nonblank note to `history_only`: only history changes;
+the other five previewed fields retain their original values. Explicitly selecting
+`consult_sync` also imports the submitted consultation summary and AI analysis,
+treatment and prognosis. Both modes preserve saved chief complaint and examination
+text exactly, including whitespace and empty strings. Unsubmitted intake fields
+remain excluded. The note does not rerun AI analysis.
+
+The exact note and mode participate in the preview fingerprint. Changing either
+requires a new preview and confirmation. A new note or draft recovery resets the
+UI to history-only. Blank history-only notes are rejected. API callers omitting
+mode retain consultation-sync behavior for compatibility, with the same chief
+complaint/examination protection; changing or omitting a history-only preview's
+mode rejects the save. The existing six-field preview, AI review requirement and
+server readback remain in effect. Identical complete note blocks are not appended
+twice; text deduplication is not record identity.
 
 The addendum joins the current-tab eight-hour draft. Verified readback clears only
 the note that was actually saved; newer note input remains. Failed readback keeps
@@ -23,15 +31,18 @@ release: one succeeds, the other receives 409. Repreview preserves the first not
 while appending the second. This covers this route, not all independent case-editor
 writes; SQLite does not provide PostgreSQL row-lock semantics.
 
-The exact application changes are backend/main.py, frontend/src/App.jsx,
-frontend/src/components/ConsultUpdateReview.jsx and frontend/src/consultDraft.js.
-The workflow pins those four blobs and four changed unit-test blobs, and rejects
-other application changes from the baseline. Artifacts record actual tested HEAD.
-The original 19 browser cases, 11 draft cases and 12 PostgreSQL checks remain.
-Four new PostgreSQL checks cover addendum fingerprinting, exact text, deduplication
-and forced writer contention. Nine new browser checks cover preview/no write,
-edit invalidation, save/readback/clear, refresh/reaudit, stale server content,
-lost response, failed GET, preserving newer input, and full-history detail refresh.
+The application changes are backend/main.py, frontend/src/App.jsx and
+frontend/src/components/ConsultUpdateReview.jsx. The workflow pins those three
+blobs and three changed unit-test blobs and rejects other application changes
+from the baseline. Artifacts record actual tested HEAD.
+The existing 39 browser scenarios and 16 PostgreSQL assertions are retained.
+Three added browser scenarios check scope-change invalidation, discarded scope
+selection after draft recovery, and explicit-sync save/readback retaining doctor
+chief complaint and exam text. Existing note-only save checks now also compare
+all unrelated case fields byte-for-byte against doctor-entered sentinels.
+Four added PostgreSQL checks cover scope mismatch, exact non-history preservation,
+intervening doctor treatment edits and explicit-sync chief/exam protection. The
+forced two-writer note contention test now uses history-only mode.
 Named fault tests only drop actual responses or block GET; successful responses
 come from the real app and database. No previous CI run is rerun.
 
@@ -78,10 +89,10 @@ retrying GET, without a second save POST or an incorrect unsaved-input warning.
 Navigation can invalidate a confirmation without counting as a content edit;
 content revision is tracked separately for the readback receipt.
 
-Prior evidence: run 35077256108 on b7bd032 passed 12 PostgreSQL assertions,
-19 original browser scenarios and 11 draft scenarios. These historical results
-do not establish that doctor addenda pass. The new exact-commit workflow must
-pass all 39 browser scenarios and 16 PostgreSQL assertions before acceptance.
+Prior evidence: run 35080233240 on a97e31a passed 16 PostgreSQL assertions,
+19 original browser scenarios, 11 draft scenarios and 9 addendum scenarios.
+Those are historical results. This candidate requires its new exact-commit run
+to pass all 42 browser scenarios and 20 PostgreSQL assertions before acceptance.
 
 Artifacts contain logs, JSON assertions and screenshots with synthetic data only.
 A failed browser visibility assertion remains a failure even if PostgreSQL stored

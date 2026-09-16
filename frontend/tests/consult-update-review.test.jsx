@@ -13,7 +13,13 @@ const before = { chief_complaint: "旧主诉", history: "合成病史🐾\r\n保
 const proposed = { ...before, history: before.history + "\n\n合成问诊摘要", analysis: "本轮分析" };
 const preview = { case_id: 7, session_id: "synthetic", patient_name: "合成犬", before, proposed, preview_token: "a".repeat(64) };
 const saved = { id: 7, patient_name: "合成犬", ...proposed };
-const response = (config, data) => ({ data, status: 200, config });
+const response = (config, data) => {
+  if (config.url.endsWith("/preview-update-case")) {
+    const input = JSON.parse(config.data || "{}");
+    data = { ...data, history_addendum: input.history_addendum || "", update_mode: input.update_mode || "consult_sync" };
+  }
+  return { data, status: 200, config };
+};
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 const nodes = () => renderer.root.findAllByType("button");
 const button = label => nodes().find(n => n.children.join("") === label);
@@ -42,7 +48,7 @@ test("preview is not a save; checkbox gates POST and all fields are read back", 
   assert.ok(output().includes("保留原文"));
   check(); await click("确认并更新病例");
   assert.equal(writes().length, 1);
-  assert.deepEqual(JSON.parse(writes()[0].data), { expected_preview_token: preview.preview_token });
+  assert.deepEqual(JSON.parse(writes()[0].data), { expected_preview_token: preview.preview_token, update_mode: "consult_sync" });
   assert.equal(requests.at(-1).url, "/api/cases/7");
   assert.ok(output().includes("本次核对的六项内容一致"));
   assert.equal(button("确认并更新病例"), undefined);
@@ -191,4 +197,44 @@ test("verified addendum uses latest callback and flags newer input without clear
   assert.equal(receipts[0].historyAddendum, "reviewed");
   assert.equal(receipts[0].inputsChanged, true);
   assert.equal(JSON.parse(writes()[0].data).history_addendum, "reviewed");
+});
+
+
+test("doctor notes default to history-only and changing scope invalidates confirmation", async () => {
+  revise({ historyAddendum: "本次补记" });
+  const select = () => renderer.root.findByType("select");
+  assert.equal(select().props.value, "history_only");
+  await click("核对更新内容"); check();
+  assert.equal(JSON.parse(requests[0].data).update_mode, "history_only");
+  act(() => select().props.onChange({ target: { value: "consult_sync" } }));
+  assert.equal(button("确认并更新病例"), undefined);
+  await click("重新预览更新内容"); check(); await click("确认并更新病例");
+  assert.equal(JSON.parse(writes()[0].data).update_mode, "consult_sync");
+});
+
+test("a newly edited note returns to history-only instead of reusing an old sync choice", async () => {
+  revise({ historyAddendum: "第一份" });
+  act(() => renderer.root.findByType("select").props.onChange({ target: { value: "consult_sync" } }));
+  revise({ historyAddendum: "第二份" });
+  assert.equal(renderer.root.findByType("select").props.value, "history_only");
+  await click("核对更新内容"); check(); await click("确认并更新病例");
+  assert.equal(JSON.parse(writes()[0].data).update_mode, "history_only");
+});
+
+test("preview from a different scope cannot authorize a save", async () => {
+  revise({ historyAddendum: "本次补记" });
+  adapter = async config => ({data: {...preview, history_addendum: "本次补记", update_mode: "consult_sync"}, status:200,config});
+  await click("核对更新内容");
+  assert.equal(button("确认并更新病例"), undefined);
+  assert.equal(writes().length, 0);
+  assert.ok(output().includes("无法获取更新预览"));
+});
+
+test("scope selector is locked while save outcome is unresolved", async () => {
+  revise({ historyAddendum: "本次补记" });
+  await click("核对更新内容"); check();
+  adapter = async config => { if(config.method === "get") throw new Error("Read failed"); return response(config,{case_id:7}); };
+  await click("确认并更新病例");
+  assert.equal(renderer.root.findByType("select").props.disabled, true);
+  assert.equal(writes().length, 1);
 });

@@ -1389,7 +1389,7 @@ function Home() {
 
       {(savedConsultCaseId || historyAddendum) && <section aria-label="医生病史补记" className="workbench-secondary">
         <h3>给已保存病例追加病史</h3>
-        <p>请只填写本次新增内容。第二步会把补记与现有病史一起展示，确认后追加；不替换已保存原文，也不会自动重新分析 AI 建议。</p>
+        <p>请只填写本次新增内容。第二步默认只追加病史，保留已保存的其他内容；需要同时同步问诊结果时，请在第二步明确选择。补记不会自动重新分析 AI 建议。</p>
         <label style={{ display: "block" }}>本次医生病史补记
           <textarea value={historyAddendum} onChange={e => setHistoryAddendum(e.target.value)} maxLength={20000} rows={5} style={{ display: "block", width: "100%", boxSizing: "border-box" }} placeholder="例如：复诊补充的症状、用药经过、主人新提供的病史" />
         </label>
