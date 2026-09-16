@@ -1,33 +1,39 @@
 # PR26 browser and PostgreSQL acceptance
 
-Application baseline: `2ef8bd882349f80e7329882babf14e6b0d50ac11`.
-This candidate adds current-tab draft recovery to the existing three-step React
-workbench. It stores doctor input, pending answers and the session identifier in
-sessionStorage, partitioned by login identity, with an eight-hour freshness limit.
-Recovery is explicit. Linked sessions must first be read from the authenticated
-server; their current case binding determines whether first-save or update applies.
-A local draft cannot restore an AI audit receipt, preview confirmation or successful
-save state. Changed server questions quarantine old pending answers as readable
-notes rather than submitting them to the wrong question. Failed storage warns while
-preserving current React input. Logout clears the cache. Cross-device and closed-tab
-recovery are not guaranteed; this is not server-side draft storage or encryption.
+Application baseline: `b7bd032fb22627fa2f50e9757d0ad0220fb11d4c`.
+This candidate adds an explicit doctor-history addendum input for a bound case.
+The exact note participates in update preview and its fingerprint. Confirmation
+appends the note to the full preserved history; it does not replace earlier text.
+Changing or omitting the note invalidates confirmation. Identical complete note
+blocks are not appended twice. This text deduplication is not record identity.
+Other unsubmitted intake fields are explicitly excluded from bound updates.
+The note does not rerun AI analysis. The existing six-field preview, AI review
+requirement and server readback remain in effect.
 
-The exact application changes are App.jsx, consultDraft.js and useConsultDraft.js;
-React test changes are consult-draft.test.jsx and run-consult-update-review.mjs.
-The workflow binds these five Git blobs and rejects all other backend, frontend,
-knowledge-base or root dependency changes from the baseline. Artifacts record the
-actual tested HEAD. No API, database, migration or Render configuration is changed.
-Verified first-save clears the draft if no newer input exists. Bound updates keep
-it because that API does not save every unsubmitted field from the intake form.
+The addendum joins the current-tab eight-hour draft. Verified readback clears only
+the note that was actually saved; newer note input remains. Failed readback keeps
+it and offers GET-only verification. Refresh recovery reloads current server state
+and requires fresh AI review and confirmation. No schema, migration or production
+setting changes are introduced.
 
-`draft_checks.cjs` adds eleven real-browser checks: exact form restoration without
-writes, old confirmations invalidated, pending answer restoration, changed-question
-quarantine, failed session GET retaining the draft, refresh after a committed save
-resolving the existing binding without a second save, verified save clearing cache,
-later unsaved edits preserving saved data, logout/account isolation, corrupt-cache
-rejection, and quota-failure warnings. Only the named fault checks block a GET or
-sessionStorage write. Successful responses come from the real FastAPI app and
-PostgreSQL; no synthetic success response is injected.
+On PostgreSQL, the bound-update route locks the consultation then the case before
+recalculating its fingerprint and writing. The concurrency test holds a real
+session lock and observes two HTTP writers waiting on PostgreSQL locks before
+release: one succeeds, the other receives 409. Repreview preserves the first note
+while appending the second. This covers this route, not all independent case-editor
+writes; SQLite does not provide PostgreSQL row-lock semantics.
+
+The exact application changes are backend/main.py, frontend/src/App.jsx,
+frontend/src/components/ConsultUpdateReview.jsx and frontend/src/consultDraft.js.
+The workflow pins those four blobs and four changed unit-test blobs, and rejects
+other application changes from the baseline. Artifacts record actual tested HEAD.
+The original 19 browser cases, 11 draft cases and 12 PostgreSQL checks remain.
+Four new PostgreSQL checks cover addendum fingerprinting, exact text, deduplication
+and forced writer contention. Nine new browser checks cover preview/no write,
+edit invalidation, save/readback/clear, refresh/reaudit, stale server content,
+lost response, failed GET, preserving newer input, and full-history detail refresh.
+Named fault tests only drop actual responses or block GET; successful responses
+come from the real app and database. No previous CI run is rerun.
 
 The local Work browser rejected loopback navigation with ERR_BLOCKED_BY_CLIENT.
 The local container lacks PostgreSQL and maps only UID 0, so package installation
@@ -72,11 +78,10 @@ retrying GET, without a second save POST or an incorrect unsaved-input warning.
 Navigation can invalidate a confirmation without counting as a content edit;
 content revision is tracked separately for the readback receipt.
 
-Prior evidence: run 35068137028 on 2ef8bd88 passed 12 PostgreSQL assertions and
-19 browser scenarios for the three-step workbench. Those historical results do
-not establish that draft recovery passes. The new exact-commit workflow must
-pass its original 19 browser scenarios, eleven draft scenarios and PostgreSQL
-checks before acceptance is reported.
+Prior evidence: run 35077256108 on b7bd032 passed 12 PostgreSQL assertions,
+19 original browser scenarios and 11 draft scenarios. These historical results
+do not establish that doctor addenda pass. The new exact-commit workflow must
+pass all 39 browser scenarios and 16 PostgreSQL assertions before acceptance.
 
 Artifacts contain logs, JSON assertions and screenshots with synthetic data only.
 A failed browser visibility assertion remains a failure even if PostgreSQL stored

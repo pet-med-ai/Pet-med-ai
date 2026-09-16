@@ -183,6 +183,63 @@ class ConsultUpdatePreviewTests(unittest.TestCase):
             self.assertEqual(response.status_code, status, response.text)
         self.assertEqual(self.read(), before)
 
+    def note_preview(self, note):
+        response = self.client.post(self.url + "/preview-update-case", headers=self.owner_headers, json={"history_addendum": note})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()
+
+    def note_update(self, note, preview):
+        return self.client.post(self.url + "/update-case", headers=self.owner_headers,
+                                json={"history_addendum": note, "expected_preview_token": preview["preview_token"]})
+
+    def test_addendum_preview_and_readback_preserve_exact_old_and_new_text(self):
+        note = "  复诊补记🐾\r\n用药经过。  \n"
+        before = self.read(); preview = self.note_preview(note)
+        self.assertEqual(self.read(), before)
+        self.assertEqual(preview["history_addendum"], note)
+        self.assertTrue(preview["proposed"]["history"].startswith(self.history))
+        self.assertTrue(preview["proposed"]["history"].endswith("【医生病史补记】\n" + note))
+        self.assertEqual(self.note_update(note, preview).status_code, 200)
+        self.assertEqual(self.read()["history"], preview["proposed"]["history"])
+
+    def test_addendum_changed_or_omitted_invalidates_confirmation_without_write(self):
+        note = "reviewed note"; preview = self.note_preview(note); before = self.read()
+        for changed in ["changed note", "", note + " "]:
+            self.assertEqual(self.note_update(changed, preview).status_code, 409)
+            self.assertEqual(self.read(), before)
+        self.assertEqual(self.update(preview).status_code, 409)
+        response = self.client.post(self.url + "/update-case", headers=self.owner_headers, json={"history_addendum": note})
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(self.read(), before)
+
+    def test_identical_addendum_is_not_duplicated_and_blank_addendum_is_noop(self):
+        note = "补记原文"
+        self.assertEqual(self.note_update(note, self.note_preview(note)).status_code, 200)
+        once = self.read()["history"]
+        self.assertEqual(self.note_update(note, self.note_preview(note)).status_code, 200)
+        self.assertEqual(self.read()["history"], once)
+        self.assertEqual(self.note_update(" \n\t", self.note_preview(" \n\t")).status_code, 200)
+        self.assertEqual(self.read()["history"], once)
+
+    def test_addendum_authentication_shape_and_length_are_validated(self):
+        before = self.read()
+        for suffix in ["/preview-update-case", "/update-case"]:
+            body = {"history_addendum": "note", "expected_preview_token": "0" * 64}
+            self.assertEqual(self.client.post(self.url+suffix, json=body).status_code, 401)
+            self.assertEqual(self.client.post(self.url+suffix, headers=self.other_headers, json=body).status_code, 404)
+            for invalid in ["x" * 20001, 12, None, {}]:
+                self.assertEqual(self.client.post(self.url+suffix, headers=self.owner_headers, json={**body, "history_addendum": invalid}).status_code, 422)
+        self.assertEqual(self.read(), before)
+
+    def test_intervening_doctor_history_rejects_stale_addendum_and_is_preserved_after_repreview(self):
+        note = "当前补记"; preview = self.note_preview(note)
+        changed = self.history + "\n另一医生新记载"
+        self.change_case(history=changed)
+        self.assertEqual(self.note_update(note, preview).status_code, 409)
+        self.assertEqual(self.read()["history"], changed)
+        self.assertEqual(self.note_update(note, self.note_preview(note)).status_code, 200)
+        self.assertTrue(self.read()["history"].startswith(changed))
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

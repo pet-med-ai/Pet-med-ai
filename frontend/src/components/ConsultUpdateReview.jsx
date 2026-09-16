@@ -12,7 +12,8 @@ const matches = (record, preview) => record?.id === preview.case_id &&
   fields.every(([name]) => record[name] === preview.proposed[name]);
 
 // Mounted per bound session/case. Late responses cannot replace a newer preview.
-export default function ConsultUpdateReview({ sessionId, caseId, revision, allowed, blocked, hasPendingAnswers, onUpdated, onReturnToEdit, onWorkingChange, contentRevision }) {
+export default function ConsultUpdateReview({ sessionId, caseId, revision, allowed, blocked, hasPendingAnswers, onUpdated, onReturnToEdit, onWorkingChange, contentRevision, historyAddendum = "" }) {
+  const inputRevision = JSON.stringify([revision, historyAddendum]);
   const [preview, setPreview] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [phase, setPhase] = useState("idle");
@@ -20,19 +21,21 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
   const [readback, setReadback] = useState(null);
   const busy = useRef(false);
   const mounted = useRef(false);
-  const latest = useRef(revision);
-  latest.current = revision;
+  const latest = useRef(inputRevision);
+  latest.current = inputRevision;
+  const updatedCallback = useRef(onUpdated);
+  updatedCallback.current = onUpdated;
   const previewRevision = useRef(null);
-  const latestContent = useRef(contentRevision ?? revision);
-  latestContent.current = contentRevision ?? revision;
+  const latestContent = useRef(null);
+  latestContent.current = JSON.stringify([contentRevision ?? revision, historyAddendum]);
   const previewContent = useRef(null);
-  const invalidated = preview && previewRevision.current !== revision;
+  const invalidated = preview && previewRevision.current !== inputRevision;
   const working = ["previewing", "saving", "checking"].includes(phase);
   const unresolved = phase === "uncertain";
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => { onWorkingChange?.(working); return () => onWorkingChange?.(false); }, [working, onWorkingChange]);
-  useEffect(() => { setConfirmed(false); }, [revision, allowed, blocked, hasPendingAnswers]);
+  useEffect(() => { setConfirmed(false); }, [inputRevision, allowed, blocked, hasPendingAnswers]);
 
   async function requestPreview() {
     if (busy.current || blocked || !allowed || hasPendingAnswers) return;
@@ -40,7 +43,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
     const requestedRevision = latest.current;
     setPhase("previewing"); setMessage(""); setConfirmed(false); setPreview(null); setReadback(null);
     try {
-      const { data } = await api.post(`/api/ai/consult/session/${encodeURIComponent(sessionId)}/preview-update-case`, null, { timeout: 15000 });
+      const { data } = await api.post(`/api/ai/consult/session/${encodeURIComponent(sessionId)}/preview-update-case`, { history_addendum: historyAddendum }, { timeout: 15000 });
       if (!mounted.current) return;
       if (requestedRevision !== latest.current) {
         setPhase("idle"); setMessage("内容已修改，请重新核对保存内容。"); return;
@@ -48,7 +51,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
       if (data.case_id !== caseId || data.session_id !== sessionId || !data.preview_token) throw new Error("Invalid preview");
       previewRevision.current = requestedRevision;
       previewContent.current = latestContent.current;
-      setPreview(data); setPhase("review");
+      setPreview({ ...data, history_addendum: historyAddendum }); setPhase("review");
     } catch {
       if (mounted.current) { setPhase("idle"); setMessage("无法获取更新预览。请检查登录状态和网络后重试。"); }
     } finally { busy.current = false; }
@@ -63,7 +66,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
       if (matches(data, snapshot)) {
         setPhase("verified"); setMessage("已回读病例，本次核对的六项内容一致。");
         // Refreshing the list must not turn successful readback into a failed save.
-        Promise.resolve(onUpdated?.(data, { inputsChanged: previewContent.current !== latestContent.current })).catch(() => {});
+        Promise.resolve(updatedCallback.current?.(data, { inputsChanged: previewContent.current !== latestContent.current, historyAddendum: snapshot.history_addendum })).catch(() => {});
       } else {
         setPhase("uncertain"); setMessage("当前病例与核对内容不一致。请查看已保存病例，再重新预览；请勿直接重复提交。");
       }
@@ -80,6 +83,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
     try {
       await api.post(`/api/ai/consult/session/${encodeURIComponent(sessionId)}/update-case`, {
         expected_preview_token: snapshot.preview_token,
+        ...(snapshot.history_addendum ? { history_addendum: snapshot.history_addendum } : {}),
       }, { timeout: 30000 });
       if (mounted.current) await checkSaved(snapshot);
     } catch (err) {
@@ -110,7 +114,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
         <li aria-current={preview && phase !== "verified" ? "step" : undefined}>保存前核对</li>
         <li aria-current={phase === "verified" ? "step" : undefined}>病例回看</li>
       </ol>
-      <p style={{ fontSize: 13 }}>本次更新依据已提交的问诊记录。病史保留原文并追加不同摘要；主诉、AI 分析、建议处理和风险提示按下方内容更新。此确认不代表诊断签署。</p>
+      <p style={{ fontSize: 13 }}>本次更新包括已提交的问诊记录及下方医生病史补记。保留全部已保存病史，追加不同摘要和补记；其他字段按预览更新。首页其他输入不会自动写回。补记不会自动重新分析，此确认不代表诊断签署。</p>
       {!allowed && <p role="status">请先登录并完成本轮 AI 建议人工覆核。</p>}
       {hasPendingAnswers && <p role="status">有尚未提交的追问或补充病史，请先提交本轮回答，再核对保存内容。</p>}
       {invalidated && phase !== "verified" && <p role="status">内容已修改，原确认失效，请重新核对。</p>}
@@ -122,6 +126,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
       {preview && (
         <div style={{ marginTop: 14 }}>
           <p><strong>{preview.patient_name || "未命名病例"}</strong> · 病例 #{preview.case_id}</p>
+          {preview.history_addendum?.trim() && <section aria-label="本次医生病史补记"><strong>本次医生病史补记</strong><pre style={textBlock}>{preview.history_addendum}</pre></section>}
           {fields.map(([name, label]) => (
             <details key={name} open={name === "history"} style={{ borderTop: "1px solid #dbeafe", padding: "10px 0" }}>
               <summary style={{ cursor: "pointer", fontWeight: 600 }}>{label} · {preview.before[name] === preview.proposed[name] ? "无变化" : "有更新"}</summary>

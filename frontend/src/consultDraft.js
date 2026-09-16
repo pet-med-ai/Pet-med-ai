@@ -1,7 +1,7 @@
 export const DRAFT_KEY = "pmai.consult-draft.v1";
 export const DRAFT_MAX_AGE = 8 * 60 * 60 * 1000;
 const MAX_LENGTH = 250000;
-export const draftFields = ["patientName", "species", "sex", "ageInfo", "breed", "weight", "coatColor", "ownerName", "ownerPhone", "chiefComplaint", "history", "examFindings", "auditReviewAction", "auditReviewReason", "auditReviewNote", "auditClinicianId"];
+export const draftFields = ["patientName", "species", "sex", "ageInfo", "breed", "weight", "coatColor", "ownerName", "ownerPhone", "chiefComplaint", "history", "historyAddendum", "examFindings", "auditReviewAction", "auditReviewReason", "auditReviewNote", "auditClinicianId"];
 const plain = value => !!value && typeof value === "object" && !Array.isArray(value);
 const text = (value, max = 100000) => typeof value === "string" && value.length <= max;
 

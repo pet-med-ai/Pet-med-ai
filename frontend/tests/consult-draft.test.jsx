@@ -24,6 +24,16 @@ test("another account cannot recover the previous account's draft", () => {
   assert.equal(draftOwner("invalid"),null);
 });
 
+test("doctor addendum survives draft recovery and older drafts remain readable", () => {
+  const storage = memory(), input = data();
+  input.fields.historyAddendum = "  复诊补记🐾\r\n新增记录。  \n";
+  writeDraft("a", input, storage);
+  assert.equal(readDraft("a", storage).draft.data.fields.historyAddendum, input.fields.historyAddendum);
+  delete input.fields.historyAddendum;
+  writeDraft("a", input, storage);
+  assert.equal(readDraft("a", storage).draft.data.fields.historyAddendum, "");
+});
+
 test("expired, corrupt and invalid-shaped drafts cannot populate the form", () => {
   const storage = memory(); writeDraft("a",data(),storage,1000);
   assert.equal(readDraft("a",storage,1001+DRAFT_MAX_AGE).draft,null);

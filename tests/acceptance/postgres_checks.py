@@ -1,6 +1,7 @@
 """Real JWT, routes, SQL transactions and independent connections on PostgreSQL."""
 import json
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 from unittest.mock import patch
@@ -144,4 +145,61 @@ def race(unowned):
 
 race(False); record('same_owner_simultaneous_save_one_case_no_orphan')
 race(True); record('two_owner_unowned_race_single_owner_loser_cannot_read')
+
+# Clinician addenda use the same real preview/update routes and native row locks.
+note = "  PostgreSQL复诊补记🐾\r\n保留末尾空格。  \n"
+prior = read(cid, owner)
+np = call('POST', url+'/preview-update-case', owner, json={'history_addendum': note})
+assert read(cid, owner) == prior and np['history_addendum'] == note
+assert np['proposed']['history'].startswith(prior['history'])
+call('POST', url+'/update-case', owner, expected=409, json={'history_addendum': note+'changed', 'expected_preview_token': np['preview_token']})
+assert read(cid, owner) == prior
+record('changed_addendum_rejects_stale_confirmation_without_write')
+call('POST', url+'/update-case', owner, json={'history_addendum': note, 'expected_preview_token': np['preview_token']})
+assert read(cid, owner)['history'] == np['proposed']['history']
+assert read(cid, owner)['history'].endswith('【医生病史补记】\n'+note)
+record('addendum_exact_old_and_new_text_independent_postgres_readback')
+once = read(cid, owner)['history']
+for same in [note, ' \n\t']:
+    np = call('POST', url+'/preview-update-case', owner, json={'history_addendum': same})
+    call('POST', url+'/update-case', owner, json={'history_addendum': same, 'expected_preview_token': np['preview_token']})
+    assert read(cid, owner)['history'] == once
+record('identical_or_blank_addendum_does_not_append_again')
+
+# Hold the real session row so BOTH actual HTTP requests demonstrably wait on
+# PostgreSQL locks. No snapshot, route, result, auth or SQL implementation mock.
+notes = ['并发医生甲补记', '并发医生乙补记']
+previews = [call('POST', url+'/preview-update-case', owner, json={'history_addendum': n}) for n in notes]
+barrier = Barrier(2, timeout=10)
+def note_worker(index):
+    with TestClient(f.main.app) as c:
+        barrier.wait()
+        return c.post(url+'/update-case', headers=owner, json={'history_addendum': notes[index], 'expected_preview_token': previews[index]['preview_token']})
+with f.db.engine.connect() as lock:
+    transaction = lock.begin()
+    lock.execute(text('SELECT id FROM consult_sessions WHERE session_uid=:sid FOR UPDATE'), {'sid': sid})
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(note_worker, n) for n in range(2)]
+        try:
+            waiting = 0
+            for attempt in range(100):
+                with f.db.engine.connect() as monitor:
+                    waiting = monitor.execute(text("SELECT count(*) FROM pg_stat_activity WHERE datname='pmai_acceptance' AND wait_event_type='Lock' AND query LIKE '%consult_sessions%' AND query LIKE '%FOR UPDATE%'")).scalar_one()
+                if waiting >= 2: break
+                time.sleep(0.05)
+            assert waiting >= 2, 'Both real writers must reach the PostgreSQL lock'
+        finally:
+            transaction.rollback()  # release fixture lock without writing data
+        results = [future.result(timeout=20) for future in futures]
+assert sorted(r.status_code for r in results) == [200, 409], [(r.status_code,r.text) for r in results]
+winner = next(n for n,r in enumerate(results) if r.status_code == 200)
+loser = 1-winner
+written = read(cid, owner)['history']
+assert written.startswith(once) and notes[winner] in written and notes[loser] not in written
+np = call('POST', url+'/preview-update-case', owner, json={'history_addendum': notes[loser]})
+call('POST', url+'/update-case', owner, json={'history_addendum': notes[loser], 'expected_preview_token': np['preview_token']})
+final = read(cid, owner)['history']
+assert final.startswith(written) and all(final.count(n) == 1 for n in notes)
+record('two_blocked_addendum_writers_conflict_then_repreview_preserves_both')
+(f.OUT / 'restart-expected.json').write_text(json.dumps({'case_id': cid, 'record': read(cid, owner), 'session_url': url}, ensure_ascii=False))
 client.close(); f.db.engine.dispose()

@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'tests/acceptance/**'
+      - 'backend/**'
       - '.github/workflows/consult-browser-postgres.yml'
       - 'frontend/src/pages/CaseDetail.jsx'
       - 'frontend/src/App.jsx'
@@ -29,18 +30,21 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind exact draft recovery application and unchanged baseline
+      - name: Bind exact doctor addendum application and unchanged baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git diff --exit-code 2ef8bd882349f80e7329882babf14e6b0d50ac11 HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/src/consultDraft.js' ':(exclude)frontend/src/useConsultDraft.js' ':(exclude)frontend/tests/consult-draft.test.jsx' ':(exclude)frontend/tests/run-consult-update-review.mjs'
-          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "f79a82545811fa540a3220f053be4d7822c2e66e"
-          test "$(git rev-parse HEAD:frontend/src/consultDraft.js)" = "78ebaaa2e416429c9f52b86c45b6f8346b05c298"
-          test "$(git rev-parse HEAD:frontend/src/useConsultDraft.js)" = "703601551d4764de9502a7cddded91c1aef60a69"
-          test "$(git rev-parse HEAD:frontend/tests/consult-draft.test.jsx)" = "3b3241cf65e4170250278be13912ed9fd573252b"
-          test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "e1520461615644024ec0546133955455339f7955"
+          git diff --exit-code b7bd032fb22627fa2f50e9757d0ad0220fb11d4c HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)backend/main.py' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/src/components/ConsultUpdateReview.jsx' ':(exclude)frontend/src/consultDraft.js' ':(exclude)frontend/tests/consult-update-review.test.jsx' ':(exclude)frontend/tests/consult-draft.test.jsx' ':(exclude)tests/test_consult_update_preview.py'
+          test "$(git rev-parse HEAD:backend/main.py)" = "ec4387db3e0ef1b18ba288009614bd7430d80517"
+          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "116a95e6979a546ece440aec032988528382cdd6"
+          test "$(git rev-parse HEAD:frontend/src/components/ConsultUpdateReview.jsx)" = "0a1cc1614c6eed397345a5f8b6cf6b0996cad557"
+          test "$(git rev-parse HEAD:frontend/src/consultDraft.js)" = "d68e90fb168e77494410ddcd2f6fdf508271942c"
+          test "$(git rev-parse HEAD:frontend/tests/consult-update-review.test.jsx)" = "2e8d8adbf7080739c1e6660fb5c0dfbc8e9f1737"
+          test "$(git rev-parse HEAD:frontend/tests/consult-draft.test.jsx)" = "2dc4bf326a82409f823b58680dbf01fd26159b9c"
+          test "$(git rev-parse HEAD:tests/test_consult_update_preview.py)" = "8522383b377233c245696228a00586e1cdfcb53e"
+          test "$(git rev-parse HEAD:tests/test_consult_history_merge.py)" = "495223a5a60c9a2027251f7adfdc6e8141f36084"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse 2ef8bd882349f80e7329882babf14e6b0d50ac11 > acceptance-results/application-baseline.txt
+          git rev-parse b7bd032fb22627fa2f50e9757d0ad0220fb11d4c > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -94,6 +98,10 @@ jobs:
         run: |
           set -o pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/draft_checks.cjs 2>&1 | tee acceptance-results/draft-checks.log
+      - name: Real Chromium doctor history addendum
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/addendum_checks.cjs 2>&1 | tee acceptance-results/addendum-checks.log
       - name: Stop test processes
         if: always()
         run: |

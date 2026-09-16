@@ -189,11 +189,12 @@ function Home() {
     setWorkbenchStep(next);
   };
 
+  const [historyAddendum, setHistoryAddendum] = useState("");
   const [recoveredDraftNotes, setRecoveredDraftNotes] = useState("");
   const [draftRestoreMessage, setDraftRestoreMessage] = useState("");
   const [restoringDraft, setRestoringDraft] = useState(false);
   const draftSnapshot = {
-    fields: { patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, chiefComplaint, history, examFindings, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId },
+    fields: { patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, chiefComplaint, history, historyAddendum, examFindings, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId },
     sessionId: consultSessionId,
     sessionContext: JSON.stringify([consultAnswers, result?.next_questions ?? [], result?.structured_intake?.template_key ?? null]),
     followupAnswer, structuredAnswers: structuredIntakeAnswers,
@@ -654,6 +655,7 @@ function Home() {
     setWeight(fields.weight || ""); setCoatColor(fields.coatColor || "");
     setOwnerName(fields.ownerName || ""); setOwnerPhone(fields.ownerPhone || "");
     setChiefComplaint(fields.chiefComplaint || ""); setHistory(fields.history || "");
+    setHistoryAddendum(fields.historyAddendum || "");
     setExamFindings(fields.examFindings || ""); setAuditClinicianId(fields.auditClinicianId || "");
     setAuditReviewAction(["accepted", "modified", "rejected"].includes(fields.auditReviewAction) ? fields.auditReviewAction : "accepted");
     setAuditReviewReason(fields.auditReviewReason || ""); setAuditReviewNote(fields.auditReviewNote || "");
@@ -835,6 +837,7 @@ function Home() {
   // ===== 即时分析（不入库） =====
  const handleAnalyzeSubmit = async (e) => {
   e.preventDefault();
+  if (historyAddendum.trim()) { alert("医生病史补记尚未保存，请先在第二步核对更新，或清空补记后再开始新的分析。"); return; }
 
   setErrMsg("");
   setAnalysis("");
@@ -1148,7 +1151,8 @@ function Home() {
 
   const currentQuestion = getCurrentQuestion();
 
-  const workbenchRevision = JSON.stringify([consultSessionId, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, consultAnswers, result, followupAnswer, structuredIntakeAnswers, auditLogReceipt]);
+  const workbenchValues = [consultSessionId, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, consultAnswers, result, followupAnswer, structuredIntakeAnswers, auditLogReceipt];
+  const workbenchRevision = JSON.stringify([...workbenchValues, historyAddendum]);
   const currentReadback = consultSaveReceipt?.sessionId === consultSessionId && consultSaveReceipt?.verified ? consultSaveReceipt : null;
 
   return (
@@ -1383,6 +1387,14 @@ function Home() {
         )}
       </section>
 
+      {(savedConsultCaseId || historyAddendum) && <section aria-label="医生病史补记" className="workbench-secondary">
+        <h3>给已保存病例追加病史</h3>
+        <p>请只填写本次新增内容。第二步会把补记与现有病史一起展示，确认后追加；不替换已保存原文，也不会自动重新分析 AI 建议。</p>
+        <label style={{ display: "block" }}>本次医生病史补记
+          <textarea value={historyAddendum} onChange={e => setHistoryAddendum(e.target.value)} maxLength={20000} rows={5} style={{ display: "block", width: "100%", boxSizing: "border-box" }} placeholder="例如：复诊补充的症状、用药经过、主人新提供的病史" />
+        </label>
+        <p style={{ fontSize: 13 }}>首页其他字段的修改仍是草稿，更新病例不会自动写回这些修改。完全相同的补记不会重复追加。</p>
+      </section>}
       {recoveredDraftNotes && <section aria-label="待重新整理的草稿补充" className="workbench-warning">
         <h3>原问诊已更新，以下补充尚未提交</h3>
         <p>请按当前问题重新整理；以下原文保留供核对，不会自动随回答提交。</p>
@@ -1439,12 +1451,15 @@ function Home() {
                 onWorkingChange={setWorkbenchBusy}
                 contentRevision={workbenchRevision}
                 caseId={savedConsultCaseId}
+                historyAddendum={historyAddendum}
                 allowed={isAuthed && !auditReviewRequired}
                 blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting}
                 hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value).trim() !== "")}
                 revision={JSON.stringify([reviewNavigationVersion, consultSessionId, consultAnswers, result, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, followupAnswer, structuredIntakeAnswers, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId, loadingSession, loadingAnalyze, loadingFollowup, auditSubmitting])}
                 onUpdated={async (record, receipt) => {
-                  setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, record, revision: workbenchRevision, mode: "update", inputsChanged: receipt.inputsChanged });
+                  const cleared = historyAddendum === receipt.historyAddendum;
+                  if (cleared) setHistoryAddendum("");
+                  setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, record, revision: JSON.stringify([...workbenchValues, cleared ? "" : historyAddendum]), mode: "update", inputsChanged: receipt.inputsChanged });
                   setWorkbenchStep(3);
                   await fetchCases({ page: 1 }); await fetchSessionHistory();
                 }}

@@ -156,3 +156,39 @@ test("navigation during unresolved update is not an input edit", async () => {
   assert.equal(receipts.length, 1);
   assert.equal(receipts[0].receipt.inputsChanged, false);
 });
+
+test("addendum text is bound to preview, edits invalidate it, and exact reviewed text is sent", async () => {
+  revise({ historyAddendum: "  第一次补记🐾\n " });
+  await click("核对更新内容"); check();
+  assert.equal(JSON.parse(requests[0].data).history_addendum, "  第一次补记🐾\n ");
+  revise({ historyAddendum: "修改后的补记" });
+  assert.equal(button("确认并更新病例"), undefined);
+  await click("重新预览更新内容"); check(); await click("确认并更新病例");
+  assert.equal(JSON.parse(writes()[0].data).history_addendum, "修改后的补记");
+});
+
+test("late addendum preview is discarded even when parent revision is unchanged", async () => {
+  revise({ historyAddendum: "old" });
+  const gate = deferred(); adapter = async config => { await gate.promise; return response(config, preview); };
+  let inflight;
+  await act(async () => { inflight = button("核对更新内容").props.onClick(); await new Promise(setImmediate); });
+  revise({ historyAddendum: "new" });
+  await act(async () => { gate.resolve(); await inflight; });
+  assert.equal(button("确认并更新病例"), undefined);
+  assert.equal(writes().length, 0);
+});
+
+test("verified addendum uses latest callback and flags newer input without clearing it", async () => {
+  revise({ historyAddendum: "reviewed" });
+  await click("核对更新内容"); check();
+  const gate = deferred(), receipts = [];
+  adapter = async config => { if(config.method === "get") await gate.promise; return response(config, config.method === "get" ? saved : {case_id:7}); };
+  let inflight;
+  await act(async () => { inflight = button("确认并更新病例").props.onClick(); await new Promise(setImmediate); });
+  revise({ historyAddendum: "later unsaved", onUpdated: (record, receipt) => receipts.push(receipt) });
+  await act(async () => { gate.resolve(); await inflight; });
+  assert.equal(receipts.length, 1);
+  assert.equal(receipts[0].historyAddendum, "reviewed");
+  assert.equal(receipts[0].inputsChanged, true);
+  assert.equal(JSON.parse(writes()[0].data).history_addendum, "reviewed");
+});
