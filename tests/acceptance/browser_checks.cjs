@@ -43,8 +43,12 @@ async function setup() {
   const login = responseFor('/auth/login');
   await page.getByRole('button', { name: '登录', exact: true }).click();
   const lr = await login; assert.equal(lr.status(), 200);
-  auth = { Authorization: 'Bearer '+(await lr.json()).access_token };
   await expect(page.getByRole('button', { name: '退出', exact: true })).toBeVisible();
+  // The real login handler immediately reloads the page. Read the token it
+  // persisted after that navigation instead of racing CDP's old response body.
+  const token = await page.evaluate(() => localStorage.getItem('token'));
+  assert.equal(typeof token, 'string'); assert(token.length > 0);
+  auth = { Authorization: 'Bearer '+token };
 }
 async function reviewAI() {
   const signature = page.getByPlaceholder('如 HS-0001 / Dr.Zhao', { exact: true });
