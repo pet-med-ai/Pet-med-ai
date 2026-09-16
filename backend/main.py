@@ -17,7 +17,7 @@ except ModuleNotFoundError:
     from consult_history_merge import preserve_consult_history
 
 from sqlalchemy.orm import Session
-from sqlalchemy import inspect
+from sqlalchemy import inspect, or_
 from pydantic import BaseModel, Field
 from jose import jwt, JWTError
 
@@ -324,6 +324,9 @@ class AIConsultSessionListOut(BaseModel):
     page_size: int = 20
 
 class AIConsultSessionSaveCaseIn(BaseModel):
+    chief_complaint: Optional[str] = None
+    history: Optional[str] = None
+    expected_preview_token: Optional[str] = Field(default=None, min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
     patient_name: Optional[str] = None
     species: Optional[str] = "dog"
     sex: Optional[str] = None
@@ -1048,22 +1051,8 @@ def ai_consult_session_delete(
     }
 
 
-@app.post("/api/ai/consult/session/{session_id}/preview-case", response_model=dict, tags=["ai"])
-def ai_consult_session_preview_case(
-    session_id: str,
-    data: AIConsultSessionSaveCaseIn,
-    db: Session = Depends(get_db),
-    user = Depends(get_current_user),
-):
-    """
-    保存前预览：复用 save-case 的同一套 ConsultSession -> Case 字段转换逻辑，
-    不写数据库，只返回即将写入病例的 history / analysis / treatment / prognosis。
-    """
-    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
-    if not session:
-        raise HTTPException(status_code=404, detail="Consult session not found")
-    assert_consult_session_access(session, user, allow_unowned=True)
-
+def _consult_save_snapshot(session: ConsultSession, data: AIConsultSessionSaveCaseIn) -> dict:
+    """One conversion for first-save preview and persistence, with no writes."""
     case_fields = _consult_session_to_case_fields(session)
 
     structured_intake_answers = getattr(data, "structured_intake_answers", None)
@@ -1071,6 +1060,8 @@ def ai_consult_session_preview_case(
     if structured_history:
         current_history = str(case_fields.get("history") or "").strip()
         case_fields["history"] = "\n\n".join(part for part in [current_history, structured_history] if part)
+
+    case_fields["history"] = preserve_consult_history(data.history, case_fields["history"])
 
     patient_name = (data.patient_name or "").strip() or "未命名病例"
     species_value = (data.species or "dog").strip() or "dog"
@@ -1083,9 +1074,7 @@ def ai_consult_session_preview_case(
     owner_phone_value = (data.owner_phone or "").strip() or None
     exam_value = (data.exam_findings or "").strip() or f"由动态问诊生成；原始会话：{session.session_uid}"
 
-    return {
-        "session_id": session.session_uid,
-        "case_id": getattr(session, "case_id", None),
+    proposed = {
         "patient_name": patient_name[:255],
         "species": species_value[:50],
         "sex": sex_value[:10] if sex_value else None,
@@ -1095,15 +1084,48 @@ def ai_consult_session_preview_case(
         "coat_color": coat_value[:100] if coat_value else None,
         "owner_name": owner_name_value[:100] if owner_name_value else None,
         "owner_phone": owner_phone_value[:50] if owner_phone_value else None,
-        "chief_complaint": session.text,
+        "chief_complaint": data.chief_complaint if data.chief_complaint is not None else session.text,
         "history": case_fields["history"],
         "exam_findings": exam_value,
         "analysis": case_fields["analysis"],
         "treatment": case_fields["treatment"],
         "prognosis": case_fields["prognosis"],
+    }
+
+    fingerprint = json.dumps({
+        "session_id": session.session_uid, "case_id": session.case_id,
+        "owner_id": session.owner_id, "updated_at": str(session.updated_at),
+        "text": session.text, "answers": session.answers, "result": session.result,
+        "input": data.model_dump(exclude={"expected_preview_token"}), "proposed": proposed,
+    }, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return {
+        **proposed,
+        "session_id": session.session_uid, "case_id": session.case_id,
         "structured_history_appended": bool(structured_history),
+        "doctor_history": data.history or "",
+        "preview_token": hashlib.sha256(fingerprint.encode("utf-8")).hexdigest(),
         "message": "preview",
     }
+
+
+CONSULT_SAVE_FIELDS = (
+    "patient_name", "species", "sex", "age_info", "breed", "weight", "coat_color", "owner_name", "owner_phone",
+    "chief_complaint", "history", "exam_findings", "analysis", "treatment", "prognosis",
+)
+
+
+@app.post("/api/ai/consult/session/{session_id}/preview-case", response_model=dict, tags=["ai"])
+def ai_consult_session_preview_case(
+    session_id: str,
+    data: AIConsultSessionSaveCaseIn,
+    db: Session = Depends(get_db),
+    user = Depends(get_current_user),
+):
+    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
+    if not session:
+        raise HTTPException(status_code=404, detail="Consult session not found")
+    assert_consult_session_access(session, user, allow_unowned=True)
+    return _consult_save_snapshot(session, data)
 
 
 @app.post("/api/ai/consult/session/{session_id}/save-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
@@ -1117,70 +1139,38 @@ def ai_consult_session_save_case(
     if not session:
         raise HTTPException(status_code=404, detail="Consult session not found")
     assert_consult_session_access(session, user, allow_unowned=True)
+    if session.case_id:
+        return {"case_id": session.case_id, "session_id": session.session_uid, "message": "already_saved"}
 
-    if getattr(session, "case_id", None):
-        return {
-            "case_id": session.case_id,
-            "session_id": session.session_uid,
-            "message": "already_saved",
-        }
+    snapshot = _consult_save_snapshot(session, data)
+    if data.expected_preview_token is not None and not hmac.compare_digest(data.expected_preview_token, snapshot["preview_token"]):
+        raise HTTPException(status_code=409, detail="问诊或保存内容已改变，请重新预览并核对。")
 
-    if getattr(session, "owner_id", None) is None:
-        session.owner_id = user.id
-
-    case_fields = _consult_session_to_case_fields(session)
-
-    structured_intake_answers = getattr(data, "structured_intake_answers", None)
-    structured_history = _format_structured_intake_history(structured_intake_answers)
-    if structured_history:
-        current_history = str(case_fields.get("history") or "").strip()
-        case_fields["history"] = "\n\n".join(part for part in [current_history, structured_history] if part)
-
-    patient_name = (data.patient_name or "").strip() or "未命名病例"
-    species_value = (data.species or "dog").strip() or "dog"
-    sex_value = (data.sex or "").strip() or None
-    age_value = (data.age_info or "").strip() or None
-    breed_value = (data.breed or "").strip() or None
-    weight_value = (data.weight or "").strip() or None
-    coat_value = (data.coat_color or "").strip() or None
-    owner_name_value = (data.owner_name or "").strip() or None
-    owner_phone_value = (data.owner_phone or "").strip() or None
-    exam_value = (data.exam_findings or "").strip() or f"由动态问诊生成；原始会话：{session.session_uid}"
-
-    obj = Case(
-        owner_id=getattr(user, "id", None),
-        patient_name=patient_name[:255],
-        species=species_value[:50],
-        sex=sex_value[:10] if sex_value else None,
-        age_info=age_value[:50] if age_value else None,
-        breed=breed_value[:100] if breed_value else None,
-        weight=weight_value[:50] if weight_value else None,
-        coat_color=coat_value[:100] if coat_value else None,
-        owner_name=owner_name_value[:100] if owner_name_value else None,
-        owner_phone=owner_phone_value[:50] if owner_phone_value else None,
-        chief_complaint=session.text,
-        history=case_fields["history"],
-        exam_findings=exam_value,
-        analysis=case_fields["analysis"],
-        treatment=case_fields["treatment"],
-        prognosis=case_fields["prognosis"],
-    )
-
+    obj = Case(owner_id=user.id, **{name: snapshot[name] for name in CONSULT_SAVE_FIELDS})
+    session_row_id, session_uid = session.id, session.session_uid
     db.add(obj)
     db.flush()
-
-    session.case_id = obj.id
-    session.updated_at = datetime.utcnow()
-    db.add(session)
-
+    # Claim the binding once in the same transaction as the insert. A losing
+    # request rolls back its unsaved Case, including when its initial read was stale.
+    claimed = db.query(ConsultSession).filter(
+        ConsultSession.id == session_row_id,
+        ConsultSession.case_id.is_(None),
+        or_(ConsultSession.owner_id.is_(None), ConsultSession.owner_id == user.id),
+    ).update({
+        "case_id": obj.id, "owner_id": user.id, "updated_at": datetime.utcnow(),
+    }, synchronize_session=False)
+    if not claimed:
+        db.rollback()
+        current = db.get(ConsultSession, session_row_id)
+        if not current:
+            raise HTTPException(status_code=404, detail="Consult session not found")
+        assert_consult_session_access(current, user, allow_unowned=False)
+        if not current.case_id:
+            raise HTTPException(status_code=409, detail="问诊已改变，请重新核对。")
+        return {"case_id": current.case_id, "session_id": session_uid, "message": "already_saved"}
     db.commit()
     db.refresh(obj)
-
-    return {
-        "case_id": obj.id,
-        "session_id": session.session_uid,
-        "message": "saved",
-    }
+    return {"case_id": obj.id, "session_id": session_uid, "message": "saved"}
 
 
 CONSULT_UPDATE_FIELDS = ("chief_complaint", "history", "exam_findings", "analysis", "treatment", "prognosis")

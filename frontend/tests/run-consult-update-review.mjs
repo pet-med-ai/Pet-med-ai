@@ -8,13 +8,16 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 // Keep the transient bundle under frontend so external packages resolve normally.
 const temporary = await mkdtemp(join(root, ".consult-update-test-"));
 try {
-  const outfile = join(temporary, "tests.cjs");
-  await build({
-    entryPoints: [join(root, "tests/consult-update-review.test.jsx")], outfile,
-    bundle: true, platform: "node", format: "cjs", packages: "external",
-    define: { "import.meta.env": "{}" }, logLevel: "warning",
-  });
-  const result = spawnSync(process.execPath, ["--test", outfile], { stdio: "inherit" });
+  const names = ["consult-update-review", "consult-first-save"];
+  const outputs = names.map(name => join(temporary, name + ".cjs"));
+  for (let index = 0; index < names.length; index++) {
+    await build({
+      entryPoints: [join(root, "tests", names[index] + ".test.jsx")], outfile: outputs[index],
+      bundle: true, platform: "node", format: "cjs", packages: "external",
+      define: { "import.meta.env": "{}" }, logLevel: "warning",
+    });
+  }
+  const result = spawnSync(process.execPath, ["--test", ...outputs], { stdio: "inherit" });
   process.exitCode = result.status ?? 1;
 } finally {
   await rm(temporary, { recursive: true, force: true });

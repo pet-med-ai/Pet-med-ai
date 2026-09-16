@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useSearchParams } from "react-router-dom";
 import api from "./api";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
+import ConsultSaveReview from "./components/ConsultSaveReview";
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
 import KpiDashboard from "./pages/KpiDashboard";
@@ -137,9 +138,6 @@ function Home() {
   const [followupAnswer, setFollowupAnswer] = useState("");
   const [structuredIntakeAnswers, setStructuredIntakeAnswers] = useState({});
   const [lastStructuredIntakeSubmission, setLastStructuredIntakeSubmission] = useState(null);
-  const [caseSavePreview, setCaseSavePreview] = useState(null);
-  const [pendingSaveCasePayload, setPendingSaveCasePayload] = useState(null);
-  const [previewingConsultCase, setPreviewingConsultCase] = useState(false);
   const [loadingAnalyze, setLoadingAnalyze] = useState(false);
   const [loadingFollowup, setLoadingFollowup] = useState(false);
   const [errMsg, setErrMsg] = useState("");
@@ -171,8 +169,8 @@ function Home() {
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const [loadingCases, setLoadingCases] = useState(false);
   const [loadingCreate, setLoadingCreate] = useState(false);
-  const [savingConsultCase, setSavingConsultCase] = useState(false);
   const [savedConsultCaseId, setSavedConsultCaseId] = useState(null);
+  const [consultSaveReceipt, setConsultSaveReceipt] = useState(null);
   const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null);
 
   // ===== 批量选择 / 导出 / 批量删除 =====
@@ -648,8 +646,7 @@ function Home() {
       setStructuredIntakeAnswers({});
       resetAuditReviewState();
       setLastStructuredIntakeSubmission(null);
-      setCaseSavePreview(null);
-      setPendingSaveCasePayload(null);
+      setConsultSaveReceipt(null);
       setSavedConsultCaseId(payload.case_id || null);
 
       if (data && Object.keys(data).length) {
@@ -764,8 +761,7 @@ function Home() {
   setStructuredIntakeAnswers({});
   resetAuditReviewState();
   setLastStructuredIntakeSubmission(null);
-  setCaseSavePreview(null);
-  setPendingSaveCasePayload(null);
+  setConsultSaveReceipt(null);
   setLoadingFollowup(false);
   setLoadingAnalyze(true);
 
@@ -888,8 +884,7 @@ function Home() {
       setAuditSubmitting(true);
       const res = await api.post("/api/audit-log", payload);
       setAuditLogReceipt(res.data || {});
-      setCaseSavePreview(null);
-      setPendingSaveCasePayload(null);
+      setConsultSaveReceipt(null);
       alert(`已写入审计日志：${res.data?.log_id || ""}`);
     } catch (err) {
       console.error("AI review audit error:", err);
@@ -970,8 +965,7 @@ function Home() {
       setFollowupAnswer("");
       setStructuredIntakeAnswers({});
       resetAuditReviewState();
-      setCaseSavePreview(null);
-      setPendingSaveCasePayload(null);
+      setConsultSaveReceipt(null);
       await fetchSessionHistory();
     } catch (err) {
       console.error("Followup error:", err);
@@ -985,6 +979,8 @@ function Home() {
     const structuredIntakePayload = buildStructuredIntakeSubmission(result?.structured_intake, structuredIntakeAnswers) || lastStructuredIntakeSubmission;
 
     return {
+      chief_complaint: chiefComplaint,
+      history,
       patient_name: patientName?.trim() || "未命名病例",
       species: species || "dog",
       sex: sex || null,
@@ -999,94 +995,9 @@ function Home() {
     };
   };
 
-  const handleSaveConsultAsCase = async () => {
-    if (!localStorage.getItem("token")) {
-      alert("请先登录后保存为病例");
-      return;
-    }
-
-    if (!consultSessionId) {
-      alert("请先提交分析生成问诊会话，再保存为病例");
-      return;
-    }
-
-    if (result && !auditLogReceipt?.log_id) {
-      alert("请先完成 AI 建议人工覆核并写入审计日志。");
-      return;
-    }
-
-    const payload = buildConsultSaveCasePayload();
-
-    try {
-      setErrMsg("");
-      setPreviewingConsultCase(true);
-
-      const res = await api.post(`/api/ai/consult/session/${encodeURIComponent(consultSessionId)}/preview-case`, payload);
-      setPendingSaveCasePayload(payload);
-      setCaseSavePreview(res.data || null);
-    } catch (err) {
-      console.error("Preview consult case error:", err);
-      if (err.response?.status === 401) {
-        alert("请先登录后保存为病例");
-      } else {
-        alert("生成保存前预览失败，请检查后端日志");
-      }
-    } finally {
-      setPreviewingConsultCase(false);
-    }
-  };
-
-  const handleConfirmSaveConsultAsCase = async () => {
-    if (!localStorage.getItem("token")) {
-      alert("请先登录后保存为病例");
-      return;
-    }
-
-    if (!consultSessionId) {
-      alert("请先提交分析生成问诊会话，再保存为病例");
-      return;
-    }
-
-    if (result && !auditLogReceipt?.log_id) {
-      alert("请先完成 AI 建议人工覆核并写入审计日志。");
-      return;
-    }
-
-    const payload = pendingSaveCasePayload || buildConsultSaveCasePayload();
-
-    try {
-      setErrMsg("");
-      setSavingConsultCase(true);
-
-      const res = await api.post(`/api/ai/consult/session/${encodeURIComponent(consultSessionId)}/save-case`, payload);
-
-      const caseId = res.data?.case_id;
-      setSavedConsultCaseId(caseId || null);
-      setCaseSavePreview(null);
-      setPendingSaveCasePayload(null);
-      setPage(1);
-      await fetchCases({ page: 1 });
-      await fetchSessionHistory();
-      alert(`已保存为病例：${caseId}`);
-    } catch (err) {
-      console.error("Save consult as case error:", err);
-      if (err.response?.status === 401) {
-        alert("请先登录后保存为病例");
-      } else {
-        alert("保存问诊为病例失败，请检查后端日志");
-      }
-    } finally {
-      setSavingConsultCase(false);
-    }
-  };
-
-  const handleCancelCaseSavePreview = () => {
-    setCaseSavePreview(null);
-    setPendingSaveCasePayload(null);
-  };
-
   // ===== 新建病例 =====
   const handleCreateCase = async () => {
+    if (consultSessionId || loadingAnalyze || result) return;
     if (!patientName || !chiefComplaint) {
       alert("请至少填写病例名与主诉"); return;
     }
@@ -1236,8 +1147,8 @@ function Home() {
             <button type="submit" disabled={loadingAnalyze} style={btn}>
               {loadingAnalyze ? "分析中…" : "提交分析（不入库）"}
             </button>
-            <button type="button" onClick={handleCreateCase} disabled={loadingCreate} style={btnSecondary}>
-              {loadingCreate ? "保存中…" : "保存为病例（入库）"}
+            <button type="button" onClick={handleCreateCase} disabled={loadingCreate || loadingAnalyze || !!consultSessionId || !!result} style={btnSecondary}>
+              {consultSessionId || result ? "请在下方核对后保存" : loadingCreate ? "保存中…" : "保存为病例（入库）"}
             </button>
             <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
               新建病例（进入编辑器）
@@ -1453,31 +1364,30 @@ function Home() {
               background: "#eff6ff",
             }}
           >
-            <div style={{ fontWeight: 600, marginBottom: 6 }}>保存当前问诊为病例</div>
-            <div style={{ fontSize: 13, opacity: 0.78, marginBottom: 8 }}>
-              需要先登录；保存后会进入病例列表，并写入主诉、追问记录、AI 分析、建议处理和风险提示。
-            </div>
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button
-                type="button"
-                onClick={handleSaveConsultAsCase}
-                disabled={!!savedConsultCaseId || previewingConsultCase || savingConsultCase || !consultSessionId || !isAuthed || auditReviewRequired}
-                style={btn}
-              >
-                {previewingConsultCase ? "生成预览中…" : "保存前预览"}
-              </button>
-              {!isAuthed && (
-                <span style={{ fontSize: 13, color: "#b45309" }}>
-                  请先登录后保存为病例
-                </span>
-              )}
-              {!consultSessionId && isAuthed && (
-                <span style={{ fontSize: 13, opacity: 0.75 }}>
-                  请先提交分析生成问诊会话
-                </span>
-              )}
-
-            </div>
+            {consultSaveReceipt?.sessionId === consultSessionId && (
+              <p role="status">{consultSaveReceipt.verified ? `已回读病例 #${consultSaveReceipt.caseId}，基本信息与本次核对内容一致。${consultSaveReceipt.inputsChanged ? "保存期间另有输入修改，这些修改尚未保存。" : ""}` : `已绑定病例 #${consultSaveReceipt.caseId}，请继续核对当前内容。`}</p>
+            )}
+            {!savedConsultCaseId && (
+              <ConsultSaveReview
+                key={consultSessionId}
+                sessionId={consultSessionId}
+                payload={buildConsultSaveCasePayload()}
+                revision={JSON.stringify([consultAnswers, result, followupAnswer, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId])}
+                allowed={isAuthed && !auditReviewRequired}
+                blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim()}
+                hasPendingAnswers={!!followupAnswer.trim()}
+                onSaved={async (record, receipt) => {
+                  setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, inputsChanged: receipt.inputsChanged });
+                  setSavedConsultCaseId(record.id);
+                  await fetchCases({ page: 1 });
+                  await fetchSessionHistory();
+                }}
+                onBound={(caseId) => {
+                  setConsultSaveReceipt({ sessionId: consultSessionId, caseId, verified: false });
+                  setSavedConsultCaseId(caseId);
+                }}
+              />
+            )}
 
             {savedConsultCaseId && (
               <ConsultUpdateReview
@@ -1485,21 +1395,13 @@ function Home() {
                 sessionId={consultSessionId}
                 caseId={savedConsultCaseId}
                 allowed={isAuthed && !auditReviewRequired}
-                blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || savingConsultCase}
+                blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting}
                 hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value).trim() !== "")}
                 revision={JSON.stringify([consultSessionId, consultAnswers, result, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, followupAnswer, structuredIntakeAnswers, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId, loadingSession, loadingAnalyze, loadingFollowup, auditSubmitting])}
                 onUpdated={async () => { await fetchCases({ page: 1 }); await fetchSessionHistory(); }}
               />
             )}
 
-            {caseSavePreview && (
-              <CaseSavePreviewBlock
-                preview={caseSavePreview}
-                saving={savingConsultCase}
-                onConfirm={handleConfirmSaveConsultAsCase}
-                onCancel={handleCancelCaseSavePreview}
-              />
-            )}
           </div>
         )}
 
@@ -1977,62 +1879,6 @@ function AiReviewAuditBlock({
     </div>
   );
 }
-
-function CaseSavePreviewBlock({ preview, saving, onConfirm, onCancel }) {
-  if (!preview) return null;
-
-  const metaItems = [
-    ["病例名", preview.patient_name || "未命名病例"],
-    ["物种", preview.species || "-"],
-    ["性别", preview.sex || "-"],
-    ["年龄", preview.age_info || "-"],
-    ["品种", preview.breed || "-"],
-    ["体重", preview.weight || "-"],
-  ];
-
-  return (
-    <div style={{ marginTop: 12, padding: 12, border: "1px solid #93c5fd", borderRadius: 10, background: "#fff" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 8 }}>
-        <div>
-          <div style={{ fontWeight: 800 }}>保存前病史合并预览</div>
-          <div style={{ fontSize: 13, opacity: 0.72 }}>请确认以下内容，确认后才会正式写入病例 history。</div>
-        </div>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button type="button" onClick={onConfirm} disabled={saving} style={btn}>
-            {saving ? "保存中…" : "确认保存为病例"}
-          </button>
-          <button type="button" onClick={onCancel} disabled={saving} style={btnSecondary}>
-            取消预览
-          </button>
-        </div>
-      </div>
-
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: 8, marginBottom: 10 }}>
-        {metaItems.map(([label, value]) => (
-          <div key={label} style={{ padding: 8, border: "1px solid #e5e7eb", borderRadius: 8, background: "#f8fafc" }}>
-            <div style={{ fontSize: 12, opacity: 0.65 }}>{label}</div>
-            <div style={{ fontWeight: 700 }}>{value}</div>
-          </div>
-        ))}
-      </div>
-
-      <div style={{ marginBottom: 8 }}>
-        <div style={{ fontWeight: 700, marginBottom: 4 }}>将写入 history 的内容</div>
-        <pre style={{ margin: 0, padding: 10, border: "1px solid #dbeafe", borderRadius: 8, background: "#eff6ff", whiteSpace: "pre-wrap", fontFamily: "inherit", fontSize: 13, lineHeight: 1.65, maxHeight: 320, overflow: "auto" }}>
-          {preview.history || "—"}
-        </pre>
-      </div>
-
-      <details style={{ marginTop: 8 }}>
-        <summary style={{ cursor: "pointer", fontWeight: 700 }}>同时写入的 AI 分析 / 处理 / 随访摘要</summary>
-        <Block title="AI 分析">{preview.analysis || "—"}</Block>
-        <Block title="治疗建议">{preview.treatment || "—"}</Block>
-        <Block title="风险提示 / 后续随访">{preview.prognosis || "—"}</Block>
-      </details>
-    </div>
-  );
-}
-
 
 function structuredAnswerKey(sectionKey, questionKey) {
   return `${sectionKey || "section"}.${questionKey || "question"}`;
