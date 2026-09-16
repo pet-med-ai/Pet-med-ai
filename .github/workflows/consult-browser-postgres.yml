@@ -7,6 +7,8 @@ on:
       - '.github/workflows/consult-browser-postgres.yml'
       - 'frontend/src/pages/CaseDetail.jsx'
       - 'frontend/src/App.jsx'
+      - 'frontend/src/consultDraft.js'
+      - 'frontend/src/useConsultDraft.js'
       - 'frontend/src/components/**'
 
 permissions:
@@ -27,20 +29,18 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind exact workbench application and unchanged baseline
+      - name: Bind exact draft recovery application and unchanged baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git diff --exit-code f503eba7ad084e4555ef32ee2eef5cbb819ae629 HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/src/components/ConsultSaveReview.jsx' ':(exclude)frontend/src/components/ConsultUpdateReview.jsx' ':(exclude)frontend/src/components/ConsultWorkbench.jsx' ':(exclude)frontend/src/components/ConsultWorkbench.css' ':(exclude)frontend/tests/consult-first-save.test.jsx' ':(exclude)frontend/tests/consult-update-review.test.jsx'
-          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "38ee337da24f594ce2c6bfe050abb0877b07fb28"
-          test "$(git rev-parse HEAD:frontend/src/components/ConsultSaveReview.jsx)" = "837507c3d8546486a429e79edde37d733ab38cbe"
-          test "$(git rev-parse HEAD:frontend/src/components/ConsultUpdateReview.jsx)" = "cd7c6a963136489208bb7bef9d703bafed5d7693"
-          test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.jsx)" = "b52dcd23dc4649ad5e467a9c012b7c49ab1a2abd"
-          test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.css)" = "ac384e916893da9e88fdd98fc03be21f622a2b1f"
-          test "$(git rev-parse HEAD:frontend/tests/consult-first-save.test.jsx)" = "4356cdcb9218717d318b33b188f66f963ec48c67"
-          test "$(git rev-parse HEAD:frontend/tests/consult-update-review.test.jsx)" = "6e9c37fdaaaa90cdaa21bf5b002be5522620c232"
+          git diff --exit-code 2ef8bd882349f80e7329882babf14e6b0d50ac11 HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/src/consultDraft.js' ':(exclude)frontend/src/useConsultDraft.js' ':(exclude)frontend/tests/consult-draft.test.jsx' ':(exclude)frontend/tests/run-consult-update-review.mjs'
+          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "f79a82545811fa540a3220f053be4d7822c2e66e"
+          test "$(git rev-parse HEAD:frontend/src/consultDraft.js)" = "78ebaaa2e416429c9f52b86c45b6f8346b05c298"
+          test "$(git rev-parse HEAD:frontend/src/useConsultDraft.js)" = "703601551d4764de9502a7cddded91c1aef60a69"
+          test "$(git rev-parse HEAD:frontend/tests/consult-draft.test.jsx)" = "3b3241cf65e4170250278be13912ed9fd573252b"
+          test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "e1520461615644024ec0546133955455339f7955"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse f503eba7ad084e4555ef32ee2eef5cbb819ae629 > acceptance-results/application-baseline.txt
+          git rev-parse 2ef8bd882349f80e7329882babf14e6b0d50ac11 > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -90,6 +90,10 @@ jobs:
         run: |
           set -o pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/browser_checks.cjs 2>&1 | tee acceptance-results/browser-checks.log
+      - name: Real Chromium current-tab draft recovery
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/draft_checks.cjs 2>&1 | tee acceptance-results/draft-checks.log
       - name: Stop test processes
         if: always()
         run: |

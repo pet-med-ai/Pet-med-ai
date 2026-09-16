@@ -2,6 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useSearchParams } from "react-router-dom";
 import api from "./api";
+import useConsultDraft from "./useConsultDraft";
+import { clearDraft } from "./consultDraft";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
 import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/ConsultWorkbench";
@@ -72,6 +74,8 @@ function Home() {
     }
 
     try {
+      clearDraft();
+      localStorage.removeItem("consult_session_id");
       localStorage.removeItem("token");
 
       const form = new FormData();
@@ -110,6 +114,8 @@ function Home() {
   };
 
   const handleLogout = () => {
+    clearDraft();
+    localStorage.removeItem("consult_session_id");
     localStorage.removeItem("token");
     window.location.reload();
   };
@@ -182,6 +188,18 @@ function Home() {
     if (next === 1 && workbenchStep === 2) setReviewNavigationVersion(value => value + 1);
     setWorkbenchStep(next);
   };
+
+  const [recoveredDraftNotes, setRecoveredDraftNotes] = useState("");
+  const [draftRestoreMessage, setDraftRestoreMessage] = useState("");
+  const [restoringDraft, setRestoringDraft] = useState(false);
+  const draftSnapshot = {
+    fields: { patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, chiefComplaint, history, examFindings, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId },
+    sessionId: consultSessionId,
+    sessionContext: JSON.stringify([consultAnswers, result?.next_questions ?? [], result?.structured_intake?.template_key ?? null]),
+    followupAnswer, structuredAnswers: structuredIntakeAnswers,
+    lastSubmission: lastStructuredIntakeSubmission, recoveredNotes: recoveredDraftNotes,
+  };
+  const draft = useConsultDraft(draftSnapshot, loadingSession || loadingAnalyze || loadingFollowup || restoringDraft);
 
   const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null);
 
@@ -630,6 +648,58 @@ function Home() {
     }
   };
 
+  const applyDraftFields = fields => {
+    setPatientName(fields.patientName || ""); setSpecies(fields.species || "dog");
+    setSex(fields.sex || ""); setAgeInfo(fields.ageInfo || ""); setBreed(fields.breed || "");
+    setWeight(fields.weight || ""); setCoatColor(fields.coatColor || "");
+    setOwnerName(fields.ownerName || ""); setOwnerPhone(fields.ownerPhone || "");
+    setChiefComplaint(fields.chiefComplaint || ""); setHistory(fields.history || "");
+    setExamFindings(fields.examFindings || ""); setAuditClinicianId(fields.auditClinicianId || "");
+    setAuditReviewAction(["accepted", "modified", "rejected"].includes(fields.auditReviewAction) ? fields.auditReviewAction : "accepted");
+    setAuditReviewReason(fields.auditReviewReason || ""); setAuditReviewNote(fields.auditReviewNote || "");
+  };
+
+  const restoreLocalDraft = async () => {
+    if (!draft.offer || restoringDraft || !draft.owner) return;
+    const snapshot = draft.offer.data;
+    try {
+      setRestoringDraft(true); setDraftRestoreMessage("");
+      let payload = null;
+      if (snapshot.sessionId) {
+        const response = await api.get(`/api/ai/consult/session/${encodeURIComponent(snapshot.sessionId)}`, { timeout: 15000 });
+        payload = response.data;
+        if (payload.session_id !== snapshot.sessionId) throw new Error("Session mismatch");
+      }
+      const data = payload?.result || null;
+      const currentContext = JSON.stringify([payload?.answers || [], data?.next_questions ?? [], data?.structured_intake?.template_key ?? null]);
+      const changed = !!payload && currentContext !== snapshot.sessionContext;
+      // Old pending answers must not be submitted to a newer/different question.
+      const pending = changed && (snapshot.followupAnswer || Object.keys(snapshot.structuredAnswers).length)
+        ? ["原问诊已变化，以下未提交内容需重新整理：", snapshot.followupAnswer, JSON.stringify(snapshot.structuredAnswers, null, 2)].filter(Boolean).join("\n") : "";
+      setConsultSessionId(payload?.session_id || null);
+      if (payload) rememberConsultSession(payload.session_id);
+      setResult(data); setConsultAnswers(payload?.answers || []);
+      setSavedConsultCaseId(payload?.case_id || null);
+      setAnalysis(""); setTreatment(""); setPrognosis("");
+      if (data) applyConsultResult(data, "DRAFT RESTORED FROM CURRENT SESSION");
+      resetAuditReviewState(); setConsultSaveReceipt(null);
+      applyDraftFields(snapshot.fields);
+      setFollowupAnswer(changed ? "" : snapshot.followupAnswer);
+      setStructuredIntakeAnswers(changed ? {} : snapshot.structuredAnswers);
+      setLastStructuredIntakeSubmission(changed ? null : snapshot.lastSubmission);
+      setRecoveredDraftNotes([snapshot.recoveredNotes, pending].filter(Boolean).join("\n\n"));
+      setReviewNavigationVersion(value => value + 1); setWorkbenchStep(1);
+      const nextParams = new URLSearchParams(searchParams); nextParams.delete("restore_session_id");
+      setSearchParams(nextParams, { replace: true });
+      draft.accepted();
+      setDraftRestoreMessage(payload?.case_id
+        ? `已恢复输入；原问诊已绑定病例 #${payload.case_id}，请查看已有病例后再核对更新。草稿未自动写入病例。`
+        : "草稿输入已恢复，请重新覆核 AI 建议并核对保存内容；恢复操作没有写入病例。");
+    } catch {
+      setDraftRestoreMessage("暂时无法读取原问诊，草稿仍保留。请检查登录状态或网络后重试恢复。");
+    } finally { setRestoringDraft(false); }
+  };
+
   const loadSession = async (sessionId) => {
     const sid = (sessionId || sessionInput || "").trim();
     if (!sid) {
@@ -642,6 +712,8 @@ function Home() {
       return;
     }
 
+    const hasUnsavedInput = Object.entries(draftSnapshot.fields).some(([key, value]) => !["species", "auditReviewAction"].includes(key) && value.trim()) || followupAnswer || recoveredDraftNotes || Object.values(structuredIntakeAnswers).some(value => value.trim());
+    if (sid !== consultSessionId && hasUnsavedInput && !confirm("切换问诊会替换当前页面输入及本页草稿。请先保存需要保留的内容。继续切换？")) return;
     try {
       setErrMsg("");
       setLoadingSession(true);
@@ -650,6 +722,8 @@ function Home() {
       const payload = res.data;
       const data = payload.result || {};
 
+      applyDraftFields({});
+      setRecoveredDraftNotes(""); setDraftRestoreMessage("");
       rememberConsultSession(payload.session_id || sid);
       setChiefComplaint(payload.text || "");
       setConsultAnswers(payload.answers || []);
@@ -696,7 +770,7 @@ function Home() {
 
   useEffect(() => {
     const sid = (searchParams.get("restore_session_id") || "").trim();
-    if (!sid) return;
+    if (!sid || draft.offer || restoringDraft) return;
 
     if (!localStorage.getItem("token")) {
       setSessionInput(sid);
@@ -711,7 +785,7 @@ function Home() {
     setSearchParams(nextParams, { replace: true });
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, setSearchParams]);
+  }, [searchParams, setSearchParams, draft.offer, restoringDraft]);
 
   const handleDeleteConsultSession = async (sessionId) => {
     const sid = (sessionId || "").trim();
@@ -1103,6 +1177,19 @@ function Home() {
         </div>
       )}
 
+      <section aria-label="本标签页草稿" className="workbench-secondary">
+        {draft.offer ? <>
+          <strong>发现本页未完成草稿</strong>
+          <p>暂存时间：{new Date(draft.offer.updatedAt).toLocaleString("zh-CN")}。恢复后需要重新覆核和确认。</p>
+          <div className="workbench-actions">
+            <button type="button" disabled={restoringDraft} onClick={restoreLocalDraft}>{restoringDraft ? "正在恢复草稿…" : "恢复本页草稿"}</button>
+            <button type="button" disabled={restoringDraft} onClick={() => { if (confirm("放弃这份本标签页草稿并重新填写？不会删除已保存病例。")) { draft.discard(); setDraftRestoreMessage(""); } }}>放弃草稿并重新填写</button>
+          </div>
+        </> : <p role="status">{draft.message || (draft.owner ? "填写后会暂存本标签页草稿。" : "登录后可暂存本标签页草稿。")}</p>}
+        {draftRestoreMessage && <p role="status">{draftRestoreMessage}</p>}
+        <p style={{ fontSize: 12 }}>草稿仅供当前标签页恢复，最长保留 8 小时；退出会清除。跨设备或关闭标签页后的恢复不保证，正式记录仍需核对保存。</p>
+      </section>
+      <fieldset disabled={!!draft.offer || restoringDraft} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <WorkbenchSteps step={workbenchStep} onChange={changeWorkbenchStep} hasSession={!!consultSessionId} hasReadback={!!currentReadback} busy={workbenchBusy} patientName={patientName} species={species} ageInfo={ageInfo} />
       <h2 ref={stepHeading} tabIndex={-1} className="workbench-stage-title">{workbenchSteps[workbenchStep - 1]}</h2>
       <div hidden={workbenchStep !== 1} data-workbench-panel="1">
@@ -1296,7 +1383,12 @@ function Home() {
         )}
       </section>
 
-      <p>未填写不代表正常。尚未保存的输入仅保留在当前页面，刷新或离开前请先完成保存。</p>
+      {recoveredDraftNotes && <section aria-label="待重新整理的草稿补充" className="workbench-warning">
+        <h3>原问诊已更新，以下补充尚未提交</h3>
+        <p>请按当前问题重新整理；以下原文保留供核对，不会自动随回答提交。</p>
+        <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{recoveredDraftNotes}</pre>
+      </section>}
+      <p>未填写不代表正常。草稿暂存不等于病例已保存，请完成第二步核对。</p>
       <div className="workbench-actions"><button type="button" className="workbench-primary" disabled={!consultSessionId || workbenchBusy} onClick={() => changeWorkbenchStep(2)}>进入保存前核对 →</button></div>
       </div>
 
@@ -1325,6 +1417,7 @@ function Home() {
                 blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim()}
                 hasPendingAnswers={!!followupAnswer.trim()}
                 onSaved={async (record, receipt) => {
+                  if (!receipt.inputsChanged && !recoveredDraftNotes) draft.markSaved();
                   setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, inputsChanged: receipt.inputsChanged, record, revision: workbenchRevision, mode: "create" });
                   setWorkbenchStep(3);
                   setSavedConsultCaseId(record.id);
@@ -1732,6 +1825,8 @@ function Home() {
       </section>
 
       </details>
+
+      </fieldset>
 
       {/* 撤销提示条（最近删除） */}
       {lastDeleted && (

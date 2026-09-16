@@ -1,21 +1,33 @@
 # PR26 browser and PostgreSQL acceptance
 
-Application baseline: `f503eba7ad084e4555ef32ee2eef5cbb819ae629`.
-This candidate connects the selected three-step workbench to the real React app:
-intake, review before save, then server readback. Hidden step panels remain mounted
-so navigation retains inputs and unresolved save state. Returning to intake
-invalidates the old confirmation. Only verified readback enables the third step;
-its content comes from the server response, with a warning for later input edits.
+Application baseline: `2ef8bd882349f80e7329882babf14e6b0d50ac11`.
+This candidate adds current-tab draft recovery to the existing three-step React
+workbench. It stores doctor input, pending answers and the session identifier in
+sessionStorage, partitioned by login identity, with an eight-hour freshness limit.
+Recovery is explicit. Linked sessions must first be read from the authenticated
+server; their current case binding determines whether first-save or update applies.
+A local draft cannot restore an AI audit receipt, preview confirmation or successful
+save state. Changed server questions quarantine old pending answers as readable
+notes rather than submitting them to the wrong question. Failed storage warns while
+preserving current React input. Logout clears the cache. Cross-device and closed-tab
+recovery are not guaranteed; this is not server-side draft storage or encryption.
 
-Five application files are changed: App.jsx, ConsultSaveReview.jsx,
-ConsultUpdateReview.jsx, and new ConsultWorkbench.jsx / ConsultWorkbench.css.
-Two existing React test files also add a regression for step navigation after
-failed readback. The workflow binds all seven exact Git blobs and rejects other backend,
-frontend, knowledge-base or root Python dependency change from the baseline.
-Artifacts record the actual tested HEAD. APIs, database logic and the previous
-complete-history display fix are unchanged. Existing PR remains draft; no merge
-or deployment. This is three-step interaction integration, not completion of all
-prototype features, standalone case editing or persistent draft recovery.
+The exact application changes are App.jsx, consultDraft.js and useConsultDraft.js;
+React test changes are consult-draft.test.jsx and run-consult-update-review.mjs.
+The workflow binds these five Git blobs and rejects all other backend, frontend,
+knowledge-base or root dependency changes from the baseline. Artifacts record the
+actual tested HEAD. No API, database, migration or Render configuration is changed.
+Verified first-save clears the draft if no newer input exists. Bound updates keep
+it because that API does not save every unsubmitted field from the intake form.
+
+`draft_checks.cjs` adds eleven real-browser checks: exact form restoration without
+writes, old confirmations invalidated, pending answer restoration, changed-question
+quarantine, failed session GET retaining the draft, refresh after a committed save
+resolving the existing binding without a second save, verified save clearing cache,
+later unsaved edits preserving saved data, logout/account isolation, corrupt-cache
+rejection, and quota-failure warnings. Only the named fault checks block a GET or
+sessionStorage write. Successful responses come from the real FastAPI app and
+PostgreSQL; no synthetic success response is injected.
 
 The local Work browser rejected loopback navigation with ERR_BLOCKED_BY_CLIENT.
 The local container lacks PostgreSQL and maps only UID 0, so package installation
@@ -60,10 +72,11 @@ retrying GET, without a second save POST or an incorrect unsaved-input warning.
 Navigation can invalidate a confirmation without counting as a content edit;
 content revision is tracked separately for the readback receipt.
 
-Prior evidence: run 35066070839 on f503eba7 passed 12 PostgreSQL assertions and
-14 browser scenarios. Those historical results do not establish that this new
-workbench passes. Its own exact-commit workflow must pass before acceptance is
-reported.
+Prior evidence: run 35068137028 on 2ef8bd88 passed 12 PostgreSQL assertions and
+19 browser scenarios for the three-step workbench. Those historical results do
+not establish that draft recovery passes. The new exact-commit workflow must
+pass its original 19 browser scenarios, eleven draft scenarios and PostgreSQL
+checks before acceptance is reported.
 
 Artifacts contain logs, JSON assertions and screenshots with synthetic data only.
 A failed browser visibility assertion remains a failure even if PostgreSQL stored
