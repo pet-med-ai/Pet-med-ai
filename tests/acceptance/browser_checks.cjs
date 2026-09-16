@@ -1,4 +1,4 @@
-// Real Chromium + unchanged React + FastAPI + disposable PostgreSQL.
+// Real Chromium + exact candidate React + FastAPI + disposable PostgreSQL.
 // Route interception only drops/delays a real response in the named fault cases.
 const { chromium, expect } = require('@playwright/test');
 const assert = require('node:assert/strict');
@@ -23,10 +23,10 @@ async function record(name) {
   console.log('PASS:', name);
   await page.screenshot({ path: path.join(out, `${passed.length}-${name}.png`), fullPage: true });
 }
-async function api(method, route, data) {
+async function api(method, route, data, expected=200) {
   assert(route.startsWith('/api/'));
   const r = await context.request.fetch(API+route, { method, headers: auth, data });
-  assert.equal(r.status(), 200, await r.text());
+  assert.equal(r.status(), expected, await r.text());
   return r.json();
 }
 async function setup() {
@@ -148,17 +148,55 @@ async function main() {
   // see the original history in CaseDetail. Capture failure and run other cases.
   try {
     await expect(page.getByText('医生修改后病史🐾',{exact:false}).first()).toBeVisible();
+    const original = page.getByRole('region',{name:'完整病史原文',exact:true}).locator('.text-body');
+    await expect(original).toBeVisible();
+    assert.equal(await original.textContent(), actual.history);
+    await expect(original).toHaveCSS('white-space','pre-wrap');
     await record('case_detail_displays_original_doctor_history');
+    await page.getByText('按问答查看',{exact:true}).click();
+    await expect(page.locator('.qa-list')).toBeVisible();
+    assert.equal(await original.textContent(), actual.history);
+    await record('case_detail_optional_qa_keeps_complete_original');
+    await page.emulateMedia({media:'print'});
+    await expect(original).toBeVisible();
+    await expect(page.getByText('按问答查看',{exact:true})).toBeHidden();
+    assert.equal(await original.textContent(), actual.history);
+    await record('case_detail_print_styles_keep_complete_original');
   } catch(error) {
     failures.push({name:'case_detail_displays_original_doctor_history',error:String(error)});
     await page.screenshot({path:path.join(out,'case-detail-missing-original.png'),fullPage:true});
     fs.writeFileSync(path.join(out,'case-detail-missing-original.txt'),await page.locator('body').innerText());
     console.error('FAIL: case_detail_displays_original_doctor_history');
+  } finally {
+    await page.emulateMedia({media:'screen'});
   }
   await page.reload();
   await expect(page.getByRole('heading',{name:'病例详情 #'+saved.id,exact:true})).toBeVisible();
   assert.deepEqual(await api('GET','/api/cases/'+saved.id),actual);
+  assert.equal(await page.getByRole('region',{name:'完整病史原文',exact:true}).locator('.text-body').textContent(),actual.history);
   await record('case_detail_reopen_and_refresh_persisted');
+
+  // Synthetic display fixtures exercise text outside Q&A blocks and escaping.
+  // Full consultation/save behavior is already covered above with real UI input.
+  const displayFixtures = [
+    ['plain','  医生自由文本🐾\r\n保留尾部空白。  \n\t'],
+    ['mixed','问答前医生记录\r\n【动态问诊追问记录】\r\n1. 问：症状？\r\n   答：两天\r\n中间补记\r\n【动态问诊更新补充】\r\n1. 问：饮水？\r\n   答：正常\r\n末尾医生补记。  \n'],
+    ['literal-html','<img src="https://example.invalid/test" onerror="alert(1)">\n医生原文 & <script>test</script>\n'+'连续文本'.repeat(500)],
+    ['empty',''],
+  ];
+  for(const [name,historyText] of displayFixtures) {
+    const fixture = await api('POST','/api/cases',{patient_name:'合成展示-'+name,species:'dog',chief_complaint:'显示验收',history:historyText},201);
+    await page.goto(UI+'/cases/'+fixture.id);
+    await expect(page.getByRole('heading',{name:'病例详情 #'+fixture.id,exact:true})).toBeVisible();
+    const original = page.getByRole('region',{name:'完整病史原文',exact:true}).locator('.text-body');
+    await expect(original).toBeVisible();
+    assert.equal(await original.textContent(),historyText || '—');
+    assert.equal(await original.locator('img,script').count(),0);
+    await expect(original).toHaveCSS('white-space','pre-wrap');
+    assert(await original.evaluate(el=>el.scrollWidth <= el.clientWidth+1));
+    assert.equal((await api('GET','/api/cases/'+fixture.id)).history,historyText);
+    await record('case_detail_history_'+name);
+  }
   await context.close();
 
   await setup(); sid = await startCase('浏览器合成犬 B 响应丢失'); await reviewAI(); p = await preview();

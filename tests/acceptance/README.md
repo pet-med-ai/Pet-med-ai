@@ -1,9 +1,14 @@
 # PR26 browser and PostgreSQL acceptance
 
-Application under test: `d8dd219d9daaf00ba7f865990c3236dca165d280`.
-The workflow rejects any change to backend, frontend, knowledge-base or the root
-Python requirements relative to that commit. Only these acceptance files and the
-new workflow are added. Existing PR remains draft; no merge or deployment.
+Application baseline: `d98608a79bd6b81cc76cd6a5b4c26d3ff8ec6944` (application
+source identical to `d8dd219d9daaf00ba7f865990c3236dca165d280`). The candidate
+changes only `frontend/src/pages/CaseDetail.jsx` in application source: complete
+history is always visible as escaped, whitespace-preserving text; parsed Q&A is
+an optional screen-only view. No history data or save behavior is changed.
+The workflow rejects other changes to backend, frontend, knowledge-base or root
+Python requirements relative to the baseline, and requires CaseDetail's exact
+Git blob `f33aed9ec815323efbdc103357b0e9f890e4ff6b`. Artifacts record the actual
+tested HEAD and its baseline. Existing PR remains draft; no merge or deployment.
 
 The local Work browser rejected loopback navigation with ERR_BLOCKED_BY_CLIENT.
 The local container lacks PostgreSQL and maps only UID 0, so package installation
@@ -31,6 +36,19 @@ inputs invalidating review, first save, bound update, case detail and refresh.
 It also tests a dropped response after a real save commit and a failed readback.
 Only those named fault tests intercept traffic; they never fabricate successful
 save responses. Browser traffic outside the two loopback app origins is blocked.
+
+The original failing doctor-history visibility assertion remains in place. The
+history display checks additionally compare DOM text to the full API history,
+open the optional Q&A view, refresh the page, and emulate print CSS. Four cases
+created through the real API cover plain text, doctor notes before/between/after
+Q&A blocks with repeated numbering, CRLF/whitespace/Unicode, literal HTML, long
+text wrapping, and empty history. Print checks verify Chromium print styles;
+they do not certify physical printer output or PDF pagination.
+
+Prior evidence: run 35062578627 on the baseline passed 12 PostgreSQL assertions
+and 7 browser scenarios, but failed the original doctor-history visibility check.
+Those historical results do not establish that this display fix passes. The new
+candidate must pass its own exact-commit workflow before acceptance is reported.
 
 Artifacts contain logs, JSON assertions and screenshots with synthetic data only.
 A failed browser visibility assertion remains a failure even if PostgreSQL stored

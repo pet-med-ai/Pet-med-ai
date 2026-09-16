@@ -5,6 +5,7 @@ on:
     paths:
       - 'tests/acceptance/**'
       - '.github/workflows/consult-browser-postgres.yml'
+      - 'frontend/src/pages/CaseDetail.jsx'
 
 permissions:
   contents: read
@@ -24,12 +25,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind unchanged application to reviewed candidate
+      - name: Bind exact history display fix and unchanged application baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git diff --exit-code d8dd219d9daaf00ba7f865990c3236dca165d280 HEAD -- backend frontend knowledge-base requirements.txt
-          git rev-parse d8dd219d9daaf00ba7f865990c3236dca165d280 > acceptance-results/application-commit.txt
+          git diff --exit-code d98608a79bd6b81cc76cd6a5b4c26d3ff8ec6944 HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)frontend/src/pages/CaseDetail.jsx'
+          test "$(git rev-parse HEAD:frontend/src/pages/CaseDetail.jsx)" = "f33aed9ec815323efbdc103357b0e9f890e4ff6b"
+          git rev-parse HEAD > acceptance-results/application-commit.txt
+          git rev-parse d98608a79bd6b81cc76cd6a5b4c26d3ff8ec6944 > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

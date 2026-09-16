@@ -1135,25 +1135,31 @@ function DynamicHistory({ value }) {
   const text = value ? String(value) : "";
   const qaItems = parseDynamicHistory(text);
 
-  if (qaItems.length === 0) {
-    return <TextCard>{text}</TextCard>;
-  }
-
   return (
-    <div className="qa-list">
-      {qaItems.map((item) => (
-        <div className="qa-item" key={item.index}>
-          <div className="qa-index">第 {item.index} 轮追问</div>
-          <div className="qa-row">
-            <span className="qa-tag">问</span>
-            <span>{item.question || "未记录"}</span>
+    <div>
+      <section aria-label="完整病史原文" className="history-original">
+        <TextCard>{text}</TextCard>
+      </section>
+      {qaItems.length > 0 && (
+        <details className="screen-only" style={{ marginTop: 12 }}>
+          <summary style={{ cursor: "pointer", marginBottom: 10 }}>按问答查看</summary>
+          <div className="qa-list">
+            {qaItems.map((item, position) => (
+              <div className="qa-item" key={`${position}:${item.index}`}>
+                <div className="qa-index">第 {item.index} 轮追问</div>
+                <div className="qa-row">
+                  <span className="qa-tag">问</span>
+                  <span>{item.question || "未记录"}</span>
+                </div>
+                <div className="qa-row">
+                  <span className="qa-tag answer">答</span>
+                  <span>{item.answer || "未记录"}</span>
+                </div>
+              </div>
+            ))}
           </div>
-          <div className="qa-row">
-            <span className="qa-tag answer">答</span>
-            <span>{item.answer || "未记录"}</span>
-          </div>
-        </div>
-      ))}
+        </details>
+      )}
     </div>
   );
 }
@@ -3362,6 +3368,7 @@ const css = `
     line-height: 1.7;
     color: #111827;
   }
+  .history-original .text-body { overflow-wrap: anywhere; }
 
   .qa-list { display: grid; gap: 10px; }
   .qa-item {
