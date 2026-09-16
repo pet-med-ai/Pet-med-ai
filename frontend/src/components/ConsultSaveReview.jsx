@@ -8,7 +8,7 @@ const fields = [...metadata, ...clinical];
 const button = { padding: "8px 12px", border: "1px solid #94a3b8", borderRadius: 6, cursor: "pointer" };
 const caseMatches = (record, snapshot) => fields.every(([key]) => record[key] === snapshot[key]);
 
-export default function ConsultSaveReview({ sessionId, payload, revision, allowed, blocked, hasPendingAnswers, onSaved, onBound }) {
+export default function ConsultSaveReview({ sessionId, payload, revision, allowed, blocked, hasPendingAnswers, onSaved, onBound, onReturnToEdit, onWorkingChange }) {
   const [preview, setPreview] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [phase, setPhase] = useState("idle");
@@ -25,6 +25,7 @@ export default function ConsultSaveReview({ sessionId, payload, revision, allowe
   const working = ["previewing", "saving", "checking"].includes(phase);
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => { onWorkingChange?.(working); return () => onWorkingChange?.(false); }, [working, onWorkingChange]);
   useEffect(() => { setConfirmed(false); }, [context]);
 
   async function readSaved(snapshot) {
@@ -129,7 +130,7 @@ export default function ConsultSaveReview({ sessionId, payload, revision, allowe
         <label style={{ display: "block", padding: "12px 0" }}><input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} disabled={!allowed || blocked || hasPendingAnswers} /> 已核对本次保存内容</label>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
           <button type="button" style={button} disabled={!confirmed || !allowed || blocked || hasPendingAnswers} onClick={confirmSave}>确认并保存病例</button>
-          <button type="button" style={button} onClick={() => { setPreview(null); setConfirmed(false); setPhase("idle"); setMessage(""); }}>返回修改</button>
+          <button type="button" style={button} onClick={() => { setPreview(null); setConfirmed(false); setPhase("idle"); setMessage(""); onReturnToEdit?.(); }}>返回修改</button>
         </div>
       </>}
       {phase === "uncertain" && <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 12 }}>

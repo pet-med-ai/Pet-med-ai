@@ -6,6 +6,8 @@ on:
       - 'tests/acceptance/**'
       - '.github/workflows/consult-browser-postgres.yml'
       - 'frontend/src/pages/CaseDetail.jsx'
+      - 'frontend/src/App.jsx'
+      - 'frontend/src/components/**'
 
 permissions:
   contents: read
@@ -25,14 +27,18 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind exact history display fix and unchanged application baseline
+      - name: Bind exact workbench application and unchanged baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git diff --exit-code d98608a79bd6b81cc76cd6a5b4c26d3ff8ec6944 HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)frontend/src/pages/CaseDetail.jsx'
-          test "$(git rev-parse HEAD:frontend/src/pages/CaseDetail.jsx)" = "f33aed9ec815323efbdc103357b0e9f890e4ff6b"
+          git diff --exit-code f503eba7ad084e4555ef32ee2eef5cbb819ae629 HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/src/components/ConsultSaveReview.jsx' ':(exclude)frontend/src/components/ConsultUpdateReview.jsx' ':(exclude)frontend/src/components/ConsultWorkbench.jsx' ':(exclude)frontend/src/components/ConsultWorkbench.css'
+          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "b06bffb7228b272b791c7f8625062cc99b3234d7"
+          test "$(git rev-parse HEAD:frontend/src/components/ConsultSaveReview.jsx)" = "edf673b60e3eb6575060eec7c967417221e25058"
+          test "$(git rev-parse HEAD:frontend/src/components/ConsultUpdateReview.jsx)" = "c60fa13ef16c320dcd6a7e06254c30335a28c9b9"
+          test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.jsx)" = "b52dcd23dc4649ad5e467a9c012b7c49ab1a2abd"
+          test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.css)" = "ac384e916893da9e88fdd98fc03be21f622a2b1f"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse d98608a79bd6b81cc76cd6a5b4c26d3ff8ec6944 > acceptance-results/application-baseline.txt
+          git rev-parse f503eba7ad084e4555ef32ee2eef5cbb819ae629 > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

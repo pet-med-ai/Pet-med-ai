@@ -14,6 +14,14 @@ let browser, context, page, auth;
 const fields = ['patient_name','species','sex','age_info','breed','weight','coat_color','owner_name','owner_phone','chief_complaint','history','exam_findings','analysis','treatment','prognosis'];
 const saveRegion = () => page.getByRole('region', { name: '首次保存病例核对', exact: true });
 const updateRegion = () => page.getByRole('region', { name: '更新已绑定病例核对', exact: true });
+const readbackRegion = () => page.getByRole('region', { name: '本次保存回读', exact: true });
+const stepButton = number => page.getByRole('navigation',{name:'问诊工作台步骤',exact:true}).getByRole('button',{name:['问诊整理','保存前核对','病例回看'][number-1],exact:true});
+async function goStep(number) {
+  await stepButton(number).click();
+  await expect(stepButton(number)).toHaveAttribute('aria-current','step');
+  await expect(page.locator('[data-workbench-panel="'+number+'"]')).toBeVisible();
+}
+
 // React updates textarea text content as well as its value. Anchor the label's
 // visible caption, so entered history does not change Playwright's label match.
 const historyInput = () => page.locator('label').filter({ has: page.getByText('既往史', { exact: true }) }).locator('textarea');
@@ -72,8 +80,10 @@ async function startCase(name) {
   const create = responseFor('/api/ai/consult/session');
   await page.getByRole('button', { name: '提交分析（不入库）', exact: true }).click();
   const r = await create; assert.equal(r.status(), 200); const s = await r.json();
+  await expect(page.getByRole('button', { name: '请在第二步核对后保存', exact: true })).toBeDisabled();
+  await goStep(2);
   await expect(saveRegion().getByRole('button', { name: '核对保存内容', exact: true })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '请在下方核对后保存', exact: true })).toBeDisabled();
+  await goStep(1);
   return s.session_id;
 }
 async function followup(text) {
@@ -84,6 +94,7 @@ async function followup(text) {
   await expect(page.getByPlaceholder('请填写对当前追问的回答', { exact: true })).toHaveValue('');
 }
 async function preview() {
+  await goStep(2);
   const next = responseFor('/preview-case');
   await saveRegion().getByRole('button', { name: /^(核对保存内容|重新预览保存内容)$/ }).click();
   const r = await next; assert.equal(r.status(), 200);
@@ -95,16 +106,22 @@ async function confirm() {
   await saveRegion().getByRole('button', { name: '确认并保存病例', exact: true }).click();
 }
 async function checkSaved(sid, snapshot) {
-  await expect(page.getByRole('status').filter({ hasText: /已回读病例 #\d+，基本信息与本次核对内容一致/ })).toBeVisible();
+  await expect(stepButton(3)).toHaveAttribute('aria-current','step');
+  await expect(readbackRegion().getByRole('status').filter({ hasText: /已回读病例 #\d+，基本信息与本次核对内容一致/ })).toBeVisible();
   const s = await api('GET', '/api/ai/consult/session/'+sid);
   const c = await api('GET', '/api/cases/'+s.case_id);
   for (const field of fields) assert.equal(c[field], snapshot[field], field);
+  assert.equal(await readbackRegion().getByRole('region',{name:'完整病史',exact:true}).locator('pre').textContent(),c.history);
   return c;
 }
 async function main() {
   browser = await chromium.launch({ headless: true });
   console.log('Chromium:', browser.version());
   await setup();
+  await expect(stepButton(1)).toHaveAttribute('aria-current','step');
+  await expect(stepButton(2)).toBeDisabled();
+  await expect(stepButton(3)).toBeDisabled();
+  await record('workbench_requires_consultation_and_verified_readback');
   let sid = await startCase('浏览器合成犬 A');
   await followup('合成回答：持续两天，没有血液');
   await reviewAI();
@@ -115,20 +132,42 @@ async function main() {
   await expect(saveRegion().getByRole('button',{ name:'确认并保存病例',exact:true })).toBeDisabled();
   await saveRegion().getByLabel('已核对本次保存内容',{exact:true}).check();
   const history = '医生修改后病史🐾\n原文尾部空白保留。  \n';
+  await goStep(1);
   await historyInput().fill(history);
+  await goStep(2);
   await expect(saveRegion().getByText('内容已修改，原确认失效，请重新核对。',{exact:true})).toBeVisible();
   await expect(saveRegion().getByRole('button',{ name:'确认并保存病例',exact:true })).toHaveCount(0);
   p = await preview(); assert(p.history.startsWith(history));
   await record('preview_edit_invalidates_confirmation');
+  await saveRegion().getByLabel('已核对本次保存内容',{exact:true}).check();
+  await saveRegion().getByRole('button',{name:'返回修改',exact:true}).click();
+  await expect(stepButton(1)).toHaveAttribute('aria-current','step');
+  await expect(historyInput()).toHaveValue(history);
+  await page.setViewportSize({width:390,height:844});
+  await expect(page.getByRole('navigation',{name:'问诊工作台步骤',exact:true})).toBeVisible();
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth <= window.innerWidth+1));
+  await record('workbench_mobile_intake_retains_inputs_without_overflow');
+  await goStep(2);
+  await expect(saveRegion().getByLabel('已核对本次保存内容',{exact:true})).toHaveCount(0);
+  p = await preview();
+  await expect(saveRegion().getByLabel('已核对本次保存内容',{exact:true})).not.toBeChecked();
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth <= window.innerWidth+1));
+  await record('workbench_return_to_edit_requires_new_confirmation');
+  await page.setViewportSize({width:1440,height:1000});
   await confirm();
   const saved = await checkSaved(sid,p);
   assert.equal((await api('GET','/api/cases')).total,before+1);
   await record('first_save_fifteen_fields_real_readback');
+  await record('workbench_saved_panel_shows_server_readback');
+  await goStep(1);
   await page.getByPlaceholder('请填写对当前追问的回答',{exact:true}).fill('合成后续补问回答');
+  await goStep(2);
   await expect(updateRegion().getByRole('button',{name:'核对更新内容',exact:true})).toBeDisabled();
+  await goStep(1);
   await followup('合成后续补问回答：饮水情况已核对');
   assert.equal((await api('GET','/api/cases/'+saved.id)).history,saved.history);
   await reviewAI();
+  await goStep(2);
   const next = responseFor('/preview-update-case');
   await updateRegion().getByRole('button',{name:'核对更新内容',exact:true}).click();
   const up = await (await next).json();
@@ -138,11 +177,13 @@ async function main() {
   const updated = responseFor('/update-case');
   await updateRegion().getByRole('button',{name:'确认并更新病例',exact:true}).click();
   assert.equal((await updated).status(),200);
-  await expect(updateRegion().getByText(new RegExp('已读取病例 #'+saved.id))).toBeVisible();
+  await expect(stepButton(3)).toHaveAttribute('aria-current','step');
+  await expect(readbackRegion().getByText('已回读病例 #'+saved.id+'，本次更新的六项内容一致。',{exact:true})).toBeVisible();
   const actual = await api('GET','/api/cases/'+saved.id);
   for(const k of Object.keys(up.proposed)) assert.equal(actual[k],up.proposed[k],k);
   await record('bound_update_review_original_history_retained');
-  await updateRegion().getByRole('link',{name:'查看已保存病例 #'+saved.id,exact:true}).click();
+  assert.equal(await readbackRegion().getByRole('region',{name:'完整病史',exact:true}).locator('pre').textContent(),actual.history);
+  await readbackRegion().getByRole('link',{name:'查看已保存病例 #'+saved.id+' →',exact:true}).click();
   await expect(page.getByRole('heading',{name:'病例详情 #'+saved.id,exact:true})).toBeVisible();
   // Keep this assertion: persistence alone is insufficient if the doctor cannot
   // see the original history in CaseDetail. Capture failure and run other cases.
@@ -217,7 +258,11 @@ async function main() {
   await page.route('**/api/ai/consult/session/'+sid, route => rejectRead && route.request().method()==='GET' ? route.abort('failed') : route.continue());
   await confirm();
   await expect(saveRegion().getByText('暂时无法回读，保存结果待核对。已保留输入和核对内容，请先核对保存结果。',{exact:true})).toBeVisible();
+  await expect(stepButton(3)).toBeDisabled();
+  await goStep(1);
   await expect(historyInput()).toHaveValue('医生原始病史🐾\n既往用药需要保留。');
+  await goStep(2);
+  await expect(saveRegion().getByRole('button',{name:'核对保存结果',exact:true})).toBeVisible();
   rejectRead=false;
   await saveRegion().getByRole('button',{name:'核对保存结果',exact:true}).click();
   await checkSaved(sid,p); assert.equal(savePosts,1);

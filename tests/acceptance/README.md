@@ -1,14 +1,20 @@
 # PR26 browser and PostgreSQL acceptance
 
-Application baseline: `d98608a79bd6b81cc76cd6a5b4c26d3ff8ec6944` (application
-source identical to `d8dd219d9daaf00ba7f865990c3236dca165d280`). The candidate
-changes only `frontend/src/pages/CaseDetail.jsx` in application source: complete
-history is always visible as escaped, whitespace-preserving text; parsed Q&A is
-an optional screen-only view. No history data or save behavior is changed.
-The workflow rejects other changes to backend, frontend, knowledge-base or root
-Python requirements relative to the baseline, and requires CaseDetail's exact
-Git blob `f33aed9ec815323efbdc103357b0e9f890e4ff6b`. Artifacts record the actual
-tested HEAD and its baseline. Existing PR remains draft; no merge or deployment.
+Application baseline: `f503eba7ad084e4555ef32ee2eef5cbb819ae629`.
+This candidate connects the selected three-step workbench to the real React app:
+intake, review before save, then server readback. Hidden step panels remain mounted
+so navigation retains inputs and unresolved save state. Returning to intake
+invalidates the old confirmation. Only verified readback enables the third step;
+its content comes from the server response, with a warning for later input edits.
+
+Five application files are changed: App.jsx, ConsultSaveReview.jsx,
+ConsultUpdateReview.jsx, and new ConsultWorkbench.jsx / ConsultWorkbench.css.
+The workflow binds each of their exact Git blobs and rejects any other backend,
+frontend, knowledge-base or root Python dependency change from the baseline.
+Artifacts record the actual tested HEAD. APIs, database logic and the previous
+complete-history display fix are unchanged. Existing PR remains draft; no merge
+or deployment. This is three-step interaction integration, not completion of all
+prototype features, standalone case editing or persistent draft recovery.
 
 The local Work browser rejected loopback navigation with ERR_BLOCKED_BY_CLIENT.
 The local container lacks PostgreSQL and maps only UID 0, so package installation
@@ -45,10 +51,16 @@ Q&A blocks with repeated numbering, CRLF/whitespace/Unicode, literal HTML, long
 text wrapping, and empty history. Print checks verify Chromium print styles;
 they do not certify physical printer output or PDF pagination.
 
-Prior evidence: run 35062578627 on the baseline passed 12 PostgreSQL assertions
-and 7 browser scenarios, but failed the original doctor-history visibility check.
-Those historical results do not establish that this display fix passes. The new
-candidate must pass its own exact-commit workflow before acceptance is reported.
+The browser suite retains the original 14 scenarios and adds four workbench
+checks: step access before a session/save exists, mobile intake layout with
+retained input, return-to-edit with fresh confirmation, and server-backed saved
+content. The failed-readback scenario also navigates to intake and back before
+retrying GET, without a second save POST.
+
+Prior evidence: run 35066070839 on f503eba7 passed 12 PostgreSQL assertions and
+14 browser scenarios. Those historical results do not establish that this new
+workbench passes. Its own exact-commit workflow must pass before acceptance is
+reported.
 
 Artifacts contain logs, JSON assertions and screenshots with synthetic data only.
 A failed browser visibility assertion remains a failure even if PostgreSQL stored

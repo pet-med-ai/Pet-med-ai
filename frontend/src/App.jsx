@@ -1,9 +1,10 @@
 // src/App.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useSearchParams } from "react-router-dom";
 import api from "./api";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
+import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/ConsultWorkbench";
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
 import KpiDashboard from "./pages/KpiDashboard";
@@ -171,6 +172,17 @@ function Home() {
   const [loadingCreate, setLoadingCreate] = useState(false);
   const [savedConsultCaseId, setSavedConsultCaseId] = useState(null);
   const [consultSaveReceipt, setConsultSaveReceipt] = useState(null);
+  const [workbenchStep, setWorkbenchStep] = useState(1);
+  const [workbenchBusy, setWorkbenchBusy] = useState(false);
+  const [reviewNavigationVersion, setReviewNavigationVersion] = useState(0);
+  const stepHeading = useRef(null);
+  useEffect(() => { stepHeading.current?.focus(); }, [workbenchStep]);
+  const changeWorkbenchStep = (next) => {
+    if (workbenchBusy) return;
+    if (next === 1 && workbenchStep === 2) setReviewNavigationVersion(value => value + 1);
+    setWorkbenchStep(next);
+  };
+
   const [loadingReAnalyzeId, setLoadingReAnalyzeId] = useState(null);
 
   // ===== 批量选择 / 导出 / 批量删除 =====
@@ -648,6 +660,7 @@ function Home() {
       setLastStructuredIntakeSubmission(null);
       setConsultSaveReceipt(null);
       setSavedConsultCaseId(payload.case_id || null);
+      setWorkbenchStep(1);
 
       if (data && Object.keys(data).length) {
         applyConsultResult(data, "RESTORED AI DATA");
@@ -764,6 +777,7 @@ function Home() {
   setConsultSaveReceipt(null);
   setLoadingFollowup(false);
   setLoadingAnalyze(true);
+  setWorkbenchStep(1);
 
   try {
     const text = [
@@ -1060,22 +1074,19 @@ function Home() {
 
   const currentQuestion = getCurrentQuestion();
 
-  return (
-    <div lang="zh-CN" translate="no" className="notranslate" style={{ fontFamily: "system-ui, -apple-system, Arial", padding: 24, maxWidth: 1000, margin: "0 auto" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-        <h1 style={{ marginTop: 0 }}>Pet Med AI — 前端联调面板</h1>
-        <Link to="/kpi" style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}>
-          运维 KPI 仪表盘
-        </Link>
-        <Link to="/preventive-care/notification-queue" style={{ ...btnSecondary, textDecoration: "none", display: "inline-block" }}>
-          预防保健待联系队列
-        </Link>
-        {/* Commercial Launch Feature Scope Lock V1:
-            Automated Reminder Delivery manual approval remains internal dry-run only.
-            Do not expose this link in default clinic-facing navigation.
-            Route/API authorization is handled in Commercial Launch User Roles / Access Review V1. */}
+  const workbenchRevision = JSON.stringify([consultSessionId, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, consultAnswers, result, followupAnswer, structuredIntakeAnswers, auditLogReceipt]);
+  const currentReadback = consultSaveReceipt?.sessionId === consultSessionId && consultSaveReceipt?.verified ? consultSaveReceipt : null;
 
-      </div>
+  return (
+    <div lang="zh-CN" translate="no" className="notranslate doctor-workbench">
+      <header className="workbench-header">
+        <div><span className="workbench-brand">Pet-Med-AI · 医生工作台</span><h1>一次问诊，核对后保存</h1><p>整理病史，核对本次内容，再回看已保存病例。</p></div>
+        <details><summary>其他工作入口</summary><div className="workbench-actions">
+          <Link to="/kpi" style={btnSecondary}>运维 KPI 仪表盘</Link>
+          <Link to="/preventive-care/notification-queue" style={btnSecondary}>预防保健待联系队列</Link>
+        </div></details>
+        {/* Automated Reminder Delivery remains internal dry-run only; no clinic navigation link. */}
+      </header>
 
       {/* 登录区 */}
       {!isAuthed ? (
@@ -1092,10 +1103,13 @@ function Home() {
         </div>
       )}
 
+      <WorkbenchSteps step={workbenchStep} onChange={changeWorkbenchStep} hasSession={!!consultSessionId} hasReadback={!!currentReadback} busy={workbenchBusy} patientName={patientName} species={species} ageInfo={ageInfo} />
+      <h2 ref={stepHeading} tabIndex={-1} className="workbench-stage-title">{workbenchSteps[workbenchStep - 1]}</h2>
+      <div hidden={workbenchStep !== 1} data-workbench-panel="1">
       {/* ====== 基础信息表单 ====== */}
       <section style={card}>
-        <h2 style={h2}>1) 填写病例基础信息</h2>
-        <div style={grid2}>
+        <h2 style={h2}>宠物与主人信息</h2>
+        <div className="intake-grid">
           <Field label="病例名 / 宠物名">
             <input value={patientName} onChange={(e) => setPatientName(e.target.value)} placeholder="如：乐乐 / Lucky" />
           </Field>
@@ -1132,7 +1146,7 @@ function Home() {
 
       {/* ====== 分析表单 ====== */}
       <section style={card}>
-        <h2 style={h2}>2) 主诉 / 既往史 / 体检化验 & 即时分析</h2>
+        <h2 style={h2}>宠主陈述与医生记录</h2>
         <form onSubmit={handleAnalyzeSubmit}>
           <Field label="主诉（必填）">
             <textarea value={chiefComplaint} onChange={(e) => setChiefComplaint(e.target.value)} required rows={3} />
@@ -1143,12 +1157,12 @@ function Home() {
           <Field label="体检/化验摘要">
             <textarea value={examFindings} onChange={(e) => setExamFindings(e.target.value)} rows={3} />
           </Field>
-          <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+          <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
             <button type="submit" disabled={loadingAnalyze} style={btn}>
               {loadingAnalyze ? "分析中…" : "提交分析（不入库）"}
             </button>
             <button type="button" onClick={handleCreateCase} disabled={loadingCreate || loadingAnalyze || !!consultSessionId || !!result} style={btnSecondary}>
-              {consultSessionId || result ? "请在下方核对后保存" : loadingCreate ? "保存中…" : "保存为病例（入库）"}
+              {consultSessionId || result ? "请在第二步核对后保存" : loadingCreate ? "保存中…" : "保存为病例（入库）"}
             </button>
             <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
               新建病例（进入编辑器）
@@ -1157,6 +1171,201 @@ function Home() {
         </form>
         {errMsg && <p style={{ color: "crimson", marginTop: 8 }}>{errMsg}</p>}
 
+        {(analysis || treatment || prognosis) && (
+          <div style={{ marginTop: 16 }}>
+           <h3>即时分析结果</h3>
+      
+      {result && (
+  <div style={{ marginBottom: 10 }}>
+    <strong>风险等级：</strong>
+    <span
+      style={{
+        color:
+          result.risk_level === "high" || result.risk_level === "高"
+            ? "red"
+            : result.risk_level === "medium" || result.risk_level === "中"
+            ? "orange"
+            : "green",
+        fontWeight: "bold",
+      }}
+    >
+      {result.risk_level === "high" || result.risk_level === "高"
+        ? "高风险"
+        : result.risk_level === "medium" || result.risk_level === "中"
+        ? "中风险"
+        : result.risk_level === "low" || result.risk_level === "低"
+        ? "低风险"
+        : result.risk_level || "未知"}
+    </span>
+  </div>
+)}
+            
+            {result?.structured_intake && (
+              <StructuredIntakeBlock
+                intake={result.structured_intake}
+                answers={structuredIntakeAnswers}
+                onChange={setStructuredIntakeAnswers}
+                onSnapshot={setLastStructuredIntakeSubmission}
+                onAppendHistory={(text) => {
+                  const clean = String(text || "").trim();
+                  if (!clean) return;
+                  setHistory((prev) => [prev, clean].filter(Boolean).join("\n\n"));
+                }}
+              />
+            )}
+            {analysis && <Block title="分析">{analysis}</Block>}
+            {treatment && <Block title="治疗建议">{treatment}</Block>}
+            {prognosis && <Block title="预后">{prognosis}</Block>}
+            {result && (
+              <AiReviewAuditBlock
+                result={result}
+                suggestedAction={currentAuditSuggestedAction}
+                reviewAction={auditReviewAction}
+                setReviewAction={setAuditReviewAction}
+                reason={auditReviewReason}
+                setReason={setAuditReviewReason}
+                note={auditReviewNote}
+                setNote={setAuditReviewNote}
+                clinicianId={auditClinicianId}
+                setClinicianId={setAuditClinicianId}
+                submitting={auditSubmitting}
+                receipt={auditLogReceipt}
+                onSubmit={handleSubmitAiReviewAudit}
+              />
+            )}
+
+            {result && (currentQuestion || result.dynamic) && (
+              <div
+                style={{
+                  marginTop: 12,
+                  padding: 12,
+                  border: "1px solid #fed7aa",
+                  borderRadius: 8,
+                  background: "#fff7ed",
+                }}
+              >
+                {result.dynamic && (
+                  <div style={{ marginBottom: 8, fontSize: 13 }}>
+                    <strong>问诊轮次：</strong>
+                    第 {result.dynamic.round ?? "-"} 轮
+                    <span style={{ marginLeft: 12 }}>
+                      <strong>已回答追问：</strong>
+                      {result.dynamic.answered_count ?? consultAnswers.length} 条
+                    </span>
+                    {consultSessionId && (
+                      <span style={{ marginLeft: 12 }}>
+                        <strong>会话：</strong>
+                        {consultSessionId.slice(0, 8)}
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {currentQuestion ? (
+                  <form onSubmit={handleFollowupSubmit}>
+                    <div style={{ fontWeight: 600, marginBottom: 6 }}>当前追问：</div>
+                    <div style={{ marginBottom: 8 }}>{currentQuestion}</div>
+                    <textarea
+                      value={followupAnswer}
+                      onChange={(e) => setFollowupAnswer(e.target.value)}
+                      rows={3}
+                      placeholder="请填写对当前追问的回答"
+                      disabled={loadingFollowup}
+                      style={{
+                        width: "100%",
+                        boxSizing: "border-box",
+                        padding: 8,
+                        border: "1px solid #e5e7eb",
+                        borderRadius: 8,
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={loadingFollowup || !followupAnswer.trim()}
+                      style={{ ...btn, marginTop: 8 }}
+                    >
+                      {loadingFollowup ? "提交中…" : "提交追问回答"}
+                    </button>
+                  </form>
+                ) : (
+                  <div style={{ opacity: 0.75 }}>暂无新的追问。</div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+      </section>
+
+      <p>未填写不代表正常。尚未保存的输入仅保留在当前页面，刷新或离开前请先完成保存。</p>
+      <div className="workbench-actions"><button type="button" className="workbench-primary" disabled={!consultSessionId || workbenchBusy} onClick={() => changeWorkbenchStep(2)}>进入保存前核对 →</button></div>
+      </div>
+
+      <div hidden={workbenchStep !== 2} data-workbench-panel="2">
+        <p>核对预览后再确认保存；返回修改会取消原确认。</p>
+        {(result || consultSessionId) && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: 12,
+              border: "1px solid #bfdbfe",
+              borderRadius: 8,
+              background: "#eff6ff",
+            }}
+          >
+            {!savedConsultCaseId && (
+              <ConsultSaveReview
+                key={consultSessionId}
+                sessionId={consultSessionId}
+                onReturnToEdit={() => changeWorkbenchStep(1)}
+                onWorkingChange={setWorkbenchBusy}
+                payload={buildConsultSaveCasePayload()}
+                revision={JSON.stringify([reviewNavigationVersion, consultAnswers, result, followupAnswer, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId])}
+                allowed={isAuthed && !auditReviewRequired}
+                blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim()}
+                hasPendingAnswers={!!followupAnswer.trim()}
+                onSaved={async (record, receipt) => {
+                  setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, inputsChanged: receipt.inputsChanged, record, revision: workbenchRevision, mode: "create" });
+                  setWorkbenchStep(3);
+                  setSavedConsultCaseId(record.id);
+                  await fetchCases({ page: 1 });
+                  await fetchSessionHistory();
+                }}
+                onBound={(caseId) => {
+                  setConsultSaveReceipt({ sessionId: consultSessionId, caseId, verified: false });
+                  setSavedConsultCaseId(caseId);
+                }}
+              />
+            )}
+
+            {savedConsultCaseId && (
+              <ConsultUpdateReview
+                key={`${consultSessionId}:${savedConsultCaseId}`}
+                sessionId={consultSessionId}
+                onReturnToEdit={() => changeWorkbenchStep(1)}
+                onWorkingChange={setWorkbenchBusy}
+                caseId={savedConsultCaseId}
+                allowed={isAuthed && !auditReviewRequired}
+                blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting}
+                hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value).trim() !== "")}
+                revision={JSON.stringify([reviewNavigationVersion, consultSessionId, consultAnswers, result, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, followupAnswer, structuredIntakeAnswers, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId, loadingSession, loadingAnalyze, loadingFollowup, auditSubmitting])}
+                onUpdated={async (record, receipt) => {
+                  setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, record, revision: workbenchRevision, mode: "update", inputsChanged: receipt.inputsChanged });
+                  setWorkbenchStep(3);
+                  await fetchCases({ page: 1 }); await fetchSessionHistory();
+                }}
+              />
+            )}
+
+          </div>
+        )}
+
+
+        <div className="workbench-actions"><button type="button" disabled={workbenchBusy} onClick={() => changeWorkbenchStep(1)}>回到问诊整理</button></div>
+      </div>
+      <div hidden={workbenchStep !== 3} data-workbench-panel="3">
+        <SavedCasePanel receipt={currentReadback} hasUnsavedChanges={!!currentReadback && (currentReadback.inputsChanged || currentReadback.revision !== workbenchRevision)} onContinue={() => changeWorkbenchStep(1)} />
+      </div>
+      <details className="workbench-secondary"><summary>历史问诊与会话恢复</summary>
         <div
           style={{
             marginTop: 12,
@@ -1354,185 +1563,11 @@ function Home() {
           </div>
         </div>
 
-        {(result || consultSessionId) && (
-          <div
-            style={{
-              marginTop: 12,
-              padding: 12,
-              border: "1px solid #bfdbfe",
-              borderRadius: 8,
-              background: "#eff6ff",
-            }}
-          >
-            {consultSaveReceipt?.sessionId === consultSessionId && (
-              <p role="status">{consultSaveReceipt.verified ? `已回读病例 #${consultSaveReceipt.caseId}，基本信息与本次核对内容一致。${consultSaveReceipt.inputsChanged ? "保存期间另有输入修改，这些修改尚未保存。" : ""}` : `已绑定病例 #${consultSaveReceipt.caseId}，请继续核对当前内容。`}</p>
-            )}
-            {!savedConsultCaseId && (
-              <ConsultSaveReview
-                key={consultSessionId}
-                sessionId={consultSessionId}
-                payload={buildConsultSaveCasePayload()}
-                revision={JSON.stringify([consultAnswers, result, followupAnswer, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId])}
-                allowed={isAuthed && !auditReviewRequired}
-                blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim()}
-                hasPendingAnswers={!!followupAnswer.trim()}
-                onSaved={async (record, receipt) => {
-                  setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, inputsChanged: receipt.inputsChanged });
-                  setSavedConsultCaseId(record.id);
-                  await fetchCases({ page: 1 });
-                  await fetchSessionHistory();
-                }}
-                onBound={(caseId) => {
-                  setConsultSaveReceipt({ sessionId: consultSessionId, caseId, verified: false });
-                  setSavedConsultCaseId(caseId);
-                }}
-              />
-            )}
-
-            {savedConsultCaseId && (
-              <ConsultUpdateReview
-                key={`${consultSessionId}:${savedConsultCaseId}`}
-                sessionId={consultSessionId}
-                caseId={savedConsultCaseId}
-                allowed={isAuthed && !auditReviewRequired}
-                blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting}
-                hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value).trim() !== "")}
-                revision={JSON.stringify([consultSessionId, consultAnswers, result, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, followupAnswer, structuredIntakeAnswers, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId, loadingSession, loadingAnalyze, loadingFollowup, auditSubmitting])}
-                onUpdated={async () => { await fetchCases({ page: 1 }); await fetchSessionHistory(); }}
-              />
-            )}
-
-          </div>
-        )}
-
-        {(analysis || treatment || prognosis) && (
-          <div style={{ marginTop: 16 }}>
-           <h3>即时分析结果</h3>
-      
-      {result && (
-  <div style={{ marginBottom: 10 }}>
-    <strong>风险等级：</strong>
-    <span
-      style={{
-        color:
-          result.risk_level === "high" || result.risk_level === "高"
-            ? "red"
-            : result.risk_level === "medium" || result.risk_level === "中"
-            ? "orange"
-            : "green",
-        fontWeight: "bold",
-      }}
-    >
-      {result.risk_level === "high" || result.risk_level === "高"
-        ? "高风险"
-        : result.risk_level === "medium" || result.risk_level === "中"
-        ? "中风险"
-        : result.risk_level === "low" || result.risk_level === "低"
-        ? "低风险"
-        : result.risk_level || "未知"}
-    </span>
-  </div>
-)}
-            
-            {result?.structured_intake && (
-              <StructuredIntakeBlock
-                intake={result.structured_intake}
-                answers={structuredIntakeAnswers}
-                onChange={setStructuredIntakeAnswers}
-                onSnapshot={setLastStructuredIntakeSubmission}
-                onAppendHistory={(text) => {
-                  const clean = String(text || "").trim();
-                  if (!clean) return;
-                  setHistory((prev) => [prev, clean].filter(Boolean).join("\n\n"));
-                }}
-              />
-            )}
-            {analysis && <Block title="分析">{analysis}</Block>}
-            {treatment && <Block title="治疗建议">{treatment}</Block>}
-            {prognosis && <Block title="预后">{prognosis}</Block>}
-            {result && (
-              <AiReviewAuditBlock
-                result={result}
-                suggestedAction={currentAuditSuggestedAction}
-                reviewAction={auditReviewAction}
-                setReviewAction={setAuditReviewAction}
-                reason={auditReviewReason}
-                setReason={setAuditReviewReason}
-                note={auditReviewNote}
-                setNote={setAuditReviewNote}
-                clinicianId={auditClinicianId}
-                setClinicianId={setAuditClinicianId}
-                submitting={auditSubmitting}
-                receipt={auditLogReceipt}
-                onSubmit={handleSubmitAiReviewAudit}
-              />
-            )}
-
-            {result && (currentQuestion || result.dynamic) && (
-              <div
-                style={{
-                  marginTop: 12,
-                  padding: 12,
-                  border: "1px solid #fed7aa",
-                  borderRadius: 8,
-                  background: "#fff7ed",
-                }}
-              >
-                {result.dynamic && (
-                  <div style={{ marginBottom: 8, fontSize: 13 }}>
-                    <strong>问诊轮次：</strong>
-                    第 {result.dynamic.round ?? "-"} 轮
-                    <span style={{ marginLeft: 12 }}>
-                      <strong>已回答追问：</strong>
-                      {result.dynamic.answered_count ?? consultAnswers.length} 条
-                    </span>
-                    {consultSessionId && (
-                      <span style={{ marginLeft: 12 }}>
-                        <strong>会话：</strong>
-                        {consultSessionId.slice(0, 8)}
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {currentQuestion ? (
-                  <form onSubmit={handleFollowupSubmit}>
-                    <div style={{ fontWeight: 600, marginBottom: 6 }}>当前追问：</div>
-                    <div style={{ marginBottom: 8 }}>{currentQuestion}</div>
-                    <textarea
-                      value={followupAnswer}
-                      onChange={(e) => setFollowupAnswer(e.target.value)}
-                      rows={3}
-                      placeholder="请填写对当前追问的回答"
-                      disabled={loadingFollowup}
-                      style={{
-                        width: "100%",
-                        boxSizing: "border-box",
-                        padding: 8,
-                        border: "1px solid #e5e7eb",
-                        borderRadius: 8,
-                      }}
-                    />
-                    <button
-                      type="submit"
-                      disabled={loadingFollowup || !followupAnswer.trim()}
-                      style={{ ...btn, marginTop: 8 }}
-                    >
-                      {loadingFollowup ? "提交中…" : "提交追问回答"}
-                    </button>
-                  </form>
-                ) : (
-                  <div style={{ opacity: 0.75 }}>暂无新的追问。</div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </section>
-
+      </details>
+      <details className="workbench-secondary"><summary>病例列表与检索</summary>
       {/* ====== 列表（搜索+分页 + 批量操作） ====== */}
       <section style={card}>
-        <h2 style={h2}>3) 病例列表</h2>
+        <h2 style={h2}>病例列表</h2>
 
         {/* 搜索 + 操作 */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
@@ -1693,6 +1728,8 @@ function Home() {
           </>
         )}
       </section>
+
+      </details>
 
       {/* 撤销提示条（最近删除） */}
       {lastDeleted && (

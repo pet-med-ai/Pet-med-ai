@@ -12,7 +12,7 @@ const matches = (record, preview) => record?.id === preview.case_id &&
   fields.every(([name]) => record[name] === preview.proposed[name]);
 
 // Mounted per bound session/case. Late responses cannot replace a newer preview.
-export default function ConsultUpdateReview({ sessionId, caseId, revision, allowed, blocked, hasPendingAnswers, onUpdated }) {
+export default function ConsultUpdateReview({ sessionId, caseId, revision, allowed, blocked, hasPendingAnswers, onUpdated, onReturnToEdit, onWorkingChange }) {
   const [preview, setPreview] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [phase, setPhase] = useState("idle");
@@ -28,6 +28,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
   const unresolved = phase === "uncertain";
 
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => { onWorkingChange?.(working); return () => onWorkingChange?.(false); }, [working, onWorkingChange]);
   useEffect(() => { setConfirmed(false); }, [revision, allowed, blocked, hasPendingAnswers]);
 
   async function requestPreview() {
@@ -58,7 +59,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
       if (matches(data, snapshot)) {
         setPhase("verified"); setMessage("已回读病例，本次核对的六项内容一致。");
         // Refreshing the list must not turn successful readback into a failed save.
-        Promise.resolve(onUpdated?.()).catch(() => {});
+        Promise.resolve(onUpdated?.(data, { inputsChanged: previewRevision.current !== latest.current })).catch(() => {});
       } else {
         setPhase("uncertain"); setMessage("当前病例与核对内容不一致。请查看已保存病例，再重新预览；请勿直接重复提交。");
       }
@@ -132,7 +133,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
             </label>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button type="button" style={button} disabled={!confirmed || blocked || !allowed || hasPendingAnswers} onClick={confirmUpdate}>确认并更新病例</button>
-              <button type="button" style={button} onClick={() => { setPreview(null); setConfirmed(false); setPhase("idle"); setMessage(""); }}>返回修改</button>
+              <button type="button" style={button} onClick={() => { setPreview(null); setConfirmed(false); setPhase("idle"); setMessage(""); onReturnToEdit?.(); }}>返回修改</button>
             </div>
           </>}
           {unresolved && <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
