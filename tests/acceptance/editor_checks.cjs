@@ -6,8 +6,9 @@ const UI='http://127.0.0.1:5173',API='http://127.0.0.1:18026',out=process.env.PM
 assert(out && process.env.PMAI_SYNTHETIC_ACCEPTANCE==='PR26');
 let browser,context,page,auth,cid;const passed=[],failures=[],external=[],pageErrors=[],writes=[];
 const review=()=>page.getByRole('region',{name:'病例修改核对',exact:true});
-const treatment=()=>page.getByLabel('治疗建议',{exact:true});
-const history=()=>page.getByLabel('既往史 / 动态问诊追问记录',{exact:true});
+const field=label=>page.locator('label').filter({has:page.getByText(label,{exact:true})}).locator('textarea');
+const treatment=()=>field('治疗建议');
+const history=()=>field('既往史 / 动态问诊追问记录');
 const next=suffix=>page.waitForResponse(r=>r.request().method()==='POST' && new URL(r.url()).pathname.endsWith(suffix));
 async function api(method,route,data){assert(route.startsWith('/api/'));const r=await context.request.fetch(API+route,{method,headers:auth,data});assert.equal(r.status(),method==='POST'&&route==='/api/cases'?201:200,await r.text());return r.json();}
 async function record(name){passed.push(name);console.log('PASS:',name);await page.screenshot({path:path.join(out,`editor-${passed.length}-${name}.png`),fullPage:true});}
