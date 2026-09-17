@@ -1,3 +1,67 @@
+# Consultation and case acceptance
+
+## Current candidate: manual creation review and readback
+
+Baseline: merged main `5f937c122e2f6c2d6efa246aa895927e17c26476`.
+PR #26 is already merged. This is a separate local candidate; no new remote PR,
+commit, CI run, deployment or production data operation has occurred for it.
+
+The homepage manual-create entry carries its current fields to the independent
+new-case editor. Both entries now use one fifteen-field preview, explicit
+confirmation, one creation request, and an independent authenticated GET of the
+returned case ID. Changing input or account invalidates the confirmation. The
+new-case API now accepts analysis, treatment and prognosis, matching the existing
+ORM columns and editor fields that it previously silently ignored. No model,
+schema, migration or deployment configuration changes are needed by this patch.
+
+Nonempty clinical strings retain their original whitespace. Empty optional
+strings become null; required name and chief complaint must contain text. No
+consultation, AI analysis or audit is created by this manual flow. It is a local
+UI preview over the existing authenticated API, not a server-side preview-token
+requirement, diagnosis signature or global idempotency contract.
+
+Before POST, the current tab stores an account-bound receipt containing the
+fifteen-field payload and, once available, the returned case ID. It contains no
+credential or confirmation. An unknown POST result blocks another creation,
+including after refresh. Known-ID verification retries GET only and compares all
+fifteen fields; mismatches do not report success. The request interceptor also
+checks the expected account at dispatch. Unrelated API callers remain unchanged.
+
+The receipt is plaintext sessionStorage for this tab, separate from the existing
+eight-hour workbench/editor drafts. It has no expiry that could silently unlock
+an unresolved create; logout, switching accounts, or explicitly starting another
+case after successful readback clears it. Same-account login preserves it, including after expiry and a page refresh.
+Closing a tab, browser storage loss and cross-tab requests are outside this
+protection. A response lost before receiving the ID needs manual case-list
+verification; the UI cannot automatically identify the created row. This patch
+does not add standalone unsaved-new-case draft recovery or server idempotency.
+
+Local execution: React/interceptor regression suite 87/87 (18 new), authenticated
+ASGI/SQLite manual-create tests 5/5, and frontend production build passed. These
+are local results and do not certify native PostgreSQL or real Chromium.
+
+Prepared new acceptance coverage:
+
+- Seven Chromium scenarios in `manual_create_checks.cjs`: read-only preview and
+  input invalidation; double-click/15-field readback; receipt recovery after
+  refresh; case-detail refresh; homepage handoff; failed GET with refresh and
+  GET-only retry; and a dropped actual POST response that blocks recreation.
+- One native PostgreSQL assertion verifies all fifteen creation fields through
+  an independent connection, ownership isolation and no consultation creation.
+- Retained suites yield configured totals of 74 Chromium scenarios (67 + 7)
+  and 28 PostgreSQL checks (27 + 1). These new totals have NOT been executed.
+
+The workflow records exact tested HEAD and main baseline, pins every changed
+application/test blob, and rejects other application/test changes. It retains
+native PostgreSQL on loopback, synthetic JWT accounts, Chromium restricted to
+loopback, and cleanup. No Docker or production credentials are used. `PR26` in
+the fixture environment remains a legacy isolation sentinel, not a claim that
+this candidate is part of the merged PR. A newly authorized commit must pass its
+own CI; no previous passing workflow run is rerun or reused as new evidence.
+
+The following sections are historical PR #26 development records. Their candidate
+wording and recorded results apply to those commits only.
+
 # PR26 browser and PostgreSQL acceptance
 
 Application baseline for the editor-draft candidate: `ce52b3ec20a2a4ef0c065131c997e19bc1bace1f`.

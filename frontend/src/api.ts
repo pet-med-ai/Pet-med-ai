@@ -1,4 +1,5 @@
 import axios from "axios";
+import { draftOwner } from "./consultDraft";
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE,
@@ -13,6 +14,10 @@ const isCaseListRequest = (method = "", url = "") =>
 api.interceptors.request.use((config) => {
   const url = config.url || "";
   const token = localStorage.getItem("token");
+  const expectedOwner = (config as typeof config & { expectedAuthOwner?: string }).expectedAuthOwner;
+  if (expectedOwner && draftOwner(token) !== expectedOwner) {
+    throw Object.assign(new Error("Account changed before request dispatch"), { code: "PMAI_ACCOUNT_CHANGED" });
+  }
 
   if (token && !isAuthRequest(url)) {
     config.headers.Authorization = `Bearer ${token}`;

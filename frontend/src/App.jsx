@@ -1,10 +1,11 @@
 // src/App.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Link, useSearchParams } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Link, useSearchParams, useNavigate } from "react-router-dom";
 import api from "./api";
 import useConsultDraft from "./useConsultDraft";
 import { clearDraft } from "./consultDraft";
-import { clearCaseEditDrafts } from "./caseEditDraft";
+import { clearManualCreateAttempt } from "./components/ManualCaseCreateReview";
+import { caseEditDraftOwner, clearCaseEditDrafts } from "./caseEditDraft";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
 import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/ConsultWorkbench";
@@ -52,8 +53,9 @@ function getLoginErrorMessage(err) {
 }
 
 /** ===== 首页 Home 组件 ===== */
-function Home() {
+export function Home() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // ===== 登录区 =====
   const [email, setEmail] = useState("");
@@ -118,6 +120,7 @@ function Home() {
   const handleLogout = () => {
     clearDraft();
     clearCaseEditDrafts();
+    clearManualCreateAttempt();
     localStorage.removeItem("consult_session_id");
     localStorage.removeItem("token");
     window.location.reload();
@@ -178,7 +181,6 @@ function Home() {
   const [total, setTotal] = useState(0);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const [loadingCases, setLoadingCases] = useState(false);
-  const [loadingCreate, setLoadingCreate] = useState(false);
   const [savedConsultCaseId, setSavedConsultCaseId] = useState(null);
   const [consultSaveReceipt, setConsultSaveReceipt] = useState(null);
   const [workbenchStep, setWorkbenchStep] = useState(1);
@@ -1090,35 +1092,15 @@ function Home() {
   };
 
   // ===== 新建病例 =====
-  const handleCreateCase = async () => {
+  const handleCreateCase = () => {
     if (consultSessionId || loadingAnalyze || result) return;
-    if (!patientName || !chiefComplaint) {
-      alert("请至少填写病例名与主诉"); return;
-    }
-    try {
-      setLoadingCreate(true);
-      const res = await api.post("/api/cases", {
-        patient_name: patientName,
-        species,
-        sex: sex || null,
-        age_info: ageInfo || null,
-        breed: breed || null,
-        weight: weight || null,
-        coat_color: coatColor || null,
-        owner_name: ownerName || null,
-        owner_phone: ownerPhone || null,
-        chief_complaint: chiefComplaint,
-        history: history || null,
-        exam_findings: examFindings || null,
-      });
-      await fetchCases();
-      alert(`创建成功：病例ID = ${res.data.id}`);
-    } catch (e) {
-      console.error("创建病例失败：", e);
-      alert("创建病例失败，请查看控制台或后端日志");
-    } finally {
-      setLoadingCreate(false);
-    }
+    const owner = caseEditDraftOwner();
+    if (!owner) { alert("请先登录，再核对新建病例。"); return; }
+    navigate("/cases/new/edit", { state: { manualCase: { owner, values: {
+      patient_name: patientName, species, sex, age_info: ageInfo, breed, weight,
+      coat_color: coatColor, owner_name: ownerName, owner_phone: ownerPhone,
+      chief_complaint: chiefComplaint, history, exam_findings: examFindings,
+    } } } });
   };
 
   // ===== 重分析并写回 =====
@@ -1255,8 +1237,8 @@ function Home() {
             <button type="submit" disabled={loadingAnalyze} style={btn}>
               {loadingAnalyze ? "分析中…" : "提交分析（不入库）"}
             </button>
-            <button type="button" onClick={handleCreateCase} disabled={loadingCreate || loadingAnalyze || !!consultSessionId || !!result} style={btnSecondary}>
-              {consultSessionId || result ? "请在第二步核对后保存" : loadingCreate ? "保存中…" : "保存为病例（入库）"}
+            <button type="button" onClick={handleCreateCase} disabled={loadingAnalyze || !!consultSessionId || !!result} style={btnSecondary}>
+              {consultSessionId || result ? "请在第二步核对后保存" : "手工新建（核对后保存）"}
             </button>
             <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
               新建病例（进入编辑器）

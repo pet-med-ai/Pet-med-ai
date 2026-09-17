@@ -11,10 +11,12 @@ on:
       - 'frontend/src/caseEditDraft.js'
       - 'frontend/src/pages/CaseEditorLite.jsx'
       - 'frontend/src/components/CaseEditReview.jsx'
+      - 'frontend/src/components/ManualCaseCreateReview.jsx'
       - 'frontend/tests/**'
       - 'frontend/package.json'
       - 'tests/test_consult_update_preview.py'
       - 'tests/test_consult_first_save.py'
+      - 'tests/test_manual_case_create.py'
       - '.github/workflows/consult-update-preview.yml'
 
 permissions:
@@ -35,6 +37,7 @@ jobs:
         run: |
           python tests/test_consult_update_preview.py
           python tests/test_consult_first_save.py
+          python tests/test_manual_case_create.py
 
   update-review-ui:
     runs-on: ubuntu-latest

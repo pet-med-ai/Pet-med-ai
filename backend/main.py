@@ -237,6 +237,9 @@ class CaseCreate(BaseModel):
     chief_complaint: str
     history: Optional[str] = None
     exam_findings: Optional[str] = None
+    analysis: Optional[str] = None
+    treatment: Optional[str] = None
+    prognosis: Optional[str] = None
 
 class CaseUpdate(BaseModel):
     patient_name: Optional[str] = None
