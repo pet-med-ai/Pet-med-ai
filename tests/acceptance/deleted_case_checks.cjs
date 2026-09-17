@@ -50,7 +50,8 @@ async function scenario(mode, deleteAfterPreview) {
   const cid = (await api('POST', url + '/save-case', { ...body, expected_preview_token: first.preview_token })).case_id;
   // Each scenario has its own browser context and newly created synthetic case.
   await page.goto(UI + '/?restore_session_id=' + session.session_id);
-  await expect(page.getByLabel('主诉（必填）', { exact: true })).not.toHaveValue('');
+  const chief = page.locator('label').filter({ has: page.getByText('主诉（必填）', { exact: true }) }).locator('textarea');
+  await expect(chief).toHaveValue(session.text);
   const text = '未保存的删除边界补记🐾 ' + mode;
   await note().fill(text);
   await page.getByPlaceholder('如 HS-0001 / Dr.Zhao', { exact: true }).fill('Synthetic-Deleted-Case');

@@ -239,3 +239,13 @@ workflow run and its bound artifacts; configured counts are not pass claims.
 The workflow checks that `backend/main.py` is the only application file changed
 from this baseline and binds the new tests by exact Git blob IDs. No prior run is
 rerun, no Docker is used, and no Render/production operation is performed.
+
+First attempt: commit `dd5e30540bfe2b15e2712c27b1363bebf80f938a`,
+[run 35182711208](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/35182711208),
+failed overall. PostgreSQL 27/27 and the existing 63 browser scenarios passed;
+the new browser suite stopped before its first deletion scenario because an
+exact accessible-name locator no longer matched the populated chief-complaint
+field. The follow-up locates the textarea through its visible label and asserts
+the exact restored session text. Application code and all deletion assertions
+remain unchanged. This failed run is retained and is not counted as browser
+acceptance for the new scenarios.

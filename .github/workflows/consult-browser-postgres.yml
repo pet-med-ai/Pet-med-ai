@@ -48,7 +48,7 @@ jobs:
           test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "8c95de0c0a4b60b4c73f354c72584d2bab542fa4"
           test "$(git rev-parse HEAD:tests/test_consult_update_preview.py)" = "f375758315f6f994a72b609e9aeb6aa546032e66"
           test "$(git rev-parse HEAD:tests/acceptance/postgres_checks.py)" = "bab5a5af6d39696bab3b5741519225f3db0177fa"
-          test "$(git rev-parse HEAD:tests/acceptance/deleted_case_checks.cjs)" = "35001dcf09ecc08b19976d3e41feeeddb8f8ba9b"
+          test "$(git rev-parse HEAD:tests/acceptance/deleted_case_checks.cjs)" = "9e917fc2db3e720a84e35466517a82e7b5f308de"
           git rev-parse HEAD > acceptance-results/application-commit.txt
           git rev-parse 50981642f18fb710e1aa03d5cd92caa57de3aa4e > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
