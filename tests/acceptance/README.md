@@ -1,6 +1,6 @@
 # PR26 browser and PostgreSQL acceptance
 
-Application baseline: `d3c7273845d15d382e2c4697d2205eb61769d684`.
+Application baseline for the login-race follow-up: `378afb3c6a07ecdadb44b78fe1936c1b18a05ac7`.
 This candidate extends the existing-case editor reached from Case Detail. Editing
 an existing case now uses read state -> changed-field preview -> explicit
 confirmation -> save -> independent server readback. The manual new-case flow is
@@ -32,11 +32,26 @@ reload/repreview. Saving and unresolved readback disable form edits. Later edits
 are marked unsaved while the previous verified readback remains separately shown.
 The editor does not yet persist unsaved input across refresh or navigation.
 
-The exact application changes are backend/main.py,
-frontend/src/pages/CaseEditorLite.jsx and
-frontend/src/components/CaseEditReview.jsx. The workflow pins these three blobs,
-the React test and runner, and the changed backend test file. It rejects other
-application changes from the baseline and records actual tested HEAD in artifacts.
+The editor changes are backend/main.py, frontend/src/pages/CaseEditorLite.jsx and
+frontend/src/components/CaseEditReview.jsx, already present in the baseline above.
+The follow-up changes frontend/src/api.ts and adds four interceptor regression
+tests to frontend/tests/case-edit-review.test.jsx. The workflow pins both blobs,
+retains the editor source/test/runner pins, rejects other application changes from
+the baseline, and records actual tested HEAD in artifacts.
+
+## Login-race follow-up
+
+A real Chromium run observed login HTTP 200 followed by an older anonymous case
+list HTTP 401 and a logged-out reload. The old Axios interceptor unconditionally
+removed the stored token on non-authentication 401 responses. The local regression
+reproduced both late anonymous and late old-token responses clearing a newer token.
+
+The fix only clears the stored token when the failed request carried that current
+token. It still rejects the HTTP error, preserves expiry handling for the current
+credential, and leaves authentication failures to their caller. It neither retries
+writes nor fabricates a successful login. The four regression tests exercise the
+actual Axios interceptors with controlled response ordering; these are local unit
+tests, not an additional real-browser acceptance claim.
 
 ## Planned checks for this candidate
 
@@ -57,7 +72,8 @@ must preserve both changes. SQLite does not certify these row-lock semantics.
 
 Required totals are 50 browser scenarios (19 original + 11 draft + 12 note + 8
 editor), 25 PostgreSQL assertions (24 route/transaction + one independent-process
-readback), 50 React tests, and 41 ASGI/SQLite tests (31 update/editor + 10 first save).
+readback), 54 React tests (50 existing + four login-race regressions), and
+41 ASGI/SQLite tests (31 update/editor + 10 first save).
 These are planned totals until the new exact-commit workflow executes successfully.
 
 ## Retained consultation and history coverage
@@ -109,6 +125,31 @@ PostgreSQL assertions. React 38/38 and ASGI/SQLite 32/32 passed in run 351165402
 These historical results do not validate this new editor candidate. New commits
 trigger new runs; old passed runs are not rerun. Artifacts record screenshots,
 JSON assertions, logs and exact commit/blob binding, with synthetic data only.
+
+## Recorded editor attempts
+
+- Commit `993450489e82d6fc0a671805abb0c6d576989c49`,
+  [run 35166092304](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/35166092304):
+  PostgreSQL 25/25 and the existing 42 browser scenarios passed. The editor suite
+  failed at its initial input locator before completing any editor scenario.
+- Commit `378afb3c6a07ecdadb44b78fe1936c1b18a05ac7` corrects only that selector.
+  [Run 35166435168](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/35166435168)
+  passed PostgreSQL 25/25 and 16 original browser scenarios, then failed during
+  login with the token race above. Later draft, addendum and editor steps were
+  skipped. The locator correction is not yet certified by completed editor tests.
+- On `378afb3`,
+  [run 35166435236](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/35166435236)
+  passed React 50/50 and ASGI/SQLite 41/41;
+  [run 35166435241](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/35166435241)
+  passed history preservation 12/12;
+  [run 35166435174](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/35166435174)
+  passed backend static checks and frontend build.
+
+Both browser runs failed overall and remain recorded as failures. No failed run
+was retried merely to obtain a pass, and no previously passed run was rerun. The
+login follow-up locally failed two of 54 tests before the fix and passed 54/54
+after it. Its exact-commit CI and full 50-scenario browser acceptance are pending
+approval to append the extra api.ts path; this document does not claim they passed.
 
 References: https://playwright.dev/docs/ci and
 https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md

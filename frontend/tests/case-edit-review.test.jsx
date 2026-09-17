@@ -13,7 +13,7 @@ const before = { ...fields, patient_name: "合成犬", species: "dog", chief_com
 const baseline = { case_id: 7, before, case_token: "a".repeat(64) };
 const defer = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 const response = (config, data) => ({ config, data, status: 200 });
-let renderer, requests, adapter, props, verified, reloaded;
+let renderer, requests, adapter, props, verified, reloaded, alerts;
 const button = name => renderer.root.findAllByType("button").find(n => n.children.join("") === name);
 const output = () => JSON.stringify(renderer.toJSON());
 const click = async name => { const n = button(name); assert(n, name); assert(!n.props.disabled, name); await act(async () => { await n.props.onClick(); }); };
@@ -27,7 +27,10 @@ function preview(config) {
   return response(config, { ...baseline, changes: request.changes, proposed: { ...before, ...request.changes }, preview_token: "b".repeat(64) });
 }
 beforeEach(() => {
-  requests = []; verified = []; reloaded = [];
+  requests = []; verified = []; reloaded = []; alerts = [];
+  const storage = new Map();
+  global.localStorage = { getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key) };
+  global.alert = message => alerts.push(message);
   props = { caseId: 7, baseline, changes: { treatment: "  新治疗🐾\r\n " }, onVerified: s => verified.push(s), onReload: s => reloaded.push(s) };
   adapter = async config => config.url.endsWith("/preview-edit") ? preview(config) : response(config, { ...baseline, case_token: "c".repeat(64), before: { ...before, ...props.changes } });
   api.defaults.adapter = async config => { requests.push({ method: config.method, url: config.url, data: config.data }); return adapter(config); };
@@ -120,4 +123,38 @@ test("verified editor shows unsaved changes separately from its saved readback",
 test("failed initial editor load cannot fall back to unreviewed writes", async () => {
   adapter = async () => { throw Error("load failure"); }; await renderEditor();
   assert.equal(renderer.root.findByType("fieldset").props.disabled,true); assert.equal(button("核对修改内容"),undefined); assert(button("重新读取病例")); assert.equal(writes().length,0);
+});
+
+// Exercise the actual Axios request/response interceptors with controlled response
+// ordering. The adapter supplies only a synthetic HTTP failure, not login success.
+test("late anonymous 401 cannot erase a token saved by a newer login", async () => {
+  const started=defer(),gate=defer();let sent;
+  adapter=async config=>{sent=config;started.resolve();await gate.promise;throw {config,response:{status:401}};};
+  const outcome=api.get("/api/cases").catch(error=>error);
+  await started.promise;assert.equal(sent.headers.get("Authorization"),undefined);
+  localStorage.setItem("token","synthetic-new-login");gate.resolve();const error=await outcome;
+  assert.equal(error.response.status,401);assert.equal(localStorage.getItem("token"),"synthetic-new-login");assert.deepEqual(alerts,[]);
+});
+test("late 401 for an old credential cannot clear a newer credential or show expiry", async () => {
+  const started=defer(),gate=defer();let sent;
+  localStorage.setItem("token","synthetic-old-login");
+  adapter=async config=>{sent=config;started.resolve();await gate.promise;throw {config,response:{status:401}};};
+  const outcome=api.get("/api/cases/7").catch(error=>error);
+  await started.promise;assert.equal(sent.headers.get("Authorization"),"Bearer synthetic-old-login");
+  localStorage.setItem("token","synthetic-new-login");gate.resolve();const error=await outcome;
+  assert.equal(error.response.status,401);assert.equal(localStorage.getItem("token"),"synthetic-new-login");assert.deepEqual(alerts,[]);
+});
+test("401 using the current credential still clears it and preserves expiry handling", async () => {
+  adapter=async config=>{throw {config,response:{status:401}};};
+  for(const url of ["/api/cases/7","/api/cases?page=1"]){
+    localStorage.setItem("token","synthetic-current");alerts=[];
+    await assert.rejects(api.get(url));assert.equal(localStorage.getItem("token"),null);
+    assert.equal(alerts.length,url==="/api/cases/7"?1:0);
+  }
+});
+test("login rejection remains visible to caller without expiring an existing credential", async () => {
+  localStorage.setItem("token","synthetic-current");let sent;
+  adapter=async config=>{sent=config;throw {config,response:{status:401}};};
+  await assert.rejects(api.post("/auth/login",{}));
+  assert.equal(sent.headers.get("Authorization"),undefined);assert.equal(localStorage.getItem("token"),"synthetic-current");assert.deepEqual(alerts,[]);
 });

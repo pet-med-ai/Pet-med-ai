@@ -9,6 +9,7 @@ on:
       - 'frontend/src/pages/CaseDetail.jsx'
       - 'frontend/src/pages/CaseEditorLite.jsx'
       - 'frontend/src/App.jsx'
+      - 'frontend/src/api.ts'
       - 'frontend/src/consultDraft.js'
       - 'frontend/src/useConsultDraft.js'
       - 'frontend/src/components/**'
@@ -31,19 +32,20 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind exact reviewed case editor and unchanged baseline
+      - name: Bind exact reviewed editor and login fix to unchanged baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git diff --exit-code d3c7273845d15d382e2c4697d2205eb61769d684 HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)backend/main.py' ':(exclude)frontend/src/pages/CaseEditorLite.jsx' ':(exclude)frontend/src/components/CaseEditReview.jsx' ':(exclude)frontend/tests/case-edit-review.test.jsx' ':(exclude)frontend/tests/run-consult-update-review.mjs'
+          git diff --exit-code 378afb3c6a07ecdadb44b78fe1936c1b18a05ac7 HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)frontend/src/api.ts' ':(exclude)frontend/tests/case-edit-review.test.jsx'
+          test "$(git rev-parse HEAD:frontend/src/api.ts)" = "693fcbe6fe753ffce236f9215b67e80f99e0f2cb"
           test "$(git rev-parse HEAD:backend/main.py)" = "5727e914aeabaf9c020dda7ed3773c3919bbdd8d"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "96b70b398a7250783f51d067fa35a8cc47d735f5"
           test "$(git rev-parse HEAD:frontend/src/components/CaseEditReview.jsx)" = "4e77a68434df6d0467710dc96d26b508b87ea05a"
-          test "$(git rev-parse HEAD:frontend/tests/case-edit-review.test.jsx)" = "547e6510ae459ba58eef501f5f56df97837aed07"
+          test "$(git rev-parse HEAD:frontend/tests/case-edit-review.test.jsx)" = "29037e57e73d5a3862d0892cb03f645de4a854f6"
           test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "8c95de0c0a4b60b4c73f354c72584d2bab542fa4"
           test "$(git rev-parse HEAD:tests/test_consult_update_preview.py)" = "db76799e641b412c92b8f55eb3725b7eae0f3edb"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse d3c7273845d15d382e2c4697d2205eb61769d684 > acceptance-results/application-baseline.txt
+          git rev-parse 378afb3c6a07ecdadb44b78fe1936c1b18a05ac7 > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
