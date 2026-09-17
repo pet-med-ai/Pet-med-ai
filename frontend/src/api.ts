@@ -25,7 +25,8 @@ api.interceptors.request.use((config) => {
 // - /auth/login 的 401 交给页面显示“邮箱或密码错误”，不要弹“登录已过期”
 // - /auth/signup 的 400/422/500 交给页面显示具体注册错误
 // - 病例列表 GET /api/cases 的 401：静默处理，避免未登录首页反复弹窗
-// - 其它 401：清 token 并提示登录状态失效
+// - 只有请求携带当前 token 的 401 才清除登录；旧请求不能清掉新登录
+// - 其它当前登录的 401：清 token 并提示登录状态失效
 api.interceptors.response.use(
   (res) => res,
   (err) => {
@@ -35,6 +36,14 @@ api.interceptors.response.use(
 
     if (status === 401) {
       if (isAuthRequest(url)) {
+        return Promise.reject(err);
+      }
+
+      const currentToken = localStorage.getItem("token");
+      const requestHeaders = err.config?.headers;
+      const sentAuthorization = requestHeaders?.get?.("Authorization") ??
+        requestHeaders?.Authorization ?? requestHeaders?.authorization;
+      if (!currentToken || sentAuthorization !== `Bearer ${currentToken}`) {
         return Promise.reject(err);
       }
 

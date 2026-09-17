@@ -105,11 +105,16 @@ class HistoryPreservationTests(unittest.TestCase):
                     for target in node.targets)
         ]
         self.assertEqual(len(assignments), 1)
-        expected = ast.parse(
-            'preserve_consult_history(obj.history, case_fields["history"])',
-            mode="eval",
-        ).body
+        expected = ast.parse('proposed["history"]', mode="eval").body
         self.assertEqual(ast.dump(assignments[0].value), ast.dump(expected))
+        snapshot = next(node for node in tree.body if isinstance(node, ast.FunctionDef) and node.name == "_consult_update_snapshot")
+        merges = [node for node in ast.walk(snapshot) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "preserve_consult_history"]
+        self.assertEqual(len(merges), 2)
+        self.assertEqual(ast.dump(merges[0]), ast.dump(ast.parse('preserve_consult_history(obj.history, case_fields["history"])', mode="eval").body))
+        self.assertEqual(ast.dump(merges[1]), ast.dump(ast.parse('preserve_consult_history(proposed["history"], "【医生病史补记】\\n" + history_addendum)', mode="eval").body))
+        calls = [node for node in ast.walk(route) if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "_consult_update_snapshot"]
+        self.assertEqual(len(calls), 1)
+        self.assertEqual(ast.dump(calls[0]), ast.dump(ast.parse('_consult_update_snapshot(session, obj, case_fields, history_addendum, update_mode)', mode="eval").body))
 
 
 if __name__ == "__main__":

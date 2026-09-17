@@ -1,0 +1,43 @@
+.doctor-workbench { --ink: #123642; --accent: #0e7490; max-width: 1080px; margin: 0 auto; padding: 24px; color: var(--ink); font-family: system-ui, -apple-system, Arial, sans-serif; }
+.doctor-workbench *, .doctor-workbench *::before, .doctor-workbench *::after { box-sizing: border-box; }
+.doctor-workbench [hidden] { display: none !important; }
+.doctor-workbench .workbench-header { padding: 22px; border-radius: 16px; background: #092534; color: #e7fbff; display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; align-items: center; }
+.doctor-workbench .workbench-header h1 { font-size: 26px; margin: 4px 0 8px; }
+.doctor-workbench .workbench-header p { margin: 0; color: #b9dce5; }
+.doctor-workbench .workbench-brand { color: #5ce1ef; letter-spacing: .05em; font-weight: 800; }
+.doctor-workbench .workbench-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 20px 0 12px; }
+.doctor-workbench .workbench-steps button { display: flex; gap: 12px; align-items: center; text-align: left; padding: 16px; background: #f1f6f7; border: 1px solid #c8dce1; color: var(--ink); border-radius: 12px; font-size: 16px; font-weight: 700; cursor: pointer; }
+.doctor-workbench .workbench-steps button[aria-current="step"] { background: #092534; color: #e7fbff; border-color: #0e7490; }
+.doctor-workbench .step-number { color: #0e7490; font-size: 26px; }
+.doctor-workbench [aria-current="step"] .step-number { color: #5ce1ef; }
+.doctor-workbench button:disabled { cursor: not-allowed; opacity: .55; }
+.doctor-workbench :focus-visible { outline: 3px solid #0891b2; outline-offset: 3px; }
+.doctor-workbench .workbench-patient { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 24px; padding: 16px; background: #edf8f8; border: 1px solid #bddde0; border-radius: 12px; overflow-wrap: anywhere; }
+.doctor-workbench .workbench-patient span { font-size: 14px; }
+.doctor-workbench .workbench-stage-title { font-size: 22px; margin: 24px 0 8px; }
+.doctor-workbench .workbench-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-top: 18px; }
+.doctor-workbench .workbench-actions button, .doctor-workbench .workbench-primary { padding: 12px 18px; border: 1px solid #99b8bf; border-radius: 8px; font-size: 15px; font-weight: 600; text-decoration: none; cursor: pointer; background: white; color: var(--ink); }
+.doctor-workbench .workbench-actions .workbench-primary { background: #0e7490; color: white; border-color: #0e7490; }
+.doctor-workbench .workbench-secondary { padding: 14px 16px; border: 1px solid #d6e2e5; border-radius: 12px; margin-top: 20px; }
+.doctor-workbench .workbench-secondary > summary { font-weight: 650; cursor: pointer; }
+.doctor-workbench .workbench-secondary > summary + div { margin-top: 12px; }
+.doctor-workbench .intake-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.doctor-workbench input:not([type="checkbox"]):not([type="radio"]), .doctor-workbench textarea, .doctor-workbench select { max-width: 100%; min-width: 0; }
+.doctor-workbench .intake-grid input, .doctor-workbench .intake-grid select { width: 100%; }
+.doctor-workbench .workbench-readback { padding: 18px; border: 1px solid #bfdcda; border-radius: 14px; background: #fbfefd; }
+.doctor-workbench .readback-success { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: center; color: #065f46; }
+.doctor-workbench .readback-success h3 { margin: 6px 0; }
+.doctor-workbench .readback-field { padding: 12px 16px; border: 1px solid #dce8e8; border-radius: 10px; margin: 12px 0; background: white; }
+.doctor-workbench .readback-field h3 { font-size: 15px; margin: 0 0 8px; }
+.doctor-workbench .readback-field pre { white-space: pre-wrap; overflow-wrap: anywhere; font: inherit; line-height: 1.7; margin: 0; }
+.doctor-workbench .workbench-warning { padding: 12px; color: #92400e; background: #fff7e5; border: 1px solid #f3d899; border-radius: 8px; }
+@media (max-width: 600px) {
+  .doctor-workbench { padding: 12px; }
+  .doctor-workbench .workbench-header { padding: 18px; }
+  .doctor-workbench .workbench-header h1 { font-size: 22px; }
+  .doctor-workbench .workbench-steps { gap: 6px; }
+  .doctor-workbench .workbench-steps button { padding: 10px 6px; gap: 5px; flex-direction: column; font-size: 13px; text-align: center; }
+  .doctor-workbench .step-number { font-size: 21px; }
+  .doctor-workbench .intake-grid { grid-template-columns: minmax(0, 1fr); }
+  .doctor-workbench .workbench-actions > * { flex: 1 1 auto; text-align: center; }
+}

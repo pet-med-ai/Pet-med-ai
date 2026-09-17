@@ -1,7 +1,9 @@
 // src/pages/CaseEditorLite.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
+import CaseEditReview from "../components/CaseEditReview";
+import { caseEditDraftOwner, clearCaseEditDraft, clearCaseEditDrafts, readCaseEditDraft, writeCaseEditDraft } from "../caseEditDraft";
 
 const EMPTY_FORM = {
   patient_name: "",
@@ -23,6 +25,10 @@ const EMPTY_FORM = {
 
 export default function CaseEditorLite() {
   const { id } = useParams();
+  return <CaseEditor key={id || "new"} id={id} />;
+}
+
+function CaseEditor({ id }) {
   const navigate = useNavigate();
   const isNew = !id || id === "new";
 
@@ -30,9 +36,98 @@ export default function CaseEditorLite() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState("");
+  const [editState, setEditState] = useState(null);
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const [draftOwner] = useState(() => caseEditDraftOwner());
+  const [initialDraft] = useState(() => isNew ? { draft: null, error: "" } : readCaseEditDraft(draftOwner, Number(id)));
+  const [draftOffer, setDraftOffer] = useState(initialDraft.draft);
+  const [draftMessage, setDraftMessage] = useState(initialDraft.error);
+  const [restoring, setRestoring] = useState(false);
+  const mounted = useRef(false), recoveryBusy = useRef(false);
+  const identityChanged = !!draftOwner && draftOwner !== caseEditDraftOwner();
+  const formRef = useRef(form); formRef.current = form;
+  const editRef = useRef(editState); editRef.current = editState;
+  const modifiedFields = (values = formRef.current, state = editRef.current) => {
+    const initial = normalizeCase(state?.before);
+    return Object.fromEntries(Object.entries(values).filter(([key, value]) => value !== initial[key]));
+  };
+  const keepDraft = (values, state = editRef.current) => {
+    if (isNew || !state) return;
+    if (!draftOwner || draftOwner !== caseEditDraftOwner()) {
+      clearCaseEditDraft(Number(id));
+      setDraftMessage("无法确认当前账号，编辑草稿未暂存。请检查登录状态。");
+      return;
+    }
+    const changes = modifiedFields(values, state);
+    const ok = writeCaseEditDraft(draftOwner, Number(id), changes);
+    setDraftMessage(ok ? (Object.keys(changes).length ? "修改已暂存在本标签页，尚未保存到病例。" : "") : "浏览器无法暂存最新修改，刷新或离开可能丢失输入。请先完成病例保存。");
+  };
+  const applyState = (state, values) => {
+    editRef.current = state; formRef.current = values;
+    setEditState(state); setForm(values);
+  };
+  const verifiedEdit = state => {
+    applyState(state, normalizeCase(state.before));
+    const cleared = clearCaseEditDraft(Number(id));
+    setDraftMessage(cleared ? "修改已保存并回读，本病例编辑草稿已清除。" : "修改已保存并回读，但浏览器未能清除编辑草稿。");
+  };
+  const reloadEdit = state => {
+    const changes = modifiedFields();
+    const values = { ...normalizeCase(state.before), ...changes };
+    applyState(state, values); keepDraft(values, state);
+  };
+  const validState = state => state?.case_id === Number(id) && state.case_token && state.before;
+
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => {
+    if (isNew || typeof window === "undefined") return;
+    const changed = event => {
+      if (event.key === "token" || event.key === null) { clearCaseEditDrafts(); window.location.reload(); }
+    };
+    window.addEventListener("storage", changed);
+    return () => window.removeEventListener("storage", changed);
+  }, [isNew]);
+  const hasPendingInput = !isNew && (draftOffer || (editState && Object.keys(modifiedFields()).length > 0));
+  useEffect(() => {
+    if (!hasPendingInput || typeof window === "undefined") return;
+    const warn = event => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [!!hasPendingInput]);
+
+  async function restoreDraft() {
+    if (!draftOffer || saving || recoveryBusy.current || !draftOwner || draftOwner !== caseEditDraftOwner()) return;
+    recoveryBusy.current = true; setRestoring(true); setDraftMessage("");
+    try {
+      const { data } = await api.get(`/api/cases/${id}/edit-state`, { timeout: 15000 });
+      if (!mounted.current || draftOwner !== caseEditDraftOwner()) return;
+      if (!validState(data)) throw new Error("Invalid case state");
+      const remaining = Object.fromEntries(Object.entries(draftOffer.changes).filter(([key, value]) => data.before[key] !== value));
+      const values = { ...normalizeCase(data.before), ...remaining };
+      applyState(data, values); setDraftOffer(null); setError("");
+      if (Object.keys(remaining).length) {
+        keepDraft(values, data);
+        setDraftMessage(previous => previous + " 已恢复编辑输入；服务器内容可能已更新，请重新核对后保存。");
+      } else {
+        const cleared = clearCaseEditDraft(Number(id));
+        setDraftMessage("草稿中的修改与服务器一致，未再次提交保存。" + (cleared ? "编辑草稿已清除。" : "浏览器未能清除编辑草稿。"));
+      }
+    } catch {
+      if (mounted.current) setDraftMessage("暂时无法读取最新病例，编辑草稿仍保留。请检查登录状态或网络后重试恢复。");
+    } finally {
+      recoveryBusy.current = false;
+      if (mounted.current) setRestoring(false);
+    }
+  }
+  function discardDraft() {
+    if (restoring || saving) return;
+    if (!clearCaseEditDraft(Number(id))) { setDraftMessage("浏览器未能清除编辑草稿，请稍后重试。"); return; }
+    setDraftOffer(null); setDraftMessage("已丢弃本地编辑草稿，服务器病例未改动。");
+  }
 
   useEffect(() => {
     if (isNew) {
+      setEditState(null);
       setForm(EMPTY_FORM);
       setLoading(false);
       return;
@@ -43,8 +138,12 @@ export default function CaseEditorLite() {
       try {
         setLoading(true);
         setError("");
-        const res = await api.get(`/api/cases/${id}`);
-        if (!stop) setForm(normalizeCase(res.data));
+        setEditState(null);
+        const res = await api.get(`/api/cases/${id}/edit-state`, { timeout: 15000 });
+        if (!stop) {
+          if (!validState(res.data)) throw new Error("病例读取结果不完整");
+          applyState(res.data, normalizeCase(res.data.before));
+        }
       } catch (e) {
         if (!stop) setError(getErrorText(e));
       } finally {
@@ -53,10 +152,12 @@ export default function CaseEditorLite() {
     })();
 
     return () => { stop = true; };
-  }, [id, isNew]);
+  }, [id, isNew, reloadVersion]);
 
   const setField = (key, value) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+    if (draftOffer || restoring || identityChanged || saving) return;
+    const values = { ...formRef.current, [key]: value };
+    formRef.current = values; setForm(values); keepDraft(values);
   };
 
   const buildPayload = () => ({
@@ -90,7 +191,7 @@ export default function CaseEditorLite() {
   };
 
   const save = async ({ goDetail = false } = {}) => {
-    if (!validate()) return;
+    if (!isNew || saving || !validate()) return;
 
     try {
       setSaving(true);
@@ -108,12 +209,6 @@ export default function CaseEditorLite() {
         } else {
           navigate(`/cases/${saved.id}/edit`, { replace: true });
         }
-      } else {
-        const res = await api.put(`/api/cases/${id}`, payload);
-        saved = res.data;
-        setForm(normalizeCase(saved));
-        alert("已保存");
-        if (goDetail) navigate(`/cases/${id}`);
       }
     } catch (e) {
       setError(getErrorText(e));
@@ -135,13 +230,24 @@ export default function CaseEditorLite() {
       <h1 style={{ marginTop: 0 }}>{isNew ? "新建病例" : `编辑病例 #${id}`}</h1>
 
       <div style={toolbar}>
-        <button type="button" onClick={() => navigate("/")} style={btn}>返回首页</button>
-        {!isNew && <button type="button" onClick={() => navigate(`/cases/${id}`)} style={btnSecondary}>查看详情</button>}
-        <span style={{ fontSize: 12, opacity: 0.65 }}>后端：{import.meta.env.VITE_API_BASE}</span>
+        <button type="button" disabled={saving || restoring} onClick={() => navigate("/")} style={btn}>返回首页</button>
+        {!isNew && <button type="button" disabled={saving || restoring} onClick={() => navigate(`/cases/${id}`)} style={btnSecondary}>查看详情</button>}
       </div>
 
       {error && <div style={errorBox}>{error}</div>}
+      {!isNew && <section aria-label="病例编辑草稿" style={{ ...card, marginBottom: 16 }}>
+        <p>编辑草稿仅在本标签页保留，8 小时有效；恢复后需要重新核对保存。关闭标签页或更换设备不保证恢复。</p>
+        {identityChanged && <p role="alert">登录账号已变化，请重新打开页面。</p>}
+        {draftOffer && <>
+          <strong>发现本病例未保存的编辑草稿</strong>
+          <p>恢复会重新读取病例，再带回本次修改；保存前请对照服务器内容，尤其是完整病史。</p>
+          <button type="button" disabled={restoring || saving || identityChanged} onClick={restoreDraft}>{restoring ? "正在读取最新病例…" : "恢复本病例编辑草稿"}</button>{" "}
+          <button type="button" disabled={restoring || saving} onClick={discardDraft}>丢弃编辑草稿</button>
+        </>}
+        {draftMessage && <p role="status">{draftMessage}</p>}
+      </section>}
 
+      <fieldset disabled={saving || restoring || identityChanged || !!draftOffer || (!isNew && !editState)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <section style={card}>
         <h3 style={h3}>一、病例基础信息</h3>
         <div style={grid3}>
@@ -205,15 +311,18 @@ export default function CaseEditorLite() {
         </Field>
       </section>
 
-      <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+      </fieldset>
+      {!isNew && editState && !draftOffer && !identityChanged && <CaseEditReview key={id} caseId={Number(id)} baseline={editState} changes={modifiedFields()} onVerified={verifiedEdit} onReload={reloadEdit} onBusyChange={setSaving} />}
+      {!isNew && !editState && <button type="button" onClick={() => setReloadVersion(n => n + 1)}>重新读取病例</button>}
+      {isNew && <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
         <button type="button" onClick={() => save()} disabled={saving} style={btnPrimary}>
           {saving ? "保存中…" : "保存"}
         </button>
         <button type="button" onClick={() => save({ goDetail: true })} disabled={saving} style={btnSecondary}>
           保存并查看详情
         </button>
-        <button type="button" onClick={() => navigate("/")} style={btn}>返回首页</button>
-      </div>
+        <button type="button" disabled={saving} onClick={() => navigate("/")} style={btn}>返回首页</button>
+      </div>}
     </div>
   );
 }
