@@ -57,6 +57,27 @@ owner, other = login('pg-owner'), login('pg-other')
 with f.db.SessionLocal() as s:
     owner_id = s.query(f.models.User).filter_by(email='pg-owner@example.com').one().id
 record('native_postgresql_real_auth_no_overrides')
+
+# Manual creation uses the real authenticated legacy endpoint; all fifteen
+# reviewed fields must persist without creating a consultation.
+manual = {'patient_name': '手工新建合成犬🐾', 'species': 'dog', 'sex': 'M', 'age_info': '2y',
+          'breed': '合成品种', 'weight': '5.2kg', 'coat_color': None, 'owner_name': '合成主人',
+          'owner_phone': None, 'chief_complaint': '  手工主诉\r\n ',
+          'history': '  原始手工病史🐾\r\n尾部空格。  \n\t', 'exam_findings': '合成体检',
+          'analysis': '  手工分析\r\n ', 'treatment': '手工处理 <script>literal</script>',
+          'prognosis': '  手工随访\n '}
+before_manual = count()
+with f.db.engine.connect() as connection:
+    sessions_before_manual = connection.execute(text('SELECT count(*) FROM consult_sessions')).scalar_one()
+manual_id = call('POST', '/api/cases', owner, expected=201, json=manual)['id']
+manual_readback = read(manual_id, owner)
+assert all(manual_readback[key] == value for key, value in manual.items())
+assert count() == before_manual + 1
+call('GET', f'/api/cases/{manual_id}', other, expected=404)
+with f.db.engine.connect() as connection:
+    assert connection.execute(text('SELECT count(*) FROM consult_sessions')).scalar_one() == sessions_before_manual
+record('manual_create_fifteen_fields_exact_independent_postgresql_readback')
+
 sid = call('POST', '/api/ai/consult/session', owner, json={'text': '合成犬，呕吐两次，精神正常', 'species': 'dog'})['session_id']
 url = '/api/ai/consult/session/' + sid
 call('POST', url+'/answer', owner, json={'question': '合成补问', 'answer': '持续两天，合成数据'})

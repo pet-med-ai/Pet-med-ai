@@ -1,7 +1,8 @@
 // src/pages/CaseEditorLite.jsx
 import React, { useEffect, useRef, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import api from "../api";
+import ManualCaseCreateReview from "../components/ManualCaseCreateReview";
 import CaseEditReview from "../components/CaseEditReview";
 import { caseEditDraftOwner, clearCaseEditDraft, clearCaseEditDrafts, readCaseEditDraft, writeCaseEditDraft } from "../caseEditDraft";
 
@@ -30,9 +31,14 @@ export default function CaseEditorLite() {
 
 function CaseEditor({ id }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const isNew = !id || id === "new";
 
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState(() => {
+    const seed = location.state?.manualCase;
+    return isNew && seed?.owner && seed.owner === caseEditDraftOwner()
+      ? normalizeCase(seed.values || {}) : EMPTY_FORM;
+  });
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState("");
@@ -128,7 +134,6 @@ function CaseEditor({ id }) {
   useEffect(() => {
     if (isNew) {
       setEditState(null);
-      setForm(EMPTY_FORM);
       setLoading(false);
       return;
     }
@@ -158,64 +163,6 @@ function CaseEditor({ id }) {
     if (draftOffer || restoring || identityChanged || saving) return;
     const values = { ...formRef.current, [key]: value };
     formRef.current = values; setForm(values); keepDraft(values);
-  };
-
-  const buildPayload = () => ({
-    patient_name: form.patient_name.trim(),
-    species: form.species || "dog",
-    sex: emptyToNull(form.sex),
-    age_info: emptyToNull(form.age_info),
-    breed: emptyToNull(form.breed),
-    weight: emptyToNull(form.weight),
-    coat_color: emptyToNull(form.coat_color),
-    owner_name: emptyToNull(form.owner_name),
-    owner_phone: emptyToNull(form.owner_phone),
-    chief_complaint: form.chief_complaint.trim(),
-    history: emptyToNull(form.history),
-    exam_findings: emptyToNull(form.exam_findings),
-    analysis: emptyToNull(form.analysis),
-    treatment: emptyToNull(form.treatment),
-    prognosis: emptyToNull(form.prognosis),
-  });
-
-  const validate = () => {
-    if (!form.patient_name.trim()) {
-      alert("请填写病例名 / 宠物名");
-      return false;
-    }
-    if (!form.chief_complaint.trim()) {
-      alert("请填写主诉");
-      return false;
-    }
-    return true;
-  };
-
-  const save = async ({ goDetail = false } = {}) => {
-    if (!isNew || saving || !validate()) return;
-
-    try {
-      setSaving(true);
-      setError("");
-
-      const payload = buildPayload();
-      let saved;
-
-      if (isNew) {
-        const res = await api.post("/api/cases", payload);
-        saved = res.data;
-        alert(`创建成功：病例ID = ${saved.id}`);
-        if (goDetail) {
-          navigate(`/cases/${saved.id}`);
-        } else {
-          navigate(`/cases/${saved.id}/edit`, { replace: true });
-        }
-      }
-    } catch (e) {
-      setError(getErrorText(e));
-      alert("保存失败，请查看页面错误或后端日志");
-    } finally {
-      setSaving(false);
-    }
   };
 
   if (loading) return <div style={{ padding: 24 }}>加载中…</div>;
@@ -314,15 +261,9 @@ function CaseEditor({ id }) {
       </fieldset>
       {!isNew && editState && !draftOffer && !identityChanged && <CaseEditReview key={id} caseId={Number(id)} baseline={editState} changes={modifiedFields()} onVerified={verifiedEdit} onReload={reloadEdit} onBusyChange={setSaving} />}
       {!isNew && !editState && <button type="button" onClick={() => setReloadVersion(n => n + 1)}>重新读取病例</button>}
-      {isNew && <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
-        <button type="button" onClick={() => save()} disabled={saving} style={btnPrimary}>
-          {saving ? "保存中…" : "保存"}
-        </button>
-        <button type="button" onClick={() => save({ goDetail: true })} disabled={saving} style={btnSecondary}>
-          保存并查看详情
-        </button>
-        <button type="button" disabled={saving} onClick={() => navigate("/")} style={btn}>返回首页</button>
-      </div>}
+      {isNew && <ManualCaseCreateReview values={form} onLockChange={setSaving}
+        onNew={() => { formRef.current = EMPTY_FORM; setForm(EMPTY_FORM); }} />}
+
     </div>
   );
 }
@@ -363,11 +304,6 @@ function normalizeSpecies(value) {
   if (value === "feline") return "cat";
   if (["dog", "cat", "other"].includes(value)) return value;
   return "other";
-}
-
-function emptyToNull(value) {
-  const text = (value ?? "").toString().trim();
-  return text ? text : null;
 }
 
 function getErrorText(err) {
@@ -419,13 +355,6 @@ const btn = {
   border: "1px solid #64748b",
   background: "#fff",
   cursor: "pointer",
-};
-
-const btnPrimary = {
-  ...btn,
-  border: "1px solid #0ea5e9",
-  background: "#0ea5e9",
-  color: "#fff",
 };
 
 const btnSecondary = {
