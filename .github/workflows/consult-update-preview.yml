@@ -7,6 +7,8 @@ on:
       - 'frontend/src/components/ConsultUpdateReview.jsx'
       - 'frontend/src/components/ConsultSaveReview.jsx'
       - 'frontend/src/App.jsx'
+      - 'frontend/src/pages/CaseEditorLite.jsx'
+      - 'frontend/src/components/CaseEditReview.jsx'
       - 'frontend/tests/**'
       - 'frontend/package.json'
       - 'tests/test_consult_update_preview.py'

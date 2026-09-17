@@ -255,6 +255,19 @@ class CaseUpdate(BaseModel):
     treatment: Optional[str] = None
     prognosis: Optional[str] = None
 
+class CaseEditChanges(CaseUpdate):
+    model_config = {"extra": "forbid", "strict": True}
+
+class CaseEditPreviewIn(BaseModel):
+    model_config = {"extra": "forbid"}
+    changes: CaseEditChanges
+    expected_case_token: str = Field(pattern=r"^[0-9a-f]{64}$", strict=True)
+
+class CaseEditConfirmIn(CaseEditPreviewIn):
+    expected_preview_token: str = Field(pattern=r"^[0-9a-f]{64}$", strict=True)
+
+CASE_EDIT_FIELDS = tuple(CaseUpdate.model_fields)
+
 class CaseOut(CaseCreate):
     id: int
     analysis: Optional[str] = None
@@ -425,12 +438,15 @@ def get_owned_case_or_404(
     case_id: int,
     user,
     include_deleted: bool = False,
+    for_update: bool = False,
 ) -> Case:
     # 病例权限收口：当前用户只能访问自己的病例；无权限统一返回 404。
     query = db.query(Case).filter(Case.id == case_id, Case.owner_id == user.id)
     if supports_soft_delete() and not include_deleted:
         query = query.filter(Case.deleted_at.is_(None))
 
+    if for_update:
+        query = query.with_for_update()
     obj = query.first()
     if not obj:
         raise HTTPException(status_code=404, detail="Case not found")
@@ -566,6 +582,60 @@ def get_case(
     user = Depends(get_current_user),
 ):
     return get_owned_case_or_404(db, case_id, user)
+
+def _case_edit_state(obj):
+    before = {name: getattr(obj, name) for name in CASE_EDIT_FIELDS}
+    fingerprint = json.dumps({"case_id": obj.id, "owner_id": obj.owner_id,
+                              "updated_at": str(obj.updated_at), "before": before},
+                             ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return {"case_id": obj.id, "before": before,
+            "case_token": hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()}
+
+
+def _case_edit_snapshot(obj, data):
+    state = _case_edit_state(obj)
+    if not hmac.compare_digest(data.expected_case_token, state["case_token"]):
+        raise HTTPException(status_code=409, detail="病例已变化。请读取最新病例并保留、重新核对本次修改。")
+    requested = data.changes.model_dump(exclude_unset=True)
+    changes = {key: value for key, value in requested.items() if value != state["before"][key]}
+    if not changes:
+        raise HTTPException(status_code=400, detail="没有需要保存的修改。")
+    proposed = {**state["before"], **changes}
+    for key in ("patient_name", "chief_complaint"):
+        if not isinstance(proposed[key], str) or not proposed[key].strip():
+            raise HTTPException(status_code=400, detail="病例名和主诉不能为空。")
+    fingerprint = json.dumps({"case_token": state["case_token"], "changes": requested},
+                             ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return {**state, "changes": changes, "proposed": proposed,
+            "preview_token": hashlib.sha256(fingerprint.encode("utf-8")).hexdigest()}
+
+
+@api.get("/cases/{case_id}/edit-state", response_model=dict)
+def case_edit_state(case_id: int, db: Session = Depends(get_db), user = Depends(get_current_user)):
+    return _case_edit_state(get_owned_case_or_404(db, case_id, user))
+
+
+@api.post("/cases/{case_id}/preview-edit", response_model=dict)
+def preview_case_edit(case_id: int, data: CaseEditPreviewIn,
+                      db: Session = Depends(get_db), user = Depends(get_current_user)):
+    return _case_edit_snapshot(get_owned_case_or_404(db, case_id, user), data)
+
+
+@api.post("/cases/{case_id}/confirm-edit", response_model=CaseOut)
+def confirm_case_edit(case_id: int, data: CaseEditConfirmIn,
+                      db: Session = Depends(get_db), user = Depends(get_current_user)):
+    # Both this editor and bound-consult updates serialize on the same case row.
+    # The lock is acquired before reading the version or applying any changes.
+    obj = get_owned_case_or_404(db, case_id, user, for_update=True)
+    preview = _case_edit_snapshot(obj, data)
+    if not hmac.compare_digest(data.expected_preview_token, preview["preview_token"]):
+        raise HTTPException(status_code=409, detail="本次修改与核对内容不一致，请重新预览。")
+    for key, value in preview["changes"].items():
+        setattr(obj, key, value)
+    obj.updated_at = datetime.utcnow()
+    db.add(obj); db.commit(); db.refresh(obj)
+    return obj
+
 
 @api.put("/cases/{case_id}", response_model=CaseOut)
 def update_case(

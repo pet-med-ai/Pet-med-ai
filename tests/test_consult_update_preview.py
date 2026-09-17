@@ -314,5 +314,110 @@ class ConsultUpdatePreviewTests(unittest.TestCase):
         self.assertEqual(self.read()["treatment"], current["treatment"])
 
 
+    def edit_state(self):
+        r = self.client.get(f"/api/cases/{self.cid}/edit-state", headers=self.owner_headers)
+        self.assertEqual(r.status_code, 200, r.text)
+        return r.json()
+
+    def edit_preview(self, changes, state=None):
+        request = {"changes": changes, "expected_case_token": (state or self.edit_state())["case_token"]}
+        r = self.client.post(f"/api/cases/{self.cid}/preview-edit", headers=self.owner_headers, json=request)
+        self.assertEqual(r.status_code, 200, r.text)
+        return request, r.json()
+
+    def edit_confirm(self, request, preview):
+        return self.client.post(f"/api/cases/{self.cid}/confirm-edit", headers=self.owner_headers,
+                                json={**request, "expected_preview_token": preview["preview_token"]})
+
+    def test_editor_only_changed_treatment_writes_and_preserves_all_other_fields(self):
+        before = self.read(); state = self.edit_state()
+        self.assertEqual(set(state["before"]), set(main.CASE_EDIT_FIELDS))
+        request, preview = self.edit_preview({"treatment": "  医生治疗🐾\r\n保留空格  "}, state)
+        self.assertEqual(self.read(), before)
+        self.assertEqual(set(preview["changes"]), {"treatment"})
+        self.assertEqual(self.edit_confirm(request, preview).status_code, 200)
+        after = self.read()
+        self.assertEqual(after["treatment"], request["changes"]["treatment"])
+        self.assertEqual({k:v for k,v in after.items() if k != "treatment"}, {k:v for k,v in before.items() if k != "treatment"})
+
+    def test_editor_exact_fifteen_field_changes_and_intentional_history_replacement(self):
+        changes = {key: "  修订"+key+"🐾\r\n " for key in main.CASE_EDIT_FIELDS}
+        changes.update(species="cat", owner_phone="", prognosis=None)
+        request, preview = self.edit_preview(changes)
+        self.assertEqual(self.edit_confirm(request, preview).status_code, 200)
+        actual = self.read()
+        for key, value in changes.items(): self.assertEqual(actual[key], value, key)
+        self.assertEqual(actual["history"], changes["history"])
+
+    def test_editor_opened_stale_case_cannot_preview_without_reloading(self):
+        state = self.edit_state(); self.change_case(history=self.history+"医生新增")
+        before = self.read()
+        r = self.client.post(f"/api/cases/{self.cid}/preview-edit", headers=self.owner_headers,
+                             json={"changes":{"treatment":"新治疗"},"expected_case_token":state["case_token"]})
+        self.assertEqual(r.status_code, 409); self.assertEqual(self.read(), before)
+        request, preview = self.edit_preview({"treatment":"新治疗"})
+        self.assertEqual(self.edit_confirm(request, preview).status_code, 200)
+        self.assertEqual(self.read()["history"], before["history"])
+
+    def test_editor_all_saved_field_changes_expire_preview(self):
+        for key in main.CASE_EDIT_FIELDS:
+            with self.subTest(key=key):
+                request, preview = self.edit_preview({"history":"本次病史修订"})
+                self.change_case(**{key:"其他医生新值"})
+                before = self.read()
+                self.assertEqual(self.edit_confirm(request, preview).status_code, 409)
+                self.assertEqual(self.read(), before)
+
+    def test_editor_changed_payload_or_wrong_confirmation_never_writes(self):
+        request, preview = self.edit_preview({"treatment":"新治疗"}); before = self.read()
+        self.assertEqual(self.edit_confirm({**request,"changes":{"treatment":"不同治疗"}},preview).status_code,409)
+        self.assertEqual(self.edit_confirm(request,{**preview,"preview_token":"0"*64}).status_code,409)
+        self.assertEqual(self.read(),before)
+
+    def test_editor_auth_ownership_and_deleted_visibility_remain_enforced(self):
+        from datetime import datetime
+        request, preview = self.edit_preview({"treatment":"新治疗"}); before = self.read()
+        for headers, code in [({},401),(self.other_headers,404)]:
+            r=self.client.get(f"/api/cases/{self.cid}/edit-state",headers=headers)
+            self.assertEqual(r.status_code,code)
+            for suffix in ["preview-edit","confirm-edit"]:
+                body=request if suffix=="preview-edit" else {**request,"expected_preview_token":preview["preview_token"]}
+                r=self.client.post(f"/api/cases/{self.cid}/{suffix}",headers=headers,json=body)
+                self.assertEqual(r.status_code,code)
+        self.assertEqual(self.read(),before)
+        with db.SessionLocal() as session:
+            session.get(models.Case,self.cid).deleted_at=datetime.utcnow();session.commit()
+        self.assertEqual(self.client.get(f"/api/cases/{self.cid}/edit-state",headers=self.owner_headers).status_code,404)
+        self.assertEqual(self.edit_confirm(request,preview).status_code,404)
+
+    def test_editor_rejects_unknown_fields_bad_types_blank_required_and_empty_patch(self):
+        before=self.read();state=self.edit_state()
+        for changes, code in [({"owner_id":7},422),({"treatment":42},422),({"chief_complaint":None},400),({"patient_name":"  "},400),({},400),({"history":self.history},400)]:
+            request={"changes":changes,"expected_case_token":state["case_token"]}
+            for suffix in ["preview-edit","confirm-edit"]:
+                body=request if suffix=="preview-edit" else {**request,"expected_preview_token":"0"*64}
+                r=self.client.post(f"/api/cases/{self.cid}/{suffix}",headers=self.owner_headers,json=body)
+                self.assertEqual(r.status_code,code,r.text)
+        self.assertEqual(self.read(),before)
+
+    def test_editor_repeat_confirmation_cannot_overwrite_again(self):
+        request,preview=self.edit_preview({"treatment":"新治疗"})
+        self.assertEqual(self.edit_confirm(request,preview).status_code,200);before=self.read()
+        self.assertEqual(self.edit_confirm(request,preview).status_code,409)
+        self.assertEqual(self.read(),before)
+
+    def test_editor_and_consultation_previews_expire_each_other(self):
+        consult=self.scoped_preview("新补记","history_only")
+        request,preview=self.edit_preview({"treatment":"新治疗"})
+        self.assertEqual(self.edit_confirm(request,preview).status_code,200)
+        self.assertEqual(self.scoped_update("新补记","history_only",consult).status_code,409)
+        request,preview=self.edit_preview({"chief_complaint":"修订主诉"})
+        consult=self.scoped_preview("新补记","history_only")
+        self.assertEqual(self.scoped_update("新补记","history_only",consult).status_code,200)
+        before=self.read()
+        self.assertEqual(self.edit_confirm(request,preview).status_code,409)
+        self.assertEqual(self.read(),before)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

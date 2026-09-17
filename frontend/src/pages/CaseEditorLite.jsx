@@ -1,7 +1,8 @@
 // src/pages/CaseEditorLite.jsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import api from "../api";
+import CaseEditReview from "../components/CaseEditReview";
 
 const EMPTY_FORM = {
   patient_name: "",
@@ -30,9 +31,23 @@ export default function CaseEditorLite() {
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState("");
+  const [editState, setEditState] = useState(null);
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const formRef = useRef(form); formRef.current = form;
+  const editRef = useRef(editState); editRef.current = editState;
+  const modifiedFields = () => {
+    const initial = normalizeCase(editRef.current?.before);
+    return Object.fromEntries(Object.entries(formRef.current).filter(([key, value]) => value !== initial[key]));
+  };
+  const verifiedEdit = state => { setEditState(state); setForm(normalizeCase(state.before)); };
+  const reloadEdit = state => {
+    const changes = modifiedFields();
+    setEditState(state); setForm({ ...normalizeCase(state.before), ...changes });
+  };
 
   useEffect(() => {
     if (isNew) {
+      setEditState(null);
       setForm(EMPTY_FORM);
       setLoading(false);
       return;
@@ -43,8 +58,12 @@ export default function CaseEditorLite() {
       try {
         setLoading(true);
         setError("");
-        const res = await api.get(`/api/cases/${id}`);
-        if (!stop) setForm(normalizeCase(res.data));
+        setEditState(null);
+        const res = await api.get(`/api/cases/${id}/edit-state`, { timeout: 15000 });
+        if (!stop) {
+          if (res.data.case_id !== Number(id) || !res.data.case_token || !res.data.before) throw new Error("病例读取结果不完整");
+          setEditState(res.data); setForm(normalizeCase(res.data.before));
+        }
       } catch (e) {
         if (!stop) setError(getErrorText(e));
       } finally {
@@ -53,7 +72,7 @@ export default function CaseEditorLite() {
     })();
 
     return () => { stop = true; };
-  }, [id, isNew]);
+  }, [id, isNew, reloadVersion]);
 
   const setField = (key, value) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -90,7 +109,7 @@ export default function CaseEditorLite() {
   };
 
   const save = async ({ goDetail = false } = {}) => {
-    if (!validate()) return;
+    if (!isNew || saving || !validate()) return;
 
     try {
       setSaving(true);
@@ -108,12 +127,6 @@ export default function CaseEditorLite() {
         } else {
           navigate(`/cases/${saved.id}/edit`, { replace: true });
         }
-      } else {
-        const res = await api.put(`/api/cases/${id}`, payload);
-        saved = res.data;
-        setForm(normalizeCase(saved));
-        alert("已保存");
-        if (goDetail) navigate(`/cases/${id}`);
       }
     } catch (e) {
       setError(getErrorText(e));
@@ -135,13 +148,13 @@ export default function CaseEditorLite() {
       <h1 style={{ marginTop: 0 }}>{isNew ? "新建病例" : `编辑病例 #${id}`}</h1>
 
       <div style={toolbar}>
-        <button type="button" onClick={() => navigate("/")} style={btn}>返回首页</button>
-        {!isNew && <button type="button" onClick={() => navigate(`/cases/${id}`)} style={btnSecondary}>查看详情</button>}
-        <span style={{ fontSize: 12, opacity: 0.65 }}>后端：{import.meta.env.VITE_API_BASE}</span>
+        <button type="button" disabled={saving} onClick={() => navigate("/")} style={btn}>返回首页</button>
+        {!isNew && <button type="button" disabled={saving} onClick={() => navigate(`/cases/${id}`)} style={btnSecondary}>查看详情</button>}
       </div>
 
       {error && <div style={errorBox}>{error}</div>}
 
+      <fieldset disabled={saving || (!isNew && !editState)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <section style={card}>
         <h3 style={h3}>一、病例基础信息</h3>
         <div style={grid3}>
@@ -205,15 +218,18 @@ export default function CaseEditorLite() {
         </Field>
       </section>
 
-      <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
+      </fieldset>
+      {!isNew && editState && <CaseEditReview key={id} caseId={Number(id)} baseline={editState} changes={modifiedFields()} onVerified={verifiedEdit} onReload={reloadEdit} onBusyChange={setSaving} />}
+      {!isNew && !editState && <button type="button" onClick={() => setReloadVersion(n => n + 1)}>重新读取病例</button>}
+      {isNew && <div style={{ display: "flex", gap: 12, marginTop: 16, flexWrap: "wrap" }}>
         <button type="button" onClick={() => save()} disabled={saving} style={btnPrimary}>
           {saving ? "保存中…" : "保存"}
         </button>
         <button type="button" onClick={() => save({ goDetail: true })} disabled={saving} style={btnSecondary}>
           保存并查看详情
         </button>
-        <button type="button" onClick={() => navigate("/")} style={btn}>返回首页</button>
-      </div>
+        <button type="button" disabled={saving} onClick={() => navigate("/")} style={btn}>返回首页</button>
+      </div>}
     </div>
   );
 }

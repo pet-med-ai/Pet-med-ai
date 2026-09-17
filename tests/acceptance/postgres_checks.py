@@ -236,5 +236,77 @@ call('POST',url+'/update-case',owner,json={'history_addendum':'','update_mode':'
 current = read(cid,owner)
 assert all(current[k] == np['proposed'][k] for k in f.main.CONSULT_UPDATE_FIELDS)
 record('explicit_consult_sync_preserves_doctor_chief_and_exam_bytes')
+# Existing-case editing uses the same disposable database and real routes.
+edit_url = '/api/cases/'+str(cid)
+def edit_preview(changes):
+    state = call('GET', edit_url+'/edit-state', owner)
+    request = {'changes':changes,'expected_case_token':state['case_token']}
+    return request,call('POST',edit_url+'/preview-edit',owner,json=request)
+
+def edit_confirm(request,preview,expected=200):
+    return call('POST',edit_url+'/confirm-edit',owner,expected=expected,json={**request,'expected_preview_token':preview['preview_token']})
+
+prior=read(cid,owner)
+request,ep=edit_preview({'treatment':'  PG编辑医生治疗🐾\r\n '})
+assert read(cid,owner)==prior and list(ep['changes'])==['treatment']
+record('editor_preview_only_changed_fields_no_database_write')
+edit_confirm(request,ep)
+current=read(cid,owner)
+assert current['treatment']==request['changes']['treatment']
+assert {k:v for k,v in current.items() if k!='treatment'}=={k:v for k,v in prior.items() if k!='treatment'}
+edit_confirm(request,ep,expected=409)
+assert read(cid,owner)==current
+record('editor_exact_patch_preserves_all_other_fields_and_rejects_replay')
+for headers,code in [(None,401),(other,404)]:
+    call('GET',edit_url+'/edit-state',headers,expected=code)
+    call('POST',edit_url+'/preview-edit',headers,expected=code,json=request)
+    call('POST',edit_url+'/confirm-edit',headers,expected=code,json={**request,'expected_preview_token':ep['preview_token']})
+assert read(cid,owner)==current
+record('editor_real_auth_foreign_owner_rejected')
+request,ep=edit_preview({'treatment':'冲突后重新核对治疗'})
+call('PUT',edit_url,owner,json={'history':current['history']+'\n另一医生新补记'})
+changed=read(cid,owner)
+call('POST',edit_url+'/preview-edit',owner,expected=409,json=request)
+edit_confirm(request,ep,expected=409)
+assert read(cid,owner)==changed
+request,ep=edit_preview(request['changes']);edit_confirm(request,ep)
+assert read(cid,owner)['history']==changed['history']
+record('editor_stale_open_or_preview_rejects_then_repreview_retains_new_history')
+
+# Force the editor and consultation writer to wait on the same real case row.
+request,ep=edit_preview({'treatment':'并发编辑器治疗'})
+np=call('POST',url+'/preview-update-case',owner,json={'history_addendum':'并发问诊补记','update_mode':'history_only'})
+barrier=Barrier(2,timeout=10)
+def mixed_writer(index):
+    with TestClient(f.main.app) as c:
+        barrier.wait()
+        if index==0:
+            return c.post(edit_url+'/confirm-edit',headers=owner,json={**request,'expected_preview_token':ep['preview_token']})
+        return c.post(url+'/update-case',headers=owner,json={'history_addendum':'并发问诊补记','update_mode':'history_only','expected_preview_token':np['preview_token']})
+with f.db.engine.connect() as lock:
+    transaction=lock.begin()
+    lock.execute(text('SELECT id FROM cases WHERE id=:cid FOR UPDATE'),{'cid':cid})
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures=[pool.submit(mixed_writer,index) for index in range(2)]
+        try:
+            waiting=0
+            for attempt in range(100):
+                with f.db.engine.connect() as monitor:
+                    waiting=monitor.execute(text("SELECT count(*) FROM pg_stat_activity WHERE datname='pmai_acceptance' AND wait_event_type='Lock' AND query LIKE '%FROM cases%' AND query LIKE '%FOR UPDATE%'")).scalar_one()
+                if waiting>=2:break
+                time.sleep(0.05)
+            assert waiting>=2,'Editor and consult writer must both reach the case lock'
+        finally:transaction.rollback()
+        responses=[future.result(timeout=20) for future in futures]
+assert sorted(r.status_code for r in responses)==[200,409],[(r.status_code,r.text) for r in responses]
+if responses[0].status_code==409:
+    request,ep=edit_preview(request['changes']);edit_confirm(request,ep)
+else:
+    np=call('POST',url+'/preview-update-case',owner,json={'history_addendum':'并发问诊补记','update_mode':'history_only'})
+    call('POST',url+'/update-case',owner,json={'history_addendum':'并发问诊补记','update_mode':'history_only','expected_preview_token':np['preview_token']})
+current=read(cid,owner)
+assert current['treatment']=='并发编辑器治疗' and current['history'].count('并发问诊补记')==1
+assert current['history'].startswith(changed['history'])
+record('editor_and_consult_writers_block_conflict_then_preserve_both_changes')
 (f.OUT / 'restart-expected.json').write_text(json.dumps({'case_id':cid,'record':current,'session_url':url},ensure_ascii=False))
 client.close(); f.db.engine.dispose()
