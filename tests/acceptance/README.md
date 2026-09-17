@@ -1,6 +1,6 @@
 # PR26 browser and PostgreSQL acceptance
 
-Application baseline for the login-race follow-up: `378afb3c6a07ecdadb44b78fe1936c1b18a05ac7`.
+Application baseline for the editor-draft candidate: `ce52b3ec20a2a4ef0c065131c997e19bc1bace1f`.
 This candidate extends the existing-case editor reached from Case Detail. Editing
 an existing case now uses read state -> changed-field preview -> explicit
 confirmation -> save -> independent server readback. The manual new-case flow is
@@ -30,14 +30,50 @@ the UI reads all 15 fields before claiming matching saved content. Failed or
 mismatching readback keeps input and offers GET-only verification or explicit
 reload/repreview. Saving and unresolved readback disable form edits. Later edits
 are marked unsaved while the previous verified readback remains separately shown.
-The editor does not yet persist unsaved input across refresh or navigation.
+The editor-draft candidate below adds explicit recovery of changed fields after
+refresh or same-tab navigation; it does not restore a save confirmation.
 
-The editor changes are backend/main.py, frontend/src/pages/CaseEditorLite.jsx and
-frontend/src/components/CaseEditReview.jsx, already present in the baseline above.
-The follow-up changes frontend/src/api.ts and adds four interceptor regression
-tests to frontend/tests/case-edit-review.test.jsx. The workflow pins both blobs,
-retains the editor source/test/runner pins, rejects other application changes from
-the baseline, and records actual tested HEAD in artifacts.
+The editor and login-race fixes are already present in this baseline. This
+candidate changes App.jsx, CaseEditorLite.jsx, the new caseEditDraft.js module
+and the existing case-edit-review.test.jsx regression suite. The workflow pins
+these blobs, retains existing application/test pins, rejects other application
+changes from this baseline, and records actual tested HEAD in artifacts.
+
+## Editor-draft candidate (local verification only)
+
+Existing-case edits cache only changed string fields in current-tab
+sessionStorage, separately for each case and account, for up to eight hours.
+They contain no authentication token, case/preview token, confirmation or saved
+receipt. Login/logout clears editor drafts; another tab changing the login
+identity clears this tab's drafts and reloads it. This is temporary plaintext
+browser storage, not a server draft, encrypted storage or a cross-device backup.
+Closing a tab does not guarantee later recovery. Manual new-case drafts are
+outside this candidate.
+
+After refresh or returning to the editor, the user explicitly restores or discards
+the offer before editing. Restore performs only an authenticated GET of that case,
+then applies the cached changed fields to the freshly read form. Untouched fields
+use the latest server values. Old preview and confirmation state are not restored.
+The user must compare and confirm again; simultaneous changes to the same field
+are not automatically merged. In particular, editing history remains an explicit
+full-field replacement requiring review, not an append-only note.
+
+If the server already contains every cached changed value, recovery clears the
+cache without another POST and reports only that the values match. It does not
+claim which writer saved them. An inaccessible case or failed/wrong-case GET
+retains the offer without enabling writes. Successful save and complete readback
+clear that case's draft; later input starts a new draft. Storage failure keeps
+visible input, removes an older copy when possible and warns about loss. Dirty
+input also installs the browser's standard unload warning; the browser controls
+whether that prompt appears.
+
+Fifteen additional local regressions cover exact/empty text, account/case
+partitioning, expiry/corruption, quota failure, discard, current-state recovery,
+failed reads, already-committed saves, save/clear/later edits, identity changes,
+unload warning, unmounts and SPA case changes. Thirteen new real-browser scenarios
+are prepared in editor_draft_checks.cjs. They exercise the real application and
+native PostgreSQL fixture with synthetic data; fault cases only block GET or
+browser storage. These new browser scenarios have not yet run.
 
 ## Login-race follow-up
 
@@ -53,7 +89,7 @@ writes nor fabricates a successful login. The four regression tests exercise the
 actual Axios interceptors with controlled response ordering; these are local unit
 tests, not an additional real-browser acceptance claim.
 
-## Planned checks for this candidate
+## Retained editor checks
 
 The existing 42 browser scenarios and 20 PostgreSQL assertions remain. Eight added
 browser scenarios cover changed-field preview without writes, input invalidation,
@@ -70,11 +106,13 @@ holds the actual case row, observes both HTTP writers waiting on PostgreSQL lock
 then releases it: one must succeed and one must receive 409. Repreviewing the loser
 must preserve both changes. SQLite does not certify these row-lock semantics.
 
-Required totals are 50 browser scenarios (19 original + 11 draft + 12 note + 8
-editor), 25 PostgreSQL assertions (24 route/transaction + one independent-process
-readback), 54 React tests (50 existing + four login-race regressions), and
-41 ASGI/SQLite tests (31 update/editor + 10 first save).
-These are planned totals until the new exact-commit workflow executes successfully.
+Candidate target totals are 63 browser scenarios (19 original + 11 workbench
+draft + 12 note + 8 editor + 13 editor draft), 25 PostgreSQL assertions
+(24 route/transaction + one independent-process readback), 69 React/interceptor
+tests (54 existing + 15 editor-draft regressions), and 41 ASGI/SQLite tests
+(31 update/editor + 10 first save). Local React 69/69 and frontend build passed.
+The candidate exact-commit CI/browser/database totals remain pending authorization
+to append these eight files to the existing PR; no old passed run was rerun.
 
 ## Retained consultation and history coverage
 
@@ -96,7 +134,8 @@ The three-step workbench retains inputs across navigation, displays actual serve
 readback, and distinguishes unsaved input. Current-tab eight-hour draft recovery
 is account-scoped, requires fresh server state/review, and preserves newer input.
 It is not a server draft or encrypted storage; cross-device/closed-tab recovery is
-not guaranteed. The editor's input is not added to this workbench draft mechanism.
+not guaranteed. Editor drafts use separate entries and do not overwrite the
+workbench draft.
 
 Case Detail shows complete history text, including notes around repeated Q&A
 blocks, Unicode, CRLF, whitespace, literal HTML and long lines. Optional Q&A cards
@@ -148,8 +187,15 @@ JSON assertions, logs and exact commit/blob binding, with synthetic data only.
 Both browser runs failed overall and remain recorded as failures. No failed run
 was retried merely to obtain a pass, and no previously passed run was rerun. The
 login follow-up locally failed two of 54 tests before the fix and passed 54/54
-after it. Its exact-commit CI and full 50-scenario browser acceptance are pending
-approval to append the extra api.ts path; this document does not claim they passed.
+after it. The authorized login fix was subsequently appended as `ce52b3e`.
+[Acceptance run 35176756963](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/35176756963)
+passed 50/50 browser scenarios and 25/25 PostgreSQL assertions on that exact commit,
+attempt 1. Its artifact digest is
+`1c6b731f2746e01f32450b717eb3a122945cf1cc9ec27f3ae931aa8c5d8ae84c`.
+[Run 35176756899](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/35176756899)
+passed 54/54 React tests and 41/41 ASGI tests; CI Gate 35176756902 and history
+preservation 35176756953 also passed. These baseline results do not validate the
+new editor-draft candidate above.
 
 References: https://playwright.dev/docs/ci and
 https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md

@@ -4,6 +4,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useSearchParams } from "r
 import api from "./api";
 import useConsultDraft from "./useConsultDraft";
 import { clearDraft } from "./consultDraft";
+import { clearCaseEditDrafts } from "./caseEditDraft";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
 import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/ConsultWorkbench";
@@ -75,6 +76,7 @@ function Home() {
 
     try {
       clearDraft();
+      clearCaseEditDrafts();
       localStorage.removeItem("consult_session_id");
       localStorage.removeItem("token");
 
@@ -115,6 +117,7 @@ function Home() {
 
   const handleLogout = () => {
     clearDraft();
+    clearCaseEditDrafts();
     localStorage.removeItem("consult_session_id");
     localStorage.removeItem("token");
     window.location.reload();

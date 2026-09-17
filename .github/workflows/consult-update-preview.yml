@@ -8,6 +8,7 @@ on:
       - 'frontend/src/components/ConsultSaveReview.jsx'
       - 'frontend/src/App.jsx'
       - 'frontend/src/api.ts'
+      - 'frontend/src/caseEditDraft.js'
       - 'frontend/src/pages/CaseEditorLite.jsx'
       - 'frontend/src/components/CaseEditReview.jsx'
       - 'frontend/tests/**'

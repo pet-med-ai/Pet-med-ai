@@ -10,6 +10,7 @@ on:
       - 'frontend/src/pages/CaseEditorLite.jsx'
       - 'frontend/src/App.jsx'
       - 'frontend/src/api.ts'
+      - 'frontend/src/caseEditDraft.js'
       - 'frontend/src/consultDraft.js'
       - 'frontend/src/useConsultDraft.js'
       - 'frontend/src/components/**'
@@ -32,20 +33,22 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind exact reviewed editor and login fix to unchanged baseline
+      - name: Bind exact reviewed editor draft candidate to unchanged baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git diff --exit-code 378afb3c6a07ecdadb44b78fe1936c1b18a05ac7 HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)frontend/src/api.ts' ':(exclude)frontend/tests/case-edit-review.test.jsx'
+          git diff --exit-code ce52b3ec20a2a4ef0c065131c997e19bc1bace1f HEAD -- backend frontend knowledge-base requirements.txt ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/src/pages/CaseEditorLite.jsx' ':(exclude)frontend/src/caseEditDraft.js' ':(exclude)frontend/tests/case-edit-review.test.jsx'
+          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "c84810efe48bee7e8a0804524f0308acbdb5c8e0"
+          test "$(git rev-parse HEAD:frontend/src/caseEditDraft.js)" = "4af503d999cb8e14fb07c7f5d2f6decbe2f2e167"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "693fcbe6fe753ffce236f9215b67e80f99e0f2cb"
           test "$(git rev-parse HEAD:backend/main.py)" = "5727e914aeabaf9c020dda7ed3773c3919bbdd8d"
-          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "96b70b398a7250783f51d067fa35a8cc47d735f5"
+          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "3c4408e7a878acbdf6d606a60219d46d18e5b020"
           test "$(git rev-parse HEAD:frontend/src/components/CaseEditReview.jsx)" = "4e77a68434df6d0467710dc96d26b508b87ea05a"
-          test "$(git rev-parse HEAD:frontend/tests/case-edit-review.test.jsx)" = "29037e57e73d5a3862d0892cb03f645de4a854f6"
+          test "$(git rev-parse HEAD:frontend/tests/case-edit-review.test.jsx)" = "8b1872ebc3e858088468e0b3e6e12d735d4a4aff"
           test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "8c95de0c0a4b60b4c73f354c72584d2bab542fa4"
           test "$(git rev-parse HEAD:tests/test_consult_update_preview.py)" = "db76799e641b412c92b8f55eb3725b7eae0f3edb"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse 378afb3c6a07ecdadb44b78fe1936c1b18a05ac7 > acceptance-results/application-baseline.txt
+          git rev-parse ce52b3ec20a2a4ef0c065131c997e19bc1bace1f > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -107,6 +110,10 @@ jobs:
         run: |
           set -o pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/editor_checks.cjs 2>&1 | tee acceptance-results/editor-checks.log
+      - name: Real Chromium existing case editor draft recovery
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/editor_draft_checks.cjs 2>&1 | tee acceptance-results/editor-draft-checks.log
       - name: Stop test processes
         if: always()
         run: |
