@@ -5,6 +5,7 @@ import api from "../api";
 import ManualCaseCreateReview from "../components/ManualCaseCreateReview";
 import CaseEditReview from "../components/CaseEditReview";
 import { caseEditDraftOwner, clearCaseEditDraft, clearCaseEditDrafts, readCaseEditDraft, writeCaseEditDraft } from "../caseEditDraft";
+import "./CaseEditorLite.css";
 
 const EMPTY_FORM = {
   patient_name: "",
@@ -171,8 +172,7 @@ function CaseEditor({ id }) {
     <div
       lang="zh-CN"
       translate="no"
-      className="notranslate"
-      style={{ padding: 24, maxWidth: 980, margin: "0 auto", fontFamily: "system-ui, -apple-system, Arial" }}
+      className="notranslate case-editor"
     >
       <h1 style={{ marginTop: 0 }}>{isNew ? "新建病例" : `编辑病例 #${id}`}</h1>
 
@@ -197,7 +197,7 @@ function CaseEditor({ id }) {
       <fieldset disabled={saving || restoring || identityChanged || !!draftOffer || (!isNew && !editState)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <section style={card}>
         <h3 style={h3}>一、病例基础信息</h3>
-        <div style={grid3}>
+        <div className="case-editor__info-grid">
           <Field label="病例名 / 宠物名（必填）">
             <input value={form.patient_name} onChange={(e) => setField("patient_name", e.target.value)} placeholder="如：乐乐 / Lucky" />
           </Field>
@@ -318,7 +318,7 @@ function getErrorText(err) {
 
 function Field({ label, children }) {
   return (
-    <label style={{ display: "block", marginTop: 12 }}>
+    <label className="case-editor__field" style={{ display: "block", marginTop: 12 }}>
       <div style={{ fontSize: 13, opacity: .8, marginBottom: 4 }}>{label}</div>
       {children}
     </label>
@@ -342,12 +342,6 @@ const card = {
 };
 
 const h3 = { margin: "0 0 8px" };
-
-const grid3 = {
-  display: "grid",
-  gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
-  gap: 12,
-};
 
 const btn = {
   padding: "8px 14px",

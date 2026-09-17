@@ -8,6 +8,7 @@ on:
       - '.github/workflows/consult-browser-postgres.yml'
       - 'frontend/src/pages/CaseDetail.jsx'
       - 'frontend/src/pages/CaseEditorLite.jsx'
+      - 'frontend/src/pages/CaseEditorLite.css'
       - 'frontend/src/App.jsx'
       - 'frontend/src/api.ts'
       - 'frontend/src/caseEditDraft.js'
@@ -33,15 +34,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind manual-create candidate to reviewed main baseline
+      - name: Bind editor layout candidate to reviewed main baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git diff --exit-code 5f937c122e2f6c2d6efa246aa895927e17c26476 HEAD -- backend frontend knowledge-base requirements.txt tests ':(exclude)backend/main.py' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/src/api.ts' ':(exclude)frontend/src/pages/CaseEditorLite.jsx' ':(exclude)frontend/src/components/ManualCaseCreateReview.jsx' ':(exclude)frontend/tests/run-consult-update-review.mjs' ':(exclude)frontend/tests/manual-case-create.test.jsx' ':(exclude)tests/test_manual_case_create.py' ':(exclude)tests/acceptance/postgres_checks.py' ':(exclude)tests/acceptance/manual_create_checks.cjs' ':(exclude)tests/acceptance/README.md'
+          git merge-base --is-ancestor 077054c2ec438b00c55f885f024e1697440f8475 HEAD
+          git diff --exit-code 077054c2ec438b00c55f885f024e1697440f8475 HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)frontend/src/pages/CaseEditorLite.jsx' ':(exclude)frontend/src/pages/CaseEditorLite.css'
           test "$(git rev-parse HEAD:backend/main.py)" = "45771a6127a970d4b75ed53b2e7fabb6dd2e2017"
           test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "e23af1ca76a9fbdadb11787acd3525ceb3f1c45e"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "271b3ab99e95a5230ed5781f886b941dffa16e2a"
-          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "827a3f36740716d51622acc4a1799c5b805fdd4b"
+          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "5d955d1da0517c8a43c1aa37930f7357336c3e07"
+          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.css)" = "0deb6fc451b7cdc5ea53f78a248db3d6e7c6d74c"
           test "$(git rev-parse HEAD:frontend/src/components/ManualCaseCreateReview.jsx)" = "7a3f5841c8305ac5c695b10fe4eba06c998c2ae0"
           test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "ebb00f2fd55e845d91946085f589e83d92668ea0"
           test "$(git rev-parse HEAD:frontend/tests/manual-case-create.test.jsx)" = "295dc06a7f47c50b6e2a31c31265045eb695ad98"
@@ -49,7 +52,7 @@ jobs:
           test "$(git rev-parse HEAD:tests/acceptance/postgres_checks.py)" = "e75e9b455db05360c17f0495fa13d5b6337e475c"
           test "$(git rev-parse HEAD:tests/acceptance/manual_create_checks.cjs)" = "73c390ba00e425c1fa06feda47a307e07b8a1d14"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse 5f937c122e2f6c2d6efa246aa895927e17c26476 > acceptance-results/application-baseline.txt
+          git rev-parse 077054c2ec438b00c55f885f024e1697440f8475 > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
