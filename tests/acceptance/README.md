@@ -199,3 +199,43 @@ new editor-draft candidate above.
 
 References: https://playwright.dev/docs/ci and
 https://github.com/actions/runner-images/blob/main/images/ubuntu/Ubuntu2404-Readme.md
+
+## Deleted-case consultation update boundary
+
+Baseline: `50981642f18fb710e1aa03d5cd92caa57de3aa4e`. Its existing
+[acceptance run 35180208450](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/35180208450)
+passed 63 browser scenarios and 25 PostgreSQL checks. Those historical results
+do not validate this follow-up fix.
+
+Both `preview-update-case` and `update-case` now use the existing owner and
+active-case lookup. The write route retains its PostgreSQL case row lock.
+Deleted cases return 404 before preview generation or mutation, including
+legacy updates without a request body. No schema, migration, deletion/restore
+implementation, frontend application, or production configuration is changed.
+
+The two new ASGI tests cover deletion before preview and deletion between
+preview and confirmation, in `history_only` and `consult_sync` modes. They
+compare every column of the case and consultation rows through a fresh database
+connection after each rejected request. The no-body legacy path is also covered.
+On the unchanged baseline both new tests failed: deleted-case previews and a
+legacy update returned 200; confirmation after deletion returned 409 instead of
+404. After the fix the local ASGI/SQLite suite passed 33/33. SQLite does not
+substitute for PostgreSQL or browser acceptance.
+
+`postgres_checks.py` adds the same two checks using dedicated synthetic rows,
+real DELETE/authentication/routes, and independent SQL connections to verify no
+column changed after rejection. It leaves the restart-readback case intact.
+The configured total is 27 PostgreSQL checks (26 plus independent process readback).
+
+`deleted_case_checks.cjs` adds four real Chromium scenarios: each deletion timing
+in both update modes. They require real 404 responses, retained unsaved notes,
+no saved/readback success state and no automatic retry of a write. These run on
+the same disposable native PostgreSQL instance. They create and soft-delete only
+new synthetic cases, never restore them, and fabricate no successful responses.
+The configured browser total is 67 (existing 63 plus these 4).
+
+New browser/PostgreSQL results are established only by a successful new-commit
+workflow run and its bound artifacts; configured counts are not pass claims.
+The workflow checks that `backend/main.py` is the only application file changed
+from this baseline and binds the new tests by exact Git blob IDs. No prior run is
+rerun, no Docker is used, and no Render/production operation is performed.

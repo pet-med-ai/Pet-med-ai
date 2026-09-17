@@ -1299,9 +1299,7 @@ def ai_consult_session_preview_update_case(
     if not getattr(session, "case_id", None):
         raise HTTPException(status_code=400, detail="Consult session is not bound to a case")
 
-    obj = db.get(Case, session.case_id)
-    if not obj or getattr(obj, "owner_id", None) != getattr(user, "id", None):
-        raise HTTPException(status_code=404, detail="Case not found")
+    obj = get_owned_case_or_404(db, session.case_id, user)
 
     return _consult_update_snapshot(session, obj, _consult_session_to_case_fields(session), data.history_addendum if data else "", data.update_mode if data else "consult_sync")
 
@@ -1321,9 +1319,7 @@ def ai_consult_session_update_case(
     if not getattr(session, "case_id", None):
         raise HTTPException(status_code=400, detail="Consult session is not bound to a case")
 
-    obj = db.query(Case).filter(Case.id == session.case_id).with_for_update().first()
-    if not obj or getattr(obj, "owner_id", None) != getattr(user, "id", None):
-        raise HTTPException(status_code=404, detail="Case not found")
+    obj = get_owned_case_or_404(db, session.case_id, user, for_update=True)
 
     case_fields = _consult_session_to_case_fields(session)
     history_addendum = data.history_addendum if data else ""

@@ -309,4 +309,58 @@ assert current['treatment']=='并发编辑器治疗' and current['history'].coun
 assert current['history'].startswith(changed['history'])
 record('editor_and_consult_writers_block_conflict_then_preserve_both_changes')
 (f.OUT / 'restart-expected.json').write_text(json.dumps({'case_id':cid,'record':current,'session_url':url},ensure_ascii=False))
+
+# Dedicated synthetic rows: never delete the case used for restart readback.
+def deletion_fixture():
+    uid = uuid4().hex
+    with f.db.SessionLocal() as s:
+        obj = f.models.Case(owner_id=owner_id, patient_name='PG删除边界合成犬', species='dog',
+                            chief_complaint='合成主诉', history='  不得改写的病史🐾\r\n ',
+                            analysis='原分析', treatment='原治疗', prognosis='原风险')
+        s.add(obj); s.flush(); case_id = obj.id
+        s.add(f.models.ConsultSession(owner_id=owner_id, case_id=case_id, session_uid=uid,
+                                      text='合成问诊', answers=[], result={'risk_level':'low'}))
+        s.commit()
+    return case_id, '/api/ai/consult/session/'+uid
+
+
+def hidden_rows(case_id):
+    # Independent SQL connection checks all columns, including deletion/version.
+    with f.db.engine.connect() as connection:
+        return tuple(dict(connection.execute(text(sql), {'cid':case_id}).mappings().one())
+                     for sql in ('SELECT * FROM cases WHERE id=:cid',
+                                 'SELECT * FROM consult_sessions WHERE case_id=:cid'))
+
+
+def delete_synthetic_case(case_id):
+    response = client.delete('/api/cases/'+str(case_id), headers=owner)
+    assert response.status_code == 204, response.text
+    call('GET', '/api/cases/'+str(case_id), owner, expected=404)
+    snapshot = hidden_rows(case_id)
+    assert snapshot[0]['deleted_at'] is not None
+    return snapshot
+
+
+deleted_id, deleted_url = deletion_fixture()
+deleted_snapshot = delete_synthetic_case(deleted_id)
+for body in (None, {'update_mode':'consult_sync','history_addendum':'合成同步补记'},
+             {'update_mode':'history_only','history_addendum':'合成病史补记'}):
+    assert call('POST', deleted_url+'/preview-update-case', owner, expected=404,
+                **({'json':body} if body is not None else {})) == {'detail':'Case not found'}
+    assert hidden_rows(deleted_id) == deleted_snapshot
+call('POST', deleted_url+'/update-case', owner, expected=404)
+assert hidden_rows(deleted_id) == deleted_snapshot
+record('deleted_case_preview_and_legacy_update_reject_without_any_row_change')
+
+deleted_id, deleted_url = deletion_fixture()
+confirmations = []
+for mode in ('consult_sync','history_only'):
+    body = {'update_mode':mode,'history_addendum':'不得写入已删除病例的补记'}
+    preview = call('POST', deleted_url+'/preview-update-case', owner, json=body)
+    confirmations.append({**body,'expected_preview_token':preview['preview_token']})
+deleted_snapshot = delete_synthetic_case(deleted_id)
+for body in confirmations:
+    assert call('POST', deleted_url+'/update-case', owner, expected=404, json=body) == {'detail':'Case not found'}
+    assert hidden_rows(deleted_id) == deleted_snapshot
+record('delete_after_preview_rejects_both_modes_without_any_row_change')
 client.close(); f.db.engine.dispose()

@@ -114,6 +114,53 @@ class ConsultUpdatePreviewTests(unittest.TestCase):
                 self.assertEqual(self.update(preview).status_code, 409)
                 self.assertEqual(self.read(), current)
 
+    def deleted_case_state(self):
+        # A separate DB connection inspects the hidden row, not the 404 GET body.
+        db.engine.dispose()
+        with db.SessionLocal() as session:
+            case = session.get(models.Case, self.cid)
+            consult = session.query(models.ConsultSession).filter_by(session_uid=self.sid).one()
+            return tuple({column.key: getattr(row, column.key) for column in row.__table__.columns}
+                         for row in (case, consult))
+
+    def delete_fixture_case(self):
+        response = self.client.delete(f"/api/cases/{self.cid}", headers=self.owner_headers)
+        self.assertEqual(response.status_code, 204, response.text)
+        self.assertEqual(self.client.get(f"/api/cases/{self.cid}", headers=self.owner_headers).status_code, 404)
+        state = self.deleted_case_state()
+        self.assertIsNotNone(state[0]["deleted_at"])
+        return state
+
+    def test_deleted_case_rejects_consult_preview_and_legacy_update_without_writes(self):
+        before = self.delete_fixture_case()
+        bodies = [None, {"update_mode": "consult_sync", "history_addendum": "合成同步补记"},
+                  {"update_mode": "history_only", "history_addendum": "合成病史补记"}]
+        for body in bodies:
+            with self.subTest(body=body):
+                response = self.client.post(self.url + "/preview-update-case", headers=self.owner_headers,
+                                            **({"json": body} if body is not None else {}))
+                self.assertEqual(response.status_code, 404, response.text)
+                self.assertEqual(response.json(), {"detail": "Case not found"})
+                self.assertEqual(self.deleted_case_state(), before)
+        response = self.client.post(self.url + "/update-case", headers=self.owner_headers)
+        self.assertEqual(response.status_code, 404, response.text)
+        self.assertEqual(self.deleted_case_state(), before)
+
+    def test_deleted_after_preview_rejects_both_consult_modes_without_writes(self):
+        requests = []
+        for mode in ("consult_sync", "history_only"):
+            body = {"update_mode": mode, "history_addendum": "尚未保存的合成补记"}
+            response = self.client.post(self.url + "/preview-update-case", headers=self.owner_headers, json=body)
+            self.assertEqual(response.status_code, 200, response.text)
+            requests.append({**body, "expected_preview_token": response.json()["preview_token"]})
+        before = self.delete_fixture_case()
+        for body in requests:
+            with self.subTest(mode=body["update_mode"]):
+                response = self.client.post(self.url + "/update-case", headers=self.owner_headers, json=body)
+                self.assertEqual(response.status_code, 404, response.text)
+                self.assertEqual(response.json(), {"detail": "Case not found"})
+                self.assertEqual(self.deleted_case_state(), before)
+
     def test_patient_identity_change_invalidates_preview(self):
         preview = self.preview()
         self.change_case(patient_name="修改后的合成犬")
