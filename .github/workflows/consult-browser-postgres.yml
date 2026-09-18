@@ -44,7 +44,7 @@ jobs:
           test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "e23af1ca76a9fbdadb11787acd3525ceb3f1c45e"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "271b3ab99e95a5230ed5781f886b941dffa16e2a"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "5d955d1da0517c8a43c1aa37930f7357336c3e07"
-          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.css)" = "0deb6fc451b7cdc5ea53f78a248db3d6e7c6d74c"
+          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.css)" = "8665c9174e73f816d8477c7a7129b4f4228a70af"
           test "$(git rev-parse HEAD:frontend/src/components/ManualCaseCreateReview.jsx)" = "7a3f5841c8305ac5c695b10fe4eba06c998c2ae0"
           test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "ebb00f2fd55e845d91946085f589e83d92668ea0"
           test "$(git rev-parse HEAD:frontend/tests/manual-case-create.test.jsx)" = "295dc06a7f47c50b6e2a31c31265045eb695ad98"
