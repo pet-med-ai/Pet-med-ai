@@ -33,6 +33,31 @@
   line-height: 1.5;
 }
 
+.case-editor .case-editor__field > input,
+.case-editor .case-editor__field > select {
+  min-height: calc(1.5em + 18px);
+}
+
+.case-editor .case-editor__field > select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 34px;
+  color: inherit;
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px 14px;
+}
+
+@media (forced-colors: active) {
+  .case-editor .case-editor__field > select {
+    -webkit-appearance: auto;
+    appearance: auto;
+    background-image: none;
+  }
+}
+
 .case-editor .case-editor__field > textarea {
   resize: vertical;
 }
