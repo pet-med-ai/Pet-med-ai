@@ -24,6 +24,49 @@
 .doctor-workbench .intake-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .doctor-workbench input:not([type="checkbox"]):not([type="radio"]), .doctor-workbench textarea, .doctor-workbench select { max-width: 100%; min-width: 0; }
 .doctor-workbench .intake-grid input, .doctor-workbench .intake-grid select { width: 100%; }
+
+/* Keep the intake fields readable without changing review or save controls. */
+.doctor-workbench > form { flex-wrap: wrap; }
+.doctor-workbench > form > input { flex: 1 1 220px; max-width: 320px; }
+.doctor-workbench .intake-grid > label { min-width: 0; }
+.doctor-workbench > form > input,
+.doctor-workbench .intake-grid > label > input,
+.doctor-workbench .intake-grid > label > select,
+.doctor-workbench [data-workbench-panel="1"] > section > form > label > textarea {
+  display: block;
+  padding: 8px 10px;
+  border: 1px solid #94a3b8;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 16px;
+  line-height: 1.5;
+  color: inherit;
+  background-color: #fff;
+}
+.doctor-workbench > form > input,
+.doctor-workbench .intake-grid > label > input,
+.doctor-workbench .intake-grid > label > select { min-height: calc(1.5em + 18px); }
+.doctor-workbench .intake-grid > label > select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%23475569' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 14px 14px;
+}
+.doctor-workbench [data-workbench-panel="1"] > section > form > label > textarea {
+  width: 100%;
+  min-height: calc(7.5em + 18px);
+  resize: vertical;
+}
+@media (forced-colors: active) {
+  .doctor-workbench .intake-grid > label > select {
+    -webkit-appearance: auto;
+    appearance: auto;
+    background-image: none;
+  }
+}
 .doctor-workbench .workbench-readback { padding: 18px; border: 1px solid #bfdcda; border-radius: 14px; background: #fbfefd; }
 .doctor-workbench .readback-success { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: center; color: #065f46; }
 .doctor-workbench .readback-success h3 { margin: 6px 0; }
@@ -39,5 +82,6 @@
   .doctor-workbench .workbench-steps button { padding: 10px 6px; gap: 5px; flex-direction: column; font-size: 13px; text-align: center; }
   .doctor-workbench .step-number { font-size: 21px; }
   .doctor-workbench .intake-grid { grid-template-columns: minmax(0, 1fr); }
+  .doctor-workbench > form > input { flex-basis: 100%; max-width: 100%; }
   .doctor-workbench .workbench-actions > * { flex: 1 1 auto; text-align: center; }
 }

@@ -34,12 +34,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind editor layout candidate to reviewed main baseline
+      - name: Bind home form layout candidate to reviewed main baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git merge-base --is-ancestor 077054c2ec438b00c55f885f024e1697440f8475 HEAD
-          git diff --exit-code 077054c2ec438b00c55f885f024e1697440f8475 HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)frontend/src/pages/CaseEditorLite.jsx' ':(exclude)frontend/src/pages/CaseEditorLite.css'
+          git merge-base --is-ancestor e3e2a8bc1169443170eb2dcc9ba0831aa2d509db HEAD
+          git diff --exit-code e3e2a8bc1169443170eb2dcc9ba0831aa2d509db HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)frontend/src/components/ConsultWorkbench.css'
           test "$(git rev-parse HEAD:backend/main.py)" = "45771a6127a970d4b75ed53b2e7fabb6dd2e2017"
           test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "e23af1ca76a9fbdadb11787acd3525ceb3f1c45e"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "271b3ab99e95a5230ed5781f886b941dffa16e2a"
@@ -51,8 +51,9 @@ jobs:
           test "$(git rev-parse HEAD:tests/test_manual_case_create.py)" = "954b7726dbebda0cde1a29cf5719af12ec55334c"
           test "$(git rev-parse HEAD:tests/acceptance/postgres_checks.py)" = "e75e9b455db05360c17f0495fa13d5b6337e475c"
           test "$(git rev-parse HEAD:tests/acceptance/manual_create_checks.cjs)" = "73c390ba00e425c1fa06feda47a307e07b8a1d14"
+          test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.css)" = "039390558532bd3b61dc57359d227965d84a5657"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse 077054c2ec438b00c55f885f024e1697440f8475 > acceptance-results/application-baseline.txt
+          git rev-parse e3e2a8bc1169443170eb2dcc9ba0831aa2d509db > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
