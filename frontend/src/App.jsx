@@ -452,13 +452,17 @@ export function Home() {
 
   // ===== 拉取病例列表（服务端分页/搜索） =====
   const caseListTimer = useRef(null);
+  const caseListRequest = useRef(0);
   const fetchCases = async (paramsOverride = {}) => {
     clearTimeout(caseListTimer.current);
     caseListTimer.current = null;
-    if (!localStorage.getItem("token")) {
+    const requestId = ++caseListRequest.current;
+    const requestToken = localStorage.getItem("token");
+    if (!requestToken) {
       setCases([]);
       setTotal(0);
       clearSelection();
+      setLoadingCases(false);
       return;
     }
     try {
@@ -466,15 +470,24 @@ export function Home() {
       const res = await api.get("/api/cases", {
         params: buildCaseListParams(paramsOverride),
       });
+      // A slower query or a previous login must not replace the current list.
+      if (requestId !== caseListRequest.current || requestToken !== localStorage.getItem("token")) return;
       const items = Array.isArray(res.data) ? res.data : (res.data.items || []);
       const totalCount = Array.isArray(res.data) ? items.length : (res.data.total ?? items.length);
       setCases(items);
       setTotal(totalCount);
       clearSelection(); // 翻页/搜索后清选择，避免跨页误删
     } catch (e) {
-      console.error("拉取病例失败：", e);
+      if (requestId === caseListRequest.current) console.error("拉取病例失败：", e);
     } finally {
-      setLoadingCases(false);
+      if (requestId === caseListRequest.current) {
+        if (requestToken !== localStorage.getItem("token")) {
+          setCases([]);
+          setTotal(0);
+          clearSelection();
+        }
+        setLoadingCases(false);
+      }
     }
   };
 
@@ -483,6 +496,7 @@ export function Home() {
     const previous = caseListFilters.current;
     const filtersChanged = previous.q !== q || previous.riskFilter !== riskFilter || previous.sourceFilter !== sourceFilter;
     caseListFilters.current = { q, riskFilter, sourceFilter };
+    setLoadingCases(false);
     if (filtersChanged && page !== 1) {
       setPage(1);
       return;
@@ -490,7 +504,11 @@ export function Home() {
     if (!isAuthed) return;
     // One cancellable load for mount, search, filters and pagination.
     caseListTimer.current = setTimeout(() => fetchCases(), 300);
-    return () => clearTimeout(caseListTimer.current);
+    return () => {
+      clearTimeout(caseListTimer.current);
+      // Invalidate immediately, including the debounce gap and page unmount.
+      caseListRequest.current += 1;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q, riskFilter, sourceFilter, page, isAuthed]);
 
