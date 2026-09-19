@@ -441,12 +441,6 @@ export function Home() {
     }
   };
 
-  // ===== 工具：输入防抖 =====
-  const debounce = (fn, delay = 300) => {
-    let t;
-    return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), delay); };
-  };
-
   const buildCaseListParams = (paramsOverride = {}) => ({
     q,
     page,
@@ -457,7 +451,16 @@ export function Home() {
   });
 
   // ===== 拉取病例列表（服务端分页/搜索） =====
+  const caseListTimer = useRef(null);
   const fetchCases = async (paramsOverride = {}) => {
+    clearTimeout(caseListTimer.current);
+    caseListTimer.current = null;
+    if (!localStorage.getItem("token")) {
+      setCases([]);
+      setTotal(0);
+      clearSelection();
+      return;
+    }
     try {
       setLoadingCases(true);
       const res = await api.get("/api/cases", {
@@ -475,13 +478,21 @@ export function Home() {
     }
   };
 
-  useEffect(() => { fetchCases(); }, []);
+  const caseListFilters = useRef({ q, riskFilter, sourceFilter });
   useEffect(() => {
-    const run = debounce(() => { setPage(1); fetchCases({ page: 1 }); }, 300);
-    run();
+    const previous = caseListFilters.current;
+    const filtersChanged = previous.q !== q || previous.riskFilter !== riskFilter || previous.sourceFilter !== sourceFilter;
+    caseListFilters.current = { q, riskFilter, sourceFilter };
+    if (filtersChanged && page !== 1) {
+      setPage(1);
+      return;
+    }
+    if (!isAuthed) return;
+    // One cancellable load for mount, search, filters and pagination.
+    caseListTimer.current = setTimeout(() => fetchCases(), 300);
+    return () => clearTimeout(caseListTimer.current);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, riskFilter, sourceFilter]);
-  useEffect(() => { fetchCases(); }, [page]);
+  }, [q, riskFilter, sourceFilter, page, isAuthed]);
 
   const formatList = (items) => {
     if (!items) return "";
@@ -1663,7 +1674,7 @@ export function Home() {
       {/* ====== 列表（搜索+分页 + 批量操作） ====== */}
       <section style={card}>
         <h2 style={h2}>病例列表</h2>
-
+        {!isAuthed ? <p role="status">请先登录后查看病例列表。</p> : <>
         {/* 搜索 + 操作 */}
         <div style={{ display: "flex", gap: 8, alignItems: "center", marginBottom: 8 }}>
           <input
@@ -1694,7 +1705,7 @@ export function Home() {
             <option value="dynamic">动态问诊</option>
             <option value="manual">手动录入</option>
           </select>
-          <button onClick={() => { setPage(1); fetchCases({ page: 1 }); }} disabled={loadingCases} style={btn}>
+          <button onClick={() => { if (page !== 1) setPage(1); else fetchCases({ page: 1 }); }} disabled={loadingCases} style={btn}>
             {loadingCases ? "刷新中…" : "刷新列表"}
           </button>
           <button onClick={exportCSV} style={btnSecondary}>导出 CSV</button>
@@ -1822,6 +1833,7 @@ export function Home() {
             </div>
           </>
         )}
+        </>}
       </section>
 
       </details>
