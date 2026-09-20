@@ -36,14 +36,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind case list failure feedback candidate to reviewed main baseline
+      - name: Bind confirmed case deletion and undo candidate to reviewed main baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git merge-base --is-ancestor d021e1707dab94d2ec861e4080b6ed2642067048 HEAD
-          git diff --exit-code d021e1707dab94d2ec861e4080b6ed2642067048 HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/tests/case-list-auth.test.jsx'
+          git merge-base --is-ancestor ee4f488b13cfd3511d551e8454775b5457313daa HEAD
+          git diff --exit-code ee4f488b13cfd3511d551e8454775b5457313daa HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/tests/case-list-auth.test.jsx'
           test "$(git rev-parse HEAD:backend/main.py)" = "45771a6127a970d4b75ed53b2e7fabb6dd2e2017"
-          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "32a88284c472a64b5bd206c7e603a0025358971b"
+          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "eee5e0b3d2b9735ad100e510d214e97e8086ef15"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "271b3ab99e95a5230ed5781f886b941dffa16e2a"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "5d955d1da0517c8a43c1aa37930f7357336c3e07"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.css)" = "8665c9174e73f816d8477c7a7129b4f4228a70af"
@@ -54,9 +54,9 @@ jobs:
           test "$(git rev-parse HEAD:tests/acceptance/postgres_checks.py)" = "e75e9b455db05360c17f0495fa13d5b6337e475c"
           test "$(git rev-parse HEAD:tests/acceptance/manual_create_checks.cjs)" = "73c390ba00e425c1fa06feda47a307e07b8a1d14"
           test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.css)" = "039390558532bd3b61dc57359d227965d84a5657"
-          test "$(git rev-parse HEAD:frontend/tests/case-list-auth.test.jsx)" = "b72372a215d70ed13eab545243dbb2c794e11c3a"
+          test "$(git rev-parse HEAD:frontend/tests/case-list-auth.test.jsx)" = "494470ee2e9417547d7bce18fe47d32ae984c55b"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse d021e1707dab94d2ec861e4080b6ed2642067048 > acceptance-results/application-baseline.txt
+          git rev-parse ee4f488b13cfd3511d551e8454775b5457313daa > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
