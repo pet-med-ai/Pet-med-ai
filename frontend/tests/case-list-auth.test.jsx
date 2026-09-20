@@ -270,3 +270,137 @@ test("an in-flight failure after unmount does not report an error on the abandon
   await complete(() => pending[0].fail());
   assert.equal(errors.length, 0);
 });
+
+const caseAlerts = () => listSection().findAllByProps({ role: "alert" });
+const caseErrorText = /病例列表加载失败，请稍后重试。/;
+
+for (const failure of ["server", "network"]) {
+  test(`${failure} failure is shown as an error, not an empty list, without automatic retry`, async () => {
+    listAdapter = async config => { throw failure === "server"
+      ? { config, response: { status: 500, data: { detail: "internal-sensitive-detail" } } }
+      : Object.assign(new Error("internal-sensitive-detail"), { config }); };
+    await mount(); await settle(); await settle();
+    assert.equal(caseRequests().length, 1);
+    assert.equal(localStorage.getItem("token"), token);
+    assert.equal(caseAlerts().length, 1);
+    assert.match(output(), caseErrorText);
+    assert.doesNotMatch(output(), /暂无病例|internal-sensitive-detail/);
+    assert.equal(button("重试").props.disabled, false);
+  });
+}
+
+test("an unfinished first load does not claim there are no cases", async () => {
+  const pending = deferCaseResponses();
+  await mount();
+  assert.doesNotMatch(output(), /暂无病例/);
+  await settle();
+  assert.match(output(), /正在加载病例列表/);
+  assert.doesNotMatch(output(), /暂无病例/);
+  await complete(() => pending[0].succeed("已加载病例"));
+  assert.match(output(), /已加载病例/);
+  assert.doesNotMatch(output(), /正在加载病例列表/);
+});
+
+test("a current refresh failure removes stale rows, totals and selection", async () => {
+  await mount(); await settle(); await click(button("本页全选"));
+  assert(button("批量删除(1)"));
+  listAdapter = async config => { throw { config, response: { status: 500 } }; };
+  await click(button("刷新列表"));
+  assert.match(output(), caseErrorText);
+  assert.doesNotMatch(output(), /合成病例|暂无病例|共 21 条/);
+  assert.equal(button("批量删除(0)").props.disabled, true);
+});
+
+test("retry keeps the failed query, filters and page, sends once and recovers", async () => {
+  listAdapter = async config => ({ config, status: 200, data: { items: [{ ...row, analysis: "高风险" }], total: 21 } });
+  await mount(); await settle();
+  change(search(), "待重试查询");
+  change(renderer.root.findByProps({ title: "按风险等级筛选" }), "high");
+  change(renderer.root.findByProps({ title: "按病例来源筛选" }), "manual");
+  await settle();
+  listAdapter = async config => { throw { config, response: { status: 500 } }; };
+  await click(listButton("下一页")); await settle();
+  assert.match(output(), caseErrorText);
+  const failedParams = { ...caseRequests().at(-1).params };
+  assert.deepEqual(failedParams, { q: "待重试查询", page: 2, page_size: 10, risk: "high", source: "manual" });
+  requests = [];
+  const pending = deferCaseResponses();
+  await act(async () => { button("重试").props.onClick(); });
+  assert.equal(caseAlerts().length, 0);
+  assert.equal(button("重试"), undefined);
+  assert.equal(button("刷新中…").props.disabled, true);
+  await settle();
+  assert.equal(caseRequests().length, 1);
+  assert.deepEqual(caseRequests()[0].params, failedParams);
+  await complete(() => pending[0].succeed("重试成功病例", 21));
+  assert.match(output(), /重试成功病例/);
+  assert.equal(caseAlerts().length, 0);
+  assert.equal(button("刷新列表").props.disabled, false);
+});
+
+test("a late successful old request cannot dismiss the current failure", async () => {
+  const pending = deferCaseResponses();
+  await mount(); await settle();
+  change(search(), "当前查询"); await settle();
+  await complete(() => pending[1].fail());
+  assert.match(output(), caseErrorText);
+  await complete(() => pending[0].succeed("过期病例"));
+  assert.match(output(), caseErrorText);
+  assert.doesNotMatch(output(), /过期病例|暂无病例/);
+});
+
+test("a superseded failure during the debounce gap cannot show an error", async () => {
+  const pending = deferCaseResponses();
+  await mount(); await settle();
+  change(search(), "新查询");
+  await complete(() => pending[0].fail());
+  assert.equal(caseAlerts().length, 0);
+  assert.equal(errors.length, 0);
+  await settle();
+  await complete(() => pending[1].succeed("新结果"));
+  assert.equal(caseAlerts().length, 0);
+});
+
+test("a failure for replaced credentials cannot show a retry error for the new login", async () => {
+  const pending = deferCaseResponses();
+  await mount(); await settle();
+  localStorage.setItem("token", token + "-changed");
+  await complete(() => pending[0].fail());
+  assert.equal(caseAlerts().length, 0);
+  assert.equal(button("重试"), undefined);
+  assert.equal(localStorage.getItem("token"), token + "-changed");
+});
+
+test("logout after a failure removes the protected retry control", async () => {
+  listAdapter = async config => { throw { config, response: { status: 500 } }; };
+  await mount(); await settle();
+  assert.match(output(), caseErrorText);
+  localStorage.removeItem("token");
+  act(() => renderer.update(<MemoryRouter><Home /></MemoryRouter>));
+  assert.match(output(), /请先登录后查看病例列表/);
+  assert.equal(caseAlerts().length, 0);
+  assert.equal(button("重试"), undefined);
+});
+
+test("a new query clears the previous error before dispatch and can fail independently", async () => {
+  listAdapter = async config => { throw { config, response: { status: 500 } }; };
+  await mount(); await settle();
+  assert.match(output(), caseErrorText);
+  change(search(), "新的失败查询");
+  assert.equal(caseAlerts().length, 0);
+  assert.doesNotMatch(output(), /暂无病例/);
+  await settle();
+  assert.match(output(), caseErrorText);
+  assert.equal(caseRequests().at(-1).params.q, "新的失败查询");
+});
+
+test("a successful empty retry shows the empty state instead of a lingering error", async () => {
+  listAdapter = async config => { throw { config, response: { status: 500 } }; };
+  await mount(); await settle();
+  assert.match(output(), caseErrorText);
+  listAdapter = async config => ({ config, status: 200, data: { items: [], total: 0 } });
+  await click(button("重试"));
+  assert.match(output(), /暂无病例。/);
+  assert.equal(caseAlerts().length, 0);
+  assert.equal(button("重试"), undefined);
+});
