@@ -12,7 +12,7 @@ const memory = () => {
 };
 const token = "synthetic." + Buffer.from(JSON.stringify({ sub: "case-list-test", exp: 4102444800 })).toString("base64url") + ".signature";
 const row = { id: 7, patient_name: "合成病例", species: "dog", chief_complaint: "虚构验收", history: "虚构病史" };
-let renderer, requests, listAdapter, errors, warnings, originalError, originalWarn;
+let renderer, requests, listAdapter, mutationAdapter, confirmations, alerts, errors, warnings, originalError, originalWarn;
 const caseRequests = () => requests.filter(c => c.url === "/api/cases");
 const output = () => JSON.stringify(renderer.toJSON());
 const button = name => renderer.root.findAllByType("button").find(n => n.children.join("") === name);
@@ -33,15 +33,19 @@ const click = async node => {
 beforeEach(() => {
   global.localStorage = memory();
   global.window = { sessionStorage: memory(), addEventListener() {}, removeEventListener() {}, location: { reload() {} } };
-  global.alert = () => {};
+  confirmations = []; alerts = [];
+  global.confirm = message => { confirmations.push(message); return true; };
+  global.alert = message => alerts.push(message);
   requests = []; errors = []; warnings = []; renderer = null;
   originalError = console.error; originalWarn = console.warn;
   console.error = (...args) => errors.push(args);
   console.warn = (...args) => warnings.push(args);
   listAdapter = async config => ({ config, status: 200, data: { items: [row], total: 21 } });
+  mutationAdapter = () => assert.fail("Unexpected synthetic mutation");
   // No real HTTP: every request is intercepted, and every unexpected route fails.
   api.defaults.adapter = async config => {
     requests.push(config);
+    if (config.method !== "get") return mutationAdapter(config);
     assert.equal(config.method, "get");
     if (config.url === "/api/cases") return listAdapter(config);
     assert.equal(config.url, "/api/ai/consult/sessions");
@@ -381,6 +385,201 @@ test("logout after a failure removes the protected retry control", async () => {
   assert.equal(caseAlerts().length, 0);
   assert.equal(button("重试"), undefined);
 });
+
+// Deletion receipts must describe completed server operations, never pending ones.
+// All writes below are intercepted synthetic requests; no server or database is used.
+const secondRow = { ...row, id: 8, patient_name: "第二条合成病例" };
+const deleteButtons = () => listSection().findAllByProps({ title: "删除该病例" });
+const mutations = () => requests.filter(c => c.method !== "get");
+const deferMutations = () => {
+  const pending = [];
+  mutationAdapter = config => {
+    assert(["/api/cases/7", "/api/cases/8", "/api/cases/7/restore", "/api/cases/8/restore"].includes(config.url));
+    assert.equal(config.method, config.url.endsWith("/restore") ? "post" : "delete");
+    return new Promise((resolve, reject) => pending.push({
+      config,
+      succeed: () => resolve({ config, status: config.method === "delete" ? 204 : 200, data: {} }),
+      fail: () => reject({ config, response: { status: 500 } }),
+    }));
+  };
+  return pending;
+};
+const begin = callback => act(async () => { callback(); });
+const showTwoRows = () => {
+  listAdapter = async config => ({ config, status: 200, data: { items: [row, secondRow], total: 2 } });
+};
+const receipt = () => button("撤销") || button("撤销中…");
+
+test("cancelling a single deletion sends no mutation and shows no deletion receipt", async () => {
+  await mount(); await settle();
+  global.confirm = message => { confirmations.push(message); return false; };
+  await click(deleteButtons()[0]);
+  assert.equal(confirmations.length, 1);
+  assert.equal(mutations().length, 0);
+  assert.equal(Boolean(receipt()), false);
+});
+
+test("a pending deletion cannot claim success or offer undo before server confirmation", async () => {
+  const pending = deferMutations();
+  await mount(); await settle();
+  await begin(() => deleteButtons()[0].props.onClick());
+  assert.equal(pending.length, 1);
+  assert.equal(deleteButtons()[0].props.disabled, true);
+  assert.match(output(), /删除中/);
+  assert.equal(Boolean(receipt()), false);
+  assert.doesNotMatch(output(), /已删除/);
+  await complete(() => pending[0].succeed());
+  assert(button("撤销"));
+  assert.match(output(), /已删除/);
+  assert.equal(caseRequests().length, 2);
+});
+
+test("a failed deletion has no success receipt and makes no automatic retry", async () => {
+  const pending = deferMutations();
+  await mount(); await settle();
+  await begin(() => deleteButtons()[0].props.onClick());
+  await complete(() => pending[0].fail());
+  assert.equal(Boolean(receipt()), false);
+  assert.equal(mutations().length, 1);
+  assert.equal(caseRequests().length, 1);
+  assert.equal(Boolean(deleteButtons()[0].props.disabled), false);
+  assert.equal(alerts.length, 1);
+});
+
+test("duplicate single-delete callbacks and a different row cannot dispatch concurrent deletions", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await mount(); await settle();
+  const first = deleteButtons()[0].props.onClick;
+  const second = deleteButtons()[1].props.onClick;
+  await begin(() => { first(); first(); second(); });
+  assert.equal(pending.length, 1);
+  assert.equal(confirmations.length, 1);
+  assert(deleteButtons().every(node => node.props.disabled));
+  await complete(() => pending[0].succeed());
+  assert(deleteButtons().every(node => !node.props.disabled));
+});
+
+test("a later pending or failed deletion preserves the previous confirmed undo target", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await mount(); await settle();
+  await begin(() => deleteButtons()[0].props.onClick());
+  await complete(() => pending[0].succeed());
+  const undoPrevious = button("撤销").props.onClick;
+  await begin(() => deleteButtons()[1].props.onClick());
+  assert.equal(button("撤销").props.disabled, true);
+  await begin(undoPrevious);
+  assert.equal(pending.length, 2);
+  await complete(() => pending[1].fail());
+  assert.equal(Boolean(button("撤销").props.disabled), false);
+  await begin(() => button("撤销").props.onClick());
+  assert.equal(pending[2].config.url, "/api/cases/7/restore");
+  await complete(() => pending[2].succeed());
+  assert.equal(Boolean(receipt()), false);
+});
+
+test("a later successful deletion replaces the undo target only after confirmation", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await mount(); await settle();
+  await begin(() => deleteButtons()[0].props.onClick());
+  await complete(() => pending[0].succeed());
+  await begin(() => deleteButtons()[1].props.onClick());
+  await complete(() => pending[1].succeed());
+  await begin(() => button("撤销").props.onClick());
+  assert.equal(pending[2].config.url, "/api/cases/8/restore");
+  await complete(() => pending[2].succeed());
+});
+
+test("pending undo blocks duplicate restore and delete callbacks until completion", async () => {
+  const pending = deferMutations();
+  await mount(); await settle();
+  await begin(() => deleteButtons()[0].props.onClick());
+  await complete(() => pending[0].succeed());
+  const undo = button("撤销").props.onClick;
+  const remove = deleteButtons()[0].props.onClick;
+  await begin(() => { undo(); undo(); remove(); });
+  assert.equal(pending.length, 2);
+  assert.equal(pending[1].config.url, "/api/cases/7/restore");
+  assert.equal(button("撤销中…").props.disabled, true);
+  assert.equal(deleteButtons()[0].props.disabled, true);
+  assert.equal(button("关闭").props.disabled, true);
+  await complete(() => pending[1].succeed());
+  assert.equal(Boolean(receipt()), false);
+  assert.equal(caseRequests().length, 3);
+  assert.equal(Boolean(deleteButtons()[0].props.disabled), false);
+});
+
+test("failed undo keeps the confirmed receipt and allows an explicit retry", async () => {
+  const pending = deferMutations();
+  await mount(); await settle();
+  await begin(() => deleteButtons()[0].props.onClick());
+  await complete(() => pending[0].succeed());
+  await begin(() => button("撤销").props.onClick());
+  await complete(() => pending[1].fail());
+  assert.equal(Boolean(button("撤销").props.disabled), false);
+  assert.equal(mutations().length, 2);
+  await begin(() => button("撤销").props.onClick());
+  assert.equal(pending[2].config.url, "/api/cases/7/restore");
+  await complete(() => pending[2].succeed());
+  assert.equal(Boolean(receipt()), false);
+});
+
+test("confirmed deletion keeps undo even when the following list refresh fails", async () => {
+  const pending = deferMutations();
+  await mount(); await settle();
+  await begin(() => deleteButtons()[0].props.onClick());
+  listAdapter = async config => { throw { config, response: { status: 500 } }; };
+  await complete(() => pending[0].succeed());
+  assert.match(output(), caseErrorText);
+  assert.equal(Boolean(button("撤销").props.disabled), false);
+  assert.equal(mutations().length, 1);
+});
+
+test("confirmed restore clears undo even when the following list refresh fails", async () => {
+  const pending = deferMutations();
+  await mount(); await settle();
+  await begin(() => deleteButtons()[0].props.onClick());
+  await complete(() => pending[0].succeed());
+  await begin(() => button("撤销").props.onClick());
+  listAdapter = async config => { throw { config, response: { status: 500 } }; };
+  await complete(() => pending[1].succeed());
+  assert.match(output(), caseErrorText);
+  assert.equal(Boolean(receipt()), false);
+  assert.equal(mutations().length, 2);
+});
+
+test("single deletion blocks a previously selected bulk-delete callback", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await mount(); await settle(); await click(button("本页全选"));
+  const bulk = button("批量删除(2)").props.onClick;
+  await begin(() => { deleteButtons()[0].props.onClick(); bulk(); });
+  assert.equal(pending.length, 1);
+  assert.equal(button("批量删除(2)").props.disabled, true);
+  await complete(() => pending[0].succeed());
+});
+
+test("bulk deletion blocks single delete and undo while preserving existing receipt on failure", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await mount(); await settle();
+  await begin(() => deleteButtons()[0].props.onClick());
+  await complete(() => pending[0].succeed());
+  await click(button("本页全选"));
+  const undo = button("撤销").props.onClick;
+  const remove = deleteButtons()[1].props.onClick;
+  const bulk = button("批量删除(2)").props.onClick;
+  await begin(() => { bulk(); bulk(); undo(); remove(); });
+  assert.equal(pending.length, 3);
+  assert.equal(button("撤销").props.disabled, true);
+  assert(deleteButtons().every(node => node.props.disabled));
+  await complete(() => pending[1].fail());
+  assert.equal(button("撤销").props.disabled, true);
+  await begin(undo);
+  assert.equal(pending.length, 3);
+  assert.equal(alerts.length, 0);
+  await complete(() => pending[2].succeed());
+  assert.equal(Boolean(button("撤销").props.disabled), false);
+  assert.equal(alerts.length, 1);
+});
+
 
 test("a new query clears the previous error before dispatch and can fail independently", async () => {
   listAdapter = async config => { throw { config, response: { status: 500 } }; };

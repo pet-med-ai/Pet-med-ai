@@ -217,7 +217,10 @@ export function Home() {
 
   // ===== 单条删除 / 撤销 =====
   const [deletingId, setDeletingId] = useState(null);     // 正在删除的行
-  const [lastDeleted, setLastDeleted] = useState(null);   // { id, data } 最近删除的完整对象（用于撤销）
+  const [lastDeleted, setLastDeleted] = useState(null);   // 最近已确认删除的病例（用于撤销）
+  const [restoringDelete, setRestoringDelete] = useState(false);
+  const caseDeletePending = useRef(false);
+  const deleteActionBusy = bulkDeleting || deletingId !== null || restoringDelete;
 
   const getCaseRiskMeta = (caseItem) => {
     const raw = [
@@ -395,11 +398,15 @@ export function Home() {
 
   // 批量删除
   const handleBulkDelete = async () => {
+    if (caseDeletePending.current) return;
     if (!selectedIds.size) { alert("请先勾选要删除的病例"); return; }
     if (!confirm(`确定删除选中的 ${selectedIds.size} 条病例？此操作不可恢复。`)) return;
+    caseDeletePending.current = true;
     try {
       setBulkDeleting(true);
-      await Promise.all(Array.from(selectedIds).map(id => api.delete(`/api/cases/${id}`)));
+      // Wait for every dispatched deletion before allowing another delete/undo.
+      const results = await Promise.allSettled(Array.from(selectedIds).map(id => api.delete(`/api/cases/${id}`)));
+      if (results.some(result => result.status === "rejected")) throw new Error("Some case deletions were not confirmed");
       clearSelection();
       await fetchCases();
       alert("删除完成");
@@ -407,30 +414,35 @@ export function Home() {
       console.error(e);
       alert("部分或全部删除失败，请查看控制台或后端日志");
     } finally {
+      caseDeletePending.current = false;
       setBulkDeleting(false);
     }
   };
 
   // 单条删除（缓存最新删除用于撤销）
   const handleDeleteOne = async (row) => {
-    if (!confirm(`确定删除病例 ${row.id}？此操作不可恢复。`)) return;
+    if (caseDeletePending.current) return;
+    if (!confirm(`确定删除病例 ${row.id}？`)) return;
+    caseDeletePending.current = true;
     try {
       setDeletingId(row.id);
-      setLastDeleted({ id: row.id, data: row }); // 缓存
       await api.delete(`/api/cases/${row.id}`);
+      setLastDeleted({ id: row.id, data: row });
       await fetchCases();
     } catch (e) {
       console.error(e);
       alert("删除失败，请查看控制台或后端日志");
-      setLastDeleted(null);
     } finally {
+      caseDeletePending.current = false;
       setDeletingId(null);
     }
   };
 
   // 撤销删除（软还原）
   const handleUndoDelete = async () => {
-    if (!lastDeleted) return;
+    if (!lastDeleted || caseDeletePending.current) return;
+    caseDeletePending.current = true;
+    setRestoringDelete(true);
     try {
       // 还原接口：按需改成你的后端路径
       await api.post(`/api/cases/${lastDeleted.id}/restore`);
@@ -440,6 +452,9 @@ export function Home() {
       console.error(e);
       // 如果后端没有 restore 接口，可以尝试用 PUT/POST 重建（字段以你后端为准）
       alert("撤销失败：请检查后端是否提供 /restore 接口");
+    } finally {
+      caseDeletePending.current = false;
+      setRestoringDelete(false);
     }
   };
 
@@ -1750,7 +1765,7 @@ export function Home() {
           </button>
           <button onClick={selectAllCurrentPage} style={btnSecondary}>本页全选</button>
           <button onClick={clearSelection} style={btnSecondary}>清空选择</button>
-          <button onClick={handleBulkDelete} disabled={bulkDeleting || selectedIds.size === 0} style={btnDanger}>
+          <button onClick={handleBulkDelete} disabled={deleteActionBusy || selectedIds.size === 0} style={btnDanger}>
             {bulkDeleting ? "删除中…" : `批量删除(${selectedIds.size})`}
           </button>
           <Link to="/cases/new/edit" style={{ ...btnSecondary, textDecoration:"none", display:"inline-block" }}>
@@ -1851,7 +1866,7 @@ export function Home() {
                           type="button"
                           style={{ ...btnTiny, borderColor: "#ef4444", color: "#ef4444" }}
                           onClick={() => handleDeleteOne(c)}
-                          disabled={deletingId === c.id}
+                          disabled={deleteActionBusy}
                           title="删除该病例"
                         >
                           {deletingId === c.id ? "删除中…" : "删除"}
@@ -1890,8 +1905,8 @@ export function Home() {
         <div style={undoBar}>
           <div>病例 <b>#{lastDeleted.id}</b> 已删除。</div>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={handleUndoDelete} style={btnUndo}>撤销</button>
-            <button onClick={() => setLastDeleted(null)} style={btnTiny}>关闭</button>
+            <button onClick={handleUndoDelete} disabled={deleteActionBusy} style={btnUndo}>{restoringDelete ? "撤销中…" : "撤销"}</button>
+            <button onClick={() => setLastDeleted(null)} disabled={restoringDelete} style={btnTiny}>关闭</button>
           </div>
         </div>
       )}
