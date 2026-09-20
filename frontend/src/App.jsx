@@ -181,6 +181,8 @@ export function Home() {
   const [total, setTotal] = useState(0);
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const [loadingCases, setLoadingCases] = useState(false);
+  const [caseListError, setCaseListError] = useState("");
+  const [caseListLoaded, setCaseListLoaded] = useState(false);
   const [savedConsultCaseId, setSavedConsultCaseId] = useState(null);
   const [consultSaveReceipt, setConsultSaveReceipt] = useState(null);
   const [workbenchStep, setWorkbenchStep] = useState(1);
@@ -458,6 +460,8 @@ export function Home() {
     caseListTimer.current = null;
     const requestId = ++caseListRequest.current;
     const requestToken = localStorage.getItem("token");
+    setCaseListError("");
+    setCaseListLoaded(false);
     if (!requestToken) {
       setCases([]);
       setTotal(0);
@@ -477,14 +481,26 @@ export function Home() {
       setCases(items);
       setTotal(totalCount);
       clearSelection(); // 翻页/搜索后清选择，避免跨页误删
+      setCaseListLoaded(true);
     } catch (e) {
-      if (requestId === caseListRequest.current) console.error("拉取病例失败：", e);
+      if (requestId === caseListRequest.current) {
+        console.error("拉取病例失败：", e);
+        if (requestToken === localStorage.getItem("token")) {
+          // Do not present an old query as the result of a failed current query.
+          setCases([]);
+          setTotal(0);
+          clearSelection();
+          setCaseListError("病例列表加载失败，请稍后重试。");
+        }
+      }
     } finally {
       if (requestId === caseListRequest.current) {
         if (requestToken !== localStorage.getItem("token")) {
           setCases([]);
           setTotal(0);
           clearSelection();
+          setCaseListError("");
+          setCaseListLoaded(false);
         }
         setLoadingCases(false);
       }
@@ -497,6 +513,8 @@ export function Home() {
     const filtersChanged = previous.q !== q || previous.riskFilter !== riskFilter || previous.sourceFilter !== sourceFilter;
     caseListFilters.current = { q, riskFilter, sourceFilter };
     setLoadingCases(false);
+    setCaseListError("");
+    setCaseListLoaded(false);
     if (filtersChanged && page !== 1) {
       setPage(1);
       return;
@@ -1740,15 +1758,24 @@ export function Home() {
           </Link>
         </div>
 
-        <div style={{ marginBottom: 8, fontSize: 13, opacity: 0.75 }}>
+        {caseListError ? (
+          <div role="alert" style={{ marginBottom: 8 }}>
+            <p>{caseListError}</p>
+            <button type="button" onClick={() => fetchCases()} disabled={loadingCases} style={btn}>重试</button>
+          </div>
+        ) : !caseListLoaded ? (
+          <p role="status">{cases.length > 0 ? "正在更新病例列表，下方为上次加载的结果。" : loadingCases ? "正在加载病例列表…" : "等待加载病例列表…"}</p>
+        ) : null}
+
+        {caseListLoaded && <div style={{ marginBottom: 8, fontSize: 13, opacity: 0.75 }}>
           当前显示 {visibleCases.length} / {total} 条
           <span style={{ marginLeft: 12 }}>高风险：{highRiskCount} 条</span>
           <span style={{ marginLeft: 12 }}>动态问诊病例：{dynamicCaseCount} 条</span>
-        </div>
+        </div>}
 
         {/* 表格 */}
         {visibleCases.length === 0 ? (
-          <p style={{ opacity: 0.7 }}>{cases.length === 0 ? "暂无病例。" : "当前筛选条件下暂无病例。"}</p>
+          caseListLoaded && <p style={{ opacity: 0.7 }}>{cases.length === 0 ? "暂无病例。" : "当前筛选条件下暂无病例。"}</p>
         ) : (
           <>
             <table style={table}>
