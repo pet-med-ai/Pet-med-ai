@@ -603,3 +603,150 @@ test("a successful empty retry shows the empty state instead of a lingering erro
   assert.equal(caseAlerts().length, 0);
   assert.equal(button("重试"), undefined);
 });
+
+// Bulk deletion reports confirmed responses separately from uncertain outcomes.
+// The synthetic list is changed independently to model server readback.
+const showRemainingRows = (items, total = items.length) => {
+  listAdapter = async config => ({ config, status: 200, data: { items, total } });
+};
+const beginBulkDeletion = async () => {
+  await mount(); await settle(); await click(button("本页全选"));
+  await begin(() => button("批量删除(2)").props.onClick());
+};
+
+test("cancelling bulk deletion preserves selection without writes or refresh", async () => {
+  showTwoRows();
+  await mount(); await settle(); await click(button("本页全选"));
+  global.confirm = message => { confirmations.push(message); return false; };
+  await click(button("批量删除(2)"));
+  assert.equal(mutations().length, 0);
+  assert.equal(caseRequests().length, 1);
+  assert.equal(Boolean(button("批量删除(2)")), true);
+  assert.match(confirmations[0], /批量删除不提供一键撤销/);
+  assert.equal(alerts.length, 0);
+});
+
+test("mixed bulk results refresh readback, clear selection and identify unconfirmed IDs", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await beginBulkDeletion();
+  showRemainingRows([secondRow]);
+  await complete(() => { pending[0].succeed(); pending[1].fail(); });
+  assert.equal(caseRequests().length, 2);
+  assert.equal(deleteButtons().length, 1);
+  assert.equal(button("批量删除(0)").props.disabled, true);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /已确认删除 1 条/);
+  assert.match(alerts[0], /未确认删除 1 条（ID：8）/);
+  assert.match(alerts[0], /核对.*列表/);
+  assert.equal(mutations().length, 2);
+  assert.equal(Boolean(receipt()), false);
+});
+
+test("all rejected bulk requests still refresh and describe uncertainty without automatic retries", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await beginBulkDeletion();
+  // A lost response may accompany a completed server operation: trust readback.
+  showRemainingRows([]);
+  await complete(() => { pending[1].fail(); pending[0].fail(); });
+  assert.equal(caseRequests().length, 2);
+  assert.match(output(), /暂无病例/);
+  assert.equal(button("批量删除(0)").props.disabled, true);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /已确认删除 0 条/);
+  assert.match(alerts[0], /未确认删除 2 条（ID：7、8）/);
+  assert.doesNotMatch(alerts[0], /删除完成|全部删除失败/);
+  await settle();
+  assert.equal(mutations().length, 2);
+  assert.equal(caseRequests().length, 2);
+});
+
+test("successful bulk deletion reports the confirmed count without inventing bulk undo", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await beginBulkDeletion();
+  showRemainingRows([]);
+  await complete(() => { pending[1].succeed(); pending[0].succeed(); });
+  assert.equal(caseRequests().length, 2);
+  assert.match(output(), /暂无病例/);
+  assert.equal(button("批量删除(0)").props.disabled, true);
+  assert.deepEqual(alerts, ["已确认删除 2 条。"]);
+  assert.equal(Boolean(receipt()), false);
+});
+
+test("bulk response counts remain accurate when the subsequent list readback fails", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await beginBulkDeletion();
+  listAdapter = async config => { throw { config, response: { status: 500 } }; };
+  await complete(() => { pending[0].succeed(); pending[1].fail(); });
+  assert.equal(caseRequests().length, 2);
+  assert.match(output(), caseErrorText);
+  assert.equal(Boolean(button("重试")), true);
+  assert.equal(button("批量删除(0)").props.disabled, true);
+  assert.match(alerts[0], /已确认删除 1 条/);
+  assert.match(alerts[0], /未确认删除 1 条（ID：8）/);
+  assert.equal(mutations().length, 2);
+});
+
+test("bulk deletion waits for every result and readback before allowing another deletion", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await mount(); await settle(); await click(button("本页全选"));
+  const bulk = button("批量删除(2)").props.onClick;
+  const remove = deleteButtons()[0].props.onClick;
+  const readbacks = deferCaseResponses();
+  await begin(bulk);
+  await complete(() => pending[0].fail());
+  assert.equal(readbacks.length, 0);
+  assert.equal(alerts.length, 0);
+  await begin(() => { bulk(); remove(); });
+  assert.equal(mutations().length, 2);
+  await complete(() => pending[1].succeed());
+  assert.equal(readbacks.length, 1);
+  assert(deleteButtons().every(node => node.props.disabled));
+  assert.equal(alerts.length, 0);
+  await begin(() => { bulk(); remove(); });
+  assert.equal(mutations().length, 2);
+  await complete(() => readbacks[0].succeed("刷新后的合成病例"));
+  assert.equal(Boolean(deleteButtons()[0].props.disabled), false);
+  assert.equal(alerts.length, 1);
+  assert.match(alerts[0], /未确认删除 1 条（ID：7）/);
+});
+
+test("bulk completion refreshes the current search and filters instead of the captured old query", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await beginBulkDeletion();
+  change(search(), "删除期间的新查询");
+  change(renderer.root.findByProps({ title: "按风险等级筛选" }), "high");
+  change(renderer.root.findByProps({ title: "按病例来源筛选" }), "dynamic");
+  await settle();
+  showRemainingRows([secondRow]);
+  await complete(() => { pending[0].succeed(); pending[1].succeed(); });
+  assert.deepEqual(caseRequests().at(-1).params, {
+    q: "删除期间的新查询", page: 1, page_size: 10, risk: "high", source: "dynamic",
+  });
+  assert.equal(caseRequests().length, 3);
+});
+
+test("bulk completion refreshes the current page when navigation changes during deletion", async () => {
+  showRemainingRows([row, secondRow], 31); const pending = deferMutations();
+  await beginBulkDeletion();
+  await click(listButton("下一页")); await settle();
+  await complete(() => { pending[0].succeed(); pending[1].succeed(); });
+  assert.equal(caseRequests().at(-1).params.page, 2);
+  assert.equal(caseRequests().length, 3);
+});
+
+test("after mixed bulk results only an explicit new selection can request another deletion", async () => {
+  showTwoRows(); const pending = deferMutations();
+  await beginBulkDeletion();
+  showRemainingRows([secondRow]);
+  await complete(() => { pending[0].succeed(); pending[1].fail(); });
+  assert.equal(button("批量删除(0)").props.disabled, true);
+  await settle();
+  assert.equal(mutations().length, 2);
+  await click(button("本页全选"));
+  await begin(() => button("批量删除(1)").props.onClick());
+  assert.deepEqual(mutations().map(c => c.url), ["/api/cases/7", "/api/cases/8", "/api/cases/8"]);
+  showRemainingRows([]);
+  await complete(() => pending[2].succeed());
+  assert.equal(alerts.at(-1), "已确认删除 1 条。");
+  assert.match(output(), /暂无病例/);
+});

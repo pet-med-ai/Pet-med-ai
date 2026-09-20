@@ -400,19 +400,29 @@ export function Home() {
   const handleBulkDelete = async () => {
     if (caseDeletePending.current) return;
     if (!selectedIds.size) { alert("请先勾选要删除的病例"); return; }
-    if (!confirm(`确定删除选中的 ${selectedIds.size} 条病例？此操作不可恢复。`)) return;
+    if (!confirm(`确定删除选中的 ${selectedIds.size} 条病例？批量删除不提供一键撤销。`)) return;
     caseDeletePending.current = true;
     try {
       setBulkDeleting(true);
+      const ids = Array.from(selectedIds);
       // Wait for every dispatched deletion before allowing another delete/undo.
-      const results = await Promise.allSettled(Array.from(selectedIds).map(id => api.delete(`/api/cases/${id}`)));
-      if (results.some(result => result.status === "rejected")) throw new Error("Some case deletions were not confirmed");
+      const results = await Promise.allSettled(ids.map(id => api.delete(`/api/cases/${id}`)));
+      const unconfirmedIds = ids.filter((id, index) => results[index].status === "rejected");
+      const confirmedCount = ids.length - unconfirmedIds.length;
+      results.forEach((result, index) => {
+        if (result.status === "rejected") console.error("批量删除未确认：", ids[index], result.reason);
+      });
+      // Rejected requests can still have reached the server. Refresh even if all
+      // responses failed, and require a new selection before any further write.
       clearSelection();
-      await fetchCases();
-      alert("删除完成");
+      await fetchCases(currentCaseListParams.current);
+      alert(unconfirmedIds.length
+        ? `已确认删除 ${confirmedCount} 条；未确认删除 ${unconfirmedIds.length} 条（ID：${unconfirmedIds.join("、")}）。请核对病例列表；如列表加载失败，请先重试加载，再决定是否重新选择删除。`
+        : `已确认删除 ${confirmedCount} 条。`);
     } catch (e) {
       console.error(e);
-      alert("部分或全部删除失败，请查看控制台或后端日志");
+      clearSelection();
+      alert("批量删除结果未能核对，请刷新病例列表后确认。");
     } finally {
       caseDeletePending.current = false;
       setBulkDeleting(false);
@@ -466,6 +476,8 @@ export function Home() {
     source: sourceFilter !== "all" ? sourceFilter : undefined,
     ...paramsOverride,
   });
+  const currentCaseListParams = useRef(null);
+  currentCaseListParams.current = buildCaseListParams();
 
   // ===== 拉取病例列表（服务端分页/搜索） =====
   const caseListTimer = useRef(null);
