@@ -11,6 +11,8 @@ on:
       - 'frontend/src/pages/CaseEditorLite.css'
       - 'frontend/src/App.jsx'
       - 'frontend/src/api.ts'
+      - 'frontend/package.json'
+      - 'frontend/package-lock.json'
       - 'frontend/tests/case-list-auth.test.jsx'
       - 'frontend/tests/run-consult-update-review.mjs'
       - 'frontend/src/caseEditDraft.js'
@@ -36,12 +38,14 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind bulk deletion result reconciliation candidate to reviewed main baseline
+      - name: Bind locked dependency security candidate to reviewed main baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git merge-base --is-ancestor 4d85a299cfd78e05b8b21e5ef40c596424a33c94 HEAD
-          git diff --exit-code 4d85a299cfd78e05b8b21e5ef40c596424a33c94 HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/tests/case-list-auth.test.jsx'
+          git merge-base --is-ancestor 0948973eae389bcdf4133d77c8428ef9dcfa890d HEAD
+          git diff --exit-code 0948973eae389bcdf4133d77c8428ef9dcfa890d HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)frontend/package.json' ':(exclude)frontend/package-lock.json'
+          test "$(git rev-parse HEAD:frontend/package.json)" = "b670ae3fea6c7f072196592ed7d5cc7bdfbe0109"
+          test "$(git rev-parse HEAD:frontend/package-lock.json)" = "ccd707eeff135da84ee6b41f05bf7b3639730b0e"
           test "$(git rev-parse HEAD:backend/main.py)" = "45771a6127a970d4b75ed53b2e7fabb6dd2e2017"
           test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "03194d7bed1fd371b2a2c19036b7e5897330d63f"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "271b3ab99e95a5230ed5781f886b941dffa16e2a"
@@ -56,7 +60,7 @@ jobs:
           test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.css)" = "039390558532bd3b61dc57359d227965d84a5657"
           test "$(git rev-parse HEAD:frontend/tests/case-list-auth.test.jsx)" = "04494cb14799f988f1a816d81a5385eb78c83e97"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse 4d85a299cfd78e05b8b21e5ef40c596424a33c94 > acceptance-results/application-baseline.txt
+          git rev-parse 0948973eae389bcdf4133d77c8428ef9dcfa890d > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -66,9 +70,13 @@ jobs:
       - name: Install dependencies and Chromium
         run: |
           python -m pip install -r requirements.txt -r backend/requirements.txt
-          npm install --prefix frontend
+          npm ci --prefix frontend
           npm install --prefix "$RUNNER_TEMP/pmai-browser-deps" --no-package-lock @playwright/test@1.55.0
           "$RUNNER_TEMP/pmai-browser-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Audit locked frontend dependencies
+        run: |
+          set -o pipefail
+          npm --prefix frontend audit --json --audit-level=low | tee acceptance-results/frontend-dependency-audit.json
       - name: Frontend request and consultation regressions
         run: |
           set -o pipefail
