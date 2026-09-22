@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useSearchParams, useNavigate } from "react-router-dom";
 import api from "./api";
 import useConsultDraft from "./useConsultDraft";
@@ -11,12 +11,14 @@ import ConsultSaveReview from "./components/ConsultSaveReview";
 import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/ConsultWorkbench";
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
-import KpiDashboard from "./pages/KpiDashboard";
-import WebhookInboxPage from "./pages/WebhookInboxPage";
-import EmrImportBatchPlanningPage from "./pages/EmrImportBatchPlanningPage";
-import OpsDashboard from "./pages/OpsDashboard";
-import PreventiveCareNotificationQueuePage from "./pages/PreventiveCareNotificationQueuePage";
-import AutomatedReminderDeliveryManualApprovalPage from "./pages/AutomatedReminderDeliveryManualApprovalPage";
+
+// Secondary pages are loaded on navigation; keep consultation and case editing eager.
+const KpiDashboard = lazy(() => import("./pages/KpiDashboard"));
+const WebhookInboxPage = lazy(() => import("./pages/WebhookInboxPage"));
+const EmrImportBatchPlanningPage = lazy(() => import("./pages/EmrImportBatchPlanningPage"));
+const OpsDashboard = lazy(() => import("./pages/OpsDashboard"));
+const PreventiveCareNotificationQueuePage = lazy(() => import("./pages/PreventiveCareNotificationQueuePage"));
+const AutomatedReminderDeliveryManualApprovalPage = lazy(() => import("./pages/AutomatedReminderDeliveryManualApprovalPage"));
 
 function getErrorDetail(err) {
   const detail = err?.response?.data?.detail;
@@ -1927,23 +1929,54 @@ export function Home() {
 }
 
 /** ===== 路由容器 ===== */
-export default function App() {
+export class DeferredPage extends React.Component {
+  state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  render() {
+    if (this.state.failed) {
+      return (
+        <div role="alert" style={{ padding: 24 }}>
+          <p>页面加载失败，请检查网络后刷新重试。</p>
+          <Link to="/">返回首页</Link>{" "}
+          <button type="button" onClick={() => window.location.reload()}>刷新页面</button>
+        </div>
+      );
+    }
+    return (
+      <Suspense fallback={<div role="status" style={{ padding: 24 }}>页面加载中… <Link to="/">返回首页</Link></div>}>
+        {this.props.children}
+      </Suspense>
+    );
+  }
+}
+
+export function AppRoutes() {
   return (
-    <Router>
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/cases/new/edit" element={<CaseEditorPage />} />
         <Route path="/cases/:id/edit" element={<CaseEditorPage />} />
         <Route path="/cases/:id" element={<CaseDetail />} />
-        <Route path="/kpi" element={<KpiDashboard />} />
-        <Route path="/ops" element={<OpsDashboard />} />
-        <Route path="/webhooks/emr/inbox" element={<WebhookInboxPage />} />
-        <Route path="/emr/import-batches" element={<EmrImportBatchPlanningPage />} />
-        <Route path="/preventive-care/notification-queue" element={<PreventiveCareNotificationQueuePage />} />
+        <Route path="/kpi" element={<DeferredPage key="kpi"><KpiDashboard /></DeferredPage>} />
+        <Route path="/ops" element={<DeferredPage key="ops"><OpsDashboard /></DeferredPage>} />
+        <Route path="/webhooks/emr/inbox" element={<DeferredPage key="webhooks"><WebhookInboxPage /></DeferredPage>} />
+        <Route path="/emr/import-batches" element={<DeferredPage key="import-batches"><EmrImportBatchPlanningPage /></DeferredPage>} />
+        <Route path="/preventive-care/notification-queue" element={<DeferredPage key="notification-queue"><PreventiveCareNotificationQueuePage /></DeferredPage>} />
         <Route path="*" element={<div style={{ padding: 24 }}>页面不存在（404）。</div>} />
               {/* Commercial Launch Feature Scope Lock V1: route remains for internal dry-run until Access Review adds authorization. */}
-        <Route path="/automated-reminder-delivery/manual-approval" element={<AutomatedReminderDeliveryManualApprovalPage />} />
-</Routes>
+        <Route path="/automated-reminder-delivery/manual-approval" element={<DeferredPage key="manual-approval"><AutomatedReminderDeliveryManualApprovalPage /></DeferredPage>} />
+      </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <Router>
+      <AppRoutes />
     </Router>
   );
 }
