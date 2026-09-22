@@ -126,7 +126,7 @@ def _template_meta(template_id: str) -> Dict[str, Any]:
 def _case_or_404(db: Session, case_id: int, user) -> Case:
     case = db.get(Case, int(case_id))
     user_id = getattr(user, "id", None)
-    if not case or getattr(case, "owner_id", None) != user_id:
+    if not case or getattr(case, "owner_id", None) != user_id or getattr(case, "deleted_at", None) is not None:
         raise HTTPException(status_code=404, detail="Case not found")
     return case
 
