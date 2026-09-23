@@ -925,6 +925,16 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           >
             {exportingDoc === "discharge_summary_bilingual" ? "生成中…" : "导出出院小结 DOCX"}
           </button>
+          {[
+            ["outpatient_record_zh", "门诊病历草稿"],
+            ["owner_visit_summary_zh", "宠主说明草稿"],
+          ].map(([templateId, label]) => (
+            <button key={templateId} type="button" style={btnDoc}
+              onClick={() => exportClinicalDoc(templateId, label)}
+              disabled={Boolean(exportingDoc)}>
+              {exportingDoc === templateId ? "生成中…" : `导出${label} DOCX`}
+            </button>
+          ))}
           <button onClick={doDelete} disabled={deleting} style={btnDanger}>
             {deleting ? "删除中…" : "删除"}
           </button>
