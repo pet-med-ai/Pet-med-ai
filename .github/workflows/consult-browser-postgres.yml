@@ -17,6 +17,8 @@ on:
       - 'frontend/tests/run-consult-update-review.mjs'
       - 'frontend/tests/case-detail-documents.test.jsx'
       - 'tests/test_clinical_doc_lifecycle.py'
+      - 'frontend/tests/deferred-pages.test.jsx'
+      - 'frontend/tests/check-route-chunks.mjs'
       - 'frontend/src/caseEditDraft.js'
       - 'frontend/src/consultDraft.js'
       - 'frontend/src/useConsultDraft.js'
@@ -40,21 +42,21 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind visit document candidate to reviewed main baseline
+      - name: Bind integrated route and visit candidates to reviewed main baseline
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
           git merge-base --is-ancestor ada16228b6122a26ae34a76c3db3cb21994b0deb HEAD
-          git diff --exit-code ada16228b6122a26ae34a76c3db3cb21994b0deb HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)backend/clinical_docs_api.py' ':(exclude)frontend/src/pages/CaseDetail.jsx' ':(exclude)frontend/tests/case-detail-documents.test.jsx' ':(exclude)frontend/tests/run-consult-update-review.mjs' ':(exclude)tests/test_clinical_doc_lifecycle.py' ':(exclude)tests/acceptance/visit_document_checks.cjs' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M1.md'
+          git diff --exit-code ada16228b6122a26ae34a76c3db3cb21994b0deb HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)backend/clinical_docs_api.py' ':(exclude)frontend/src/pages/CaseDetail.jsx' ':(exclude)frontend/tests/case-detail-documents.test.jsx' ':(exclude)frontend/tests/run-consult-update-review.mjs' ':(exclude)tests/test_clinical_doc_lifecycle.py' ':(exclude)tests/acceptance/visit_document_checks.cjs' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M1.md' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/tests/deferred-pages.test.jsx' ':(exclude)frontend/tests/check-route-chunks.mjs'
           test "$(git rev-parse HEAD:frontend/package.json)" = "b670ae3fea6c7f072196592ed7d5cc7bdfbe0109"
           test "$(git rev-parse HEAD:frontend/package-lock.json)" = "ccd707eeff135da84ee6b41f05bf7b3639730b0e"
           test "$(git rev-parse HEAD:backend/main.py)" = "45771a6127a970d4b75ed53b2e7fabb6dd2e2017"
-          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "03194d7bed1fd371b2a2c19036b7e5897330d63f"
+          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "1102daaa6619a26b6d17d8db549510828aff65d9"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "271b3ab99e95a5230ed5781f886b941dffa16e2a"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "5d955d1da0517c8a43c1aa37930f7357336c3e07"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.css)" = "8665c9174e73f816d8477c7a7129b4f4228a70af"
           test "$(git rev-parse HEAD:frontend/src/components/ManualCaseCreateReview.jsx)" = "7a3f5841c8305ac5c695b10fe4eba06c998c2ae0"
-          test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "594e8824c4ecbdbef68a9973f2daadca2b37b16a"
+          test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "895245d6e0034a6d61205784c369b2c0fd963e1e"
           test "$(git rev-parse HEAD:frontend/tests/manual-case-create.test.jsx)" = "295dc06a7f47c50b6e2a31c31265045eb695ad98"
           test "$(git rev-parse HEAD:tests/test_manual_case_create.py)" = "954b7726dbebda0cde1a29cf5719af12ec55334c"
           test "$(git rev-parse HEAD:tests/acceptance/postgres_checks.py)" = "e75e9b455db05360c17f0495fa13d5b6337e475c"
@@ -66,7 +68,9 @@ jobs:
           test "$(git rev-parse HEAD:frontend/tests/case-detail-documents.test.jsx)" = "17e4c6c629341a91bcba014ecb88af33a5dd46ae"
           test "$(git rev-parse HEAD:tests/test_clinical_doc_lifecycle.py)" = "f5a420f6aca76e53a4b64c4fe6d4e1476119b756"
           test "$(git rev-parse HEAD:tests/acceptance/visit_document_checks.cjs)" = "d6dd0300b1babccba89e112a7b48097f4f9141a3"
-          test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M1.md)" = "a2d45a10de2b929ec177fe5f9c7f4ceeae5cd6bd"
+          test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M1.md)" = "badecc5eaffd9e7da3703f81d1dad9833fa1000b"
+          test "$(git rev-parse HEAD:frontend/tests/deferred-pages.test.jsx)" = "12f1970a224e95db0c71d7c589bb5eae828cd03e"
+          test "$(git rev-parse HEAD:frontend/tests/check-route-chunks.mjs)" = "c195f48bf64d5a6ad3be4bb763020cbcda58d24a"
           git rev-parse HEAD > acceptance-results/application-commit.txt
           git rev-parse ada16228b6122a26ae34a76c3db3cb21994b0deb > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
@@ -107,7 +111,8 @@ jobs:
         env:
           VITE_API_BASE: http://127.0.0.1:18026
         run: |
-          npm --prefix frontend run build
+          npm --prefix frontend run build -- --manifest
+          node frontend/tests/check-route-chunks.mjs > acceptance-results/route-chunks.json
           python tests/acceptance/fixture.py > acceptance-results/backend.log 2>&1 &
           echo "$!" > acceptance-results/backend.pid
           frontend/node_modules/.bin/vite preview frontend --host 127.0.0.1 --port 5173 --strictPort > acceptance-results/frontend.log 2>&1 &
