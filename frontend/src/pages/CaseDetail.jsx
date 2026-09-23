@@ -2,6 +2,8 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
+import ClinicalDocReview from "../components/ClinicalDocReview";
+import { draftOwner } from "../consultDraft";
 
 export default function CaseDetail() {
   const { id } = useParams();
@@ -26,6 +28,8 @@ function CaseDetailContent({ requestToken }) {
 
   const active = useRef(false);
   const exportPending = useRef(false);
+  const reviewActive = useRef(false), reviewOpener = useRef(null);
+  const [docReview, setDocReview] = useState(null);
   const [loadAttempt, setLoadAttempt] = useState(0);
   useEffect(() => {
     active.current = true;
@@ -800,7 +804,19 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   }, [data?.id]);
 
   // Clinical Docs Export UI V1: read-only DOCX download from Case detail.
-  const exportClinicalDoc = async (templateId, label) => {
+  const openDocReview = (templateId, label, event) => {
+    if (exportPending.current || reviewActive.current || !isCurrent()) return;
+    reviewActive.current = true;
+    reviewOpener.current = event?.currentTarget;
+    setExportStatus(""); setDocReview({ templateId, label });
+  };
+  const closeDocReview = () => {
+    reviewActive.current = false; setDocReview(null);
+    // Wait until the opener is enabled again before restoring keyboard focus.
+    setTimeout(() => { if (isCurrent()) reviewOpener.current?.focus(); }, 0);
+  };
+  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true) => {
+    if (reviewActive.current && !expectedSnapshot) return;
     if (!data?.id || !isCurrent()) {
       alert("病例尚未加载或登录已变化，请重新打开病例后导出。");
       return;
@@ -818,13 +834,18 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           case_id: Number(data.id),
           template_id: templateId,
           output: "docx",
+          ...(expectedSnapshot ? { expected_content_snapshot: expectedSnapshot } : {}),
         },
         {
           responseType: "blob",
+          expectedAuthOwner: draftOwner(requestToken),
         }
       );
 
-      if (!isCurrent()) return;
+      if (!isCurrent() || !reviewCurrent()) return;
+      if (expectedSnapshot && res.headers?.["x-pmai-content-snapshot"] !== expectedSnapshot) {
+        throw new Error("服务未确认本次核对的内容，请重新读取草稿");
+      }
       if (!(res.data instanceof Blob) || !res.data.size ||
           !res.data.type.includes("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
         throw new Error("未收到有效 DOCX 文书，请重试。");
@@ -852,17 +873,19 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       setExportStatus(`${label}已生成：${filename}`);
+      return { ok: true };
     } catch (e) {
-      if (!isCurrent()) return;
+      if (!isCurrent() || !reviewCurrent()) return;
       let errorData = e?.response?.data;
       if (errorData instanceof Blob) {
         try { errorData = JSON.parse(await errorData.text()); } catch { errorData = null; }
       }
-      if (!isCurrent()) return;
+      if (!isCurrent() || !reviewCurrent()) return;
       const detail = errorData?.detail;
       const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
       setExportStatus(`${label}导出失败`);
-      alert(`${label}导出失败：${msg}`);
+      if (!expectedSnapshot) alert(`${label}导出失败：${msg}`);
+      return { ok: false, status: e?.response?.status, message: msg };
     } finally {
       exportPending.current = false;
       if (isCurrent()) setExportingDoc("");
@@ -912,7 +935,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           <button
             type="button"
             onClick={() => exportClinicalDoc("admission_hospitalization_record_bilingual", "入院/住院记录")}
-            disabled={Boolean(exportingDoc)}
+            disabled={Boolean(exportingDoc) || Boolean(docReview)}
             style={btnDoc}
           >
             {exportingDoc === "admission_hospitalization_record_bilingual" ? "生成中…" : "导出入院/住院记录 DOCX"}
@@ -920,7 +943,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           <button
             type="button"
             onClick={() => exportClinicalDoc("discharge_summary_bilingual", "出院小结")}
-            disabled={Boolean(exportingDoc)}
+            disabled={Boolean(exportingDoc) || Boolean(docReview)}
             style={btnDoc}
           >
             {exportingDoc === "discharge_summary_bilingual" ? "生成中…" : "导出出院小结 DOCX"}
@@ -930,8 +953,8 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
             ["owner_visit_summary_zh", "宠主说明草稿"],
           ].map(([templateId, label]) => (
             <button key={templateId} type="button" style={btnDoc}
-              onClick={() => exportClinicalDoc(templateId, label)}
-              disabled={Boolean(exportingDoc)}>
+              onClick={event => openDocReview(templateId, label, event)}
+              disabled={Boolean(exportingDoc) || Boolean(docReview)}>
               {exportingDoc === templateId ? "生成中…" : `导出${label} DOCX`}
             </button>
           ))}
@@ -943,6 +966,11 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           后端：{import.meta.env.VITE_API_BASE}
         </div>
       </div>
+
+      {docReview && <ClinicalDocReview key={docReview.templateId} caseId={Number(data.id)}
+        templateId={docReview.templateId} label={docReview.label} requestToken={requestToken}
+        onClose={closeDocReview}
+        onDownload={(snapshot, current) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current)} />}
 
       {exportStatus && (
         <div role="status" aria-live="polite" className="clinical-doc-export-status screen-only">

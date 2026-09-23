@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import hashlib
+import hmac
 import io
 import json
 import re
@@ -112,6 +113,7 @@ class ClinicalDocRenderIn(BaseModel):
     generator: Optional[str] = Field(default=None, max_length=120)
     include_preview_context: bool = Field(default=False)
     include_diagnostic_data: bool = Field(default=False)
+    expected_content_snapshot: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
 
 
 def _text(value: Any, fallback: str = "") -> str:
@@ -413,9 +415,20 @@ def _append_diagnostic_data_section_to_document_xml(xml_bytes: bytes, context: D
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 # --- Clinical Docs Diagnostic Data Merge V1 DOCX append: end ---
 
-def _render_docx(template_path: Path, context: Dict[str, str], *, preserve_text_layout: bool = False) -> bytes:
+def _content_snapshot(meta: Dict[str, Any], context: Dict[str, str], template_bytes: bytes) -> str:
+    # A content precondition, not a signature, persistent review or export ID.
+    # Bind exactly the displayed fields, account, case, template and asset bytes.
+    payload = {
+        "version": "outpatient-content-v1", "template_id": meta["template_id"],
+        "asset_sha256": hashlib.sha256(template_bytes).hexdigest(),
+        "fields": {key: context[key] for key in meta["required_keys"] if key not in {"timestamp", "hash"}},
+    }
+    return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
+
+
+def _render_docx(template_path: Path, context: Dict[str, str], *, preserve_text_layout: bool = False, template_bytes: Optional[bytes] = None) -> bytes:
     out = io.BytesIO()
-    with zipfile.ZipFile(template_path, "r") as zin:
+    with zipfile.ZipFile(io.BytesIO(template_bytes) if template_bytes is not None else template_path, "r") as zin:
         with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as zout:
             for item in zin.infolist():
                 raw = zin.read(item.filename)
@@ -493,6 +506,8 @@ def preview_clinical_doc_context(
         "template_id": meta["template_id"],
         "case_id": data.case_id,
         "document_hash": context["hash"],
+        **({"content_snapshot": _content_snapshot(meta, context, Path(meta["path"]).read_bytes())}
+           if meta["template_id"] in OUTPATIENT_TEMPLATES else {}),
         "missing_required_keys": missing_required,
         "context": context,
         "diagnostic_data_merge": diagnostic_data_merge,
@@ -537,7 +552,15 @@ def render_clinical_doc(
         )
 
     outpatient_draft = meta["template_id"] in OUTPATIENT_TEMPLATES
-    docx_bytes = _render_docx(Path(meta["path"]), context, preserve_text_layout=outpatient_draft)
+    template_bytes = Path(meta["path"]).read_bytes() if outpatient_draft else None
+    snapshot = _content_snapshot(meta, context, template_bytes) if outpatient_draft else None
+    if data.expected_content_snapshot is not None:
+        if not outpatient_draft:
+            raise HTTPException(status_code=422, detail="本模板不支持门诊草稿内容核对")
+        if not hmac.compare_digest(data.expected_content_snapshot, snapshot):
+            raise HTTPException(status_code=409, detail="病例或模板内容已变化，请重新核对草稿后下载")
+    # Validation and rendering consume the same case context and asset bytes.
+    docx_bytes = _render_docx(Path(meta["path"]), context, preserve_text_layout=outpatient_draft, template_bytes=template_bytes)
     # New templates validate each template token before replacing it. Literal
     # braces in saved case text are valid data, not unresolved template tokens.
     unreplaced = [] if outpatient_draft else _unreplaced_placeholders(docx_bytes)
@@ -560,6 +583,9 @@ def render_clinical_doc(
         "X-PMAI-Diagnostic-Data-Merge": "true" if data.include_diagnostic_data else "false",
         "X-PMAI-Diagnostic-Data-Mode": CLINICAL_DOCS_DIAGNOSTIC_DATA_MERGE_MODE if data.include_diagnostic_data else "not_requested",
     }
+    if outpatient_draft:
+        headers["X-PMAI-Content-Snapshot"] = snapshot
+        headers["Access-Control-Expose-Headers"] = "X-PMAI-Content-Snapshot"
 
     return StreamingResponse(
         io.BytesIO(docx_bytes),

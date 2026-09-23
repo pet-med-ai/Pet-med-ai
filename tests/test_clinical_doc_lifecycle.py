@@ -2,8 +2,11 @@
 import io
 import unittest
 import zipfile
+from unittest.mock import patch
+from sqlalchemy import event
 from xml.etree import ElementTree as ET
 from test_consult_update_preview import main, db, models, feature_flags, TestClient, FIXTURE
+import clinical_docs_api as docs
 
 
 LEGACY = ['admission_hospitalization_record_bilingual', 'discharge_summary_bilingual']
@@ -171,6 +174,114 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
             self.assertEqual(self.render(case['id'], template).status_code, 422)
         with db.SessionLocal() as session:
             self.assertEqual(session.get(models.Case, case['id']).history, '内容\x01未改')
+
+
+    def checked_render(self, cid, template, snapshot, headers=None):
+        return self.client.post('/api/clinical-docs/render', headers=self.owner if headers is None else headers,
+                                json={'case_id': cid, 'template_id': template, 'expected_content_snapshot': snapshot})
+
+    def test_review_snapshot_is_stable_across_time_and_read_only(self):
+        cid = self.create()['id']
+        for template in DRAFTS:
+            before = self.client.get(f'/api/cases/{cid}', headers=self.owner).json()
+            statements = []
+            def capture(conn, cursor, statement, parameters, context, executemany):
+                statements.append(statement.strip().split(None, 1)[0].upper())
+            event.listen(db.engine, 'before_cursor_execute', capture)
+            try:
+                with patch.object(docs, '_utc_timestamp', return_value='2026-09-23T00:00:00Z'):
+                    a = self.render(cid, template, 'render-preview').json()
+                with patch.object(docs, '_utc_timestamp', return_value='2026-09-24T00:00:00Z'):
+                    b = self.render(cid, template, 'render-preview').json()
+                    r = self.checked_render(cid, template, a['content_snapshot'])
+                self.assertEqual(a['content_snapshot'], b['content_snapshot'])
+                self.assertNotEqual(a['document_hash'], b['document_hash'])
+                self.assertEqual(r.status_code, 200)
+                self.assertEqual(r.headers['x-pmai-content-snapshot'], a['content_snapshot'])
+                self.assertIn('X-PMAI-Content-Snapshot', r.headers['access-control-expose-headers'])
+                text = '\n'.join(paragraphs(r.content))
+                for key in docs.TEMPLATES[template]['required_keys']:
+                    if key not in ['timestamp', 'hash']:
+                        self.assertIn(a['context'][key], text, key)
+                self.assertEqual(self.client.get(f'/api/cases/{cid}', headers=self.owner).json(), before)
+                self.assertFalse({'INSERT', 'UPDATE', 'DELETE'} & set(statements))
+            finally:
+                event.remove(db.engine, 'before_cursor_execute', capture)
+
+    def test_every_exported_case_field_invalidates_prior_review(self):
+        cid = self.create()['id']
+        for template in DRAFTS:
+            for attribute in docs.OUTPATIENT_CASE_FIELDS.values():
+                if attribute == 'id':
+                    continue
+                with self.subTest(template=template, field=attribute):
+                    old = self.render(cid, template, 'render-preview').json()['content_snapshot']
+                    with db.SessionLocal() as session:
+                        row = session.get(models.Case, cid)
+                        setattr(row, attribute, '更正-'+attribute+'-'+template); session.commit()
+                    refused = self.checked_render(cid, template, old)
+                    self.assertEqual(refused.status_code, 409)
+                    self.assertIn('重新核对', refused.json()['detail'])
+                    latest = self.render(cid, template, 'render-preview').json()['content_snapshot']
+                    self.assertNotEqual(old, latest)
+                    accepted = self.checked_render(cid, template, latest)
+                    self.assertEqual(accepted.status_code, 200)
+                    self.assertIn('更正-'+attribute+'-'+template, '\n'.join(paragraphs(accepted.content)))
+
+    def test_review_snapshot_binds_case_template_and_authenticated_account(self):
+        cid = self.create()['id']; other_cid = self.create()['id']
+        a = self.render(cid, DRAFTS[0], 'render-preview').json()['content_snapshot']
+        self.assertEqual(self.checked_render(other_cid, DRAFTS[0], a).status_code, 409)
+        self.assertEqual(self.checked_render(cid, DRAFTS[1], a).status_code, 409)
+        self.assertEqual(self.checked_render(cid, DRAFTS[0], a, self.other).status_code, 404)
+        self.assertEqual(self.checked_render(cid, DRAFTS[0], a, {}).status_code, 401)
+        with db.SessionLocal() as session:
+            other_id = session.query(models.User).filter_by(email='other@example.com').one().id
+            session.get(models.Case, cid).owner_id = other_id; session.commit()
+        self.assertEqual(self.checked_render(cid, DRAFTS[0], a, self.other).status_code, 409)
+        self.assertEqual(self.checked_render(cid, DRAFTS[0], a).status_code, 404)
+
+    def test_review_detects_template_asset_change_and_uses_same_bytes(self):
+        cid = self.create()['id']; original = docs.Path.read_bytes
+        for template in DRAFTS:
+            old = self.render(cid, template, 'render-preview').json()['content_snapshot']
+            def changed(path):
+                raw = original(path)
+                return raw + b'M3-synthetic-asset-revision' if path.name == template+'.docx' else raw
+            with patch.object(docs.Path, 'read_bytes', changed):
+                self.assertEqual(self.checked_render(cid, template, old).status_code, 409)
+                latest = self.render(cid, template, 'render-preview').json()['content_snapshot']
+                with patch.object(docs, '_render_docx', wraps=docs._render_docx) as render:
+                    self.assertEqual(self.checked_render(cid, template, latest).status_code, 200)
+                    self.assertTrue(render.call_args.kwargs['template_bytes'].endswith(b'M3-synthetic-asset-revision'))
+
+    def test_review_rejects_invalid_snapshot_and_keeps_legacy_clients(self):
+        cid = self.create()['id']
+        for template in DRAFTS:
+            for value, status in [('', 422), ('not-a-snapshot', 422), ('0'*64, 409)]:
+                self.assertEqual(self.checked_render(cid, template, value).status_code, status)
+            self.assertEqual(self.render(cid, template).status_code, 200)
+        for template in LEGACY:
+            self.assertEqual(self.render(cid, template).status_code, 200)
+            self.assertEqual(self.checked_render(cid, template, '0'*64).status_code, 422)
+
+    def test_reviewed_download_rejects_deleted_case(self):
+        for template in DRAFTS:
+            cid = self.create()['id']
+            old = self.render(cid, template, 'render-preview').json()['content_snapshot']
+            self.assertEqual(self.client.delete(f'/api/cases/{cid}', headers=self.owner).status_code, 204)
+            self.assertEqual(self.checked_render(cid, template, old).status_code, 404)
+
+    def test_reviewed_literal_blank_and_long_fields_match_download(self):
+        cid = self.create()['id']
+        for raw in [' \t\n', '  否认呕吐 <5 & >2 {{visit.plan}} 🐾\r\n\t末行  ', ('长原文不截断\n'*180)+'末行保留']:
+            with db.SessionLocal() as session:
+                session.get(models.Case, cid).history = raw; session.commit()
+            for template in DRAFTS:
+                preview = self.render(cid, template, 'render-preview').json()
+                r = self.checked_render(cid, template, preview['content_snapshot'])
+                self.assertEqual(r.status_code, 200)
+                self.assertIn(preview['context']['visit.history'], paragraphs(r.content))
 
 
 if __name__ == '__main__':
