@@ -1,13 +1,38 @@
 // src/pages/CaseDetail.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
 
 export default function CaseDetail() {
   const { id } = useParams();
+  const [, refreshAccount] = useState(0);
+  useEffect(() => {
+    const onStorage = event => {
+      if (event.key === "token" || event.key === null) refreshAccount(value => value + 1);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+  const requestToken = localStorage.getItem("token") || "";
+  // A different case/account must never inherit another detail or document request.
+  return <CaseDetailContent key={JSON.stringify([id, requestToken])} requestToken={requestToken} />;
+}
+
+function CaseDetailContent({ requestToken }) {
+  const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const autoPrint = Boolean(location.state?.autoPrint);
+
+  const active = useRef(false);
+  const exportPending = useRef(false);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  useEffect(() => {
+    active.current = true;
+    return () => { active.current = false; };
+  }, []);
+  const isCurrent = () => active.current && Boolean(requestToken) &&
+    (localStorage.getItem("token") || "") === requestToken;
 
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
@@ -66,23 +91,33 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
   // 拉取详情
   useEffect(() => {
     let stop = false;
+    setLoading(true);
+    setErr("");
+    setData(null);
+    if (!requestToken) {
+      setErr("请先登录后查看病例。");
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
         const res = await api.get(`/api/cases/${id}`);
-        if (!stop) setData(res.data);
+        if (!res.data || Number(res.data.id) !== Number(id)) throw new Error("返回的病例与当前页面不一致，请重试。");
+        if (!stop && isCurrent()) setData(res.data);
       } catch (e) {
-        setErr(String(e));
+        if (!stop && isCurrent()) setErr(String(e));
       } finally {
-        if (!stop) setLoading(false);
+        if (!stop && isCurrent()) setLoading(false);
       }
     })();
     return () => { stop = true; };
-  }, [id]);
+  }, [id, requestToken, loadAttempt]);
 
   // 自动打印（来自列表 state 的 autoPrint）
   useEffect(() => {
     if (!loading && data && autoPrint) {
       const t = setTimeout(() => {
+        if (!isCurrent()) return;
         window.print();
         if (history.replaceState) {
           history.replaceState(null, "", window.location.pathname + window.location.search);
@@ -106,7 +141,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
     }
   };
 
-  const doPrint = () => setTimeout(() => window.print(), 40);
+  const doPrint = () => setTimeout(() => { if (isCurrent()) window.print(); }, 40);
 
   // Case Detail Diagnostic Data Display V1: read-only diagnostic summary panel.
   const fetchDiagnosticDataSummary = async () => {
@@ -766,11 +801,13 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
 
   // Clinical Docs Export UI V1: read-only DOCX download from Case detail.
   const exportClinicalDoc = async (templateId, label) => {
-    if (!data?.id) {
-      alert("病例尚未加载，无法导出。");
+    if (!data?.id || !isCurrent()) {
+      alert("病例尚未加载或登录已变化，请重新打开病例后导出。");
       return;
     }
 
+    if (exportPending.current) return;
+    exportPending.current = true;
     try {
       setExportingDoc(templateId);
       setExportStatus(`正在生成${label}…`);
@@ -787,11 +824,18 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         }
       );
 
+      if (!isCurrent()) return;
+      if (!(res.data instanceof Blob) || !res.data.size ||
+          !res.data.type.includes("application/vnd.openxmlformats-officedocument.wordprocessingml.document")) {
+        throw new Error("未收到有效 DOCX 文书，请重试。");
+      }
       const disposition = res.headers?.["content-disposition"] || res.headers?.["Content-Disposition"] || "";
       const hash = res.headers?.["x-pmai-document-hash"] || res.headers?.["X-PMAI-Document-Hash"] || "";
       const match = disposition.match(/filename="?([^";]+)"?/i);
       const fallbackName = `${label.replace(/[\\/\s]+/g, "-")}-case-${data.id}${hash ? `-${hash}` : ""}.docx`;
-      const filename = decodeURIComponent(match?.[1] || fallbackName);
+      let filename = fallbackName;
+      try { filename = decodeURIComponent(match?.[1] || fallbackName); } catch { /* Keep safe fallback. */ }
+      filename = filename.replace(/[\\/\x00-\x1f\x7f]/g, "-");
 
       const blob = new Blob(
         [res.data],
@@ -804,17 +848,24 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       document.body.appendChild(link);
       link.click();
       link.remove();
-      URL.revokeObjectURL(url);
+      // Allow the browser to start the download before releasing its object URL.
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
 
       setExportStatus(`${label}已生成：${filename}`);
     } catch (e) {
-      console.error("Clinical doc export failed:", e);
-      const detail = e?.response?.data?.detail;
+      if (!isCurrent()) return;
+      let errorData = e?.response?.data;
+      if (errorData instanceof Blob) {
+        try { errorData = JSON.parse(await errorData.text()); } catch { errorData = null; }
+      }
+      if (!isCurrent()) return;
+      const detail = errorData?.detail;
       const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
       setExportStatus(`${label}导出失败`);
       alert(`${label}导出失败：${msg}`);
     } finally {
-      setExportingDoc("");
+      exportPending.current = false;
+      if (isCurrent()) setExportingDoc("");
     }
   };
 
@@ -837,7 +888,11 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   }, [data]);
 
   if (loading) return <div style={{ padding: 24 }}>加载中…</div>;
-  if (err) return <div style={{ padding: 24, color: "crimson" }}>加载失败：{err}</div>;
+  if (err) return <div role="alert" style={{ padding: 24, color: "crimson" }}>
+    加载失败：{err}
+    {requestToken && <button type="button" onClick={() => setLoadAttempt(value => value + 1)}>重试读取病例</button>}
+    <Link to="/">返回首页</Link>
+  </div>;
   if (!data) return <div style={{ padding: 24 }}>未找到病例</div>;
 
   return (
@@ -880,7 +935,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       </div>
 
       {exportStatus && (
-        <div className="clinical-doc-export-status screen-only">
+        <div role="status" aria-live="polite" className="clinical-doc-export-status screen-only">
           {exportStatus}
         </div>
       )}
