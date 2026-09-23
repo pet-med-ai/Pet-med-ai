@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 import hashlib
 import io
 import json
+import re
 from pathlib import Path
 from typing import Any, Dict, Optional
 import zipfile
@@ -78,6 +79,28 @@ TEMPLATES: Dict[str, Dict[str, Any]] = {
         ],
     },
 }
+
+
+# M2 drafts use literal saved-case fields, not the legacy final-diagnosis mapping.
+OUTPATIENT_CASE_FIELDS = {
+    "visit.case_id": "id", "visit.pet_name": "patient_name",
+    "visit.species": "species", "visit.age": "age_info", "visit.sex": "sex",
+    "visit.weight": "weight", "visit.complaint": "chief_complaint",
+    "visit.history": "history", "visit.exam": "exam_findings",
+    "visit.assessment": "analysis", "visit.plan": "treatment", "visit.notes": "prognosis",
+}
+OUTPATIENT_TEMPLATES = {
+    "outpatient_record_zh": ("门诊病历草稿（待医生核对）", "petmed-outpatient-draft"),
+    "owner_visit_summary_zh": ("宠主说明草稿（待医生核对）", "petmed-owner-summary-draft"),
+}
+for _template_id, (_label, _prefix) in OUTPATIENT_TEMPLATES.items():
+    TEMPLATES[_template_id] = {
+        "file": _template_id + ".docx", "label": _label,
+        "output_filename_prefix": _prefix,
+        "required_keys": list(OUTPATIENT_CASE_FIELDS) + [
+            "visit.follow_up", "export.account_id", "timestamp", "hash",
+        ],
+    }
 
 
 class ClinicalDocRenderIn(BaseModel):
@@ -220,6 +243,26 @@ def _apply_diagnostic_data_context_to_clinical_doc_context(context: Dict[str, st
 
 def _build_context(case: Case, *, data: ClinicalDocRenderIn, user, template_id: str) -> Dict[str, str]:
     timestamp = _utc_timestamp()
+    if template_id in OUTPATIENT_TEMPLATES:
+        # Optional diagnostic merge is a separate clinician-only preview, not an
+        # approved source for either M2 draft (especially the owner summary).
+        if data.include_diagnostic_data:
+            raise HTTPException(status_code=422, detail="门诊文书草稿仅使用已保存病例，不支持附加诊断数据合并")
+        context = {}
+        for key, attribute in OUTPATIENT_CASE_FIELDS.items():
+            value = getattr(case, attribute, None)
+            raw = str(value) if value is not None else ""
+            if any(not (ch in "\t\r\n" or "\x20" <= ch <= "\ud7ff" or "\ue000" <= ch <= "\ufffd" or "\U00010000" <= ch <= "\U0010ffff") for ch in raw):
+                raise HTTPException(status_code=422, detail="病例文本含文书不支持的控制字符，请医生核对")
+            context[key] = raw.replace("\r\n", "\n").replace("\r", "\n") if raw.strip() else "未填写"
+        context.update({
+            "visit.follow_up": "未单独记录复查安排，请医生补充确认",
+            # Account attribution is not a signature and cannot be supplied by the caller.
+            "export.account_id": _text(getattr(user, "id", None), "未填写"),
+            "timestamp": timestamp, "hash": "",
+        })
+        context["hash"] = _canonical_hash({**context, "template_id": template_id})
+        return context
     clinician_id = _text(data.clinician_id) or _text(getattr(user, "id", None), "unknown")
     clinician_name = _text(data.clinician_name) or _text(getattr(user, "email", None), "临床医生 / Clinician")
 
@@ -264,7 +307,7 @@ def _build_context(case: Case, *, data: ClinicalDocRenderIn, user, template_id: 
     return context
 
 
-def _replace_placeholders_in_xml(xml_bytes: bytes, context: Dict[str, str]) -> bytes:
+def _replace_placeholders_in_xml(xml_bytes: bytes, context: Dict[str, str], *, preserve_text_layout: bool = False) -> bytes:
     try:
         root = ET.fromstring(xml_bytes)
     except ET.ParseError:
@@ -285,12 +328,34 @@ def _replace_placeholders_in_xml(xml_bytes: bytes, context: Dict[str, str]) -> b
         if "{{" not in combined:
             continue
 
-        replaced = combined
-        for placeholder, value in placeholders.items():
-            replaced = replaced.replace(placeholder, value)
+        if preserve_text_layout:
+            def literal_value(match):
+                key = match.group(1)
+                if key not in context:
+                    raise HTTPException(status_code=500, detail="门诊文书模板字段不完整")
+                return context[key]
+            # One pass: braces in a patient's literal text are never expanded.
+            replaced = re.sub(r"\{\{([^{}]+)\}\}", literal_value, combined)
+        else:
+            replaced = combined
+            for placeholder, value in placeholders.items():
+                replaced = replaced.replace(placeholder, value)
 
         if replaced != combined:
-            text_nodes[0].text = replaced
+            if preserve_text_layout:
+                w = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
+                parent = next(node for node in paragraph.iter() if text_nodes[0] in list(node))
+                position = list(parent).index(text_nodes[0])
+                parent.remove(text_nodes[0])
+                for piece in re.split(r"([\n\t])", replaced):
+                    node = ET.Element(w + ("br" if piece == "\n" else "tab" if piece == "\t" else "t"))
+                    if piece not in ("\n", "\t"):
+                        node.set("{http://www.w3.org/XML/1998/namespace}space", "preserve")
+                        node.text = piece
+                    parent.insert(position, node)
+                    position += 1
+            else:
+                text_nodes[0].text = replaced
             for node in text_nodes[1:]:
                 node.text = ""
             changed_any = True
@@ -348,7 +413,7 @@ def _append_diagnostic_data_section_to_document_xml(xml_bytes: bytes, context: D
     return ET.tostring(root, encoding="utf-8", xml_declaration=True)
 # --- Clinical Docs Diagnostic Data Merge V1 DOCX append: end ---
 
-def _render_docx(template_path: Path, context: Dict[str, str]) -> bytes:
+def _render_docx(template_path: Path, context: Dict[str, str], *, preserve_text_layout: bool = False) -> bytes:
     out = io.BytesIO()
     with zipfile.ZipFile(template_path, "r") as zin:
         with zipfile.ZipFile(out, "w", compression=zipfile.ZIP_DEFLATED) as zout:
@@ -357,7 +422,7 @@ def _render_docx(template_path: Path, context: Dict[str, str]) -> bytes:
                 if item.filename == "word/document.xml":
                     raw = _append_diagnostic_data_section_to_document_xml(raw, context)
                 if item.filename.startswith("word/") and item.filename.endswith(".xml"):
-                    raw = _replace_placeholders_in_xml(raw, context)
+                    raw = _replace_placeholders_in_xml(raw, context, preserve_text_layout=preserve_text_layout)
                 zout.writestr(item, raw)
     return out.getvalue()
 
@@ -471,8 +536,11 @@ def render_clinical_doc(
             },
         )
 
-    docx_bytes = _render_docx(Path(meta["path"]), context)
-    unreplaced = _unreplaced_placeholders(docx_bytes)
+    outpatient_draft = meta["template_id"] in OUTPATIENT_TEMPLATES
+    docx_bytes = _render_docx(Path(meta["path"]), context, preserve_text_layout=outpatient_draft)
+    # New templates validate each template token before replacing it. Literal
+    # braces in saved case text are valid data, not unresolved template tokens.
+    unreplaced = [] if outpatient_draft else _unreplaced_placeholders(docx_bytes)
     if unreplaced:
         raise HTTPException(
             status_code=500,

@@ -45,3 +45,48 @@ test('credential change discards document even before a storage event',async()=>
 test('blob JSON export failure explains the error and permits a deliberate retry',async()=>{await mount();const original=adapter;adapter=c=>{if(c.method==='post')throw {response:{data:new Blob([JSON.stringify({detail:'Case not found'})],{type:'application/json'})}};return original(c);};await click('导出出院小结 DOCX');assert(alerts.some(a=>a.includes('Case not found')));assert.equal(downloads.length,0);assert.equal(button('导出出院小结 DOCX').props.disabled,false);adapter=original;await click('导出出院小结 DOCX');assert.equal(exports().length,2);assert.equal(downloads.length,1);});
 test('HTML success or empty response cannot be downloaded as DOCX',async()=>{await mount();const original=adapter;for(const blob of [new Blob(['<html>error</html>'],{type:'text/html'}),new Blob([],{type:mime})]){adapter=c=>c.method==='post'?{data:blob,headers:{}}:original(c);await click('导出出院小结 DOCX');}assert.equal(downloads.length,0);assert(alerts.every(a=>a.includes('未收到有效 DOCX')));});
 test('malformed filename encoding falls back instead of losing a valid document',async()=>{await mount();const original=adapter;adapter=c=>c.method==='post'?{...docResponse(c),headers:{'content-disposition':'attachment; filename="bad%ZZ.docx"'}}:original(c);await click('导出出院小结 DOCX');assert.equal(downloads.length,1);assert.match(downloads[0],/case-1.*\.docx$/);});
+
+
+for (const [label, template] of [
+  ['导出门诊病历草稿 DOCX', 'outpatient_record_zh'],
+  ['导出宠主说明草稿 DOCX', 'owner_visit_summary_zh'],
+]) {
+  test(`${template}: loaded case uses draft template on existing endpoint`, async () => {
+    await mount(); await click(label);
+    assert.deepEqual(JSON.parse(exports()[0].data), {case_id: 1, template_id: template, output: 'docx'});
+    assert.equal(exports()[0].responseType, 'blob'); assert.equal(downloads.length, 1);
+  });
+  test(`${template}: simultaneous other-template click cannot duplicate export`, async () => {
+    await mount(); const gate=deferred(), original=adapter;
+    adapter=async c=>{if(c.method==='post')await gate.promise;return original(c);};
+    const first=button(label).props.onClick, second=button('导出出院小结 DOCX').props.onClick;
+    await act(async()=>{const a=first(),b=second();gate.resolve();await Promise.all([a,b]);});
+    assert.equal(exports().length,1); assert.equal(downloads.length,1);
+  });
+  test(`${template}: changing case suppresses late draft`, async () => {
+    await mount(); const gate=deferred(), original=adapter;
+    adapter=async c=>{if(c.method==='post')await gate.promise;return original(c);};
+    let pending; act(()=>{pending=button(label).props.onClick();}); await move('/cases/2');
+    await act(async()=>{gate.resolve();await pending;}); assert.equal(downloads.length,0);
+  });
+  test(`${template}: account change suppresses late draft`, async () => {
+    await mount(); const gate=deferred(), original=adapter;
+    adapter=async c=>{if(c.method==='post')await gate.promise;return original(c);};
+    let pending; act(()=>{pending=button(label).props.onClick();}); storage='synthetic-other';
+    await act(async()=>{gate.resolve();await pending;}); assert.equal(downloads.length,0);
+  });
+  test(`${template}: navigation away suppresses late draft`, async () => {
+    await mount(); const gate=deferred(), original=adapter;
+    adapter=async c=>{if(c.method==='post')await gate.promise;return original(c);};
+    let pending; act(()=>{pending=button(label).props.onClick();}); await move('/');
+    await act(async()=>{gate.resolve();await pending;}); assert.equal(downloads.length,0);
+  });
+  test(`${template}: failed draft can retry without a case write`, async () => {
+    await mount(); const original=adapter;
+    adapter=c=>{if(c.method==='post')throw {response:{data:new Blob([JSON.stringify({detail:'Case not found'})],{type:'application/json'})}};return original(c);};
+    await click(label); assert.equal(downloads.length,0); assert.equal(button(label).props.disabled,false);
+    assert(alerts.some(a=>a.includes('Case not found'))); adapter=original; await click(label);
+    assert.equal(downloads.length,1); assert.equal(exports().length,2);
+    assert(requests.every(c=>c.method==='get'||c.url==='/api/clinical-docs/render'));
+  });
+}
