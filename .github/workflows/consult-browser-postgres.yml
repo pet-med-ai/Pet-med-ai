@@ -8,6 +8,12 @@ on:
       - 'scripts/validate_outpatient_document_templates.py'
       - 'docs/clinical_docs/VISIT_MILESTONE_M2.md'
       - 'docs/clinical_docs/VISIT_MILESTONE_M3.md'
+      - 'docs/clinical_docs/VISIT_MILESTONE_M5.md'
+      - 'docs/clinical_docs/VISIT_MILESTONE_M4.md'
+      - 'frontend/src/manualCaseDraft.js'
+      - 'frontend/tests/consult-first-save.test.jsx'
+      - 'tests/test_consult_first_save.py'
+      - 'tests/test_consult_update_preview.py'
       - 'backend/**'
       - '.github/workflows/consult-browser-postgres.yml'
       - 'frontend/src/pages/CaseDetail.jsx'
@@ -46,32 +52,39 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind M3 document review to reviewed M2 baseline and eight-file scope
+      - name: Bind integrated M4 and M5 to reviewed sources and fifteen-file scope
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git merge-base --is-ancestor 5e20bb06cbd6049ce8d5da0cea6f61b2d6f123c0 HEAD
-          git diff --exit-code 5e20bb06cbd6049ce8d5da0cea6f61b2d6f123c0 HEAD -- . ':(exclude)backend/clinical_docs_api.py' ':(exclude)frontend/src/pages/CaseDetail.jsx' ':(exclude)frontend/src/components/ClinicalDocReview.jsx' ':(exclude)frontend/tests/case-detail-documents.test.jsx' ':(exclude)tests/test_clinical_doc_lifecycle.py' ':(exclude)tests/acceptance/visit_document_checks.cjs' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M3.md'
+          git merge-base --is-ancestor e5d53884789115ffdb3a47d9303d88c4570bf915 HEAD
+          git merge-base --is-ancestor 928114ccfe773b6ce715b3ec9f7590a448491dcc HEAD
+          git merge-base --is-ancestor 99fc34f4dbc46bff11856febd0a411948a40ee54 HEAD
+          git diff --exit-code e5d53884789115ffdb3a47d9303d88c4570bf915 928114ccfe773b6ce715b3ec9f7590a448491dcc -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M4.md' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/src/components/ManualCaseCreateReview.jsx' ':(exclude)frontend/src/manualCaseDraft.js' ':(exclude)frontend/src/pages/CaseEditorLite.jsx' ':(exclude)frontend/tests/manual-case-create.test.jsx' ':(exclude)tests/acceptance/manual_create_checks.cjs'
+          git diff --exit-code e5d53884789115ffdb3a47d9303d88c4570bf915 99fc34f4dbc46bff11856febd0a411948a40ee54 -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)backend/main.py' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M5.md' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/tests/consult-first-save.test.jsx' ':(exclude)tests/acceptance/draft_checks.cjs' ':(exclude)tests/acceptance/visit_document_checks.cjs' ':(exclude)tests/test_consult_first_save.py' ':(exclude)tests/test_consult_update_preview.py'
+          git diff --exit-code 7b49bf2a881ec5ae56186175cb6167df2c2f1be4 99fc34f4dbc46bff11856febd0a411948a40ee54 -- . ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/tests/consult-first-save.test.jsx' ':(exclude)tests/acceptance/draft_checks.cjs' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M5.md'
+          git diff --exit-code a877ea851b053b072009ce8182557b66af591014 99fc34f4dbc46bff11856febd0a411948a40ee54 -- . ':(exclude)tests/acceptance/draft_checks.cjs' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M5.md'
+          git diff --exit-code e5d53884789115ffdb3a47d9303d88c4570bf915 HEAD -- . ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)backend/main.py' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M4.md' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M5.md' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/src/components/ManualCaseCreateReview.jsx' ':(exclude)frontend/src/manualCaseDraft.js' ':(exclude)frontend/src/pages/CaseEditorLite.jsx' ':(exclude)frontend/tests/consult-first-save.test.jsx' ':(exclude)frontend/tests/manual-case-create.test.jsx' ':(exclude)tests/acceptance/draft_checks.cjs' ':(exclude)tests/acceptance/manual_create_checks.cjs' ':(exclude)tests/acceptance/visit_document_checks.cjs' ':(exclude)tests/test_consult_first_save.py' ':(exclude)tests/test_consult_update_preview.py'
+          test "$(git diff --name-only e5d53884789115ffdb3a47d9303d88c4570bf915 HEAD | wc -l)" -eq 15
           test "$(git rev-parse HEAD:frontend/package.json)" = "b670ae3fea6c7f072196592ed7d5cc7bdfbe0109"
           test "$(git rev-parse HEAD:frontend/package-lock.json)" = "ccd707eeff135da84ee6b41f05bf7b3639730b0e"
-          test "$(git rev-parse HEAD:backend/main.py)" = "45771a6127a970d4b75ed53b2e7fabb6dd2e2017"
-          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "1102daaa6619a26b6d17d8db549510828aff65d9"
+          test "$(git rev-parse HEAD:backend/main.py)" = "dd91531de163dd655d7e70a6419acc46828c4225"
+          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "40efed2f1e555e27baeedeaff976f8891f09a8ab"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "271b3ab99e95a5230ed5781f886b941dffa16e2a"
-          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "5d955d1da0517c8a43c1aa37930f7357336c3e07"
+          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "b619839f01d4c439ca9ed76fdec1da878f378c57"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.css)" = "8665c9174e73f816d8477c7a7129b4f4228a70af"
-          test "$(git rev-parse HEAD:frontend/src/components/ManualCaseCreateReview.jsx)" = "7a3f5841c8305ac5c695b10fe4eba06c998c2ae0"
+          test "$(git rev-parse HEAD:frontend/src/components/ManualCaseCreateReview.jsx)" = "ea2528cafd1eeeb0e2cb4936934f602539bb00db"
           test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "895245d6e0034a6d61205784c369b2c0fd963e1e"
-          test "$(git rev-parse HEAD:frontend/tests/manual-case-create.test.jsx)" = "295dc06a7f47c50b6e2a31c31265045eb695ad98"
+          test "$(git rev-parse HEAD:frontend/tests/manual-case-create.test.jsx)" = "f242144e222a91310e160980034de66b69295a8b"
           test "$(git rev-parse HEAD:tests/test_manual_case_create.py)" = "954b7726dbebda0cde1a29cf5719af12ec55334c"
           test "$(git rev-parse HEAD:tests/acceptance/postgres_checks.py)" = "e75e9b455db05360c17f0495fa13d5b6337e475c"
-          test "$(git rev-parse HEAD:tests/acceptance/manual_create_checks.cjs)" = "73c390ba00e425c1fa06feda47a307e07b8a1d14"
+          test "$(git rev-parse HEAD:tests/acceptance/manual_create_checks.cjs)" = "99cdb19282909fa02a0328b88f296ee41e12735d"
           test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.css)" = "039390558532bd3b61dc57359d227965d84a5657"
           test "$(git rev-parse HEAD:frontend/tests/case-list-auth.test.jsx)" = "04494cb14799f988f1a816d81a5385eb78c83e97"
           test "$(git rev-parse HEAD:backend/clinical_docs_api.py)" = "0ea4f1dac43a561c8c1bbca40985c7def7d5fd17"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseDetail.jsx)" = "7ca4b8e4f79d4caecd0120a09ea41c8f1cf66003"
           test "$(git rev-parse HEAD:frontend/tests/case-detail-documents.test.jsx)" = "9adf2691487a1cff6781c2704c6b4f4b08d0d201"
           test "$(git rev-parse HEAD:tests/test_clinical_doc_lifecycle.py)" = "028ed9dc88c87c5b3669813112a3ab5f01e058e3"
-          test "$(git rev-parse HEAD:tests/acceptance/visit_document_checks.cjs)" = "b90075304e8674b437a157b11a7ef7cc29d01926"
+          test "$(git rev-parse HEAD:tests/acceptance/visit_document_checks.cjs)" = "36438811f55bc20b841c243de1db056230450aaa"
           test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M1.md)" = "badecc5eaffd9e7da3703f81d1dad9833fa1000b"
           test "$(git rev-parse HEAD:frontend/tests/deferred-pages.test.jsx)" = "12f1970a224e95db0c71d7c589bb5eae828cd03e"
           test "$(git rev-parse HEAD:frontend/tests/check-route-chunks.mjs)" = "c195f48bf64d5a6ad3be4bb763020cbcda58d24a"
@@ -82,8 +95,30 @@ jobs:
           test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M2.md)" = "71aa18f5c429d831a458a88ff6b51946c14a31b8"
           test "$(git rev-parse HEAD:frontend/src/components/ClinicalDocReview.jsx)" = "63bcb2aae6158af46ffef7081d529992fb55ba63"
           test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M3.md)" = "996c52b2973c063b831d52929669a9ff003f78d5"
+          test "$(git rev-parse HEAD:frontend/tests/consult-first-save.test.jsx)" = "6f11b738c709bb68162cf89b14f01d5b1e5cfacc"
+          test "$(git rev-parse HEAD:tests/test_consult_first_save.py)" = "034b30b0b160bd1164ea2e06cd830998696e11e1"
+          test "$(git rev-parse HEAD:tests/test_consult_update_preview.py)" = "68d16f0964a70469ba2287fb603d88b39dc52707"
+          test "$(git rev-parse HEAD:tests/acceptance/draft_checks.cjs)" = "b68197abbb6b7c9bd000b2f134c57bb909ff076f"
+          test "$(git rev-parse HEAD:frontend/src/manualCaseDraft.js)" = "4e2796f2fa736ceaf2adabcc36fe1ae518ae9f8b"
+          test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M4.md)" = "67e393f14bb74c42e72f88d079fbd8b5d1bb52bf"
+          test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M4.md)" = "$(git rev-parse 928114ccfe773b6ce715b3ec9f7590a448491dcc:docs/clinical_docs/VISIT_MILESTONE_M4.md)"
+          test "$(git rev-parse HEAD:frontend/src/manualCaseDraft.js)" = "$(git rev-parse 928114ccfe773b6ce715b3ec9f7590a448491dcc:frontend/src/manualCaseDraft.js)"
+          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "$(git rev-parse 928114ccfe773b6ce715b3ec9f7590a448491dcc:frontend/src/pages/CaseEditorLite.jsx)"
+          test "$(git rev-parse HEAD:frontend/src/components/ManualCaseCreateReview.jsx)" = "$(git rev-parse 928114ccfe773b6ce715b3ec9f7590a448491dcc:frontend/src/components/ManualCaseCreateReview.jsx)"
+          test "$(git rev-parse HEAD:frontend/tests/manual-case-create.test.jsx)" = "$(git rev-parse 928114ccfe773b6ce715b3ec9f7590a448491dcc:frontend/tests/manual-case-create.test.jsx)"
+          test "$(git rev-parse HEAD:tests/acceptance/manual_create_checks.cjs)" = "$(git rev-parse 928114ccfe773b6ce715b3ec9f7590a448491dcc:tests/acceptance/manual_create_checks.cjs)"
+          test "$(git rev-parse HEAD:backend/main.py)" = "$(git rev-parse 99fc34f4dbc46bff11856febd0a411948a40ee54:backend/main.py)"
+          test "$(git rev-parse HEAD:frontend/tests/consult-first-save.test.jsx)" = "$(git rev-parse 99fc34f4dbc46bff11856febd0a411948a40ee54:frontend/tests/consult-first-save.test.jsx)"
+          test "$(git rev-parse HEAD:tests/test_consult_first_save.py)" = "$(git rev-parse 99fc34f4dbc46bff11856febd0a411948a40ee54:tests/test_consult_first_save.py)"
+          test "$(git rev-parse HEAD:tests/test_consult_update_preview.py)" = "$(git rev-parse 99fc34f4dbc46bff11856febd0a411948a40ee54:tests/test_consult_update_preview.py)"
+          test "$(git rev-parse HEAD:tests/acceptance/draft_checks.cjs)" = "$(git rev-parse 99fc34f4dbc46bff11856febd0a411948a40ee54:tests/acceptance/draft_checks.cjs)"
+          test "$(git rev-parse HEAD:tests/acceptance/visit_document_checks.cjs)" = "$(git rev-parse 99fc34f4dbc46bff11856febd0a411948a40ee54:tests/acceptance/visit_document_checks.cjs)"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse 5e20bb06cbd6049ce8d5da0cea6f61b2d6f123c0 > acceptance-results/application-baseline.txt
+          git rev-parse e5d53884789115ffdb3a47d9303d88c4570bf915 > acceptance-results/application-baseline.txt
+          git rev-parse 928114ccfe773b6ce715b3ec9f7590a448491dcc > acceptance-results/m4-source.txt
+          git rev-parse 99fc34f4dbc46bff11856febd0a411948a40ee54 > acceptance-results/m5-source.txt
+          git rev-parse 7b49bf2a881ec5ae56186175cb6167df2c2f1be4 > acceptance-results/draft-fix-baseline.txt
+          git rev-parse a877ea851b053b072009ce8182557b66af591014 > acceptance-results/evidence-fix-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -183,9 +218,122 @@ jobs:
           if test -f "$RUNNER_TEMP/pmai-pgdata/postmaster.pid"; then
             /usr/lib/postgresql/16/bin/pg_ctl -D "$RUNNER_TEMP/pmai-pgdata" -m fast -w stop
           fi
-      - uses: actions/upload-artifact@v4
+      - name: Package and verify complete evidence in bounded parts
+        id: evidence
         if: always()
+        run: |
+          python - <<'PY'
+          import hashlib, json, os, subprocess, zipfile
+          from pathlib import Path
+
+          source = Path(os.environ['PMAI_ACCEPTANCE_OUT'])
+          target = Path(os.environ['RUNNER_TEMP']) / 'pmai-evidence-parts'
+          target.mkdir(exist_ok=False)
+          index = target / 'index'
+          index.mkdir()
+          archive = target / 'acceptance-results.zip'
+          limit = 22 * 1024 * 1024  # Leaves room for the download ZIP, below 25 MiB.
+
+          def digest(file):
+              h = hashlib.sha256()
+              with file.open('rb') as stream:
+                  for data in iter(lambda: stream.read(1024 * 1024), b''):
+                      h.update(data)
+              return h.hexdigest()
+
+          entries = []
+          assert source.is_dir(), 'Missing acceptance evidence directory'
+          with zipfile.ZipFile(archive, 'w', zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+              for file in sorted(source.rglob('*')):
+                  assert not file.is_symlink(), 'Evidence must not follow links'
+                  if not file.is_file():
+                      continue
+                  data = file.read_bytes()
+                  name = file.relative_to(source).as_posix()
+                  entries.append({'path': name, 'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
+                  z.writestr(name, data)
+          assert entries, 'Refusing empty evidence'
+          parts = []
+          with archive.open('rb') as stream:
+              while data := stream.read(limit):
+                  name = f'part-{len(parts) + 1:02d}.bin'
+                  (target / name).write_bytes(data)
+                  parts.append({'path': name, 'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
+          assert 1 <= len(parts) <= 4, 'Evidence exceeds four upload slots; no part may be silently dropped'
+          manifest = {
+              'format': 'pmai-evidence-parts-v1',
+              'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
+              'archive': {'path': archive.name, 'size': archive.stat().st_size, 'sha256': digest(archive)},
+              'parts': parts, 'files': entries,
+          }
+          (index / 'manifest.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+          # Reconstruct from disk and verify every original byte before upload.
+          manifest = json.loads((index / 'manifest.json').read_text(encoding='utf-8'))
+          rebuilt = target / 'verified-reassembly.zip'
+          with rebuilt.open('wb') as stream:
+              for part in manifest['parts']:
+                  file = target / part['path']
+                  assert file.stat().st_size == part['size'] <= limit
+                  assert digest(file) == part['sha256']
+                  stream.write(file.read_bytes())
+          assert rebuilt.stat().st_size == manifest['archive']['size']
+          assert digest(rebuilt) == manifest['archive']['sha256']
+          with zipfile.ZipFile(rebuilt) as z:
+              assert sorted(z.namelist()) == sorted(item['path'] for item in manifest['files'])
+              for item in manifest['files']:
+                  data = z.read(item['path'])
+                  assert len(data) == item['size']
+                  assert hashlib.sha256(data).hexdigest() == item['sha256']
+          rebuilt.unlink()
+          archive.unlink()
+          (index / 'README.txt').write_text(
+              'Synthetic acceptance evidence only. Each artifact download ZIP is below 25 MiB.\n'
+              'Unzip the index and every part artifact. Verify each part size/SHA256 in manifest.json.\n'
+              'Concatenate the .bin files in manifest.parts order to acceptance-results.zip.\n'
+              'Verify its size/SHA256 and each original file against manifest.files before inspection.\n'
+              'The manifest commit must equal the reviewed PR HEAD; no production data is included.\n', encoding='utf-8')
+          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
+              for number in range(1, len(parts) + 1):
+                  output.write(f'part{number}=true\n')
+          print(f"Verified complete evidence: {len(entries)} files, {len(parts)} parts, commit {manifest['commit']}")
+          print('Reassembled ZIP SHA256:', manifest['archive']['sha256'])
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outcome == 'success'
         with:
-          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}
-          path: acceptance-results/
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-index
+          path: ${{ runner.temp }}/pmai-evidence-parts/index/
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part1 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-01
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-01.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part2 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-02
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-02.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part3 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-03
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-03.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part4 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-04
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-04.bin
+          compression-level: 0
+          if-no-files-found: error
           retention-days: 14

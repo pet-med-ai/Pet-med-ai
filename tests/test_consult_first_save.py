@@ -9,6 +9,9 @@ import unittest
 import test_consult_update_preview as fixture
 
 main, db, models = fixture.main, fixture.db, fixture.models
+import json
+from copy import deepcopy
+import dynamic_consult
 
 
 class ConsultFirstSaveTests(unittest.TestCase):
@@ -174,6 +177,107 @@ class ConsultFirstSaveTests(unittest.TestCase):
         self.assertEqual(sorted(r.status_code for r in responses), [200, 404])
         self.assertEqual(self.count(), self.initial_count + 1)
         self.assertNotIn("case_id", next(r for r in responses if r.status_code == 404).json())
+
+    def structured(self, raw="  否认用药🐾\r\n<literal> & 保留。  \n\t", key="dog"):
+        return {"version": "synthetic-v1", "template_key": key, "label": "合成模板", "category": "companion" if key == "dog" else "exotic",
+                "sections": [{"key": "history", "title": "原始记录", "answers": [{"key": "meds", "label": "用药原文", "answer": raw, "answer_type": "text", "required": False, "triggered": True}]}]}
+
+    def answer(self, snapshot, token=None, headers=None):
+        body = {"question": "合成普通追问", "answer": "普通回答", "structured_intake_answers": snapshot}
+        if token is not None: body["expected_answers_token"] = token
+        return self.client.post(self.url + "/answer", headers=self.owner_headers if headers is None else headers, json=body)
+
+    def test_retained_rounds_reach_next_context_get_preview_and_actual_case(self):
+        a, b = self.structured(), self.structured("第二轮原文，没有呕吐🐱\n  ", "rabbit")
+        original = dynamic_consult.run_dynamic_consult
+        with patch.object(dynamic_consult, "run_dynamic_consult", wraps=original) as ai:
+            first = self.answer(a, self.session()["answers_token"])
+            self.assertEqual(first.status_code, 200, first.text)
+            second = self.answer(b, first.json()["answers_token"])
+            self.assertEqual(second.status_code, 200, second.text)
+            self.assertEqual(ai.call_count, 2)
+            context = ai.call_args.args[1]
+            for snapshot in [a, b]:
+                raw = snapshot["sections"][0]["answers"][0]["answer"]
+                self.assertEqual(sum(raw in item["answer"] for item in context), 1)
+        db.engine.dispose()
+        rounds = self.session()["answers"]
+        self.assertEqual(rounds[0], {"question": "多久", "answer": "两天"})
+        for item, snapshot in zip(rounds[1:], [a, b]):
+            self.assertEqual(item["answer"], "普通回答")
+            self.assertEqual(json.loads(item["structured_intake_snapshot"]), snapshot)
+        legacy = deepcopy(b); legacy.pop("category")
+        body = {**self.body, "structured_intake_answers": legacy}
+        preview = self.preview(body)
+        saved = self.save({**body, "expected_preview_token": preview["preview_token"]})
+        self.assertEqual(saved.status_code, 200, saved.text)
+        record = self.read(saved.json()["case_id"])
+        self.assertEqual(record["history"], preview["history"])
+        self.assertTrue(record["history"].startswith(self.body["history"]))
+        for n, snapshot in enumerate([a, b], 2):
+            self.assertIn(f"第 {n} 轮", record["history"])
+            self.assertEqual(record["history"].count(snapshot["sections"][0]["answers"][0]["answer"]), 1)
+        self.assertEqual(record["history"].count("模板版本：synthetic-v1"), 2)
+
+    def test_invalid_snapshot_is_rejected_before_ai_and_write(self):
+        samples = [[], {"unexpected": "x"}, {"sections": {}}, {"sections": [{}] * 61}]
+        for value in [True, 12, None, "x" * 100001]:
+            sample = self.structured(); sample["sections"][0]["answers"][0]["answer"] = value; samples.append(sample)
+        sample = self.structured(); sample["sections"][0]["answers"][0]["required"] = "true"; samples.append(sample)
+        sample = self.structured(); sample["sections"][0]["answers"] *= 201; samples.append(sample)
+        sample = self.structured("x" * 90000); sample["sections"][0]["answers"] *= 3; samples.append(sample)
+        before = self.session()
+        with patch.object(dynamic_consult, "run_dynamic_consult") as ai:
+            for sample in samples:
+                with self.subTest(sample=str(sample)[:80]):
+                    self.assertEqual(self.answer(sample).status_code, 422)
+                    self.assertEqual(self.session(), before)
+            ai.assert_not_called()
+
+    def test_answer_token_stops_replay_and_stale_client_without_second_ai(self):
+        token = self.session()["answers_token"]
+        response = self.answer(self.structured(), token)
+        self.assertEqual(response.status_code, 200, response.text)
+        before = self.session()
+        with patch.object(dynamic_consult, "run_dynamic_consult") as ai:
+            self.assertEqual(self.answer(self.structured(), token).status_code, 409)
+            self.assertEqual(self.answer(self.structured("different"), token).status_code, 409)
+            ai.assert_not_called()
+        self.assertEqual(self.session(), before)
+
+    def test_blank_long_and_identical_round_text_is_preserved_not_collapsed(self):
+        for raw in [" \r\n\t", "否认异常🐾" * 500, "重复原文", "重复原文"]:
+            response = self.answer(self.structured(raw))
+            self.assertEqual(response.status_code, 200, response.text)
+            item = json.loads(response.json()["answers"][-1]["structured_intake_snapshot"])
+            self.assertEqual(item["sections"][0]["answers"][0]["answer"], raw)
+        history = self.preview({**self.body, "structured_intake_answers": None})["history"]
+        self.assertEqual(history.count("重复原文"), 2)
+        self.assertIn("第 4 轮", history); self.assertIn("第 5 轮", history)
+        self.assertIn(" \r\n\t", history)
+
+    def test_snapshot_auth_and_corrupt_stored_record_fail_closed(self):
+        before = self.session()
+        self.assertIn(self.answer(self.structured(), headers={}).status_code, (401, 404))
+        self.assertEqual(self.answer(self.structured(), headers=self.other_headers).status_code, 404)
+        self.assertEqual(self.client.get(self.url, headers=self.other_headers).status_code, 404)
+        self.assertEqual(self.session(), before)
+        with db.SessionLocal() as session:
+            row = session.query(models.ConsultSession).filter_by(session_uid=self.sid).one()
+            row.answers = [{"question": "old", "answer": "old", "structured_intake_snapshot": "{broken"}]; session.commit()
+        self.assertEqual(self.client.post(self.url + "/preview-case", headers=self.owner_headers, json=self.body).status_code, 409)
+        self.assertEqual(self.save().status_code, 409)
+        self.assertEqual(self.count(), self.initial_count)
+
+    def test_snapshot_only_change_invalidates_save_preview(self):
+        self.assertEqual(self.answer(self.structured()).status_code, 200)
+        preview = self.preview()
+        with db.SessionLocal() as session:
+            row = session.query(models.ConsultSession).filter_by(session_uid=self.sid).one()
+            items = deepcopy(row.answers); items[-1]["structured_intake_snapshot"] = json.dumps(self.structured("更正"), ensure_ascii=False)
+            row.answers = items; session.commit()
+        self.assertEqual(self.save({**self.body, "expected_preview_token": preview["preview_token"]}).status_code, 409)
+        self.assertEqual(self.count(), self.initial_count)
 
 
 if __name__ == "__main__":

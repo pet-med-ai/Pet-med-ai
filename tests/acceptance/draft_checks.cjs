@@ -16,7 +16,10 @@ const structured=()=>page.getByPlaceholder('填写本项结构化病史；提交
 const save=()=>page.getByRole('region',{name:'首次保存病例核对',exact:true});
 const step=n=>page.getByRole('navigation',{name:'问诊工作台步骤',exact:true}).getByRole('button',{name:['问诊整理','保存前核对','病例回看'][n-1],exact:true});
 const responseFor=suffix=>page.waitForResponse(r=>r.request().method()==='POST' && new URL(r.url()).pathname.endsWith(suffix));
-async function record(name){passed.push(name);console.log('PASS:',name);await page.screenshot({path:path.join(out,`draft-${passed.length}-${name}.png`),fullPage:true});}
+async function record(name,{fullPage=true}={}){
+  await page.screenshot({path:path.join(out,`draft-${passed.length+1}-${name}.png`),fullPage});
+  passed.push(name);console.log('PASS:',name);
+}
 async function request(method, route, data){assert(route.startsWith('/api/'));const r=await context.request.fetch(API+route,{method,headers:auth,data});assert.equal(r.status(),200,await r.text());return r.json();}
 async function login(owner='browser-owner'){
   await page.getByPlaceholder('邮箱',{exact:true}).fill(owner+'@example.com');
@@ -52,6 +55,94 @@ async function preview(){
 }
 async function restore(){await draft().getByRole('button',{name:'恢复本页草稿',exact:true}).click();await expect(draft().getByText('发现本页未完成草稿',{exact:true})).toHaveCount(0);}
 async function reloadOffer(){await page.reload();await expect(draft().getByText('发现本页未完成草稿',{exact:true})).toBeVisible();}
+
+async function structuredHistoryAcceptance(){
+  await setup();await fillForm('M5多轮结构化合成犬');const created=await start();
+  const raws=['  M5-A：否认用药🐾\n<literal> & 保留尾部。  \n','M5-B：未见呕吐，原文不改🐱','M5-C：更正前文，曾用药但名称待核对'];
+  let current=created;
+  for(const raw of raws.slice(0,2)){
+    await followup().fill('合成普通回答');await structured().fill(raw);
+    const next=responseFor('/answer');await page.getByRole('button',{name:'提交追问回答',exact:true}).click();const res=await next;assert.equal(res.status(),200);current=await res.json();
+    await expect(followup()).toHaveValue('');await expect(structured()).toHaveValue('');
+    assert.equal(JSON.parse(current.answers.at(-1).structured_intake_snapshot).sections.flatMap(s=>s.answers)[0].answer,raw);
+  }
+  const retained=()=>page.getByRole('region',{name:'已提交结构化问诊记录',exact:true});
+  const beforeReload=writes.length;await reloadOffer();await restore();assert.equal(writes.length,beforeReload);
+  const shown=await retained().locator('pre').allTextContents();assert.equal(shown.length,2);
+  raws.slice(0,2).forEach((raw,i)=>{assert(shown[i].includes(raw));assert(shown[i].includes('第 '+(i+1)+' 轮'));});
+  assert.equal(await page.locator('literal').count(),0);
+  const reread=await request('GET','/api/ai/consult/session/'+created.session_id);assert.deepEqual(reread.answers,current.answers);
+  await record('m5_two_round_snapshots_survive_real_postgres_and_browser_refresh');
+  await audit();const checked=await preview();
+  for(const raw of raws.slice(0,2))assert.equal(checked.history.split(raw).length-1,1);
+  await save().getByRole('button',{name:'确认并保存病例',exact:true}).click();await expect(step(3)).toHaveAttribute('aria-current','step');
+  const bound=await request('GET','/api/ai/consult/session/'+created.session_id), cid=bound.case_id;assert(cid);
+  assert.equal((await request('GET','/api/cases/'+cid)).history,checked.history);
+  await record('m5_reviewed_first_save_contains_both_original_rounds_once');
+  await step(1).click();await followup().fill('合成更正回答');await structured().fill(raws[2]);
+  const endpoint='**/api/ai/consult/session/'+created.session_id+'/answer';const beforeAnswer=writes.filter(p=>p.endsWith('/answer')).length;
+  await page.route(endpoint,async handler=>{const real=await handler.fetch();assert.equal(real.status(),200);await handler.abort('failed');});
+  await page.getByRole('button',{name:'提交追问回答',exact:true}).click();await expect(page.getByRole('region',{name:'追问结果待核对',exact:true})).toBeVisible();
+  await expect(followup()).toHaveValue('合成更正回答');await expect(structured()).toHaveValue(raws[2]);await expect(page.getByRole('button',{name:'提交追问回答',exact:true})).toBeDisabled();
+  await page.unroute(endpoint);await page.getByRole('button',{name:'核对追问提交结果',exact:true}).click();await expect(structured()).toHaveValue('');
+  assert.equal(writes.filter(p=>p.endsWith('/answer')).length,beforeAnswer+1);await expect(retained().locator('pre')).toHaveCount(3);
+  const replay=await context.request.post(API+'/api/ai/consult/session/'+created.session_id+'/answer',{headers:auth,data:{question:'并发旧轮次',answer:'不得再写入',expected_answers_token:current.answers_token}});
+  assert.equal(replay.status(),409);assert.equal((await request('GET','/api/ai/consult/session/'+created.session_id)).answers.length,3);
+  await record('m5_lost_answer_response_recovers_by_get_and_stale_token_cannot_append');
+  await page.getByLabel('本次医生病史补记',{exact:true}).fill('M5医生核对第三轮更正，保留各轮原文。');
+  await audit();await step(2).click();const update=page.getByRole('region',{name:'更新已绑定病例核对',exact:true});
+  await update.getByLabel('本次更新范围',{exact:true}).selectOption('consult_sync');
+  const next=responseFor('/preview-update-case');await update.getByRole('button',{name:'核对更新内容',exact:true}).click();const proposed=await (await next).json();
+  for(const raw of raws)assert.equal(proposed.proposed.history.split(raw).length-1,1);
+  await update.getByLabel('已核对本次更新内容',{exact:true}).check();await update.getByRole('button',{name:'确认并更新病例',exact:true}).click();await expect(step(3)).toHaveAttribute('aria-current','step');
+  const actual=await request('GET','/api/cases/'+cid);assert.equal(actual.history,proposed.proposed.history);
+  for(let i=0;i<3;i++){assert.equal(actual.history.split(raws[i]).length-1,1);assert(actual.history.includes('第 '+(i+1)+' 轮'));}
+  fs.writeFileSync(path.join(out,'m5-structured-case.json'),JSON.stringify({case_id:cid,session_id:created.session_id,raws,history:actual.history},null,2));
+  await record('m5_third_round_correction_keeps_first_two_in_review_and_case_readback');
+}
+
+async function longStructuredDraftAcceptance(){
+  await setup();await fillForm('M5长记录草稿合成犬');const created=await start();
+  const fields=page.getByPlaceholder('填写本项结构化病史；提交追问时会随本轮上下文发给 AI',{exact:true});
+  const originals=[];let current=created;
+  for(let round=1;round<=2;round++){
+    assert((await fields.count())>=6,'Use six actual template text fields');
+    const raws=Array.from({length:6},(_,i)=>`合成长原文-${round}-${i}：`+'甲'.repeat(8990));
+    for(let i=0;i<raws.length;i++)await fields.nth(i).fill(raws[i]);
+    await followup().fill('合成普通追问回答');
+    const next=responseFor('/answer');await page.getByRole('button',{name:'提交追问回答',exact:true}).click();
+    const response=await next;assert.equal(response.status(),200);current=await response.json();
+    await expect(followup()).toHaveValue('');await expect(structured()).toHaveValue('');
+    assert.deepEqual(JSON.parse(current.answers.at(-1).structured_intake_snapshot).sections.flatMap(s=>s.answers.map(a=>a.answer)),raws);
+    originals.push(...raws);
+  }
+  assert(JSON.stringify(current.answers).length>100000);
+  const pending='  尚未提交的新回答🐾\n否认用药。  \n', pendingStructured='  未提交的结构化原文 <literal>🐱  ';
+  await followup().fill(pending);await structured().fill(pendingStructured);
+  const stored=await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)),KEY);assert(stored);
+  const context=JSON.parse(stored.data.sessionContext);
+  assert.equal(context.answers_token,current.answers_token);assert(stored.data.sessionContext.length<1000);
+  assert.equal(stored.data.followupAnswer,pending);
+  const before=writes.length;await reloadOffer();await restore();assert.equal(writes.length,before);
+  await expect(followup()).toHaveValue(pending);await expect(structured()).toHaveValue(pendingStructured);
+  const readback=await request('GET','/api/ai/consult/session/'+created.session_id);
+  assert.deepEqual(readback.answers,current.answers);
+  const displayed=(await page.getByRole('region',{name:'已提交结构化问诊记录',exact:true}).locator('pre').allTextContents()).join('\n');
+  for(const raw of originals)assert(displayed.includes(raw));
+  await expect(draft().getByText('浏览器暂时无法保留最新草稿，刷新或离开可能丢失输入。请先完成病例保存。',{exact:true})).toHaveCount(0);
+  // Full synthetic originals/readback are retained separately; rasterizing this
+  // >100,000-character page is not needed to prove exact text preservation.
+  fs.writeFileSync(path.join(out,'m5-long-draft-readback.json'),JSON.stringify({
+    synthetic:true,session_id:created.session_id,originals,
+    submitted_answers:current.answers,readback_answers:readback.answers,
+    stored_draft:stored,displayed_history:displayed,
+    pending:{followup:pending,structured:pendingStructured},
+    restored:{followup:await followup().inputValue(),structured:await structured().inputValue()},
+    writes_before_restore:before,writes_after_readback:writes.length,
+  },null,2));
+  await followup().scrollIntoViewIfNeeded();
+  await record('m5_long_retained_rounds_restore_pending_input_without_extra_writes',{fullPage:false});
+}
 
 async function main(){
   browser=await chromium.launch({headless:true});console.log('Chromium draft acceptance:',browser.version());
@@ -110,6 +201,9 @@ async function main(){
   await expect(history()).toHaveValue('');await expect(draft().getByText('发现本页未完成草稿',{exact:true})).toHaveCount(0);
   await record('logout_clears_draft_before_another_account_logs_in');
 
+  await structuredHistoryAcceptance();
+  await longStructuredDraftAcceptance();
+
   await page.evaluate(key=>sessionStorage.setItem(key,'{broken'),KEY);await page.reload();
   await expect(history()).toHaveValue('');await expect(draft().getByText('草稿不可读取或已过期；请检查输入后继续。',{exact:true})).toBeVisible();
   await record('corrupt_draft_is_rejected_without_blocking_intake');
@@ -118,4 +212,10 @@ async function main(){
   await expect(draft().getByText('浏览器暂时无法保留最新草稿，刷新或离开可能丢失输入。请先完成病例保存。',{exact:true})).toBeVisible();
   assert.deepEqual(pageErrors,[]);assert.deepEqual(external,[]);await record('quota_failure_warns_without_losing_current_input');
 }
-main().then(()=>{process.exitCode=0;}).catch(async error=>{process.exitCode=1;console.error(error);failures.push(String(error));if(page){await page.screenshot({path:path.join(out,'draft-failure.png'),fullPage:true}).catch(()=>{});fs.writeFileSync(path.join(out,'draft-failure-dom.txt'),await page.locator('body').innerText().catch(()=>''));}}).finally(async()=>{fs.writeFileSync(path.join(out,'draft-checks.json'),JSON.stringify({passed,failures,pageErrors,external},null,2));if(browser)await browser.close();});
+main().then(()=>{process.exitCode=0;}).catch(async error=>{
+  process.exitCode=1;console.error(error);failures.push(String(error));
+  if(page){
+    await page.screenshot({path:path.join(out,'draft-failure.png'),fullPage:false,timeout:5000}).catch(()=>{});
+    fs.writeFileSync(path.join(out,'draft-failure-dom.txt'),await page.locator('body').innerText({timeout:5000}).catch(()=>''));
+  }
+}).finally(async()=>{fs.writeFileSync(path.join(out,'draft-checks.json'),JSON.stringify({passed,failures,pageErrors,external},null,2));if(browser)await browser.close();});

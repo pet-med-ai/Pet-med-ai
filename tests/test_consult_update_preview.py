@@ -465,6 +465,53 @@ class ConsultUpdatePreviewTests(unittest.TestCase):
         self.assertEqual(self.edit_confirm(request,preview).status_code,409)
         self.assertEqual(self.read(),before)
 
+    def add_structured_round(self, raw):
+        snapshot = {"version": "m5-test", "template_key": "dog", "sections": [{"title": "合成分组", "answers": [{"label": "原文", "answer": raw}]}]}
+        response = self.client.post(self.url + "/answer", headers=self.owner_headers,
+                                    json={"question": "合成追问", "answer": "普通回答", "structured_intake_answers": snapshot})
+        self.assertEqual(response.status_code, 200, response.text)
+        return response.json()
+
+    def test_retained_rounds_and_correction_survive_repeated_sync_without_duplicates(self):
+        a, b, correction = "  M5没有用药🐾\r\n<raw>  \n", "M5第二轮正常饮食", "M5第三轮更正：曾用药，名称待核对"
+        for raw in [a, b]: self.add_structured_round(raw)
+        preview = self.preview(); self.assertEqual(self.update(preview).status_code, 200)
+        self.assertEqual(self.read()["history"], preview["proposed"]["history"])
+        for raw in [a, b]: self.assertEqual(self.read()["history"].count(raw), 1)
+        self.add_structured_round(correction)
+        self.assertEqual(self.update(preview).status_code, 409)
+        for _ in range(2):
+            latest = self.preview(); self.assertEqual(self.update(latest).status_code, 200)
+        history = self.read()["history"]
+        self.assertTrue(history.startswith(self.history))
+        for raw in [a, b, correction]: self.assertEqual(history.count(raw), 1)
+        for n in [2, 3, 4]: self.assertIn(f"第 {n} 轮", history)
+
+    def test_history_only_does_not_silently_sync_new_structured_round(self):
+        raw = "M5尚未同步的问诊原文"; self.add_structured_round(raw)
+        body = {"update_mode": "history_only", "history_addendum": "医生仅补记"}
+        response = self.client.post(self.url + "/preview-update-case", headers=self.owner_headers, json=body)
+        self.assertEqual(response.status_code, 200, response.text)
+        preview = response.json(); self.assertNotIn(raw, preview["proposed"]["history"])
+        saved = self.client.post(self.url + "/update-case", headers=self.owner_headers, json={**body, "expected_preview_token": preview["preview_token"]})
+        self.assertEqual(saved.status_code, 200, saved.text)
+        self.assertNotIn(raw, self.read()["history"])
+        latest = self.preview(); self.assertIn(raw, latest["proposed"]["history"])
+        self.assertEqual(self.update(latest).status_code, 200)
+        self.assertIn("医生仅补记", self.read()["history"])
+
+    def test_structured_only_change_invalidates_update_confirmation(self):
+        self.add_structured_round("M5原文")
+        preview = self.preview(); before = self.read()
+        with db.SessionLocal() as session:
+            row = session.query(models.ConsultSession).filter_by(session_uid=self.sid).one()
+            answers = list(row.answers); item = dict(answers[-1]); snapshot = json.loads(item["structured_intake_snapshot"])
+            snapshot["sections"][0]["answers"][0]["answer"] = "M5修改后的原文"
+            item["structured_intake_snapshot"] = json.dumps(snapshot, ensure_ascii=False); answers[-1] = item
+            row.answers = answers; session.commit()
+        self.assertEqual(self.update(preview).status_code, 409)
+        self.assertEqual(self.read(), before)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

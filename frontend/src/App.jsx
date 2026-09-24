@@ -5,6 +5,7 @@ import api from "./api";
 import useConsultDraft from "./useConsultDraft";
 import { clearDraft } from "./consultDraft";
 import { clearManualCreateAttempt } from "./components/ManualCaseCreateReview";
+import { clearManualCaseDraft } from "./manualCaseDraft";
 import { caseEditDraftOwner, clearCaseEditDrafts } from "./caseEditDraft";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
@@ -28,6 +29,16 @@ function getErrorDetail(err) {
   if (typeof detail === "string") return detail;
   if (detail) return JSON.stringify(detail);
   return "";
+}
+
+// The server token covers every retained answer, including structured originals.
+// Keep full answers on the server instead of copying them into draft metadata.
+function consultDraftContext(answers, result, token) {
+  const questions = result?.next_questions ?? [];
+  const templateKey = result?.structured_intake?.template_key ?? null;
+  return typeof token === "string" && /^[a-f0-9]{64}$/.test(token)
+    ? JSON.stringify({ version: 2, answers_token: token, questions, templateKey })
+    : JSON.stringify([answers, questions, templateKey]);
 }
 
 function isValidEmail(value) {
@@ -81,6 +92,7 @@ export function Home() {
     try {
       clearDraft();
       clearCaseEditDrafts();
+      clearManualCaseDraft();
       localStorage.removeItem("consult_session_id");
       localStorage.removeItem("token");
 
@@ -122,6 +134,7 @@ export function Home() {
   const handleLogout = () => {
     clearDraft();
     clearCaseEditDrafts();
+    clearManualCaseDraft();
     clearManualCreateAttempt();
     localStorage.removeItem("consult_session_id");
     localStorage.removeItem("token");
@@ -150,6 +163,12 @@ export function Home() {
   const [sessionTotal, setSessionTotal] = useState(0);
   const [deletingSessionId, setDeletingSessionId] = useState(null);
   const [consultAnswers, setConsultAnswers] = useState([]);
+  const [answersToken, setAnswersToken] = useState(null);
+  const [followupUncertain, setFollowupUncertain] = useState(null);
+  const consultEpoch = useRef(0), followupBusy = useRef(false), consultMounted = useRef(false);
+  const consultIdentity = useRef(null);
+  useEffect(() => { consultMounted.current = true; return () => { consultMounted.current = false; consultEpoch.current++; }; }, []);
+  const sameConsultRequest = (epoch, owner) => consultMounted.current && epoch === consultEpoch.current && owner === caseEditDraftOwner();
   const [followupAnswer, setFollowupAnswer] = useState("");
   const [structuredIntakeAnswers, setStructuredIntakeAnswers] = useState({});
   const [lastStructuredIntakeSubmission, setLastStructuredIntakeSubmission] = useState(null);
@@ -205,7 +224,7 @@ export function Home() {
   const draftSnapshot = {
     fields: { patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, chiefComplaint, history, historyAddendum, examFindings, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId },
     sessionId: consultSessionId,
-    sessionContext: JSON.stringify([consultAnswers, result?.next_questions ?? [], result?.structured_intake?.template_key ?? null]),
+    sessionContext: consultDraftContext(consultAnswers, result, answersToken),
     followupAnswer, structuredAnswers: structuredIntakeAnswers,
     lastSubmission: lastStructuredIntakeSubmission, recoveredNotes: recoveredDraftNotes,
   };
@@ -696,7 +715,8 @@ export function Home() {
   };
 
   const fetchSessionHistory = async (paramsOverride = {}) => {
-    if (!localStorage.getItem("token")) {
+    const requestToken = localStorage.getItem("token");
+    if (!requestToken) {
       setSessionHistory([]);
       setSessionTotal(0);
       return;
@@ -717,12 +737,13 @@ export function Home() {
         },
       });
 
+      if (requestToken !== localStorage.getItem("token")) return;
       setSessionHistory(res.data?.items || []);
       setSessionTotal(res.data?.total ?? (res.data?.items || []).length);
       setSessionPage(res.data?.page ?? nextPage);
     } catch (err) {
       console.error("Session history error:", err);
-      if (err.response?.status !== 401) {
+      if (requestToken === localStorage.getItem("token") && err.response?.status !== 401) {
         setErrMsg("历史问诊列表加载失败，请检查后端日志。");
       }
     } finally {
@@ -745,6 +766,7 @@ export function Home() {
   const restoreLocalDraft = async () => {
     if (!draft.offer || restoringDraft || !draft.owner) return;
     const snapshot = draft.offer.data;
+    const epoch = ++consultEpoch.current, owner = caseEditDraftOwner();
     try {
       setRestoringDraft(true); setDraftRestoreMessage("");
       let payload = null;
@@ -753,15 +775,20 @@ export function Home() {
         payload = response.data;
         if (payload.session_id !== snapshot.sessionId) throw new Error("Session mismatch");
       }
+      if (!sameConsultRequest(epoch, owner)) return;
+      consultIdentity.current = owner; setFollowupUncertain(null);
       const data = payload?.result || null;
-      const currentContext = JSON.stringify([payload?.answers || [], data?.next_questions ?? [], data?.structured_intake?.template_key ?? null]);
-      const changed = !!payload && currentContext !== snapshot.sessionContext;
+      const currentContext = consultDraftContext(payload?.answers || [], data, payload?.answers_token);
+      // Existing array-format drafts must still compare every original answer.
+      // A compact draft whose token is absent/changed is never assumed current.
+      const changed = !!payload && currentContext !== snapshot.sessionContext &&
+        consultDraftContext(payload.answers || [], data, null) !== snapshot.sessionContext;
       // Old pending answers must not be submitted to a newer/different question.
       const pending = changed && (snapshot.followupAnswer || Object.keys(snapshot.structuredAnswers).length)
         ? ["原问诊已变化，以下未提交内容需重新整理：", snapshot.followupAnswer, JSON.stringify(snapshot.structuredAnswers, null, 2)].filter(Boolean).join("\n") : "";
       setConsultSessionId(payload?.session_id || null);
       if (payload) rememberConsultSession(payload.session_id);
-      setResult(data); setConsultAnswers(payload?.answers || []);
+      setResult(data); setConsultAnswers(payload?.answers || []); setAnswersToken(payload?.answers_token || null);
       setSavedConsultCaseId(payload?.case_id || null);
       setAnalysis(""); setTreatment(""); setPrognosis("");
       if (data) applyConsultResult(data, "DRAFT RESTORED FROM CURRENT SESSION");
@@ -795,13 +822,17 @@ export function Home() {
       return;
     }
 
+    if (followupUncertain && sid === consultSessionId) { await checkFollowupResult(); return; }
     const hasUnsavedInput = Object.entries(draftSnapshot.fields).some(([key, value]) => !["species", "auditReviewAction"].includes(key) && value.trim()) || followupAnswer || recoveredDraftNotes || Object.values(structuredIntakeAnswers).some(value => value.trim());
     if (sid !== consultSessionId && hasUnsavedInput && !confirm("切换问诊会替换当前页面输入及本页草稿。请先保存需要保留的内容。继续切换？")) return;
+    const epoch = ++consultEpoch.current, owner = caseEditDraftOwner();
     try {
       setErrMsg("");
       setLoadingSession(true);
 
       const res = await api.get(`/api/ai/consult/session/${encodeURIComponent(sid)}`);
+      if (!sameConsultRequest(epoch, owner)) return;
+      consultIdentity.current = owner; setFollowupUncertain(null);
       const payload = res.data;
       const data = payload.result || {};
 
@@ -809,7 +840,7 @@ export function Home() {
       setRecoveredDraftNotes(""); setDraftRestoreMessage("");
       rememberConsultSession(payload.session_id || sid);
       setChiefComplaint(payload.text || "");
-      setConsultAnswers(payload.answers || []);
+      setConsultAnswers(payload.answers || []); setAnswersToken(payload.answers_token || null);
       setResult(data);
       setFollowupAnswer("");
       setStructuredIntakeAnswers({});
@@ -918,8 +949,11 @@ export function Home() {
   // ===== 即时分析（不入库） =====
  const handleAnalyzeSubmit = async (e) => {
   e.preventDefault();
+  if (followupBusy.current || followupUncertain) { setErrMsg("请先核对当前追问提交结果，再开始新的问诊。"); return; }
   if (historyAddendum.trim()) { alert("医生病史补记尚未保存，请先在第二步核对更新，或清空补记后再开始新的分析。"); return; }
 
+  const epoch = ++consultEpoch.current, owner = caseEditDraftOwner();
+  setAnswersToken(null);
   setErrMsg("");
   setAnalysis("");
   setTreatment("");
@@ -957,13 +991,15 @@ export function Home() {
     });
 
     const payload = res.data;
+    if (!sameConsultRequest(epoch, owner)) return;
+    consultIdentity.current = owner;
     const data = payload.result || payload;
     console.log("RAW AI DATA =", payload);
     if (payload.session_id) {
       rememberConsultSession(payload.session_id);
     }
     setResult(data);
-    setConsultAnswers(payload.answers || []);
+    setConsultAnswers(payload.answers || []); setAnswersToken(payload.answers_token || null);
     setFollowupAnswer("");
     applyConsultResult(data);
     await fetchSessionHistory();
@@ -1072,79 +1108,73 @@ export function Home() {
     }
   };
 
+  const applyFollowupPayload = (payload, submitted) => {
+    const data = payload.result || payload;
+    if (payload.session_id) rememberConsultSession(payload.session_id);
+    setResult(data); applyConsultResult(data, "FOLLOWUP READBACK");
+    setConsultAnswers(payload.answers || submitted.nextAnswers);
+    setAnswersToken(payload.answers_token || null);
+    setSavedConsultCaseId(payload.case_id || savedConsultCaseId || null);
+    const retained = (payload.answers || []).some(item => item.structured_intake_snapshot);
+    if (submitted.structured) setLastStructuredIntakeSubmission(retained ? null : submitted.structured);
+    setFollowupAnswer(""); setStructuredIntakeAnswers({}); setFollowupUncertain(null);
+    resetAuditReviewState(); setConsultSaveReceipt(null);
+    void fetchSessionHistory();
+  };
+
+  const checkFollowupResult = async () => {
+    const pending = followupUncertain;
+    if (!pending?.sid || followupBusy.current || !sameConsultRequest(pending.epoch, pending.owner)) return;
+    followupBusy.current = true; setLoadingFollowup(true);
+    try {
+      const res = await api.get("/api/ai/consult/session/" + encodeURIComponent(pending.sid), { expectedAuthOwner: pending.owner, timeout: 15000 });
+      if (!sameConsultRequest(pending.epoch, pending.owner)) return;
+      const rows = res.data.answers || [], row = rows[pending.before.length];
+      const prefixMatches = JSON.stringify(rows.slice(0, pending.before.length)) === JSON.stringify(pending.before);
+      const retained = row?.structured_intake_snapshot ? JSON.parse(row.structured_intake_snapshot) : null;
+      const sameStructured = !pending.structured || structuredSubmissionSignature(retained) === structuredSubmissionSignature(pending.structured);
+      if (res.data.session_id === pending.sid && prefixMatches && rows.length === pending.before.length + 1 &&
+          row?.question === pending.question && row?.answer === pending.answer.trim() && sameStructured) {
+        applyFollowupPayload(res.data, pending); setErrMsg("已回读核对本轮回答，未重复提交。");
+      } else {
+        setErrMsg("尚不能确认本轮提交结果；输入仍保留，请核对原问诊，不要重复提交。");
+      }
+    } catch { if (sameConsultRequest(pending.epoch, pending.owner)) setErrMsg("暂时无法核对追问结果；输入仍保留，不会自动重新提交。"); }
+    finally { followupBusy.current = false; setLoadingFollowup(false); }
+  };
+
   const handleFollowupSubmit = async (e) => {
     e.preventDefault();
-
-    const currentQuestion = getCurrentQuestion();
-    const answer = followupAnswer.trim();
-
-    if (!currentQuestion) {
-      alert("当前没有可提交的追问。");
-      return;
-    }
-
-    if (!answer) {
-      alert("请先填写追问回答。");
-      return;
-    }
-
-    const nextAnswers = [
-      ...consultAnswers,
-      {
-        question: currentQuestion,
-        answer,
-      },
-    ];
-    const structuredIntakePayload = buildStructuredIntakeSubmission(result?.structured_intake, structuredIntakeAnswers);
-
+    if (followupBusy.current || followupUncertain || loadingSession || loadingAnalyze) return;
+    const question = getCurrentQuestion(), answer = followupAnswer;
+    if (!question) { alert("当前没有可提交的追问。"); return; }
+    if (!answer.trim()) { alert("请先填写追问回答。"); return; }
+    const owner = caseEditDraftOwner(), epoch = consultEpoch.current;
+    if (consultIdentity.current !== owner) return;
+    const structured = buildStructuredIntakeSubmission(result?.structured_intake, structuredIntakeAnswers);
+    const nextAnswers = [...consultAnswers, { question, answer: answer.trim() }];
+    const submitted = { owner, epoch, sid: consultSessionId, question, answer, structured, nextAnswers, before: consultAnswers };
+    followupBusy.current = true; setErrMsg(""); setLoadingFollowup(true);
     try {
-      setErrMsg("");
-      setLoadingFollowup(true);
-
-      let payload;
-
-      if (consultSessionId) {
-        const answerPath = localStorage.getItem("token")
-          ? `/api/ai/consult/session/${consultSessionId}/answer`
-          : `/ai/consult/session/${consultSessionId}/answer`;
-
-        const res = await api.post(answerPath, {
-          question: currentQuestion,
-          answer,
-          structured_intake_answers: structuredIntakePayload,
-        });
-        payload = res.data;
-      } else {
-        const res = await api.post("/ai/consult/dynamic", {
-          text: chiefComplaint,
-          answers: nextAnswers,
-          structured_intake_answers: structuredIntakePayload,
-        });
-        payload = res.data;
-      }
-
-      if (structuredIntakePayload) setLastStructuredIntakeSubmission(structuredIntakePayload);
-      const data = payload.result || payload;
-      console.log("RAW DYNAMIC AI DATA =", payload);
-      const nextSessionId = payload.session_id || consultSessionId || "";
-      if (nextSessionId) {
-        rememberConsultSession(nextSessionId);
-      }
-      setResult(data);
-      applyConsultResult(data, "NORMALIZED DYNAMIC AI DATA");
-      setConsultAnswers(payload.answers || nextAnswers);
-      setSavedConsultCaseId(payload.case_id || savedConsultCaseId || null);
-      setFollowupAnswer("");
-      setStructuredIntakeAnswers({});
-      resetAuditReviewState();
-      setConsultSaveReceipt(null);
-      await fetchSessionHistory();
+      const path = consultSessionId
+        ? (owner ? "/api" : "") + "/ai/consult/session/" + consultSessionId + "/answer"
+        : "/ai/consult/dynamic";
+      const body = consultSessionId
+        ? { question, answer, structured_intake_answers: structured, ...(answersToken ? { expected_answers_token: answersToken } : {}) }
+        : { text: chiefComplaint, answers: nextAnswers, structured_intake_answers: structured };
+      const res = await api.post(path, body, { expectedAuthOwner: owner || undefined, timeout: 15000 });
+      if (!sameConsultRequest(epoch, owner)) return;
+      if (consultSessionId && res.data.session_id !== consultSessionId) throw Error("Session mismatch");
+      applyFollowupPayload(res.data, submitted);
     } catch (err) {
-      console.error("Followup error:", err);
-      setErrMsg("追问回答提交失败，请稍后重试或检查后端日志。");
-    } finally {
-      setLoadingFollowup(false);
-    }
+      if (!sameConsultRequest(epoch, owner)) return;
+      if ([400, 401, 403, 404, 422].includes(err?.response?.status)) {
+        setErrMsg("追问请求被拒绝，输入仍保留，请检查登录与输入后再提交。");
+      } else {
+        setFollowupUncertain(submitted);
+        setErrMsg("追问结果待核对，输入仍保留；请先核对提交结果，不要重复提交。");
+      }
+    } finally { followupBusy.current = false; setLoadingFollowup(false); }
   };
 
   const buildConsultSaveCasePayload = () => {
@@ -1357,6 +1387,7 @@ export function Home() {
                 intake={result.structured_intake}
                 answers={structuredIntakeAnswers}
                 onChange={setStructuredIntakeAnswers}
+                disabled={loadingFollowup || !!followupUncertain}
                 onSnapshot={setLastStructuredIntakeSubmission}
                 onAppendHistory={(text) => {
                   const clean = String(text || "").trim();
@@ -1386,6 +1417,15 @@ export function Home() {
               />
             )}
 
+            {followupUncertain && <section aria-label="追问结果待核对">
+              <p>本轮结果尚未核实，原输入仍保留。核对只读取原问诊。</p>
+              <button type="button" disabled={loadingFollowup || !followupUncertain.sid} onClick={checkFollowupResult}>核对追问提交结果</button>
+            </section>}
+            {consultIdentity.current === caseEditDraftOwner() && consultAnswers.some(item => item.structured_intake_snapshot) &&
+              <section aria-label="已提交结构化问诊记录"><h3>已提交的结构化答案</h3>
+                <p>按问诊轮次保留；病例内容仍需在保存前核对。</p>
+                {consultAnswers.map((item, index) => item.structured_intake_snapshot && <pre key={index} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{structuredRoundText(item, index + 1)}</pre>)}
+              </section>}
             {result && (currentQuestion || result.dynamic) && (
               <div
                 style={{
@@ -1422,7 +1462,7 @@ export function Home() {
                       onChange={(e) => setFollowupAnswer(e.target.value)}
                       rows={3}
                       placeholder="请填写对当前追问的回答"
-                      disabled={loadingFollowup}
+                      disabled={loadingFollowup || !!followupUncertain}
                       style={{
                         width: "100%",
                         boxSizing: "border-box",
@@ -1433,7 +1473,7 @@ export function Home() {
                     />
                     <button
                       type="submit"
-                      disabled={loadingFollowup || !followupAnswer.trim()}
+                      disabled={loadingFollowup || !!followupUncertain || !followupAnswer.trim()}
                       style={{ ...btn, marginTop: 8 }}
                     >
                       {loadingFollowup ? "提交中…" : "提交追问回答"}
@@ -1487,8 +1527,8 @@ export function Home() {
                 payload={buildConsultSaveCasePayload()}
                 revision={JSON.stringify([reviewNavigationVersion, consultAnswers, result, followupAnswer, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId])}
                 allowed={isAuthed && !auditReviewRequired}
-                blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim()}
-                hasPendingAnswers={!!followupAnswer.trim()}
+                blocked={!!followupUncertain || loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim()}
+                hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value) !== "")}
                 onSaved={async (record, receipt) => {
                   if (!receipt.inputsChanged && !recoveredDraftNotes) draft.markSaved();
                   setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, inputsChanged: receipt.inputsChanged, record, revision: workbenchRevision, mode: "create" });
@@ -1514,8 +1554,8 @@ export function Home() {
                 caseId={savedConsultCaseId}
                 historyAddendum={historyAddendum}
                 allowed={isAuthed && !auditReviewRequired}
-                blocked={loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting}
-                hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value).trim() !== "")}
+                blocked={!!followupUncertain || loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting}
+                hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value) !== "")}
                 revision={JSON.stringify([reviewNavigationVersion, consultSessionId, consultAnswers, result, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, followupAnswer, structuredIntakeAnswers, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId, loadingSession, loadingAnalyze, loadingFollowup, auditSubmitting])}
                 onUpdated={async (record, receipt) => {
                   const cleared = historyAddendum === receipt.historyAddendum;
@@ -2152,7 +2192,7 @@ function buildStructuredIntakeSubmission(intake, answers = {}) {
       const sectionAnswers = (section.questions || [])
         .map((question) => {
           const key = structuredAnswerKey(section.key, question.key);
-          const answer = String(answers[key] || "").trim();
+          const answer = String(answers[key] ?? "");
           if (!answer) return null;
           return {
             key: question.key,
@@ -2178,6 +2218,7 @@ function buildStructuredIntakeSubmission(intake, answers = {}) {
 
   return {
     version: intake.version || "exotic-structured-intake-v1",
+    category: intake.category || "",
     template_key: intake.template_key,
     label: intake.label,
     sections,
@@ -2191,7 +2232,7 @@ function formatStructuredIntakeSubmissionForHistory(submission) {
   for (const section of submission.sections) {
     const sectionTitle = section.title || section.key || "未命名分组";
     for (const item of section.answers || []) {
-      const answer = String(item.answer || "").trim();
+      const answer = String(item.answer ?? "");
       if (!answer) continue;
       rows.push({
         sectionTitle,
@@ -2210,7 +2251,7 @@ function formatStructuredIntakeSubmissionForHistory(submission) {
     ? "犬猫结构化问诊记录"
     : "异宠结构化问诊记录";
 
-  const lines = [`【${title}】`, `结构化问诊模板：${template}`];
+  const lines = ["【" + title + "】", "结构化问诊模板：" + template, "模板键：" + (submission.template_key || "未记录"), "模板版本：" + (submission.version || "未记录")];
   let currentSection = "";
 
   for (const row of rows) {
@@ -2222,7 +2263,7 @@ function formatStructuredIntakeSubmissionForHistory(submission) {
     if (row.required) flags.push("必填");
     if (row.triggered) flags.push("命中特征");
     const flagText = flags.length ? `（${flags.join("、")}）` : "";
-    lines.push(`- ${row.label}${flagText}：${row.answer}`);
+    lines.push("- " + row.label + flagText + "：\n" + row.answer + "\n【本项原文结束】");
   }
 
   return lines.join("\n").trim();
@@ -2248,7 +2289,7 @@ async function copyStructuredTextToClipboard(text) {
   return ok;
 }
 
-function StructuredIntakeBlock({ intake, answers = {}, onChange, onAppendHistory, onSnapshot }) {
+function StructuredIntakeBlock({ intake, answers = {}, onChange, onAppendHistory, onSnapshot, disabled = false }) {
   if (!intake || !Array.isArray(intake.sections) || intake.sections.length === 0) return null;
 
   const activeFeatures = Array.isArray(intake.active_features) ? intake.active_features : [];
@@ -2272,23 +2313,23 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange, onAppendHistory
   const historyPreview = formatStructuredIntakeSubmissionForHistory(submission);
 
   const handleChange = (sectionKey, questionKey, value) => {
-    if (!onChange) return;
+    if (disabled || !onChange) return;
     const key = structuredAnswerKey(sectionKey, questionKey);
     onChange((prev) => setStructuredAnswerValue(prev || {}, key, value));
   };
 
   const handleClear = () => {
-    if (onChange) onChange({});
+    if (!disabled && onChange) onChange({});
   };
 
   const handleAppendToHistory = () => {
-    if (!historyPreview) return;
+    if (disabled || !historyPreview) return;
     if (onSnapshot && submission) onSnapshot(submission);
     if (onAppendHistory) onAppendHistory(historyPreview);
   };
 
   const handleCopyPreview = async () => {
-    if (!historyPreview) return;
+    if (disabled || !historyPreview) return;
     if (onSnapshot && submission) onSnapshot(submission);
     const ok = await copyStructuredTextToClipboard(historyPreview);
     alert(ok ? "已复制结构化问诊文本" : "复制失败，请手动选择文本复制");
@@ -2360,6 +2401,7 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange, onAppendHistory
                       </div>
                     ) : question.options && Array.isArray(question.options) ? (
                       <select
+                        disabled={disabled}
                         value={value}
                         onChange={(e) => handleChange(section.key, question.key, e.target.value)}
                         style={{ width: "100%", padding: 8, border: "1px solid #e5e7eb", borderRadius: 8 }}
@@ -2371,6 +2413,7 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange, onAppendHistory
                       </select>
                     ) : (
                       <textarea
+                        disabled={disabled}
                         rows={2}
                         value={value}
                         onChange={(e) => handleChange(section.key, question.key, e.target.value)}
@@ -2395,10 +2438,10 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange, onAppendHistory
           <div style={{ display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap", marginBottom: 6 }}>
             <strong style={{ fontSize: 13 }}>结构化答案病史预览</strong>
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-              <button type="button" onClick={handleAppendToHistory} style={btnTiny}>
+              <button type="button" disabled={disabled} onClick={handleAppendToHistory} style={btnTiny}>
                 写入病史
               </button>
-              <button type="button" onClick={handleCopyPreview} style={btnTiny}>
+              <button type="button" disabled={disabled} onClick={handleCopyPreview} style={btnTiny}>
                 复制文本
               </button>
             </div>
@@ -2411,9 +2454,9 @@ function StructuredIntakeBlock({ intake, answers = {}, onChange, onAppendHistory
 
       <div style={{ marginTop: 8, display: "flex", justifyContent: "space-between", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
         <div style={{ fontSize: 12, opacity: 0.65 }}>
-          {fillable ? "这些答案不会作为独立病例字段保存；提交追问时会作为本轮 AI 上下文一起发送。" : "本阶段仅展示犬猫结构化问诊清单；后续 V2 再开放填写并随追问提交。"}
+          {fillable ? "这些答案随本轮追问提交；成功后可回读核对，保存病例前仍需确认各轮内容。" : "本阶段仅展示犬猫结构化问诊清单；后续 V2 再开放填写并随追问提交。"}
         </div>
-        <button type="button" onClick={handleClear} disabled={!answeredCount} style={btnTiny}>
+        <button type="button" onClick={handleClear} disabled={disabled || !answeredCount} style={btnTiny}>
           清空结构化答案
         </button>
       </div>
@@ -2441,3 +2484,18 @@ const undoBar = {
   boxShadow: "0 8px 24px rgba(0,0,0,.2)",
   zIndex: 50,
 };
+
+function structuredSubmissionSignature(submission) {
+  if (!submission) return "";
+  return JSON.stringify([
+    submission.version || "", submission.template_key || "", submission.label || "",
+    (submission.sections || []).map(section => [section.key || "", section.title || "",
+      (section.answers || []).map(item => [item.key || "", item.label || "", item.answer ?? "", item.answer_type || "", !!item.required, !!item.triggered])])
+  ]);
+}
+function structuredRoundText(item, round) {
+  try {
+    const snapshot = JSON.parse(item.structured_intake_snapshot);
+    return "第 " + round + " 轮\n" + formatStructuredIntakeSubmissionForHistory(snapshot);
+  } catch { return "第 " + round + " 轮记录无法读取，请先核对原问诊。"; }
+}
