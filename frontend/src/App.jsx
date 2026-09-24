@@ -5,6 +5,7 @@ import api from "./api";
 import useConsultDraft from "./useConsultDraft";
 import { clearDraft } from "./consultDraft";
 import { clearManualCreateAttempt } from "./components/ManualCaseCreateReview";
+import { clearManualCaseDraft } from "./manualCaseDraft";
 import { caseEditDraftOwner, clearCaseEditDrafts } from "./caseEditDraft";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
@@ -91,6 +92,7 @@ export function Home() {
     try {
       clearDraft();
       clearCaseEditDrafts();
+      clearManualCaseDraft();
       localStorage.removeItem("consult_session_id");
       localStorage.removeItem("token");
 
@@ -132,6 +134,7 @@ export function Home() {
   const handleLogout = () => {
     clearDraft();
     clearCaseEditDrafts();
+    clearManualCaseDraft();
     clearManualCreateAttempt();
     localStorage.removeItem("consult_session_id");
     localStorage.removeItem("token");

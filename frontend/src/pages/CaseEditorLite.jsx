@@ -2,7 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import api from "../api";
-import ManualCaseCreateReview from "../components/ManualCaseCreateReview";
+import ManualCaseCreateReview, { hasManualCreateAttempt } from "../components/ManualCaseCreateReview";
+import { readManualCaseDraft, writeManualCaseDraft, clearManualCaseDraft, hasManualDraftInput } from "../manualCaseDraft";
 import CaseEditReview from "../components/CaseEditReview";
 import { caseEditDraftOwner, clearCaseEditDraft, clearCaseEditDrafts, readCaseEditDraft, writeCaseEditDraft } from "../caseEditDraft";
 import "./CaseEditorLite.css";
@@ -34,24 +35,29 @@ function CaseEditor({ id }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isNew = !id || id === "new";
-
-  const [form, setForm] = useState(() => {
+  const [draftOwner] = useState(() => caseEditDraftOwner());
+  const [manualSeed] = useState(() => {
     const seed = location.state?.manualCase;
     return isNew && seed?.owner && seed.owner === caseEditDraftOwner()
-      ? normalizeCase(seed.values || {}) : EMPTY_FORM;
+      ? normalizeCase(seed.values || {}) : null;
   });
+  const [initialManual] = useState(() => isNew ? readManualCaseDraft(draftOwner) : { draft: null, error: "" });
+  const [manualOffer, setManualOffer] = useState(initialManual.draft);
+  const [manualMessage, setManualMessage] = useState(initialManual.error);
+  const [form, setForm] = useState(() => initialManual.draft ? EMPTY_FORM : manualSeed || EMPTY_FORM);
+  const [, refreshIdentity] = useState(0);
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(!isNew);
   const [error, setError] = useState("");
   const [editState, setEditState] = useState(null);
   const [reloadVersion, setReloadVersion] = useState(0);
-  const [draftOwner] = useState(() => caseEditDraftOwner());
   const [initialDraft] = useState(() => isNew ? { draft: null, error: "" } : readCaseEditDraft(draftOwner, Number(id)));
   const [draftOffer, setDraftOffer] = useState(initialDraft.draft);
   const [draftMessage, setDraftMessage] = useState(initialDraft.error);
   const [restoring, setRestoring] = useState(false);
   const mounted = useRef(false), recoveryBusy = useRef(false);
-  const identityChanged = !!draftOwner && draftOwner !== caseEditDraftOwner();
+  const identityChanged = isNew ? !draftOwner || draftOwner !== caseEditDraftOwner() : !!draftOwner && draftOwner !== caseEditDraftOwner();
+  const manualAttempt = isNew && hasManualCreateAttempt();
   const formRef = useRef(form); formRef.current = form;
   const editRef = useRef(editState); editRef.current = editState;
   const modifiedFields = (values = formRef.current, state = editRef.current) => {
@@ -59,7 +65,13 @@ function CaseEditor({ id }) {
     return Object.fromEntries(Object.entries(values).filter(([key, value]) => value !== initial[key]));
   };
   const keepDraft = (values, state = editRef.current) => {
-    if (isNew || !state) return;
+    if (isNew) {
+      if (!draftOwner || draftOwner !== caseEditDraftOwner() || hasManualCreateAttempt()) return;
+      const ok = writeManualCaseDraft(draftOwner, values);
+      setManualMessage(ok ? (hasManualDraftInput(values) ? "输入已暂存在本标签页，尚未创建病例。" : "") : "浏览器无法暂存最新输入，刷新或离开可能丢失；旧草稿也可能未能清除，请勿将其视为最新输入。");
+      return;
+    }
+    if (!state) return;
     if (!draftOwner || draftOwner !== caseEditDraftOwner()) {
       clearCaseEditDraft(Number(id));
       setDraftMessage("无法确认当前账号，编辑草稿未暂存。请检查登录状态。");
@@ -85,6 +97,51 @@ function CaseEditor({ id }) {
   };
   const validState = state => state?.case_id === Number(id) && state.case_token && state.before;
 
+  const consumeSeed = () => {
+    if (!location.state?.manualCase) return;
+    const { manualCase, ...rest } = location.state;
+    navigate(location.pathname + location.search + location.hash, { replace: true, state: rest });
+  };
+  const clearManualInput = () => {
+    if (!clearManualCaseDraft()) {
+      setManualMessage("浏览器未能清除旧输入草稿；保存记录仍保留，请稍后重试。"); return false;
+    }
+    setManualOffer(null); setManualMessage(""); consumeSeed(); return true;
+  };
+  const chooseManualInput = source => {
+    if (saving || manualAttempt || identityChanged || draftOwner !== caseEditDraftOwner()) return;
+    let values = EMPTY_FORM;
+    if (source === "draft") {
+      const fresh = readManualCaseDraft(draftOwner);
+      if (!fresh.draft) { setManualMessage(fresh.error || "此前草稿已不可恢复，请选择丢弃或使用首页带入输入。"); return; }
+      values = fresh.draft.values;
+    } else if (source === "seed") values = manualSeed;
+    if (source !== "draft" && !clearManualCaseDraft()) { setManualMessage("浏览器未能清除旧输入，请稍后重试；尚未替换表单。"); return; }
+    formRef.current = values; setForm(values); setManualOffer(null); consumeSeed(); keepDraft(values);
+  };
+
+  useEffect(() => {
+    if (!isNew) return;
+    if (manualSeed && !initialManual.draft && !hasManualCreateAttempt() && draftOwner === caseEditDraftOwner()) {
+      keepDraft(manualSeed); consumeSeed();
+    }
+    let timer;
+    const scheduleExpiry = () => {
+      clearTimeout(timer);
+      try {
+        const part = localStorage.getItem("token").split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+        const expires = JSON.parse(atob(part)).exp * 1000;
+        if (Number.isFinite(expires) && expires > Date.now()) timer = setTimeout(changed, Math.min(2147483647, expires - Date.now() + 1));
+      } catch { /* An invalid identity is already hidden. */ }
+    };
+    const changed = () => { refreshIdentity(n => n + 1); scheduleExpiry(); };
+    const storageChanged = event => { if (event.key === "token" || event.key === null) changed(); };
+    window.addEventListener("storage", storageChanged);
+    window.addEventListener("focus", changed);
+    scheduleExpiry();
+    return () => { window.removeEventListener("storage", storageChanged); window.removeEventListener("focus", changed); clearTimeout(timer); };
+  }, [isNew]);
+
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   useEffect(() => {
     if (isNew || typeof window === "undefined") return;
@@ -94,7 +151,7 @@ function CaseEditor({ id }) {
     window.addEventListener("storage", changed);
     return () => window.removeEventListener("storage", changed);
   }, [isNew]);
-  const hasPendingInput = !isNew && (draftOffer || (editState && Object.keys(modifiedFields()).length > 0));
+  const hasPendingInput = isNew ? !identityChanged && !manualAttempt && (manualOffer || hasManualDraftInput(form)) : draftOffer || (editState && Object.keys(modifiedFields()).length > 0);
   useEffect(() => {
     if (!hasPendingInput || typeof window === "undefined") return;
     const warn = event => { event.preventDefault(); event.returnValue = ""; };
@@ -161,12 +218,13 @@ function CaseEditor({ id }) {
   }, [id, isNew, reloadVersion]);
 
   const setField = (key, value) => {
-    if (draftOffer || restoring || identityChanged || saving) return;
+    if (draftOffer || manualOffer || restoring || identityChanged || saving || manualAttempt || (isNew && draftOwner !== caseEditDraftOwner())) return;
     const values = { ...formRef.current, [key]: value };
     formRef.current = values; setForm(values); keepDraft(values);
   };
 
   if (loading) return <div style={{ padding: 24 }}>加载中…</div>;
+  if (isNew && identityChanged) return <div style={{ padding: 24 }}><p role="alert">登录账号已变化或登录已过期，请返回首页登录后重新打开；不会展示或提交原账号的新建输入。</p><button type="button" onClick={() => navigate("/")}>返回首页</button></div>;
 
   return (
     <div
@@ -182,6 +240,19 @@ function CaseEditor({ id }) {
       </div>
 
       {error && <div style={errorBox}>{error}</div>}
+      {isNew && <section aria-label="手工新建输入草稿" style={{ ...card, marginBottom: 16 }}>
+        <p>输入仅暂存在本标签页，8 小时有效；恢复后仍需重新核对创建。关闭标签页或更换设备不保证恢复。</p>
+        {manualOffer && !manualAttempt && <>
+          <p>发现此前未提交的新建输入，暂存于 {new Date(manualOffer.updatedAt).toLocaleString()}。</p>
+          {manualSeed && <p>本次还有首页带入的输入。请选择要使用的一份，不会自动合并或覆盖。</p>}
+          <button type="button" disabled={saving} onClick={() => chooseManualInput("draft")}>恢复新建输入</button>{" "}
+          {manualSeed && <button type="button" disabled={saving} onClick={() => chooseManualInput("seed")}>使用首页带入输入</button>}{" "}
+          <button type="button" disabled={saving} onClick={() => chooseManualInput("empty")}>丢弃新建输入</button>
+          <p>丢弃会清空未提交的输入，不删除服务器病例，也不清除创建结果待核对记录。</p>
+        </>}
+        {manualAttempt && <p>已有创建记录，请先在下方核对保存结果；不会把输入草稿再次提交。</p>}
+        {manualMessage && <p role="status">{manualMessage}</p>}
+      </section>}
       {!isNew && <section aria-label="病例编辑草稿" style={{ ...card, marginBottom: 16 }}>
         <p>编辑草稿仅在本标签页保留，8 小时有效；恢复后需要重新核对保存。关闭标签页或更换设备不保证恢复。</p>
         {identityChanged && <p role="alert">登录账号已变化，请重新打开页面。</p>}
@@ -194,7 +265,7 @@ function CaseEditor({ id }) {
         {draftMessage && <p role="status">{draftMessage}</p>}
       </section>}
 
-      <fieldset disabled={saving || restoring || identityChanged || !!draftOffer || (!isNew && !editState)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
+      <fieldset disabled={saving || restoring || identityChanged || !!draftOffer || !!manualOffer || (!isNew && !editState)} style={{ border: 0, padding: 0, margin: 0, minWidth: 0 }}>
       <section style={card}>
         <h3 style={h3}>一、病例基础信息</h3>
         <div className="case-editor__info-grid">
@@ -261,8 +332,9 @@ function CaseEditor({ id }) {
       </fieldset>
       {!isNew && editState && !draftOffer && !identityChanged && <CaseEditReview key={id} caseId={Number(id)} baseline={editState} changes={modifiedFields()} onVerified={verifiedEdit} onReload={reloadEdit} onBusyChange={setSaving} />}
       {!isNew && !editState && <button type="button" onClick={() => setReloadVersion(n => n + 1)}>重新读取病例</button>}
-      {isNew && <ManualCaseCreateReview values={form} onLockChange={setSaving}
-        onNew={() => { formRef.current = EMPTY_FORM; setForm(EMPTY_FORM); }} />}
+      {isNew && <ManualCaseCreateReview values={form} blocked={!!manualOffer} onLockChange={setSaving}
+        onVerified={() => { if (clearManualInput()) setManualMessage("新建病例已保存并回读，输入草稿已清除。"); }}
+        onNew={() => { if (!clearManualInput()) return false; formRef.current = EMPTY_FORM; setForm(EMPTY_FORM); return true; }} />}
 
     </div>
   );

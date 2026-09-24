@@ -97,3 +97,29 @@ M2 医生审阅及 Word/WPS 桌面实机分页验收仍待补齐。CI 对 DOCX X
 必要本地专项通过：注入截图失败后不登记或打印成功；正常截图完成后才登记，原普通场景仍为全页截图；错误收尾截图失败仍保留最初错误、非零退出、JSON/DOM 证据并关闭浏览器。脚本语法、工作流 YAML、34 个内容绑定、全部 16 个原场景名称、长场景原断言和精确三文件范围检查均通过。这些证据流程专项不替代真实 Chromium/PostgreSQL CI。
 
 本记录在新提交前编写。新提交、唯一一次新 CI 的实际结果将登记在同一 PR 描述；不以旧提交成功替代。提交前重新核验正式双端 Auto-Deploy 与 PR previews Off。M2 医生审阅及 Word/WPS 实机分页仍待补齐，发布限制和生产操作边界继续有效。
+
+## M4/M5 集成收尾（2026-09-24）
+
+用户指示执行已提出的集成收尾方案。固定 main 基线仍为 `e5d53884789115ffdb3a47d9303d88c4570bf915`，M4 来源为 PR #41 的 `928114ccfe773b6ce715b3ec9f7590a448491dcc`，M5 来源为本 PR 的 `99fc34f4dbc46bff11856febd0a411948a40ee54`。复用本分支与草稿 PR #42，PR #41 状态不改；不合并到 main、不部署。
+
+组合相对 main 共十五文件。仅 App.jsx、consult-browser-postgres.yml、本记录允许整合编辑，其余十二文件与指定来源字节一致：
+
+| 来源 | 原样沿用文件 |
+| --- | --- |
+| M4 | frontend/src/manualCaseDraft.js、frontend/src/pages/CaseEditorLite.jsx、frontend/src/components/ManualCaseCreateReview.jsx、frontend/tests/manual-case-create.test.jsx、tests/acceptance/manual_create_checks.cjs、docs/clinical_docs/VISIT_MILESTONE_M4.md |
+| M5 | backend/main.py、frontend/tests/consult-first-save.test.jsx、tests/test_consult_first_save.py、tests/test_consult_update_preview.py、tests/acceptance/draft_checks.cjs、tests/acceptance/visit_document_checks.cjs |
+
+App 仅组合 M4 退出/登录时清理手工新建草稿与 M5 的问诊原文、紧凑草稿上下文；组合内容 blob 为 `40efed2f1e555e27baeedeaff976f8891f09a8ab`。工作流保留两边触发路径、全部功能步骤、36 个当前内容绑定和十二文件来源一致性检查。旧八/九/五/三文件范围分别对固定历史候选检查；新 HEAD 检查十五文件范围并验证两个来源均在历史内，不能沿用旧分支的成功结果代替组合验收。
+
+旧完整证据包约 38 MiB，标准下载上限为 32 MiB。新工作流在测试进程停止后，将全部原日志、截图、DOCX、JSON 打包，生成含提交 SHA、每文件/分包大小和 SHA256 的索引，按 22 MiB 载荷分成独立下载包，为外层 ZIP 保留余量，目标每包小于 25 MiB。最多四个载荷包，超过上传槽位则明确失败，不删除或省略证据。上传前实际从分包重组并核验每个原文件；下载后还须独立重组复核。旧包保持原样，不能宣称新组合证据完成了旧包的独立检查。
+
+首轮实际本地验证：
+- 前端 231/231（基线 197 + M4 18 + M5 16），失败、取消、跳过均 0。
+- 后端 75/75（更新 36、首次保存 16、手工新建 5、文书生命周期 18），隔离认证和一次性 SQLite；模板契约通过。
+- 分包专项一轮：单个 33 MiB 合成文件与 Unicode 原文完整重组；模拟外层下载 ZIP 小于 25 MiB；损坏或缺少分包被拒绝。该专项使用本地合成数据，不是生产数据或新候选 CI。
+- 工作流 YAML/内嵌 Python 语法、36 个当前内容绑定与组合 App blob 核对通过。原业务测试文件、依赖、数据库模型、模板及性能门槛不改。
+- Vite 构建与分块门通过，初始 JS 451,262 字节，gzip 136,461 字节，六条路由延后加载；460,000 / 500,000 字节门槛保持。
+
+预算上限：两轮修订、两轮完整本地回归、三次必要专项、两次新候选 CI；一个已有分支和已有草稿 PR。本记录写入时已用一轮修订、一轮完整本地回归、一次分包专项，新候选 CI 尚未触发。构建/静态门、新提交 SHA、CI 和分包下载复核结果登记在本 PR 描述；不得用来源分支 CI 填补未完成项目。
+
+提交含 `[skip render]`，提交和发布前重新核验正式双端 Auto-Deploy、PR previews 均 Off。M2 医生审阅和 Word/WPS 桌面实机分页仍待补齐，相关发布继续暂停。不得执行数据库迁移、恢复、生产数据、设备/处方/账单/宠主消息、基础设施/凭据/权限变更或激活 R1。
