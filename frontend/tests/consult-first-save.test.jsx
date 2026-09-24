@@ -218,12 +218,13 @@ const submitFollowup = async () => {
 };
 
 test('M5 two round raw snapshots survive success and independent session readback',async()=>{
-  await mountHome();const raws=['  否认用药🐾\r\n<literal> & 原文。  \n\t','第二轮，不呕吐🐱'];
+  await mountHome();const initialListReads=requests.filter(r=>r.url==='/api/ai/consult/sessions').length;const raws=['  否认用药🐾\r\n<literal> & 原文。  \n\t','第二轮，不呕吐🐱'];
   for(const raw of raws){
     change(followup(),' 普通回答 ');change(structured(),raw);await submitFollowup();
     assert.equal(followup().props.value,'');assert.equal(structured().props.value,'');
   }
   assert.equal(answerRequests().length,2);
+  assert.equal(requests.filter(r=>r.url==='/api/ai/consult/sessions').length,initialListReads+2);
   const bodies=answerRequests().map(r=>JSON.parse(r.data));
   assert.equal(bodies[0].expected_answers_token,'0'.repeat(64));assert.equal(bodies[1].expected_answers_token,'1'.repeat(64));
   for(let i=0;i<2;i++){assert.equal(bodies[i].structured_intake_answers.sections[0].answers[0].answer,raws[i]);assert.equal(bodies[i].structured_intake_answers.version,intake.version);}
@@ -235,7 +236,7 @@ test('M5 two round raw snapshots survive success and independent session readbac
   assert(!renderer.root.findAllByType('literal').length);
 });
 
-test('M5 lost response retains inputs and recovery reads exactly once without retry POST',async()=>{
+test('M5 lost response retains inputs and recovery reads without retry POST',async()=>{
   await mountHome();change(followup(),'普通回答');change(structured(),'M5结果不确定原文');
   answerAdapter=async config=>{persistAnswer(config);throw new Error('response lost after commit');};
   await submitFollowup();assert.equal(followup().props.value,'普通回答');assert.equal(structured().props.value,'M5结果不确定原文');

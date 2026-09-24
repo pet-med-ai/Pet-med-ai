@@ -86,6 +86,7 @@ async function structuredHistoryAcceptance(){
   const replay=await context.request.post(API+'/api/ai/consult/session/'+created.session_id+'/answer',{headers:auth,data:{question:'并发旧轮次',answer:'不得再写入',expected_answers_token:current.answers_token}});
   assert.equal(replay.status(),409);assert.equal((await request('GET','/api/ai/consult/session/'+created.session_id)).answers.length,3);
   await record('m5_lost_answer_response_recovers_by_get_and_stale_token_cannot_append');
+  await page.getByLabel('本次医生病史补记',{exact:true}).fill('M5医生核对第三轮更正，保留各轮原文。');
   await audit();await step(2).click();const update=page.getByRole('region',{name:'更新已绑定病例核对',exact:true});
   await update.getByLabel('本次更新范围',{exact:true}).selectOption('consult_sync');
   const next=responseFor('/preview-update-case');await update.getByRole('button',{name:'核对更新内容',exact:true}).click();const proposed=await (await next).json();

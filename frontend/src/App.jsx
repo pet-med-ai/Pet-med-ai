@@ -702,7 +702,8 @@ export function Home() {
   };
 
   const fetchSessionHistory = async (paramsOverride = {}) => {
-    if (!localStorage.getItem("token")) {
+    const requestToken = localStorage.getItem("token");
+    if (!requestToken) {
       setSessionHistory([]);
       setSessionTotal(0);
       return;
@@ -723,12 +724,13 @@ export function Home() {
         },
       });
 
+      if (requestToken !== localStorage.getItem("token")) return;
       setSessionHistory(res.data?.items || []);
       setSessionTotal(res.data?.total ?? (res.data?.items || []).length);
       setSessionPage(res.data?.page ?? nextPage);
     } catch (err) {
       console.error("Session history error:", err);
-      if (err.response?.status !== 401) {
+      if (requestToken === localStorage.getItem("token") && err.response?.status !== 401) {
         setErrMsg("历史问诊列表加载失败，请检查后端日志。");
       }
     } finally {
@@ -1101,6 +1103,7 @@ export function Home() {
     if (submitted.structured) setLastStructuredIntakeSubmission(retained ? null : submitted.structured);
     setFollowupAnswer(""); setStructuredIntakeAnswers({}); setFollowupUncertain(null);
     resetAuditReviewState(); setConsultSaveReceipt(null);
+    void fetchSessionHistory();
   };
 
   const checkFollowupResult = async () => {
