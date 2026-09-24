@@ -8,6 +8,8 @@ on:
       - 'scripts/validate_outpatient_document_templates.py'
       - 'docs/clinical_docs/VISIT_MILESTONE_M2.md'
       - 'docs/clinical_docs/VISIT_MILESTONE_M3.md'
+      - 'docs/clinical_docs/VISIT_MILESTONE_M4.md'
+      - 'frontend/src/manualCaseDraft.js'
       - 'backend/**'
       - '.github/workflows/consult-browser-postgres.yml'
       - 'frontend/src/pages/CaseDetail.jsx'
@@ -46,25 +48,25 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind M3 document review to reviewed M2 baseline and eight-file scope
+      - name: Bind M4 manual draft recovery to reviewed M3 baseline and eight-file scope
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git merge-base --is-ancestor 5e20bb06cbd6049ce8d5da0cea6f61b2d6f123c0 HEAD
-          git diff --exit-code 5e20bb06cbd6049ce8d5da0cea6f61b2d6f123c0 HEAD -- . ':(exclude)backend/clinical_docs_api.py' ':(exclude)frontend/src/pages/CaseDetail.jsx' ':(exclude)frontend/src/components/ClinicalDocReview.jsx' ':(exclude)frontend/tests/case-detail-documents.test.jsx' ':(exclude)tests/test_clinical_doc_lifecycle.py' ':(exclude)tests/acceptance/visit_document_checks.cjs' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M3.md'
+          git merge-base --is-ancestor e5d53884789115ffdb3a47d9303d88c4570bf915 HEAD
+          git diff --exit-code e5d53884789115ffdb3a47d9303d88c4570bf915 HEAD -- . ':(exclude)frontend/src/manualCaseDraft.js' ':(exclude)frontend/src/pages/CaseEditorLite.jsx' ':(exclude)frontend/src/components/ManualCaseCreateReview.jsx' ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/tests/manual-case-create.test.jsx' ':(exclude)tests/acceptance/manual_create_checks.cjs' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M4.md'
           test "$(git rev-parse HEAD:frontend/package.json)" = "b670ae3fea6c7f072196592ed7d5cc7bdfbe0109"
           test "$(git rev-parse HEAD:frontend/package-lock.json)" = "ccd707eeff135da84ee6b41f05bf7b3639730b0e"
           test "$(git rev-parse HEAD:backend/main.py)" = "45771a6127a970d4b75ed53b2e7fabb6dd2e2017"
-          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "1102daaa6619a26b6d17d8db549510828aff65d9"
+          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "38bad8470e0975266b75e6c3a97ed361de80073b"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "271b3ab99e95a5230ed5781f886b941dffa16e2a"
-          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "5d955d1da0517c8a43c1aa37930f7357336c3e07"
+          test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "b619839f01d4c439ca9ed76fdec1da878f378c57"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.css)" = "8665c9174e73f816d8477c7a7129b4f4228a70af"
-          test "$(git rev-parse HEAD:frontend/src/components/ManualCaseCreateReview.jsx)" = "7a3f5841c8305ac5c695b10fe4eba06c998c2ae0"
+          test "$(git rev-parse HEAD:frontend/src/components/ManualCaseCreateReview.jsx)" = "ea2528cafd1eeeb0e2cb4936934f602539bb00db"
           test "$(git rev-parse HEAD:frontend/tests/run-consult-update-review.mjs)" = "895245d6e0034a6d61205784c369b2c0fd963e1e"
-          test "$(git rev-parse HEAD:frontend/tests/manual-case-create.test.jsx)" = "295dc06a7f47c50b6e2a31c31265045eb695ad98"
+          test "$(git rev-parse HEAD:frontend/tests/manual-case-create.test.jsx)" = "f242144e222a91310e160980034de66b69295a8b"
           test "$(git rev-parse HEAD:tests/test_manual_case_create.py)" = "954b7726dbebda0cde1a29cf5719af12ec55334c"
           test "$(git rev-parse HEAD:tests/acceptance/postgres_checks.py)" = "e75e9b455db05360c17f0495fa13d5b6337e475c"
-          test "$(git rev-parse HEAD:tests/acceptance/manual_create_checks.cjs)" = "73c390ba00e425c1fa06feda47a307e07b8a1d14"
+          test "$(git rev-parse HEAD:tests/acceptance/manual_create_checks.cjs)" = "99cdb19282909fa02a0328b88f296ee41e12735d"
           test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.css)" = "039390558532bd3b61dc57359d227965d84a5657"
           test "$(git rev-parse HEAD:frontend/tests/case-list-auth.test.jsx)" = "04494cb14799f988f1a816d81a5385eb78c83e97"
           test "$(git rev-parse HEAD:backend/clinical_docs_api.py)" = "0ea4f1dac43a561c8c1bbca40985c7def7d5fd17"
@@ -82,8 +84,10 @@ jobs:
           test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M2.md)" = "71aa18f5c429d831a458a88ff6b51946c14a31b8"
           test "$(git rev-parse HEAD:frontend/src/components/ClinicalDocReview.jsx)" = "63bcb2aae6158af46ffef7081d529992fb55ba63"
           test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M3.md)" = "996c52b2973c063b831d52929669a9ff003f78d5"
+          test "$(git rev-parse HEAD:frontend/src/manualCaseDraft.js)" = "4e2796f2fa736ceaf2adabcc36fe1ae518ae9f8b"
+          test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M4.md)" = "67e393f14bb74c42e72f88d079fbd8b5d1bb52bf"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse 5e20bb06cbd6049ce8d5da0cea6f61b2d6f123c0 > acceptance-results/application-baseline.txt
+          git rev-parse e5d53884789115ffdb3a47d9303d88c4570bf915 > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
