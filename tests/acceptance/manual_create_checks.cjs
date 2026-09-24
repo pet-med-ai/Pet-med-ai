@@ -49,6 +49,7 @@ async function main() {
     external.push(origin); return route.abort();
   });
   page = await context.newPage();
+  page.on('dialog', dialog => dialog.accept()); // Deliberately confirm synthetic reload warnings.
   page.on('pageerror', error => pageErrors.push(error.message));
   page.on('request', request => {
     const route = new URL(request.url()).pathname;
@@ -64,6 +65,13 @@ async function main() {
   auth = { Authorization: 'Bearer ' + await page.evaluate(() => localStorage.getItem('token')) };
 
   await page.goto(UI + '/cases/new/edit');
+  await fillRequired('将丢弃的合成输入');
+  await page.reload();
+  await page.getByRole('button', { name: '丢弃新建输入', exact: true }).click();
+  await expect(field('病例名 / 宠物名（必填）')).toHaveValue('');
+  assert.equal(createWrites().length, 0);
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('pmai.manual-case-draft.v1')), null);
+  await record('unsent_draft_discard_does_not_create_a_case');
   const first = { ...nullPayload, patient_name: '隔离手工新建犬🐾', species: 'cat', sex: 'F', age_info: '2y', breed: '合成品种', weight: '5.2kg', coat_color: '白', owner_name: '虚构主人', owner_phone: 'synthetic-only', chief_complaint: '  手工主诉\n ', history: '  原始病史🐾\n尾部空格。  \n', exam_findings: '未实施真实检查', analysis: '手工分析 <script>literal</script>', treatment: '  手工处理\n ', prognosis: '手工随访' };
   const labels = {
     patient_name: '病例名 / 宠物名（必填）', species: '物种', sex: '性别', age_info: '年龄信息', breed: '品种 / 宠物信息', weight: '体重', coat_color: '毛色', owner_name: '主人姓名', owner_phone: '主人电话', chief_complaint: '主诉（必填）', history: '既往史 / 动态问诊追问记录', exam_findings: '体检 / 化验 / 来源信息', analysis: 'AI 分析', treatment: '治疗建议', prognosis: '风险提示 / 后续随访'
@@ -72,6 +80,13 @@ async function main() {
     if (key === 'species') await field(label).selectOption(first[key]);
     else await field(label).fill(first[key]);
   }
+  await page.reload();
+  await expect(field(labels.patient_name)).toHaveValue('');
+  await expect(button('核对新建内容')).toBeDisabled();
+  await page.getByRole('button', { name: '恢复新建输入', exact: true }).click();
+  for (const [key, label] of Object.entries(labels)) await expect(field(label)).toHaveValue(first[key]);
+  assert.equal(createWrites().length, 0);
+  await record('fifteen_unsent_fields_survive_refresh_and_explicit_restore');
   await prepare();
   assert.equal(createWrites().length, 0);
   await field(labels.treatment).fill('  核对后修改的手工处理\n ');
@@ -82,7 +97,14 @@ async function main() {
   assert.equal(createWrites().length, 0);
   await record('standalone_preview_has_no_write_and_input_change_invalidates_confirmation');
 
-  await button('重新核对新建内容').click();
+  await page.reload();
+  await expect(button('确认并创建病例')).toHaveCount(0);
+  await page.getByRole('button', { name: '恢复新建输入', exact: true }).click();
+  await expect(field(labels.treatment)).toHaveValue(first.treatment);
+  await button('核对新建内容').click();
+  await expect(review().getByLabel('已核对本次新建内容', { exact: true })).not.toBeChecked();
+  assert.equal(createWrites().length, 0);
+  await record('previewed_input_refresh_requires_a_new_confirmation');
   await review().getByLabel('已核对本次新建内容', { exact: true }).check();
   // Dispatch two actual DOM clicks in one task to exercise the synchronous guard.
   await button('确认并创建病例').evaluate(element => { element.click(); element.click(); });
@@ -137,6 +159,7 @@ async function main() {
   await button('核对保存结果').click();
   await verifyPayload({ ...nullPayload, patient_name: '回读暂时失败合成犬', chief_complaint: '仅用于隔离软件验收，非临床病例' });
   assert.equal(createWrites().length, 3);
+  assert.equal(await page.evaluate(() => sessionStorage.getItem('pmai.manual-case-draft.v1')), null);
   await record('failed_readback_and_reload_retry_only_get');
 
   await button('新建另一个病例').click();
@@ -156,6 +179,19 @@ async function main() {
   await expect(button('核对新建内容')).toHaveCount(0);
   await expect(button('确认并创建病例')).toHaveCount(0);
   assert.equal(createWrites().length, 4);
+  const inputDraft = await page.evaluate(() => sessionStorage.getItem('pmai.manual-case-draft.v1'));
+  for (const kind of ['deleted', 'expired']) {
+    await page.evaluate(({ kind, inputDraft }) => {
+      if (kind === 'deleted') sessionStorage.removeItem('pmai.manual-case-draft.v1');
+      else { const draft = JSON.parse(inputDraft); draft.updatedAt = Date.now() - 8 * 60 * 60 * 1000; sessionStorage.setItem('pmai.manual-case-draft.v1', JSON.stringify(draft)); }
+    }, { kind, inputDraft });
+    await page.reload();
+    await expect(button('核对新建内容')).toHaveCount(0);
+    await expect(button('确认并创建病例')).toHaveCount(0);
+    assert(await page.evaluate(() => sessionStorage.getItem('pmai.manual-create-attempt.v1')));
+    assert.equal(createWrites().length, 4);
+  }
+  await record('draft_deletion_and_expiry_do_not_unlock_uncertain_create');
   assert.deepEqual(external, []); assert.deepEqual(pageErrors, []);
   assert(writes.every(w => w.route === '/api/cases'));
   await record('lost_real_post_response_blocks_recreation_after_reload');

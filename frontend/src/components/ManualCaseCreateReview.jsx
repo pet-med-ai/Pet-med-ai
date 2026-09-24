@@ -13,6 +13,9 @@ export const manualCasePayload = values => Object.fromEntries(caseEditFields.map
 export function clearManualCreateAttempt() {
   try { window.sessionStorage.removeItem(ATTEMPT_KEY); return true; } catch { return false; }
 }
+export function hasManualCreateAttempt() {
+  try { return window.sessionStorage.getItem(ATTEMPT_KEY) !== null; } catch { return true; }
+}
 function remember(attempt) {
   try { window.sessionStorage.setItem(ATTEMPT_KEY, JSON.stringify(attempt)); return true; } catch { return false; }
 }
@@ -35,7 +38,7 @@ function recover(owner) {
 // API. The API remains compatible; this is not a server-side preview requirement
 // or a cross-tab idempotency guarantee. A persisted attempt prevents an automatic
 // second POST after an ambiguous response or a reload in this tab.
-export default function ManualCaseCreateReview({ values, onLockChange, onNew }) {
+export default function ManualCaseCreateReview({ values, onLockChange, onNew, onVerified, blocked = false }) {
   const owner = caseEditDraftOwner();
   const [attempt, setAttempt] = useState(() => recover(owner));
   const [preview, setPreview] = useState(null);
@@ -47,6 +50,7 @@ export default function ManualCaseCreateReview({ values, onLockChange, onNew }) 
   const revision = JSON.stringify(values);
   const attemptRef = useRef(attempt); attemptRef.current = attempt;
   const busy = useRef(false), mounted = useRef(false);
+  const callbacks = useRef(null); callbacks.current = { onVerified, onNew };
   const working = phase === "saving" || phase === "checking";
   const invalidated = preview && (preview.revision !== revision || preview.owner !== owner);
   const sameOwner = expected => expected && expected === caseEditDraftOwner();
@@ -60,7 +64,7 @@ export default function ManualCaseCreateReview({ values, onLockChange, onNew }) 
   }, []);
 
   function prepare() {
-    if (busy.current || attemptRef.current || !sameOwner(owner)) return;
+    if (blocked || busy.current || attemptRef.current || !sameOwner(owner)) return;
     const payload = manualCasePayload(values);
     if (!payload.patient_name?.trim() || !payload.chief_complaint?.trim()) {
       setMessage("请填写病例名 / 宠物名和主诉，再核对保存内容。"); return;
@@ -78,12 +82,13 @@ export default function ManualCaseCreateReview({ values, onLockChange, onNew }) 
         setPhase("uncertain"); setMessage("病例已创建，但回读内容与预览不一致。请查看已保存病例，不要重复创建。"); return;
       }
       setPhase("verified"); setMessage(`已回读病例 #${data.id}，本次核对的十五项内容一致。`);
+      callbacks.current.onVerified?.();
     } catch {
       if (mounted.current && sameOwner(snapshot.owner)) { setPhase("uncertain"); setMessage("病例已创建，暂时无法回读。请核对保存结果，不要重复创建。"); }
     }
   }
   async function save() {
-    if (busy.current || attemptRef.current || !preview || !confirmed || invalidated || !sameOwner(preview.owner)) return;
+    if (blocked || busy.current || attemptRef.current || !preview || !confirmed || invalidated || !sameOwner(preview.owner)) return;
     busy.current = true;
     const snapshot = { owner: preview.owner, payload: preview.payload, caseId: null };
     // Persist before dispatch: a reload cannot turn an unknown result into a new POST.
@@ -116,8 +121,9 @@ export default function ManualCaseCreateReview({ values, onLockChange, onNew }) 
   }
   function startAnother() {
     if (phase !== "verified" || busy.current || !sameOwner(attempt?.owner)) return;
+    if (callbacks.current.onNew?.() === false) { setMessage("浏览器未能清除旧输入，仍保留本次保存记录；请稍后重试。"); return; }
     if (!clearManualCreateAttempt()) { setMessage("浏览器未能清除上次保存状态，请稍后重试。"); return; }
-    attemptRef.current = null; setAttempt(null); setPreview(null); setConfirmed(false); setRecord(null); setPhase("idle"); setMessage(""); onNew?.();
+    attemptRef.current = null; setAttempt(null); setPreview(null); setConfirmed(false); setRecord(null); setPhase("idle"); setMessage("");
   }
   const visibleRecord = sameOwner(attempt?.owner) ? record : null;
   return <section aria-label="手工新建病例核对" style={{ border: "1px solid #bfdbfe", borderRadius: 12, padding: 16, marginTop: 16 }}>
@@ -127,12 +133,12 @@ export default function ManualCaseCreateReview({ values, onLockChange, onNew }) 
     {!owner && <p role="status">请先返回首页登录，再核对保存。</p>}
     {attempt && !sameOwner(attempt.owner) && <p role="alert">登录账号已变化或登录已过期，请返回首页登录后重新打开；不会提交或回读原账号的记录。</p>}
     {message && <p role="status">{message}</p>}
-    {!attempt && <button type="button" disabled={!owner || working} onClick={prepare}>{preview ? "重新核对新建内容" : "核对新建内容"}</button>}
+    {!attempt && <button type="button" disabled={blocked || !owner || working} onClick={prepare}>{preview ? "重新核对新建内容" : "核对新建内容"}</button>}
     {invalidated && !attempt && <p role="status">输入已修改，原确认失效，请重新核对。</p>}
     {preview && !attempt && <div>
       <FieldList data={preview.payload} />
-      <label><input type="checkbox" checked={confirmed} disabled={!!invalidated || !owner} onChange={e => setConfirmed(e.target.checked)} />已核对本次新建内容</label>
-      <div><button type="button" onClick={save} disabled={!confirmed || !!invalidated || !owner || working}>确认并创建病例</button></div>
+      <label><input type="checkbox" checked={confirmed} disabled={blocked || !!invalidated || !owner} onChange={e => setConfirmed(e.target.checked)} />已核对本次新建内容</label>
+      <div><button type="button" onClick={save} disabled={blocked || !confirmed || !!invalidated || !owner || working}>确认并创建病例</button></div>
     </div>}
     {working && <p role="status">{phase === "saving" ? "正在创建病例，请稍候…" : "正在回读核对…"}</p>}
     {attempt?.caseId && sameOwner(attempt.owner) && <div>
