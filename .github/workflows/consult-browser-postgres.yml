@@ -89,10 +89,13 @@ jobs:
           test "$(git rev-parse HEAD:frontend/tests/consult-first-save.test.jsx)" = "6f11b738c709bb68162cf89b14f01d5b1e5cfacc"
           test "$(git rev-parse HEAD:tests/test_consult_first_save.py)" = "034b30b0b160bd1164ea2e06cd830998696e11e1"
           test "$(git rev-parse HEAD:tests/test_consult_update_preview.py)" = "68d16f0964a70469ba2287fb603d88b39dc52707"
-          test "$(git rev-parse HEAD:tests/acceptance/draft_checks.cjs)" = "7a5d37c73a6fa900ea4ecd2a66cb6a04fdab614b"
+          test "$(git rev-parse HEAD:tests/acceptance/draft_checks.cjs)" = "b68197abbb6b7c9bd000b2f134c57bb909ff076f"
           git merge-base --is-ancestor 7b49bf2a881ec5ae56186175cb6167df2c2f1be4 HEAD
           git diff --exit-code 7b49bf2a881ec5ae56186175cb6167df2c2f1be4 HEAD -- . ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/tests/consult-first-save.test.jsx' ':(exclude)tests/acceptance/draft_checks.cjs' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M5.md'
           git rev-parse 7b49bf2a881ec5ae56186175cb6167df2c2f1be4 > acceptance-results/draft-fix-baseline.txt
+          git merge-base --is-ancestor a877ea851b053b072009ce8182557b66af591014 HEAD
+          git diff --exit-code a877ea851b053b072009ce8182557b66af591014 HEAD -- . ':(exclude)tests/acceptance/draft_checks.cjs' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M5.md'
+          git rev-parse a877ea851b053b072009ce8182557b66af591014 > acceptance-results/evidence-fix-baseline.txt
           git rev-parse HEAD > acceptance-results/application-commit.txt
           git rev-parse e5d53884789115ffdb3a47d9303d88c4570bf915 > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5

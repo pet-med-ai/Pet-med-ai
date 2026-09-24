@@ -16,7 +16,10 @@ const structured=()=>page.getByPlaceholder('填写本项结构化病史；提交
 const save=()=>page.getByRole('region',{name:'首次保存病例核对',exact:true});
 const step=n=>page.getByRole('navigation',{name:'问诊工作台步骤',exact:true}).getByRole('button',{name:['问诊整理','保存前核对','病例回看'][n-1],exact:true});
 const responseFor=suffix=>page.waitForResponse(r=>r.request().method()==='POST' && new URL(r.url()).pathname.endsWith(suffix));
-async function record(name){passed.push(name);console.log('PASS:',name);await page.screenshot({path:path.join(out,`draft-${passed.length}-${name}.png`),fullPage:true});}
+async function record(name,{fullPage=true}={}){
+  await page.screenshot({path:path.join(out,`draft-${passed.length+1}-${name}.png`),fullPage});
+  passed.push(name);console.log('PASS:',name);
+}
 async function request(method, route, data){assert(route.startsWith('/api/'));const r=await context.request.fetch(API+route,{method,headers:auth,data});assert.equal(r.status(),200,await r.text());return r.json();}
 async function login(owner='browser-owner'){
   await page.getByPlaceholder('邮箱',{exact:true}).fill(owner+'@example.com');
@@ -127,7 +130,18 @@ async function longStructuredDraftAcceptance(){
   const displayed=(await page.getByRole('region',{name:'已提交结构化问诊记录',exact:true}).locator('pre').allTextContents()).join('\n');
   for(const raw of originals)assert(displayed.includes(raw));
   await expect(draft().getByText('浏览器暂时无法保留最新草稿，刷新或离开可能丢失输入。请先完成病例保存。',{exact:true})).toHaveCount(0);
-  await record('m5_long_retained_rounds_restore_pending_input_without_extra_writes');
+  // Full synthetic originals/readback are retained separately; rasterizing this
+  // >100,000-character page is not needed to prove exact text preservation.
+  fs.writeFileSync(path.join(out,'m5-long-draft-readback.json'),JSON.stringify({
+    synthetic:true,session_id:created.session_id,originals,
+    submitted_answers:current.answers,readback_answers:readback.answers,
+    stored_draft:stored,displayed_history:displayed,
+    pending:{followup:pending,structured:pendingStructured},
+    restored:{followup:await followup().inputValue(),structured:await structured().inputValue()},
+    writes_before_restore:before,writes_after_readback:writes.length,
+  },null,2));
+  await followup().scrollIntoViewIfNeeded();
+  await record('m5_long_retained_rounds_restore_pending_input_without_extra_writes',{fullPage:false});
 }
 
 async function main(){
@@ -198,4 +212,10 @@ async function main(){
   await expect(draft().getByText('浏览器暂时无法保留最新草稿，刷新或离开可能丢失输入。请先完成病例保存。',{exact:true})).toBeVisible();
   assert.deepEqual(pageErrors,[]);assert.deepEqual(external,[]);await record('quota_failure_warns_without_losing_current_input');
 }
-main().then(()=>{process.exitCode=0;}).catch(async error=>{process.exitCode=1;console.error(error);failures.push(String(error));if(page){await page.screenshot({path:path.join(out,'draft-failure.png'),fullPage:true}).catch(()=>{});fs.writeFileSync(path.join(out,'draft-failure-dom.txt'),await page.locator('body').innerText().catch(()=>''));}}).finally(async()=>{fs.writeFileSync(path.join(out,'draft-checks.json'),JSON.stringify({passed,failures,pageErrors,external},null,2));if(browser)await browser.close();});
+main().then(()=>{process.exitCode=0;}).catch(async error=>{
+  process.exitCode=1;console.error(error);failures.push(String(error));
+  if(page){
+    await page.screenshot({path:path.join(out,'draft-failure.png'),fullPage:false,timeout:5000}).catch(()=>{});
+    fs.writeFileSync(path.join(out,'draft-failure-dom.txt'),await page.locator('body').innerText({timeout:5000}).catch(()=>''));
+  }
+}).finally(async()=>{fs.writeFileSync(path.join(out,'draft-checks.json'),JSON.stringify({passed,failures,pageErrors,external},null,2));if(browser)await browser.close();});
