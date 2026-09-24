@@ -10,6 +10,26 @@ const region=name=>page.getByRole('region',{name,exact:true});
 const field=label=>page.locator('label').filter({has:page.getByText(label,{exact:true})}).locator('input,textarea,select');
 const record=async name=>{passed.push(name);console.log('PASS:',name);await page.screenshot({path:path.join(out,'visit-'+passed.length+'.png'),fullPage:true});};
 const read=async id=>{const r=await context.request.get(API+'/api/cases/'+id,{headers:auth});assert.equal(r.status(),200);return r.json();};
+const review=()=>region('文书草稿内容核对');
+async function openDraft(label){
+ const response=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/clinical-docs/render-preview');
+ await page.getByRole('button',{name:label,exact:true}).click();const r=await response;assert.equal(r.status(),200);const p=await r.json();
+ await expect(review().getByRole('heading',{level:2})).toBeFocused();
+ await expect(review().getByRole('button',{name:'确认并下载草稿 DOCX',exact:true})).toBeDisabled();
+ const texts=await review().locator('pre').allTextContents();
+ for(const [key,value] of Object.entries(p.context))if(key.startsWith('visit.')||key==='export.account_id')assert(texts.includes(value),key);
+ assert.match(p.content_snapshot,/^[0-9a-f]{64}$/);return p;
+}
+async function confirmDraft(){
+ const checkbox=review().getByLabel('已核对本次草稿内容（仍未签署）',{exact:true});
+ await checkbox.focus();await checkbox.press('Space');await expect(checkbox).toBeChecked();
+ await review().getByRole('button',{name:'确认并下载草稿 DOCX',exact:true}).click();
+}
+async function closeDraft(label){
+ await review().getByRole('button',{name:'关闭草稿核对',exact:true}).click();
+ await expect(page.getByRole('button',{name:label,exact:true})).toBeFocused();
+}
+function documentText(file){return execFileSync('python',['-c','import sys,zipfile;from xml.etree import ElementTree as E;z=zipfile.ZipFile(sys.argv[1]);print("".join(E.fromstring(z.read("word/document.xml")).itertext()))',file],{encoding:'utf8'});}
 async function main(){
  browser=await chromium.launch({headless:true});context=await browser.newContext({acceptDownloads:true,serviceWorkers:'block',viewport:{width:1440,height:1000}});
  await context.route('**/*',route=>{const origin=new URL(route.request().url()).origin;if([UI,API].includes(origin))return route.continue();external.push(origin);return route.abort();});
@@ -24,16 +44,32 @@ async function main(){
  const actual=await read(id);assert.equal(actual.history,'M1问诊病史原文🐾');assert.equal(actual.treatment,'M1医生更正后处理🐾');await edit.getByRole('link',{name:'查看已保存病例 #'+id,exact:true}).click();await page.reload();await expect(region('完整病史原文')).toContainText(actual.history);await record('reviewed_visit_and_correction_read_back_exactly');
  const beforeWrites=mutations.length;
  for(const [label,name] of [['导出入院/住院记录 DOCX','admission'],['导出出院小结 DOCX','discharge'],['导出门诊病历草稿 DOCX','outpatient'],['导出宠主说明草稿 DOCX','owner-summary']]){
-  const downloadEvent=page.waitForEvent('download');await page.getByRole('button',{name:label,exact:true}).click();const download=await downloadEvent;assert.match(download.suggestedFilename(),new RegExp('case-'+id));const file=path.join(out,'visit-'+name+'.docx');await download.saveAs(file);
+  const isDraft=['outpatient','owner-summary'].includes(name);const reviewed=isDraft?await openDraft(label):null;
+  const downloadEvent=page.waitForEvent('download');if(isDraft)await confirmDraft();else await page.getByRole('button',{name:label,exact:true}).click();const download=await downloadEvent;assert.match(download.suggestedFilename(),new RegExp('case-'+id));const file=path.join(out,'visit-'+name+'.docx');await download.saveAs(file);
   const content=execFileSync('python',['-c','import sys,zipfile;from xml.etree import ElementTree as E;z=zipfile.ZipFile(sys.argv[1]);print("".join(E.fromstring(z.read("word/document.xml")).itertext()))',file],{encoding:'utf8'});
   for(const value of ['M1文书合成犬','M1医生更正后处理🐾'])assert(content.includes(value),value);assert(!content.includes('{{'));assert.deepEqual(await read(id),actual);
   if(['outpatient','owner-summary'].includes(name)){assert(content.includes(actual.history));assert(content.includes('未填写'));assert(content.includes('未单独记录复查安排，请医生补充确认'));assert(content.includes('待医生核对'));assert(content.includes('尚未签署'));assert(!content.includes('最终诊断'));assert(!content.includes('电子章'));await record(name+'_draft_has_saved_text_and_missing_fields');}
+  if(reviewed){for(const [key,value] of Object.entries(reviewed.context))if(key.startsWith('visit.')||key==='export.account_id')assert(content.includes(value),key);await closeDraft(label);await record(name+'_review_matches_download_and_keyboard_focus');}
  }
  assert.equal(mutations.length,beforeWrites);await record('four_docx_downloads_contain_corrected_case_without_write');
+ for(const [label,template] of [['导出门诊病历草稿 DOCX','outpatient_record_zh'],['导出宠主说明草稿 DOCX','owner_visit_summary_zh']]){
+  const before=downloads.length;const previous=await openDraft(label);const replacement='M3隔离并发更正-'+template;
+  // Another client updates only this synthetic case on the loopback API.
+  const changed=await context.request.put(API+'/api/cases/'+id,{headers:auth,data:{treatment:replacement}});assert.equal(changed.status(),200);
+  const saved=await read(id);const response=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/clinical-docs/render');
+  await confirmDraft();assert.equal((await response).status(),409);await expect(review()).toContainText('原确认已失效');assert.equal(downloads.length,before);
+  await expect(review().getByRole('button',{name:'确认并下载草稿 DOCX',exact:true})).toHaveCount(0);
+  const reread=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/clinical-docs/render-preview');await review().getByRole('button',{name:'重新读取草稿',exact:true}).click();
+  const latest=await (await reread).json();assert.notEqual(latest.content_snapshot,previous.content_snapshot);
+  await expect(review()).toContainText(replacement);await expect(review().getByRole('button',{name:'确认并下载草稿 DOCX',exact:true})).toBeDisabled();
+  const downloadEvent=page.waitForEvent('download');await confirmDraft();const download=await downloadEvent;const file=path.join(out,'reviewed-'+template+'.docx');await download.saveAs(file);
+  assert(documentText(file).includes(replacement));assert.deepEqual(await read(id),saved);assert.equal(downloads.length,before+1);assert.equal(mutations.length,beforeWrites);
+  await closeDraft(label);await record(template+'_concurrent_change_requires_new_review');
+ }
  let unlockDraft;const draftGate=new Promise(r=>unlockDraft=r);const draftEndpoint='**/api/clinical-docs/render';
  let draftRequests=0;await page.route(draftEndpoint,async route=>{draftRequests++;const response=await route.fetch();assert.equal(response.status(),200);await draftGate;await route.fulfill({response});});
- const ownerBefore=downloads.length;const draftDownload=page.waitForEvent('download');await page.getByRole('button',{name:'导出宠主说明草稿 DOCX',exact:true}).click();
- await expect(page.getByRole('button',{name:'导出门诊病历草稿 DOCX',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'导出出院小结 DOCX',exact:true})).toBeDisabled();unlockDraft();await draftDownload;assert.equal(downloads.length,ownerBefore+1);assert.equal(draftRequests,1);await page.unroute(draftEndpoint);await record('draft_export_excludes_concurrent_template_download');
+ const ownerBefore=downloads.length;await openDraft('导出宠主说明草稿 DOCX');const draftDownload=page.waitForEvent('download');await confirmDraft();
+ await expect(page.getByRole('button',{name:'导出门诊病历草稿 DOCX',exact:true})).toBeDisabled();await expect(page.getByRole('button',{name:'导出出院小结 DOCX',exact:true})).toBeDisabled();unlockDraft();await draftDownload;assert.equal(downloads.length,ownerBefore+1);assert.equal(draftRequests,1);await page.unroute(draftEndpoint);await closeDraft('导出宠主说明草稿 DOCX');await record('draft_export_excludes_concurrent_template_download');
  let release,delivered=false;const hold=new Promise(r=>release=r);const endpoint='**/api/clinical-docs/render';
  await page.route(endpoint,async route=>{const response=await route.fetch();assert.equal(response.status(),200);await hold;await route.fulfill({response});delivered=true;});
  const beforeDownloads=downloads.length;await page.getByRole('button',{name:'导出出院小结 DOCX',exact:true}).click();await expect(page.getByRole('button',{name:'生成中…',exact:true})).toBeDisabled();await page.getByRole('link',{name:'返回首页',exact:true}).click();release();await expect.poll(()=>delivered).toBe(true);await page.evaluate(()=>new Promise(r=>setTimeout(r,100)));assert.equal(downloads.length,beforeDownloads);await page.unroute(endpoint);await record('leaving_detail_discards_late_download');

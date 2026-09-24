@@ -7,6 +7,7 @@ on:
       - 'templates/clinical_docs/**'
       - 'scripts/validate_outpatient_document_templates.py'
       - 'docs/clinical_docs/VISIT_MILESTONE_M2.md'
+      - 'docs/clinical_docs/VISIT_MILESTONE_M3.md'
       - 'backend/**'
       - '.github/workflows/consult-browser-postgres.yml'
       - 'frontend/src/pages/CaseDetail.jsx'
@@ -45,12 +46,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind M2 draft documents to reviewed M1 baseline and eleven-file scope
+      - name: Bind M3 document review to reviewed M2 baseline and eight-file scope
         run: |
           mkdir -p acceptance-results
           git rev-parse HEAD > acceptance-results/test-commit.txt
-          git merge-base --is-ancestor 20550e0f2144aaab6e2990b2db90b78140771856 HEAD
-          git diff --exit-code 20550e0f2144aaab6e2990b2db90b78140771856 HEAD -- . ':(exclude)backend/clinical_docs_api.py' ':(exclude)frontend/src/pages/CaseDetail.jsx' ':(exclude)templates/clinical_docs/outpatient_record_zh.docx' ':(exclude)templates/clinical_docs/owner_visit_summary_zh.docx' ':(exclude)templates/clinical_docs/CLINICAL_DOCS_TEMPLATE_ASSETS_MANIFEST.json' ':(exclude)tests/test_clinical_doc_lifecycle.py' ':(exclude)frontend/tests/case-detail-documents.test.jsx' ':(exclude)tests/acceptance/visit_document_checks.cjs' ':(exclude)scripts/validate_outpatient_document_templates.py' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M2.md'
+          git merge-base --is-ancestor 5e20bb06cbd6049ce8d5da0cea6f61b2d6f123c0 HEAD
+          git diff --exit-code 5e20bb06cbd6049ce8d5da0cea6f61b2d6f123c0 HEAD -- . ':(exclude)backend/clinical_docs_api.py' ':(exclude)frontend/src/pages/CaseDetail.jsx' ':(exclude)frontend/src/components/ClinicalDocReview.jsx' ':(exclude)frontend/tests/case-detail-documents.test.jsx' ':(exclude)tests/test_clinical_doc_lifecycle.py' ':(exclude)tests/acceptance/visit_document_checks.cjs' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M3.md'
           test "$(git rev-parse HEAD:frontend/package.json)" = "b670ae3fea6c7f072196592ed7d5cc7bdfbe0109"
           test "$(git rev-parse HEAD:frontend/package-lock.json)" = "ccd707eeff135da84ee6b41f05bf7b3639730b0e"
           test "$(git rev-parse HEAD:backend/main.py)" = "45771a6127a970d4b75ed53b2e7fabb6dd2e2017"
@@ -66,11 +67,11 @@ jobs:
           test "$(git rev-parse HEAD:tests/acceptance/manual_create_checks.cjs)" = "73c390ba00e425c1fa06feda47a307e07b8a1d14"
           test "$(git rev-parse HEAD:frontend/src/components/ConsultWorkbench.css)" = "039390558532bd3b61dc57359d227965d84a5657"
           test "$(git rev-parse HEAD:frontend/tests/case-list-auth.test.jsx)" = "04494cb14799f988f1a816d81a5385eb78c83e97"
-          test "$(git rev-parse HEAD:backend/clinical_docs_api.py)" = "57fa7e3ad28577a8c95f25540c8d12823f1dd13d"
-          test "$(git rev-parse HEAD:frontend/src/pages/CaseDetail.jsx)" = "0eca8d040b1d2f702af21d41ccb1e220cfe9d4f1"
-          test "$(git rev-parse HEAD:frontend/tests/case-detail-documents.test.jsx)" = "374671c392c8567aea3a7432aa501bda6084c9bd"
-          test "$(git rev-parse HEAD:tests/test_clinical_doc_lifecycle.py)" = "9d8b042ff97af701687ad101fa0b50cd9c5fb9e6"
-          test "$(git rev-parse HEAD:tests/acceptance/visit_document_checks.cjs)" = "544724911e209bb92a33fea868c967ed2b01355a"
+          test "$(git rev-parse HEAD:backend/clinical_docs_api.py)" = "0ea4f1dac43a561c8c1bbca40985c7def7d5fd17"
+          test "$(git rev-parse HEAD:frontend/src/pages/CaseDetail.jsx)" = "7ca4b8e4f79d4caecd0120a09ea41c8f1cf66003"
+          test "$(git rev-parse HEAD:frontend/tests/case-detail-documents.test.jsx)" = "9adf2691487a1cff6781c2704c6b4f4b08d0d201"
+          test "$(git rev-parse HEAD:tests/test_clinical_doc_lifecycle.py)" = "028ed9dc88c87c5b3669813112a3ab5f01e058e3"
+          test "$(git rev-parse HEAD:tests/acceptance/visit_document_checks.cjs)" = "b90075304e8674b437a157b11a7ef7cc29d01926"
           test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M1.md)" = "badecc5eaffd9e7da3703f81d1dad9833fa1000b"
           test "$(git rev-parse HEAD:frontend/tests/deferred-pages.test.jsx)" = "12f1970a224e95db0c71d7c589bb5eae828cd03e"
           test "$(git rev-parse HEAD:frontend/tests/check-route-chunks.mjs)" = "c195f48bf64d5a6ad3be4bb763020cbcda58d24a"
@@ -79,8 +80,10 @@ jobs:
           test "$(git rev-parse HEAD:templates/clinical_docs/CLINICAL_DOCS_TEMPLATE_ASSETS_MANIFEST.json)" = "57ce21a7c74954192c316de82529efa634d0e3ac"
           test "$(git rev-parse HEAD:scripts/validate_outpatient_document_templates.py)" = "05d2a658ac9165ab398acda85d3736ba551a6bf4"
           test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M2.md)" = "71aa18f5c429d831a458a88ff6b51946c14a31b8"
+          test "$(git rev-parse HEAD:frontend/src/components/ClinicalDocReview.jsx)" = "63bcb2aae6158af46ffef7081d529992fb55ba63"
+          test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M3.md)" = "996c52b2973c063b831d52929669a9ff003f78d5"
           git rev-parse HEAD > acceptance-results/application-commit.txt
-          git rev-parse 20550e0f2144aaab6e2990b2db90b78140771856 > acceptance-results/application-baseline.txt
+          git rev-parse 5e20bb06cbd6049ce8d5da0cea6f61b2d6f123c0 > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
