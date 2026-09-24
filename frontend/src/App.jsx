@@ -30,6 +30,16 @@ function getErrorDetail(err) {
   return "";
 }
 
+// The server token covers every retained answer, including structured originals.
+// Keep full answers on the server instead of copying them into draft metadata.
+function consultDraftContext(answers, result, token) {
+  const questions = result?.next_questions ?? [];
+  const templateKey = result?.structured_intake?.template_key ?? null;
+  return typeof token === "string" && /^[a-f0-9]{64}$/.test(token)
+    ? JSON.stringify({ version: 2, answers_token: token, questions, templateKey })
+    : JSON.stringify([answers, questions, templateKey]);
+}
+
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test((value || "").trim());
 }
@@ -211,7 +221,7 @@ export function Home() {
   const draftSnapshot = {
     fields: { patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, chiefComplaint, history, historyAddendum, examFindings, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId },
     sessionId: consultSessionId,
-    sessionContext: JSON.stringify([consultAnswers, result?.next_questions ?? [], result?.structured_intake?.template_key ?? null]),
+    sessionContext: consultDraftContext(consultAnswers, result, answersToken),
     followupAnswer, structuredAnswers: structuredIntakeAnswers,
     lastSubmission: lastStructuredIntakeSubmission, recoveredNotes: recoveredDraftNotes,
   };
@@ -765,8 +775,11 @@ export function Home() {
       if (!sameConsultRequest(epoch, owner)) return;
       consultIdentity.current = owner; setFollowupUncertain(null);
       const data = payload?.result || null;
-      const currentContext = JSON.stringify([payload?.answers || [], data?.next_questions ?? [], data?.structured_intake?.template_key ?? null]);
-      const changed = !!payload && currentContext !== snapshot.sessionContext;
+      const currentContext = consultDraftContext(payload?.answers || [], data, payload?.answers_token);
+      // Existing array-format drafts must still compare every original answer.
+      // A compact draft whose token is absent/changed is never assumed current.
+      const changed = !!payload && currentContext !== snapshot.sessionContext &&
+        consultDraftContext(payload.answers || [], data, null) !== snapshot.sessionContext;
       // Old pending answers must not be submitted to a newer/different question.
       const pending = changed && (snapshot.followupAnswer || Object.keys(snapshot.structuredAnswers).length)
         ? ["原问诊已变化，以下未提交内容需重新整理：", snapshot.followupAnswer, JSON.stringify(snapshot.structuredAnswers, null, 2)].filter(Boolean).join("\n") : "";

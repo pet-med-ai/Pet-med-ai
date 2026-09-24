@@ -98,6 +98,38 @@ async function structuredHistoryAcceptance(){
   await record('m5_third_round_correction_keeps_first_two_in_review_and_case_readback');
 }
 
+async function longStructuredDraftAcceptance(){
+  await setup();await fillForm('M5长记录草稿合成犬');const created=await start();
+  const fields=page.getByPlaceholder('填写本项结构化病史；提交追问时会随本轮上下文发给 AI',{exact:true});
+  const originals=[];let current=created;
+  for(let round=1;round<=2;round++){
+    assert((await fields.count())>=6,'Use six actual template text fields');
+    const raws=Array.from({length:6},(_,i)=>`合成长原文-${round}-${i}：`+'甲'.repeat(8990));
+    for(let i=0;i<raws.length;i++)await fields.nth(i).fill(raws[i]);
+    await followup().fill('合成普通追问回答');
+    const next=responseFor('/answer');await page.getByRole('button',{name:'提交追问回答',exact:true}).click();
+    const response=await next;assert.equal(response.status(),200);current=await response.json();
+    await expect(followup()).toHaveValue('');await expect(structured()).toHaveValue('');
+    assert.deepEqual(JSON.parse(current.answers.at(-1).structured_intake_snapshot).sections.flatMap(s=>s.answers.map(a=>a.answer)),raws);
+    originals.push(...raws);
+  }
+  assert(JSON.stringify(current.answers).length>100000);
+  const pending='  尚未提交的新回答🐾\n否认用药。  \n', pendingStructured='  未提交的结构化原文 <literal>🐱  ';
+  await followup().fill(pending);await structured().fill(pendingStructured);
+  const stored=await page.evaluate(key=>JSON.parse(sessionStorage.getItem(key)),KEY);assert(stored);
+  const context=JSON.parse(stored.data.sessionContext);
+  assert.equal(context.answers_token,current.answers_token);assert(stored.data.sessionContext.length<1000);
+  assert.equal(stored.data.followupAnswer,pending);
+  const before=writes.length;await reloadOffer();await restore();assert.equal(writes.length,before);
+  await expect(followup()).toHaveValue(pending);await expect(structured()).toHaveValue(pendingStructured);
+  const readback=await request('GET','/api/ai/consult/session/'+created.session_id);
+  assert.deepEqual(readback.answers,current.answers);
+  const displayed=(await page.getByRole('region',{name:'已提交结构化问诊记录',exact:true}).locator('pre').allTextContents()).join('\n');
+  for(const raw of originals)assert(displayed.includes(raw));
+  await expect(draft().getByText('浏览器暂时无法保留最新草稿，刷新或离开可能丢失输入。请先完成病例保存。',{exact:true})).toHaveCount(0);
+  await record('m5_long_retained_rounds_restore_pending_input_without_extra_writes');
+}
+
 async function main(){
   browser=await chromium.launch({headless:true});console.log('Chromium draft acceptance:',browser.version());
   await setup();await fillForm();const original=await history().inputValue(), before=writes.length;
@@ -156,6 +188,7 @@ async function main(){
   await record('logout_clears_draft_before_another_account_logs_in');
 
   await structuredHistoryAcceptance();
+  await longStructuredDraftAcceptance();
 
   await page.evaluate(key=>sessionStorage.setItem(key,'{broken'),KEY);await page.reload();
   await expect(history()).toHaveValue('');await expect(draft().getByText('草稿不可读取或已过期；请检查输入后继续。',{exact:true})).toBeVisible();

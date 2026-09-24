@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import api from "../src/api";
 import { Home } from "../src/App";
 import ConsultSaveReview from "../src/components/ConsultSaveReview";
+import { DRAFT_KEY, readDraft } from "../src/consultDraft";
 
 global.localStorage = { getItem: () => null };
 let renderer, requests, adapter, props, receipts, boundCalls;
@@ -291,4 +292,78 @@ test('M5 legacy response with no snapshot remains usable and does not invent pri
   answerAdapter=async config=>{const body=JSON.parse(config.data);return response(config,{...homeSession,answers:[{question:body.question,answer:body.answer}]});};
   await submitFollowup();assert.equal(retained().length,0);assert.equal(structured().props.value,'');
   assert.equal(JSON.parse(answerRequests()[0].data).expected_answers_token,undefined);
+});
+
+async function reloadHomeDraft() {
+  act(()=>renderer.unmount());
+  await act(async()=>{renderer=TestRenderer.create(<MemoryRouter><Home /></MemoryRouter>);});
+}
+const pendingRaw = '  待提交原文🐾\r\n<literal> 否认用药。  \n';
+const localDraft = () => readDraft('m5-owner',window.sessionStorage).draft;
+const allWrites = () => requests.filter(r=>r.method!=='get');
+
+test('M5 compact draft restores pending inputs after more than 100000 retained characters',async()=>{
+  await mountHome();
+  homeSession={...homeSession,answers_token:'a'.repeat(64),answers:[1,2].map(round=>({
+    question:'合成追问 '+round,answer:'合成普通回答',structured_intake_snapshot:JSON.stringify({
+      version:intake.version,template_key:'dog',category:'companion',label:'合成犬模板',
+      sections:[{key:'history',title:'合成病史',answers:Array.from({length:6},(_,i)=>({
+        key:'field'+i,label:'合成字段'+i,answer:String(round).repeat(9000),answer_type:'text',required:false,triggered:false,
+      }))}],
+    }),
+  }))};
+  assert(JSON.stringify(homeSession.answers).length>100000);
+  await click('恢复会话');change(followup(),pendingRaw);change(structured(),pendingRaw);
+  const stored=localDraft();assert(stored);assert(stored.data.sessionContext.length<1000);
+  assert.equal(JSON.parse(stored.data.sessionContext).answers_token,homeSession.answers_token);
+  assert.equal(stored.data.followupAnswer,pendingRaw);
+  const before=allWrites().length, originals=structuredClone(homeSession.answers);
+  await reloadHomeDraft();await click('恢复本页草稿');
+  assert.equal(followup().props.value,pendingRaw);assert.equal(structured().props.value,pendingRaw);
+  assert.equal(retained()[0].findAllByType('pre').length,2);
+  assert.deepEqual(homeSession.answers,originals);assert.equal(allWrites().length,before);
+  assert(!output().includes('浏览器暂时无法保留最新草稿'));
+});
+
+test('M5 existing array-format draft restores against a token-capable server',async()=>{
+  await mountHome();change(followup(),pendingRaw);change(structured(),pendingRaw);
+  const envelope=JSON.parse(window.sessionStorage.getItem(DRAFT_KEY));
+  envelope.data.sessionContext=JSON.stringify([homeSession.answers,homeSession.result.next_questions,intake.template_key]);
+  window.sessionStorage.setItem(DRAFT_KEY,JSON.stringify(envelope));
+  await reloadHomeDraft();await click('恢复本页草稿');
+  assert.equal(followup().props.value,pendingRaw);assert.equal(structured().props.value,pendingRaw);
+  assert.equal(JSON.parse(localDraft().data.sessionContext).answers_token,homeSession.answers_token);
+  assert.equal(allWrites().length,0);
+});
+
+test('M5 old server without a token retains the exact legacy draft comparison',async()=>{
+  await mountHome({legacy:true});change(followup(),pendingRaw);change(structured(),pendingRaw);
+  assert(Array.isArray(JSON.parse(localDraft().data.sessionContext)));
+  await reloadHomeDraft();await click('恢复本页草稿');
+  assert.equal(followup().props.value,pendingRaw);assert.equal(structured().props.value,pendingRaw);
+  assert.equal(allWrites().length,0);
+});
+
+for (const kind of ['answers token','question','template','missing token']) {
+  test('M5 changed '+kind+' separates old pending draft without another POST',async()=>{
+    await mountHome();change(followup(),pendingRaw);change(structured(),pendingRaw);
+    if(kind==='answers token')homeSession={...homeSession,answers_token:'b'.repeat(64)};
+    if(kind==='question')homeSession={...homeSession,result:{...homeSession.result,next_questions:['新的合成追问']}};
+    if(kind==='template')homeSession={...homeSession,result:{...homeSession.result,structured_intake:{...intake,template_key:'cat'}}};
+    if(kind==='missing token'){homeSession={...homeSession};delete homeSession.answers_token;}
+    await reloadHomeDraft();await click('恢复本页草稿');
+    assert.equal(followup().props.value,'');assert.equal(structured().props.value,'');
+    const notes=renderer.root.findByProps({'aria-label':'待重新整理的草稿补充'});
+    assert(notes.findByType('pre').children.join('').includes(pendingRaw));
+    assert.equal(allWrites().length,0);
+  });
+}
+
+test('M5 compact draft cannot be restored by another account',async()=>{
+  await mountHome();change(followup(),pendingRaw);change(structured(),pendingRaw);
+  assert.equal(JSON.parse(localDraft().data.sessionContext).version,2);
+  localStorage.setItem('token',ownerToken('other-owner'));
+  await reloadHomeDraft();assert.equal(button('恢复本页草稿'),undefined);
+  assert.equal(window.sessionStorage.getItem(DRAFT_KEY),null);
+  assert(!output().includes(pendingRaw));assert.equal(allWrites().length,0);
 });

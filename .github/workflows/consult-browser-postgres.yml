@@ -59,7 +59,7 @@ jobs:
           test "$(git rev-parse HEAD:frontend/package.json)" = "b670ae3fea6c7f072196592ed7d5cc7bdfbe0109"
           test "$(git rev-parse HEAD:frontend/package-lock.json)" = "ccd707eeff135da84ee6b41f05bf7b3639730b0e"
           test "$(git rev-parse HEAD:backend/main.py)" = "dd91531de163dd655d7e70a6419acc46828c4225"
-          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "c4fdabef4b12f3435c889b1f6c069c2965464ebb"
+          test "$(git rev-parse HEAD:frontend/src/App.jsx)" = "5322dede480a6e7edc44da10a9c1adc37b387c5c"
           test "$(git rev-parse HEAD:frontend/src/api.ts)" = "271b3ab99e95a5230ed5781f886b941dffa16e2a"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.jsx)" = "5d955d1da0517c8a43c1aa37930f7357336c3e07"
           test "$(git rev-parse HEAD:frontend/src/pages/CaseEditorLite.css)" = "8665c9174e73f816d8477c7a7129b4f4228a70af"
@@ -86,10 +86,13 @@ jobs:
           test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M2.md)" = "71aa18f5c429d831a458a88ff6b51946c14a31b8"
           test "$(git rev-parse HEAD:frontend/src/components/ClinicalDocReview.jsx)" = "63bcb2aae6158af46ffef7081d529992fb55ba63"
           test "$(git rev-parse HEAD:docs/clinical_docs/VISIT_MILESTONE_M3.md)" = "996c52b2973c063b831d52929669a9ff003f78d5"
-          test "$(git rev-parse HEAD:frontend/tests/consult-first-save.test.jsx)" = "32481e03955076f057e33141f21d12d1aa537a03"
+          test "$(git rev-parse HEAD:frontend/tests/consult-first-save.test.jsx)" = "6f11b738c709bb68162cf89b14f01d5b1e5cfacc"
           test "$(git rev-parse HEAD:tests/test_consult_first_save.py)" = "034b30b0b160bd1164ea2e06cd830998696e11e1"
           test "$(git rev-parse HEAD:tests/test_consult_update_preview.py)" = "68d16f0964a70469ba2287fb603d88b39dc52707"
-          test "$(git rev-parse HEAD:tests/acceptance/draft_checks.cjs)" = "6aa1c76db6325f0ba74ba07359246c07f91956c6"
+          test "$(git rev-parse HEAD:tests/acceptance/draft_checks.cjs)" = "7a5d37c73a6fa900ea4ecd2a66cb6a04fdab614b"
+          git merge-base --is-ancestor 7b49bf2a881ec5ae56186175cb6167df2c2f1be4 HEAD
+          git diff --exit-code 7b49bf2a881ec5ae56186175cb6167df2c2f1be4 HEAD -- . ':(exclude)frontend/src/App.jsx' ':(exclude)frontend/tests/consult-first-save.test.jsx' ':(exclude)tests/acceptance/draft_checks.cjs' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/VISIT_MILESTONE_M5.md'
+          git rev-parse 7b49bf2a881ec5ae56186175cb6167df2c2f1be4 > acceptance-results/draft-fix-baseline.txt
           git rev-parse HEAD > acceptance-results/application-commit.txt
           git rev-parse e5d53884789115ffdb3a47d9303d88c4570bf915 > acceptance-results/application-baseline.txt
       - uses: actions/setup-python@v5
