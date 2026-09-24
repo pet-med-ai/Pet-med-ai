@@ -75,6 +75,21 @@ async function main(){
  const beforeDownloads=downloads.length;await page.getByRole('button',{name:'导出出院小结 DOCX',exact:true}).click();await expect(page.getByRole('button',{name:'生成中…',exact:true})).toBeDisabled();await page.getByRole('link',{name:'返回首页',exact:true}).click();release();await expect.poll(()=>delivered).toBe(true);await page.evaluate(()=>new Promise(r=>setTimeout(r,100)));assert.equal(downloads.length,beforeDownloads);await page.unroute(endpoint);await record('leaving_detail_discards_late_download');
  await page.goto(UI+'/cases/'+id);await expect(region('完整病史原文')).toBeVisible();const del=await context.request.delete(API+'/api/cases/'+id,{headers:auth});assert.equal(del.status(),204);
  const responseEvent=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/clinical-docs/render');await page.getByRole('button',{name:'导出出院小结 DOCX',exact:true}).click();assert.equal((await responseEvent).status(),404);await expect(page.getByRole('status')).toContainText('导出失败');assert(dialogs.some(d=>d.includes('Case not found')));assert.equal(downloads.length,beforeDownloads);await expect(page.getByRole('button',{name:'导出出院小结 DOCX',exact:true})).toBeEnabled();await record('deleted_case_refused_with_readable_export_error');
+ const evidence=JSON.parse(fs.readFileSync(path.join(out,'m5-structured-case.json'),'utf8'));
+ const multi=await read(evidence.case_id);assert.equal(multi.history,evidence.history);
+ await page.goto(UI+'/cases/'+evidence.case_id);await page.reload();
+ assert.equal(await region('完整病史原文').locator('.text-body').textContent(),evidence.history);
+ const m5Writes=mutations.length;
+ for(const [label,name] of [['导出门诊病历草稿 DOCX','outpatient'],['导出宠主说明草稿 DOCX','owner-summary']]){
+  const checked=await openDraft(label);
+  for(const raw of evidence.raws)assert(Object.values(checked.context).some(value=>String(value).includes(raw)),raw);
+  const next=page.waitForEvent('download');await confirmDraft();const download=await next;const file=path.join(out,'m5-'+name+'.docx');await download.saveAs(file);
+  // Preserve Word line-break and tab elements while reading text from the package.
+  const text=execFileSync('python',['-c','import sys,zipfile;from xml.etree import ElementTree as E;root=E.fromstring(zipfile.ZipFile(sys.argv[1]).read("word/document.xml"));ns="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}";print("\\n".join("".join((n.text or "") if n.tag==ns+"t" else "\\n" if n.tag==ns+"br" else "\\t" if n.tag==ns+"tab" else "" for n in p.iter()) for p in root.iter(ns+"p")))',file],{encoding:'utf8'});
+  for(let i=0;i<evidence.raws.length;i++){assert(text.includes(evidence.raws[i]),evidence.raws[i]);assert(text.includes('第 '+(i+1)+' 轮'));}
+  assert.deepEqual(await read(evidence.case_id),multi);assert.equal(mutations.length,m5Writes);
+  await closeDraft(label);await record('m5_'+name+'_review_and_docx_keep_all_three_original_rounds');
+ }
  assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
 }
 main().catch(async e=>{process.exitCode=1;failures.push(String(e));console.error(e);if(page){await page.screenshot({path:path.join(out,'visit-failure.png'),fullPage:true}).catch(()=>{});fs.writeFileSync(path.join(out,'visit-failure-dom.txt'),await page.locator('body').innerText().catch(()=>''));}}).finally(async()=>{fs.writeFileSync(path.join(out,'visit-document-checks.json'),JSON.stringify({passed,failures,errors,external},null,2));if(browser)await browser.close();});

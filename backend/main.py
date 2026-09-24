@@ -313,11 +313,13 @@ class AIConsultSessionAnswerIn(BaseModel):
     answer: str
     question: Optional[str] = None
     structured_intake_answers: Optional[Dict[str, Any]] = None
+    expected_answers_token: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$", strict=True)
 
 class AIConsultSessionOut(BaseModel):
     session_id: str
     text: str
     answers: List[Dict[str, str]] = Field(default_factory=list)
+    answers_token: Optional[str] = None
     result: Dict[str, Any] = Field(default_factory=dict)
     case_id: Optional[int] = None
     created_at: Optional[str] = None
@@ -781,6 +783,101 @@ def _first_session_question(result: Optional[Dict[str, Any]]) -> str:
 
 
 
+# M5: snapshots live beside their ordinary answer in the existing JSON column.
+# A JSON string keeps the existing List[Dict[str, str]] response contract.
+STRUCTURED_SNAPSHOT_KEY = "structured_intake_snapshot"
+
+
+def _clean_structured_snapshot(raw):
+    if raw is None:
+        return None
+    def invalid():
+        raise HTTPException(status_code=422, detail="结构化问诊格式或长度无效，尚未提交。")
+    def text(value, limit=1000):
+        if not isinstance(value, str) or len(value) > limit:
+            invalid()
+        return value
+    if not isinstance(raw, dict):
+        invalid()
+    allowed = {"version", "template_key", "label", "category", "sections"}
+    if set(raw) - allowed:
+        invalid()
+    clean = {key: text(raw.get(key, "")) for key in ("version", "template_key", "label", "category")}
+    sections = raw.get("sections", [])
+    if not isinstance(sections, list) or len(sections) > 60:
+        invalid()
+    clean["sections"] = []
+    count = 0
+    for section in sections:
+        if not isinstance(section, dict) or set(section) - {"key", "title", "answers"}:
+            invalid()
+        items = section.get("answers", [])
+        if not isinstance(items, list) or len(items) > 200:
+            invalid()
+        group = {key: text(section.get(key, "")) for key in ("key", "title")}
+        group["answers"] = []
+        for item in items:
+            count += 1
+            if count > 600 or not isinstance(item, dict) or set(item) - {"key", "label", "answer", "answer_type", "required", "triggered"}:
+                invalid()
+            answer = {key: text(item.get(key, ""), 100000 if key == "answer" else 1000)
+                      for key in ("key", "label", "answer", "answer_type")}
+            for key in ("required", "triggered"):
+                if key in item and not isinstance(item[key], bool):
+                    invalid()
+                answer[key] = item.get(key, False)
+            group["answers"].append(answer)
+        clean["sections"].append(group)
+    if len(json.dumps(clean, ensure_ascii=False)) > 250000:
+        invalid()
+    return clean if any(s["answers"] for s in clean["sections"]) else None
+
+
+def _stored_structured_snapshot(item):
+    raw = item.get(STRUCTURED_SNAPSHOT_KEY) if isinstance(item, dict) else None
+    if raw is None:
+        return None
+    try:
+        if not isinstance(raw, str) or len(raw) > 250000:
+            raise ValueError("Invalid stored snapshot")
+        return _clean_structured_snapshot(json.loads(raw))
+    except (ValueError, TypeError, HTTPException):
+        raise HTTPException(status_code=409, detail="已提交结构化记录无法核对，请停止保存并检查原问诊。")
+
+
+def _structured_snapshot_text(snapshot, source=""):
+    if not snapshot:
+        return ""
+    companion = snapshot["category"] == "companion" or snapshot["template_key"] in ("dog", "cat")
+    title = "犬猫结构化问诊记录" if companion else "异宠结构化问诊记录"
+    lines = [f"【{title}{' · ' + source if source else ''}】",
+             "结构化问诊模板：" + (snapshot["label"] or snapshot["template_key"] or "未记录"),
+             "模板键：" + (snapshot["template_key"] or "未记录"),
+             "模板版本：" + (snapshot["version"] or "未记录")]
+    for section in snapshot["sections"]:
+        lines.append("【" + (section["title"] or section["key"] or "未命名分组") + "】")
+        for item in section["answers"]:
+            lines.append("- " + (item["label"] or item["key"] or "未命名问题") + "：")
+            lines.append(item["answer"])  # Preserve raw text, including whitespace.
+            lines.append("【本项原文结束】")
+    return "\n".join(lines)
+
+
+def _append_retained_structured(history, answers):
+    # Compare complete source-labelled blocks, never answer text alone.
+    value = history or ""
+    for index, item in enumerate(answers or [], 1):
+        block = _structured_snapshot_text(_stored_structured_snapshot(item), f"第 {index} 轮")
+        if block and ("\n\n" + block + "\n\n") not in ("\n\n" + value + "\n\n"):
+            value += ("\n\n" if value else "") + block
+    return value
+
+
+def _answers_token(answers):
+    encoded = json.dumps(answers or [], ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
 def _structured_intake_answer_item(raw: Optional[Dict[str, Any]]) -> Optional[Dict[str, str]]:
     if not raw:
         return None
@@ -848,11 +945,15 @@ def _answers_with_structured_intake_context(
     answers: List[Dict[str, str]],
     structured_intake_answers: Optional[Dict[str, Any]],
 ) -> List[Dict[str, str]]:
-    # V2：结构化问诊答案只作为本轮 AI 上下文，不直接写入 session.answers。
-    items = list(answers or [])
-    structured_item = _structured_intake_answer_item(structured_intake_answers)
-    if structured_item:
-        items.append(structured_item)
+    items = []
+    for index, answer in enumerate(answers or [], 1):
+        items.append({key: answer.get(key, "") for key in ("question", "answer")})
+        snapshot = _stored_structured_snapshot(answer)
+        if snapshot:
+            items.append({"question": f"【已提交结构化问诊 · 第 {index} 轮】", "answer": _structured_snapshot_text(snapshot, f"第 {index} 轮")})
+    current = _clean_structured_snapshot(structured_intake_answers)
+    if current:
+        items.append({"question": "【本轮结构化问诊】", "answer": _structured_snapshot_text(current)})
     return items
 
 
@@ -887,6 +988,7 @@ def _consult_session_payload(session: ConsultSession) -> Dict[str, Any]:
         "session_id": session.session_uid,
         "text": session.text,
         "answers": session.answers or [],
+        "answers_token": _answers_token(session.answers),
         "result": session.result or {},
         "case_id": getattr(session, "case_id", None),
         "created_at": session.created_at.isoformat() if session.created_at else None,
@@ -1132,13 +1234,16 @@ def _consult_save_snapshot(session: ConsultSession, data: AIConsultSessionSaveCa
     """One conversion for first-save preview and persistence, with no writes."""
     case_fields = _consult_session_to_case_fields(session)
 
-    structured_intake_answers = getattr(data, "structured_intake_answers", None)
-    structured_history = _format_structured_intake_history(structured_intake_answers)
-    if structured_history:
-        current_history = str(case_fields.get("history") or "").strip()
-        case_fields["history"] = "\n\n".join(part for part in [current_history, structured_history] if part)
-
+    structured = _clean_structured_snapshot(data.structured_intake_answers)
+    retained = [_stored_structured_snapshot(item) for item in (session.answers or [])]
+    latest = next((item for item in reversed(retained) if item), None)
+    # Old clients resend the latest snapshot; do not append that same receipt twice.
+    same_latest = structured and latest and all(structured[key] == latest[key] for key in structured if key != "category")
+    if structured and not same_latest:
+        block = _structured_snapshot_text(structured)
+        case_fields["history"] += "\n\n" + block
     case_fields["history"] = preserve_consult_history(data.history, case_fields["history"])
+    case_fields["history"] = _append_retained_structured(case_fields["history"], session.answers)
 
     patient_name = (data.patient_name or "").strip() or "未命名病例"
     species_value = (data.species or "dog").strip() or "dog"
@@ -1178,7 +1283,7 @@ def _consult_save_snapshot(session: ConsultSession, data: AIConsultSessionSaveCa
     return {
         **proposed,
         "session_id": session.session_uid, "case_id": session.case_id,
-        "structured_history_appended": bool(structured_history),
+        "structured_history_appended": bool(structured or latest),
         "doctor_history": data.history or "",
         "preview_token": hashlib.sha256(fingerprint.encode("utf-8")).hexdigest(),
         "message": "preview",
@@ -1259,6 +1364,7 @@ def _consult_update_snapshot(session, obj, case_fields, history_addendum="", upd
     if update_mode == "consult_sync":
         proposed.update({name: case_fields[name] for name in ("analysis", "treatment", "prognosis")})
         proposed["history"] = preserve_consult_history(obj.history, case_fields["history"])
+        proposed["history"] = _append_retained_structured(proposed["history"], session.answers)
     elif not history_addendum.strip():
         raise HTTPException(status_code=400, detail="仅补记模式需要填写医生病史补记。")
     if history_addendum.strip():
@@ -1424,7 +1530,7 @@ def ai_consult_session_answer(
     db: Session = Depends(get_db),
     user = Depends(get_optional_current_user),
 ):
-    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).first()
+    session = db.query(ConsultSession).filter(ConsultSession.session_uid == session_id).with_for_update().first()
     if not session:
         raise HTTPException(status_code=404, detail="Consult session not found")
     assert_consult_session_access(session, user, allow_unowned=True)
@@ -1437,27 +1543,38 @@ def ai_consult_session_answer(
     if not question:
         raise HTTPException(status_code=400, detail="question is required")
 
+    previous_updated_at = session.updated_at
+    if data.expected_answers_token is not None and not hmac.compare_digest(data.expected_answers_token, _answers_token(session.answers)):
+        raise HTTPException(status_code=409, detail="问诊已变化，请先重新读取并核对，未重复提交。")
+    structured = _clean_structured_snapshot(data.structured_intake_answers)
     answers = list(session.answers or [])
     answers.append({
         "question": question,
         "answer": answer,
     })
 
+    if structured:
+        answers[-1][STRUCTURED_SNAPSHOT_KEY] = json.dumps(structured, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    if sum(len(item.get(STRUCTURED_SNAPSHOT_KEY, "")) for item in answers) > 1000000:
+        raise HTTPException(status_code=422, detail="本次问诊结构化记录已达上限，请先核对保存。")
+
     try:
         from backend.dynamic_consult import run_dynamic_consult
     except ModuleNotFoundError:
         from dynamic_consult import run_dynamic_consult
 
-    answers_for_ai = _answers_with_structured_intake_context(answers, data.structured_intake_answers)
+    answers_for_ai = _answers_with_structured_intake_context(answers, None)
     result = run_dynamic_consult(session.text, answers_for_ai)
     result = _stamp_session_dynamic(result, session.session_uid, len(answers))
     result = _mark_structured_intake_context(result, bool(data.structured_intake_answers))
 
-    session.answers = answers
-    session.result = result
-    session.updated_at = datetime.utcnow()
-
-    db.add(session)
+    # PostgreSQL row locking serializes writers; the conditional update also
+    # prevents a lost update in isolated SQLite tests and unexpected stale writers.
+    changed = db.query(ConsultSession).filter(ConsultSession.id == session.id, ConsultSession.updated_at == previous_updated_at).update(
+        {ConsultSession.answers: answers, ConsultSession.result: result, ConsultSession.updated_at: datetime.utcnow()}, synchronize_session=False)
+    if changed != 1:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="问诊已变化，请先重新读取并核对，未覆盖原记录。")
     db.commit()
     db.refresh(session)
 
