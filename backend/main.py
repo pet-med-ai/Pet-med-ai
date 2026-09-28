@@ -1664,6 +1664,11 @@ app.include_router(kpi_api_router)
 app.include_router(emr_webhook_router)
 app.include_router(webhook_inbox_api_router)
 app.include_router(emr_import_batch_api_router)
+try:
+    from backend.followups_api import router as followups_api_router
+except ModuleNotFoundError:
+    from followups_api import router as followups_api_router
+app.include_router(followups_api_router)
 app.include_router(clinical_docs_api_router)
 app.include_router(preventive_care_api_router)
 app.include_router(preventive_care_notification_api_router)

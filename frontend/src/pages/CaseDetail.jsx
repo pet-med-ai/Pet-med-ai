@@ -5,6 +5,8 @@ import api from "../api";
 import ClinicalDocReview from "../components/ClinicalDocReview";
 import { draftOwner } from "../consultDraft";
 
+const FollowUpPlan = React.lazy(() => import("../components/FollowUpPlan"));
+
 export default function CaseDetail() {
   const { id } = useParams();
   const [, refreshAccount] = useState(0);
@@ -30,6 +32,8 @@ function CaseDetailContent({ requestToken }) {
   const exportPending = useRef(false);
   const reviewActive = useRef(false), reviewOpener = useRef(null);
   const [docReview, setDocReview] = useState(null);
+  const [followUpOpen, setFollowUpOpen] = useState(false);
+  const [followUpRevision, setFollowUpRevision] = useState(0);
   const [loadAttempt, setLoadAttempt] = useState(0);
   useEffect(() => {
     active.current = true;
@@ -932,6 +936,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           <Link to="/" style={btn}>返回首页</Link>
           <Link to={`/cases/${data.id}/edit`} style={btnPrimary}>编辑</Link>
           <button onClick={doPrint} style={btnSecondary}>打印病例</button>
+          <button type="button" style={btnSecondary} onClick={() => setFollowUpOpen(true)}>复查计划</button>
           <button
             type="button"
             onClick={() => exportClinicalDoc("admission_hospitalization_record_bilingual", "入院/住院记录")}
@@ -967,8 +972,13 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         </div>
       </div>
 
+      {followUpOpen && <React.Suspense fallback={<p role="status">正在打开复查计划…</p>}>
+        <FollowUpPlan caseId={Number(data.id)} requestToken={requestToken}
+          onChanged={() => setFollowUpRevision(value => value + 1)} onClose={() => setFollowUpOpen(false)} />
+      </React.Suspense>}
+
       {docReview && <ClinicalDocReview key={docReview.templateId} caseId={Number(data.id)}
-        templateId={docReview.templateId} label={docReview.label} requestToken={requestToken}
+        templateId={docReview.templateId} label={docReview.label} requestToken={requestToken} followUpRevision={followUpRevision}
         onClose={closeDocReview}
         onDownload={(snapshot, current) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current)} />}
 

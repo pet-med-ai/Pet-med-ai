@@ -48,6 +48,15 @@ if '--readback' in sys.argv:
     assert read(expected['case_id'], auth) == expected['record']
     assert call('GET', expected['session_url'], auth)['case_id'] == expected['case_id']
     record('fresh_process_relogin_and_readback')
+    expected_plan = json.loads((f.OUT / 'm6-restart-expected.json').read_text())
+    base = f"/api/cases/{expected_plan['case_id']}/follow-up"
+    assert call('GET', base, auth) == expected_plan['state']
+    for request_id, receipt in expected_plan['receipts'].items():
+        assert call('GET', base+'/receipts/'+request_id, auth)['receipt'] == receipt
+    replay = call('POST', base+'/confirm', auth, json=expected_plan['request'])
+    assert replay['replayed'] and not replay['writes_database']
+    assert call('GET', base, auth) == expected_plan['state']
+    record('m6_fresh_process_receipts_history_and_exact_retry_survive_restart')
     sys.exit(0)
 
 f.prepare_empty_database()
@@ -384,4 +393,82 @@ for body in confirmations:
     assert call('POST', deleted_url+'/update-case', owner, expected=404, json=body) == {'detail':'Case not found'}
     assert hidden_rows(deleted_id) == deleted_snapshot
 record('delete_after_preview_rejects_both_modes_without_any_row_change')
+
+# M6 uses the same existing Case lock as the other clinician writers. Prove
+# both requests reached PostgreSQL's lock before releasing either contender.
+def plan_request(case_id, action='create', note='合成医生原文🐾\r\n末行  '):
+    base = f'/api/cases/{case_id}/follow-up'
+    state = call('GET', base, owner)
+    body = {'action': action, 'expected_state_token': state['state_token'],
+            'due_date': None if action == 'cancel' else '2026-10-03',
+            'note': None if action == 'cancel' else note}
+    preview = call('POST', base+'/preview', owner, json=body)
+    return {**body, 'expected_preview_token': preview['preview_token'], 'request_id': uuid4().hex}
+
+
+def plan_race(case_id, bodies):
+    gate = Barrier(2, timeout=10)
+    def writer(body):
+        with TestClient(f.main.app) as independent:
+            gate.wait()
+            return independent.post(f'/api/cases/{case_id}/follow-up/confirm', headers=owner, json=body)
+    with f.db.engine.connect() as lock:
+        transaction = lock.begin()
+        lock.execute(text('SELECT id FROM cases WHERE id=:cid FOR UPDATE'), {'cid': case_id})
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            futures = [pool.submit(writer, body) for body in bodies]
+            try:
+                for attempt in range(100):
+                    with f.db.engine.connect() as monitor:
+                        waiting = monitor.execute(text("SELECT count(*) FROM pg_stat_activity WHERE datname='pmai_acceptance' AND wait_event_type='Lock' AND query LIKE '%FROM cases%' AND query LIKE '%FOR UPDATE%'")).scalar_one()
+                    if waiting >= 2:
+                        break
+                    time.sleep(0.05)
+                assert waiting >= 2, 'Both M6 requests must reach the real Case lock'
+            finally:
+                transaction.rollback()
+            return [future.result(timeout=20) for future in futures]
+
+
+def plan_counts(case_id):
+    with f.db.engine.connect() as c:
+        return tuple(c.execute(text(sql), {'cid': case_id}).scalar_one() for sql in [
+            'SELECT count(*) FROM followups WHERE case_id=:cid',
+            "SELECT count(*) FROM followups WHERE case_id=:cid AND status='due'",
+            "SELECT count(*) FROM audit_log WHERE case_id=:cid AND source='manual-follow-up-m6'"])
+
+
+race_id = call('POST', '/api/cases', owner, expected=201,
+               json={'patient_name': 'M6并发合成犬', 'chief_complaint': '仅供验收'})['id']
+responses = plan_race(race_id, [plan_request(race_id, note='原文 A'), plan_request(race_id, note='原文 B')])
+assert sorted(r.status_code for r in responses) == [200, 409], [(r.status_code, r.text) for r in responses]
+assert plan_counts(race_id) == (1, 1, 1)
+record('m6_concurrent_distinct_requests_one_current_plan_and_one_receipt')
+
+plan_id = call('POST', '/api/cases', owner, expected=201,
+               json={'patient_name': 'M6持久回执合成犬', 'chief_complaint': '仅供验收'})['id']
+unchanged_case = read(plan_id, owner)
+request = plan_request(plan_id)
+responses = plan_race(plan_id, [request, request])
+assert [r.status_code for r in responses] == [200, 200], [(r.status_code, r.text) for r in responses]
+assert sorted(r.json()['replayed'] for r in responses) == [False, True]
+assert responses[0].json()['receipt'] == responses[1].json()['receipt']
+assert plan_counts(plan_id) == (1, 1, 1)
+receipts = {request['request_id']: responses[0].json()['receipt']}
+record('m6_concurrent_same_request_id_commits_exactly_once')
+base = f'/api/cases/{plan_id}/follow-up'
+for action in ['replace', 'cancel']:
+    body = plan_request(plan_id, action, '更正后医生原文 < & {{literal}}')
+    result = call('POST', base+'/confirm', owner, json=body)
+    receipts[body['request_id']] = result['receipt']
+assert plan_counts(plan_id) == (2, 0, 3)
+state = call('GET', base, owner)
+assert state['current'] is None and state['can_write']
+assert all(item['managed'] and item['status'] == 'cancelled' for item in state['items'])
+assert state['items'][0]['note'] == request['note']
+assert read(plan_id, owner) == unchanged_case
+call('GET', base+'/receipts/'+request['request_id'], other, expected=404)
+record('m6_replace_cancel_preserve_history_and_case_columns')
+(f.OUT / 'm6-restart-expected.json').write_text(json.dumps(
+    {'case_id': plan_id, 'state': state, 'receipts': receipts, 'request': request}, ensure_ascii=False))
 client.close(); f.db.engine.dispose()

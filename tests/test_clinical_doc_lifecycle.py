@@ -2,6 +2,8 @@
 import io
 import unittest
 import zipfile
+from uuid import uuid4
+from datetime import datetime
 from unittest.mock import patch
 from sqlalchemy import event
 from xml.etree import ElementTree as ET
@@ -25,7 +27,7 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
     def setUpClass(cls):
         assert not main.app.dependency_overrides
         assert feature_flags.dangerous_enabled_flags() == []
-        db.Base.metadata.create_all(db.engine, tables=[models.User.__table__, models.Case.__table__, models.ConsultSession.__table__])
+        db.Base.metadata.create_all(db.engine, tables=[models.User.__table__, models.Case.__table__, models.ConsultSession.__table__, models.FollowUp.__table__, models.AuditLog.__table__])
         cls.client = TestClient(main.app)
         for name in ['owner', 'other']:
             email = name + '@example.com'
@@ -282,6 +284,77 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
                 r = self.checked_render(cid, template, preview['content_snapshot'])
                 self.assertEqual(r.status_code, 200)
                 self.assertIn(preview['context']['visit.history'], paragraphs(r.content))
+
+    def plan(self, cid, action='create', note='  医生手工原文 <5 & {{literal}} 🐾\r\n\t末行  '):
+        base = f'/api/cases/{cid}/follow-up'
+        state = self.client.get(base, headers=self.owner).json()
+        body = {'action': action, 'expected_state_token': state['state_token'],
+                'due_date': None if action == 'cancel' else '2026-10-03',
+                'note': None if action == 'cancel' else note}
+        preview = self.client.post(base+'/preview', headers=self.owner, json=body)
+        self.assertEqual(preview.status_code, 200, preview.text)
+        result = self.client.post(base+'/confirm', headers=self.owner, json={**body,
+            'expected_preview_token': preview.json()['preview_token'], 'request_id': uuid4().hex})
+        self.assertEqual(result.status_code, 200, result.text)
+        return result.json()
+
+    def test_m6_saved_plan_in_both_docs_with_readonly_render_and_literal_notes(self):
+        case = self.create(); cid = case['id']; self.plan(cid)
+        statements = []
+        def capture(conn, cursor, statement, parameters, context, executemany):
+            statements.append(statement.strip().split(None, 1)[0].upper())
+        event.listen(db.engine, 'before_cursor_execute', capture)
+        try:
+            for template in DRAFTS:
+                preview = self.render(cid, template, 'render-preview').json()
+                followup = preview['context']['visit.follow_up']
+                self.assertIn('2026-10-03', followup)
+                self.assertIn('  医生手工原文 <5 & {{literal}} 🐾\n\t末行  ', followup)
+                result = self.checked_render(cid, template, preview['content_snapshot'])
+                self.assertEqual(result.status_code, 200)
+                self.assertIn(followup, paragraphs(result.content))
+            self.assertEqual(self.client.get(f'/api/cases/{cid}', headers=self.owner).json(), case)
+            self.assertFalse({'INSERT', 'UPDATE', 'DELETE'} & set(statements))
+        finally:
+            event.remove(db.engine, 'before_cursor_execute', capture)
+
+    def test_m6_replace_same_text_later_and_cancel_invalidate_every_old_review(self):
+        cid = self.create()['id']; self.plan(cid, note='计划 A 原文')
+        old = {t: self.render(cid, t, 'render-preview').json()['content_snapshot'] for t in DRAFTS}
+        for note in ['计划 B 原文', '计划 A 原文']:
+            self.plan(cid, 'replace', note)
+            for template in DRAFTS:
+                self.assertEqual(self.checked_render(cid, template, old[template]).status_code, 409)
+        latest = {t: self.render(cid, t, 'render-preview').json()['content_snapshot'] for t in DRAFTS}
+        self.plan(cid, 'cancel')
+        for template in DRAFTS:
+            self.assertEqual(self.checked_render(cid, template, latest[template]).status_code, 409)
+            p = self.render(cid, template, 'render-preview').json()
+            r = self.checked_render(cid, template, p['content_snapshot'])
+            self.assertEqual(r.status_code, 200)
+            content = '\n'.join(paragraphs(r.content))
+            self.assertIn('当前无有效复查安排；此前计划已撤销', content)
+            self.assertNotIn('计划 A 原文', content)
+            self.assertNotIn('计划 B 原文', content)
+
+    def test_m6_legacy_conflict_is_not_exported_as_an_empty_plan(self):
+        cid = self.create()['id']
+        with db.SessionLocal() as session:
+            session.add(models.FollowUp(case_id=cid, due_date=datetime(2026, 10, 3, 9),
+                                        note='来源未明的旧记录', status='due'))
+            session.commit()
+        for template in DRAFTS:
+            for endpoint in ['render', 'render-preview']:
+                self.assertEqual(self.render(cid, template, endpoint).status_code, 409)
+
+    def test_m6_missing_followup_table_blocks_doc_without_schema_creation(self):
+        cid = self.create()['id']
+        models.FollowUp.__table__.drop(db.engine)
+        try:
+            for template in DRAFTS:
+                self.assertEqual(self.render(cid, template, 'render-preview').status_code, 503)
+        finally:
+            models.FollowUp.__table__.create(db.engine)
 
 
 if __name__ == '__main__':

@@ -6,6 +6,7 @@ import useConsultDraft from "./useConsultDraft";
 import { clearDraft } from "./consultDraft";
 import { clearManualCreateAttempt } from "./components/ManualCaseCreateReview";
 import { clearManualCaseDraft } from "./manualCaseDraft";
+import { clearPlanDrafts } from "./followUpPlanState";
 import { caseEditDraftOwner, clearCaseEditDrafts } from "./caseEditDraft";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
@@ -93,6 +94,7 @@ export function Home() {
       clearDraft();
       clearCaseEditDrafts();
       clearManualCaseDraft();
+      clearPlanDrafts();
       localStorage.removeItem("consult_session_id");
       localStorage.removeItem("token");
 
@@ -135,6 +137,7 @@ export function Home() {
     clearDraft();
     clearCaseEditDrafts();
     clearManualCaseDraft();
+    clearPlanDrafts();
     clearManualCreateAttempt();
     localStorage.removeItem("consult_session_id");
     localStorage.removeItem("token");

@@ -277,6 +277,7 @@ def _owned_followups(db: Session, user: Any, start_dt: datetime, end_dt: datetim
         .join(Case, FollowUp.case_id == Case.id)
         .filter(
             Case.owner_id == getattr(user, "id", None),
+            FollowUp.status != "cancelled",
             FollowUp.due_date >= start_dt,
             FollowUp.due_date < end_dt,
         )
