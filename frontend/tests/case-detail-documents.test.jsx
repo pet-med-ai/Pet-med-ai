@@ -4,6 +4,7 @@ import {MemoryRouter, Routes, Route, useNavigate} from 'react-router-dom';
 import {test, beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import CaseDetail from '../src/pages/CaseDetail';
+import FollowUpPlan from '../src/components/FollowUpPlan';
 import api from '../src/api';
 
 const mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -41,6 +42,26 @@ beforeEach(()=>{
 afterEach(()=>{if(renderer)act(()=>renderer.unmount());renderer=null;URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;});
 
 test('detail shows server history and corrected treatment',async()=>{await mount();assert.match(text(),/病史-1/);assert.match(text(),/更正治疗-1/);});
+test('M6 detail fetches follow-up only after the doctor opens it',async()=>{
+ storage='x.'+Buffer.from(JSON.stringify({sub:'owner@example.com',exp:Date.now()/1000+3600})).toString('base64url')+'.x';
+ window.sessionStorage={getItem:()=>null};const original=adapter;
+ adapter=c=>c.url==='/api/cases/1/follow-up'?{data:{case_id:1,account_id:'1',state_token:snapshot,items:[],current:null,can_write:true,conflict:'',writes_database:false}}:original(c);
+ await mount();assert.equal(requests.filter(c=>c.url.endsWith('/follow-up')).length,0);
+ await click('复查计划');assert.match(text(),/尚未记录复查计划/);
+ assert.equal(requests.filter(c=>c.url.endsWith('/follow-up')).length,1);
+ assert(requests.every(c=>c.method==='get'));
+});
+test('M6 verified plan change clears document confirmation and reads the updated plan',async()=>{
+ storage='x.'+Buffer.from(JSON.stringify({sub:'owner@example.com',exp:Date.now()/1000+3600})).toString('base64url')+'.x';
+ window.sessionStorage={getItem:()=>null};const original=adapter;let plan='原计划';
+ adapter=c=>c.url==='/api/cases/1/follow-up'?{data:{case_id:1,account_id:'1',state_token:snapshot,items:[],current:null,can_write:true,conflict:'',writes_database:false}}:c.url==='/api/clinical-docs/render-preview'?(()=>{const r=previewResponse(c);r.data.context['visit.follow_up']=plan;return r;})():original(c);
+ await mount();await click('导出门诊病历草稿 DOCX');await check();
+ assert.equal(button('确认并下载草稿 DOCX').props.disabled,false);
+ await click('复查计划');plan='复查日期：2026-10-03\n新原文 <5 & {{literal}}';
+ await act(async()=>renderer.root.findByType(FollowUpPlan).props.onChanged());
+ assert.equal(button('确认并下载草稿 DOCX').props.disabled,true);
+ assert.equal(previews().length,2);assert.match(text(),/新原文 <5 &/);assert.equal(exports().length,0);
+});
 test('route change immediately removes previous case until current GET completes',async()=>{await mount();const gate=deferred();const original=adapter;adapter=c=>c.url==='/api/cases/2'?gate.promise:original(c);await move('/cases/2');assert.doesNotMatch(text(),/合成病例-1/);assert.match(text(),/加载中/);assert.equal(button('打印病例'),undefined);await act(async()=>gate.resolve({data:record(2)}));assert.match(text(),/合成病例-2/);});
 test('late old detail response cannot replace the new case',async()=>{const gate=deferred(),original=adapter;adapter=c=>c.url==='/api/cases/1'?gate.promise:original(c);await mount();await move('/cases/2');await act(async()=>gate.resolve({data:record(1)}));assert.match(text(),/合成病例-2/);assert.doesNotMatch(text(),/合成病例-1/);});
 test('late old failure cannot hide the new case',async()=>{const gate=deferred(),original=adapter;adapter=c=>c.url==='/api/cases/1'?gate.promise:original(c);await mount();await move('/cases/2');await act(async()=>gate.reject(Error('old-failure')));assert.match(text(),/合成病例-2/);assert.doesNotMatch(text(),/old-failure/);});

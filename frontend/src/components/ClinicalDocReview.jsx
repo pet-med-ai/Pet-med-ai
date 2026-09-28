@@ -12,7 +12,7 @@ const fields = [
   ["visit.follow_up", "复查安排状态"], ["export.account_id", "导出账号（非签名）"],
 ];
 
-export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose }) {
+export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose, followUpRevision = 0 }) {
   const [preview, setPreview] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -57,7 +57,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     heading.current?.focus();
     void load();
     return () => { active.current = false; generation.current++; };
-  }, [caseId, templateId, requestToken]);
+  }, [caseId, templateId, requestToken, followUpRevision]);
 
   function leave() {
     active.current = false; generation.current++;
@@ -72,7 +72,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
       if (!current(stamp)) return;
       setPreview(null);
       setMessage(result?.ok ? "已生成本次核对的草稿；仍未签署。再次下载请重新读取并核对。" :
-        result?.status === 409 ? "病例或模板内容已变化，原确认已失效。请重新读取并核对草稿。" :
+        result?.status === 409 ? "病例、复查计划或模板内容已变化，原确认已失效。请重新读取并核对草稿。" :
           `${result?.message || "下载未完成"}；请重新读取并核对草稿后重试。`);
     } finally {
       if (current(stamp)) { pending.current = false; setBusy(false); }

@@ -21,10 +21,12 @@ try:
     from backend.auth_jwt import get_current_user
     from backend.db import get_db
     from backend.models import Case, DiagnosticReport, Observation, ImagingStudy
+    from backend.followups_api import document_follow_up
 except ModuleNotFoundError:
     from auth_jwt import get_current_user
     from db import get_db
     from models import Case, DiagnosticReport, Observation, ImagingStudy
+    from followups_api import document_follow_up
 
 try:
     from backend.clinical_docs_diagnostic_data_merge import (
@@ -243,7 +245,7 @@ def _apply_diagnostic_data_context_to_clinical_doc_context(context: Dict[str, st
     return context
 # --- Clinical Docs Diagnostic Data Merge V1 helpers: end ---
 
-def _build_context(case: Case, *, data: ClinicalDocRenderIn, user, template_id: str) -> Dict[str, str]:
+def _build_context(case: Case, *, db: Session, data: ClinicalDocRenderIn, user, template_id: str) -> Dict[str, str]:
     timestamp = _utc_timestamp()
     if template_id in OUTPATIENT_TEMPLATES:
         # Optional diagnostic merge is a separate clinician-only preview, not an
@@ -257,8 +259,9 @@ def _build_context(case: Case, *, data: ClinicalDocRenderIn, user, template_id: 
             if any(not (ch in "\t\r\n" or "\x20" <= ch <= "\ud7ff" or "\ue000" <= ch <= "\ufffd" or "\U00010000" <= ch <= "\U0010ffff") for ch in raw):
                 raise HTTPException(status_code=422, detail="病例文本含文书不支持的控制字符，请医生核对")
             context[key] = raw.replace("\r\n", "\n").replace("\r", "\n") if raw.strip() else "未填写"
+        follow_up_text, follow_up_state = document_follow_up(db, case, user)
         context.update({
-            "visit.follow_up": "未单独记录复查安排，请医生补充确认",
+            "visit.follow_up": follow_up_text, "__follow_up_state": follow_up_state,
             # Account attribution is not a signature and cannot be supplied by the caller.
             "export.account_id": _text(getattr(user, "id", None), "未填写"),
             "timestamp": timestamp, "hash": "",
@@ -419,7 +422,8 @@ def _content_snapshot(meta: Dict[str, Any], context: Dict[str, str], template_by
     # A content precondition, not a signature, persistent review or export ID.
     # Bind exactly the displayed fields, account, case, template and asset bytes.
     payload = {
-        "version": "outpatient-content-v1", "template_id": meta["template_id"],
+        "version": "outpatient-content-v2", "template_id": meta["template_id"],
+        "follow_up_state": context.get("__follow_up_state"),
         "asset_sha256": hashlib.sha256(template_bytes).hexdigest(),
         "fields": {key: context[key] for key in meta["required_keys"] if key not in {"timestamp", "hash"}},
     }
@@ -487,7 +491,7 @@ def preview_clinical_doc_context(
 ):
     meta = _template_meta(data.template_id)
     case = _case_or_404(db, data.case_id, user)
-    context = _build_context(case, data=data, user=user, template_id=str(meta["template_id"]))
+    context = _build_context(case, db=db, data=data, user=user, template_id=str(meta["template_id"]))
     diagnostic_data_merge = _clinical_docs_diagnostic_data_merge_for_case(
         db,
         case,
@@ -530,7 +534,7 @@ def render_clinical_doc(
 
     meta = _template_meta(data.template_id)
     case = _case_or_404(db, data.case_id, user)
-    context = _build_context(case, data=data, user=user, template_id=str(meta["template_id"]))
+    context = _build_context(case, db=db, data=data, user=user, template_id=str(meta["template_id"]))
     diagnostic_data_merge = _clinical_docs_diagnostic_data_merge_for_case(
         db,
         case,
@@ -558,7 +562,7 @@ def render_clinical_doc(
         if not outpatient_draft:
             raise HTTPException(status_code=422, detail="本模板不支持门诊草稿内容核对")
         if not hmac.compare_digest(data.expected_content_snapshot, snapshot):
-            raise HTTPException(status_code=409, detail="病例或模板内容已变化，请重新核对草稿后下载")
+            raise HTTPException(status_code=409, detail="病例、复查计划或模板内容已变化，请重新核对草稿后下载")
     # Validation and rendering consume the same case context and asset bytes.
     docx_bytes = _render_docx(Path(meta["path"]), context, preserve_text_layout=outpatient_draft, template_bytes=template_bytes)
     # New templates validate each template token before replacing it. Literal
