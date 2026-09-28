@@ -8,6 +8,14 @@ from sqlalchemy.orm import sessionmaker, declarative_base
 # 本地: 不配置则回退到 SQLite 文件 ./app.db
 DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./app.db").strip()
 
+# Match the installed psycopg2 driver explicitly. SQLAlchemy 2.1 changed the
+# default for bare postgresql:// URLs to psycopg (v3). Replace only the scheme,
+# preserving credentials, query options and explicitly selected drivers.
+for prefix in ("postgresql://", "postgres://"):
+    if DATABASE_URL.startswith(prefix):
+        DATABASE_URL = "postgresql+psycopg2://" + DATABASE_URL[len(prefix):]
+        break
+
 # 2) 创建 Engine（区分 SQLite / 其他数据库）
 is_sqlite = DATABASE_URL.startswith("sqlite")
 engine_kwargs = {}
