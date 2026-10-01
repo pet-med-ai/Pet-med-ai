@@ -284,5 +284,30 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
                 self.assertIn(preview['context']['visit.history'], paragraphs(r.content))
 
 
+    def test_m7_both_species_questionnaire_preview_docx_literal_text_and_stale_export(self):
+        from diarrhea_intake import get_template, build_snapshot
+        raw = '  未见黑便🐾\n换行 <5 & >2 {{literal}}\t保留尾部  '
+        for species in ('dog', 'cat'):
+            t = get_template(species)
+            snapshot = build_snapshot({'version': t['version'], 'fingerprint': t['fingerprint'], 'species': species,
+                'answers': {'notes': {'state': 'observed', 'text': raw}, 'blood': {'state': 'unobservable', 'text': '主人无法观察'}}})
+            history = '原医生病史\n\n' + main._structured_snapshot_text(snapshot)
+            r = self.client.post('/api/cases', headers=self.owner, json={'patient_name': 'M7合成'+species, 'species': species,
+                'chief_complaint': '腹泻合成记录', 'history': history})
+            self.assertEqual(r.status_code, 201, r.text); case = r.json()
+            for template in DRAFTS:
+                preview = self.render(case['id'], template, 'render-preview').json()
+                self.assertEqual(preview['context']['visit.history'], history)
+                self.assertIn('医生采集', history); self.assertIn('无法观察', history)
+                download = self.client.post('/api/clinical-docs/render', headers=self.owner, json={'case_id': case['id'],
+                    'template_id': template, 'output': 'docx', 'expected_content_snapshot': preview['content_snapshot']})
+                self.assertEqual(download.status_code, 200, download.text if download.status_code != 200 else '')
+                self.assertIn(history, paragraphs(download.content))
+                self.assertEqual(self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json(), case)
+            stale = self.render(case['id'], DRAFTS[0], 'render-preview').json()
+            self.assertEqual(self.client.put(f"/api/cases/{case['id']}", headers=self.owner, json={'history': history+'\n医生核对更正'}).status_code, 200)
+            self.assertEqual(self.client.post('/api/clinical-docs/render', headers=self.owner, json={'case_id': case['id'],
+                'template_id': DRAFTS[0], 'output': 'docx', 'expected_content_snapshot': stale['content_snapshot']}).status_code, 409)
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)

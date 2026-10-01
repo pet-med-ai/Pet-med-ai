@@ -48,6 +48,10 @@ if '--readback' in sys.argv:
     assert read(expected['case_id'], auth) == expected['record']
     assert call('GET', expected['session_url'], auth)['case_id'] == expected['case_id']
     record('fresh_process_relogin_and_readback')
+    for item in json.loads((f.OUT / 'm7-restart-expected.json').read_text()):
+        assert read(item['case_id'], auth) == item['record']
+        assert call('GET', item['session_url'], auth)['case_id'] == item['case_id']
+    record('m7_dog_cat_fresh_process_relogin_and_exact_readback')
     sys.exit(0)
 
 f.prepare_empty_database()
@@ -384,4 +388,33 @@ for body in confirmations:
     assert call('POST', deleted_url+'/update-case', owner, expected=404, json=body) == {'detail':'Case not found'}
     assert hidden_rows(deleted_id) == deleted_snapshot
 record('delete_after_preview_rejects_both_modes_without_any_row_change')
+# M7: canonical states survive the same real first-save/row-lock transaction.
+from diarrhea_intake import get_template, build_snapshot
+m7_expected = []
+for animal in ('dog', 'cat'):
+    template = get_template(animal)
+    raw = '  M7医生未见黑便🐾\r\n<5 & >2 {{literal}}\t尾部  \n'
+    snapshot = build_snapshot({'version': template['version'], 'fingerprint': template['fingerprint'], 'species': animal,
+        'answers': {'notes': {'state': 'observed', 'text': raw}, 'blood': {'state': 'uncertain', 'text': '不确定'},
+                    'vomiting': {'state': 'absent', 'text': '未见呕吐'}, 'vomiting_detail': {'state': 'observed', 'text': '原分支只读保留'}}})
+    created = call('POST', '/api/ai/consult/session', owner, json={'text': 'M7隔离合成腹泻', 'species': animal, 'structured_intake_answers': snapshot})
+    m7_url = '/api/ai/consult/session/' + created['session_id']
+    m7_body = {'patient_name': 'M7-PG-'+animal, 'species': animal, 'chief_complaint': '合成腹泻原主诉',
+               'history': '  M7原医生病史🐾\r\n保留末尾  \n', 'structured_intake_answers': snapshot}
+    preview = call('POST', m7_url+'/preview-case', owner, json=m7_body)
+    assert preview['history'].count(raw) == 1 and preview['history'].startswith(m7_body['history'])
+    assert '当前不适用' in preview['history'] and '状态：不确定' in preview['history']
+    call('POST', m7_url+'/preview-case', other, expected=404, json=m7_body)
+    call('POST', m7_url+'/save-case', owner, expected=409, json={**m7_body, 'history': 'stale', 'expected_preview_token': preview['preview_token']})
+    before_m7 = count()
+    request = {**m7_body, 'expected_preview_token': preview['preview_token']}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _: call('POST', m7_url+'/save-case', owner, json=request), range(2)))
+    assert len({r['case_id'] for r in results}) == 1 and count() == before_m7+1
+    m7_id = results[0]['case_id']; saved = read(m7_id, owner)
+    assert saved['history'] == preview['history']
+    assert f.main._stored_structured_snapshot(call('GET', m7_url, owner)['answers'][0]) == snapshot
+    m7_expected.append({'case_id': m7_id, 'record': saved, 'session_url': m7_url})
+    record('m7_'+animal+'_canonical_states_originals_concurrent_save_one_case')
+(f.OUT / 'm7-restart-expected.json').write_text(json.dumps(m7_expected, ensure_ascii=False))
 client.close(); f.db.engine.dispose()

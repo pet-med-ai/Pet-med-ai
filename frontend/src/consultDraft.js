@@ -1,3 +1,4 @@
+import { cleanDiarrheaDraft } from "./diarrheaIntakeState";
 export const DRAFT_KEY = "pmai.consult-draft.v1";
 export const DRAFT_MAX_AGE = 8 * 60 * 60 * 1000;
 const MAX_LENGTH = 250000;
@@ -21,6 +22,7 @@ function cleanSubmission(value) {
   const str = v => { if (!text(v)) throw new Error("Invalid text"); return v; };
   return {
     version: str(value.version || ""), template_key: str(value.template_key || ""), label: str(value.label || ""),
+    ...(value.category ? { category: str(value.category) } : {}),
     sections: value.sections.map(section => {
       if (!plain(section) || !Array.isArray(section.answers) || section.answers.length > 200) throw new Error("Invalid answers");
       return { key: str(section.key || ""), title: str(section.title || ""), answers: section.answers.map(a => ({
@@ -45,12 +47,13 @@ export function cleanDraft(value) {
     return [key, v];
   }));
   const data = { fields, sessionId: value.sessionId, followupAnswer: value.followupAnswer, sessionContext: value.sessionContext, structuredAnswers, lastSubmission: cleanSubmission(value.lastSubmission), recoveredNotes: value.recoveredNotes };
+  if (value.diarrhea != null) data.diarrhea = cleanDiarrheaDraft(value.diarrhea);
   if (JSON.stringify(data).length > MAX_LENGTH) throw new Error("Draft too large");
   return data;
 }
 
 export function hasDraftContent(data) {
-  return !!data.sessionId || draftFields.some(key => !["species", "auditReviewAction"].includes(key) && data.fields[key].trim()) || !!data.followupAnswer.trim() || Object.values(data.structuredAnswers).some(v => v.trim()) || !!data.recoveredNotes;
+  return !!data.diarrhea || !!data.sessionId || draftFields.some(key => !["species", "auditReviewAction"].includes(key) && data.fields[key].trim()) || !!data.followupAnswer.trim() || Object.values(data.structuredAnswers).some(v => v.trim()) || !!data.recoveredNotes;
 }
 
 export function clearDraft(storage) {
@@ -67,7 +70,9 @@ export function readDraft(owner, storage, now = Date.now()) {
     const item = JSON.parse(raw);
     if (item.owner !== owner) { clearDraft(storage); return { draft: null, error: "" }; }
     if (item.version !== 1 || !Number.isFinite(item.updatedAt) || now - item.updatedAt > DRAFT_MAX_AGE || item.updatedAt > now + 60000) throw new Error("Expired or invalid");
-    return { draft: { data: cleanDraft(item.data), updatedAt: item.updatedAt }, error: "" };
+    const data = cleanDraft(item.data);
+    if (data.diarrhea && data.diarrhea.binding.owner !== owner) throw new Error("Wrong diarrhea owner");
+    return { draft: { data, updatedAt: item.updatedAt }, error: "" };
   } catch {
     if (storage) clearDraft(storage);
     return { draft: null, error: "草稿不可读取或已过期；请检查输入后继续。" };
@@ -79,6 +84,7 @@ export function writeDraft(owner, data, storage, now = Date.now()) {
     storage = storage || window.sessionStorage;
     if (!owner) return false;
     const clean = cleanDraft(data);
+    if (clean.diarrhea && clean.diarrhea.binding.owner !== owner) throw new Error("Wrong diarrhea owner");
     if (!hasDraftContent(clean)) return clearDraft(storage);
     storage.setItem(DRAFT_KEY, JSON.stringify({ version: 1, owner, updatedAt: now, data: clean }));
     return true;

@@ -4,6 +4,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { DRAFT_KEY, DRAFT_MAX_AGE, cleanDraft, draftOwner, readDraft, writeDraft, clearDraft } from "../src/consultDraft";
 import useConsultDraft from "../src/useConsultDraft";
+import { cleanDiarrheaDraft, diarrheaReviewed } from "../src/diarrheaIntakeState";
 
 const memory = () => { const map = new Map(); return { getItem: k => map.get(k) ?? null, setItem: (k,v) => map.set(k,v), removeItem: k => map.delete(k) }; };
 const data = (history = "医生病史🐾\r\n保留空白。  \n") => cleanDraft({ fields: { species: "dog", history }, sessionId: null, sessionContext: "[[],[],null]", followupAnswer: "", structuredAnswers: {}, lastSubmission: null, recoveredNotes: "" });
@@ -83,4 +84,15 @@ test("changing auth identity cannot write the old form into the new account draf
   const storage=memory(),h=mountHook(storage);
   localStorage.setItem("token",token("b")); h.update(data("old account input"));
   assert.equal(storage.getItem(DRAFT_KEY),null); h.close();
+});
+
+test("M7 versioned questionnaire draft retains unknown and inactive raw but discards confirmation", () => {
+  const storage=memory(), input=data();
+  input.diarrhea={template:{version:"diarrhea-intake-v1",fingerprint:"a".repeat(64),species:"dog",questions:[{key:"vomiting",label:"呕吐",kind:"presence"},{key:"detail",label:"原分支",kind:"text",when:"vomiting"}]},binding:{owner:"a",patientName:"合成犬",species:"dog",sessionId:null},answers:{vomiting:{state:"absent",text:"未见"},detail:{state:"observed",text:"  原分支🐾\r\n尾部  "}},confirmed:true,review:{signature:"fake",snapshot:{}}};
+  assert(writeDraft("a",input,storage));
+  const restored=readDraft("a",storage).draft.data.diarrhea;
+  assert.deepEqual(restored,cleanDiarrheaDraft(input.diarrhea)); assert(!JSON.parse(storage.getItem(DRAFT_KEY)).data.diarrhea.confirmed);
+  assert.equal(restored.answers.detail.text,input.diarrhea.answers.detail.text); assert.equal(diarrheaReviewed(restored,null,restored.binding),false);
+  input.diarrhea.template.version="diarrhea-intake-v0"; assert(writeDraft("a",input,storage)); assert.equal(readDraft("a",storage).draft.data.diarrhea.template.version,"diarrhea-intake-v0");
+  input.diarrhea.binding.owner="b"; assert.equal(writeDraft("a",input,storage),false); assert.equal(readDraft("a",storage).draft,null);
 });
