@@ -1262,8 +1262,8 @@ export function Home() {
 
   const currentQuestion = getCurrentQuestion();
 
-  const workbenchValues = [consultSessionId, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, consultAnswers, result, followupAnswer, structuredIntakeAnswers, auditLogReceipt];
-  const workbenchRevision = JSON.stringify([...workbenchValues, historyAddendum, diarrheaDraft, diarrheaConfirmed]);
+  const workbenchValues = [consultSessionId, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, consultAnswers, result, followupAnswer, structuredIntakeAnswers, auditLogReceipt, diarrheaDraft, diarrheaConfirmed];
+  const workbenchRevision = JSON.stringify([...workbenchValues, historyAddendum]);
   const currentReadback = consultSaveReceipt?.sessionId === consultSessionId && consultSaveReceipt?.verified ? consultSaveReceipt : null;
 
   return (
