@@ -1,0 +1,110 @@
+{
+  "key": "urinary_abnormality",
+  "version": "urinary_abnormality-intake-v1",
+  "label": "犬猫排尿异常问诊",
+  "review_status": "clinical_draft",
+  "species": [
+    "dog",
+    "cat"
+  ],
+  "source": "医生采集",
+  "questions": [
+    {
+      "key": "onset",
+      "label": "排尿变化的起始时间、先后经过与变化趋势",
+      "kind": "text"
+    },
+    {
+      "key": "urine_frequency",
+      "label": "排尿尝试及实际排尿的频次、统计时段；分别记录",
+      "kind": "text"
+    },
+    {
+      "key": "per_void_volume",
+      "label": "每次实际排尿量、单位及测量或估测来源；未测请注明",
+      "kind": "text"
+    },
+    {
+      "key": "last_urination",
+      "label": "最后一次明确看到实际排尿的日期、时间、观察者与确定程度",
+      "kind": "text"
+    },
+    {
+      "key": "straining",
+      "label": "是否观察到排尿用力或反复尝试",
+      "kind": "presence"
+    },
+    {
+      "key": "straining_detail",
+      "label": "用力或尝试时的姿势、经过与是否实际排出尿液",
+      "kind": "text",
+      "when": "straining"
+    },
+    {
+      "key": "pain",
+      "label": "是否观察到排尿时疼痛相关表现",
+      "kind": "presence"
+    },
+    {
+      "key": "pain_detail",
+      "label": "排尿时疼痛相关行为的实际描述",
+      "kind": "text",
+      "when": "pain"
+    },
+    {
+      "key": "appearance",
+      "label": "尿液颜色、透明度、可见混入物及观察条件",
+      "kind": "text"
+    },
+    {
+      "key": "stream",
+      "label": "尿流、滴漏与排尿过程的实际观察",
+      "kind": "text"
+    },
+    {
+      "key": "accidents",
+      "label": "排尿地点、失禁或生活习惯的变化",
+      "kind": "text"
+    },
+    {
+      "key": "water_intake",
+      "label": "饮水变化及测量单位、时段；未观察请注明",
+      "kind": "text"
+    },
+    {
+      "key": "accompanying",
+      "label": "食欲、精神及同期其他表现",
+      "kind": "text"
+    },
+    {
+      "key": "environment",
+      "label": "排尿环境、多宠共用情况及能否归属本动物",
+      "kind": "text"
+    },
+    {
+      "key": "intervention",
+      "label": "本次已进行的处理、时间及随后观察",
+      "kind": "text"
+    },
+    {
+      "key": "history",
+      "label": "既往泌尿相关问题、检查及其他病史",
+      "kind": "text"
+    },
+    {
+      "key": "medication",
+      "label": "当前与近期用药、补充剂和处理的原文记录",
+      "kind": "text"
+    },
+    {
+      "key": "observer",
+      "label": "观察者、资料来源、记录时间与未能观察的限制",
+      "kind": "text"
+    },
+    {
+      "key": "notes",
+      "label": "医生补充与资料来源",
+      "kind": "text"
+    }
+  ]
+}

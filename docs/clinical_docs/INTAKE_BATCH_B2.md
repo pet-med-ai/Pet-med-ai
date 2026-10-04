@@ -46,3 +46,11 @@ CI 保留固定 main、M7、身份补充的提交/树检查，将 B1 范围冻�
 - `frontend/tests/consult-draft.test.jsx`
 - `tests/test_consult_first_save.py`
 - `frontend/tests/consult-first-save.test.jsx`
+
+## B2-02 实现检查点
+
+B2-01 候选 `e5817dd6107eb1a072be98694c26c78662fbe30e` 的三组适用 CI 全部通过：[浏览器与 PostgreSQL](https://github.com/pet-med-ai/Pet-med-ai/actions/runs/37194687178)。本地后端 117/117、React 298/298、Chromium 40/40，含新增犬猫四份 DOCX；零依赖漏洞，初始 JS 457013 字节。
+
+新增排尿异常：实际排尿与尝试频次、单次尿量、用力、疼痛、尿液外观、最后明确排尿时间、观察者和既往处理分别记录。单位、估测、不确定及多宠无法归属的原文不解释为结论；与多饮多尿模板和核对状态互不通用。参数化前端断言扩展至所有主诉间的绑定不匹配。独立病史保留工作流因 B2 未触及其路径而不启动，将同一原测试加入本批浏览器/PG CI；不修改或削弱旧断言。
+
+本实现提交后执行完整本地回归 2、候选 CI 2；预算规划 10/20 路径、2/4 首次实现、0/2 修正。以 PR #47 的候选提交和结果为准。

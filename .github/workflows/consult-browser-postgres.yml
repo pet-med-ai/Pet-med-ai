@@ -157,6 +157,7 @@ jobs:
         run: python tests/test_diarrhea_intake.py
       - name: B1 and B2 canonical intake and knowledge base validation
         run: |
+          python tests/test_consult_history_merge.py
           python tests/test_chief_complaint_intake.py
           python tools/validate_kb.py
       - name: Start fresh native PostgreSQL (no Docker)

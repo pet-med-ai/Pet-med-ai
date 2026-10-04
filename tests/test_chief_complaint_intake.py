@@ -188,6 +188,29 @@ class ChiefComplaintTests(unittest.TestCase):
             self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
             self.assertNotIn('risk_level',snapshot)
 
+    def test_urinary_frequency_volume_and_last_observed_void_remain_independent_of_pupd(self):
+        key='urinary_abnormality'
+        raw={'urine_frequency':{'state':'observed','text':'  尝试 5 次 / 2 小时，确见排尿 1 次🐾  '},
+             'per_void_volume':{'state':'uncertain','text':'估计 3 mL / 次；非测量值'},
+             'last_urination':{'state':'observed','text':'2026-10-04 08:10；宠主目击，随后未观察'},
+             'straining':{'state':'observed','text':'蹲姿反复'},
+             'straining_detail':{'state':'observed','text':'有尝试，是否每次排出无法判断'},
+             'pain':{'state':'absent','text':'医生明确否定疼痛相关表现'},
+             'pain_detail':{'state':'observed','text':'先前疼痛分支保留'}}
+        for animal in ['dog','cat']:
+            body=request(key,animal,**raw)
+            snapshot=intake.build_snapshot(key,body)
+            text=main._structured_snapshot_text(snapshot)
+            for value in raw.values():self.assertIn(value['text'],text)
+            context=intake.ai_context(snapshot)
+            self.assertIn(raw['urine_frequency']['text'],context)
+            self.assertIn(raw['last_urination']['text'],context)
+            self.assertIn(raw['straining_detail']['text'],context)
+            for field in ['per_void_volume','pain','pain_detail']:self.assertNotIn(raw[field]['text'],context)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+            self.call('POST','/api/ai/consult/intake/polyuria_polydipsia/preview',body,status=409)
+            self.call('POST','/api/ai/consult/intake/'+key+'/preview',request('polyuria_polydipsia',animal),status=409)
+
     def test_ai_failure_keeps_manual_history_with_no_session_write(self):
         for key in intake.TEMPLATES:
             snap=intake.build_snapshot(key,request(key,'cat',notes={'state':'observed','text':'原文🐾'}))
