@@ -230,6 +230,27 @@ class ChiefComplaintTests(unittest.TestCase):
             for field in ['itching','itching_detail','distribution','ears']:self.assertNotIn(raw[field]['text'],context)
             self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
 
+    def test_lameness_unknown_location_side_and_limb_count_never_become_inferred_findings(self):
+        key='lameness_pain'
+        raw={'location':{'state':'uncertain','text':'  无法定位，宠主描述后躯但未确认🐾  '},
+             'side':{'state':'unobservable','text':'视频角度无法辨别左右'},
+             'limb_count':{'state':'uncertain','text':'单肢还是多肢无法确定'},
+             'weight_bearing':{'state':'observed','text':'站立时四足触地；未观察行走'},
+             'rest':{'state':'observed','text':'休息时卧下'},
+             'activity':{'state':'not_asked','text':'活动后情况尚未询问'},
+             'pain':{'state':'observed','text':'触碰时缩回'},
+             'pain_detail':{'state':'observed','text':'宠主描述触碰后缩回，部位未确认'},
+             'trauma':{'state':'absent','text':'医生明确否定已知外伤事件'},
+             'trauma_detail':{'state':'observed','text':'旧分支外伤原文保留'}}
+        for animal in ['dog','cat']:
+            snapshot=intake.build_snapshot(key,request(key,animal,**raw))
+            text=main._structured_snapshot_text(snapshot)
+            for value in raw.values():self.assertIn(value['text'],text)
+            context=intake.ai_context(snapshot)
+            for field in ['weight_bearing','rest','pain_detail']:self.assertIn(raw[field]['text'],context)
+            for field in ['location','side','limb_count','activity','trauma','trauma_detail']:self.assertNotIn(raw[field]['text'],context)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+
     def test_ai_failure_keeps_manual_history_with_no_session_write(self):
         for key in intake.TEMPLATES:
             snap=intake.build_snapshot(key,request(key,'cat',notes={'state':'observed','text':'原文🐾'}))
