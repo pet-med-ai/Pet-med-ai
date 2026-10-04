@@ -1,0 +1,48 @@
+# B2：四项医生采集问诊
+
+2026-10-04 用户整批批准。按晕厥／抽搐、排尿异常、皮肤瘙痒／脱毛、跛行／疼痛的顺序实现；每项完成本地回归及 CI 检查点后继续下一项。
+
+基线 `482b484071b00a28e96cd81b1ead71712bd84354`，树 `c2d804f635262b843997e3fd0ab6ffd071bcd21a`。独立分支 `feat/intake-batch-b2-20261004`；一个新草稿 PR 目标为 B1 分支 `feat/intake-batch-b1-20261004`。不合并、不部署、不操作生产数据，不改数据库或依赖，不启用真实 R1。
+
+## 共同验收
+
+犬猫临床草稿，由医生记录原文；不自动诊断、分类紧急程度、解释阈值或生成处方。六种回答状态、Unicode、单位、时段和资料来源分别保存，空白不补成正常。停用条件分支保留只读原文，当前 AI 上下文只包含活动分支的已记录状态；本批不新增自由文本否定语义解析，仍需医生核对。
+
+独立模板版本及指纹；账号、动物、物种、会话、主诉、模板或输入变化及刷新均使旧确认失效。旧输入不自动映射到新模板；问卷未完成也能收起处理当前诊疗。复用 AI 失败的手工保存及未知结果 GET 核对；不盲目重发 POST。
+
+保存、重新登录回看、更正、旧文书确认失效和两类 DOCX 导出均验证；门诊继续包含宠主姓名及毛色。每项犬猫各一例，最终八个新合成病例、十六份新文书。保留腹泻及 B1 回归，真实 Chromium 与隔离 PostgreSQL 验证并发保存和新进程回读。不连接外部模型及生产数据。
+
+CI 保留固定 main、M7、身份补充的提交/树检查，将 B1 范围冻结在其最终提交，单独验证 B2 精确二十路径。原测试断言与初始 JS 460000 字节阈值不变。证据每片 22 MiB，最多八片；完整文件、哈希和重组校验不变。
+
+## 执行预算
+
+最多 20 个不同路径；4 轮首次实现 + 2 轮共享修正；4 次完整本地回归；最多 6 次候选 CI（含主动重跑）。一个分支、一个草稿 PR。预算单独记账，不沿用 B1 剩余额度。最终提交、验证及实际用量在草稿 PR 和 B2 页面记录，不为补写状态重复触发成功 CI。
+
+## B2-01 实现检查点
+
+晕厥／抽搐分别记录意识、姿势和肢体动作，以及事件前、中、后、情境、持续时间与单位、次数、既往事件、用药和资料来源；未观察或不确定不转成结论。共用参数化测试扩展至本批模板，按已存在的模板逐项运行。本提交随后执行完整本地回归 1 和候选 CI 1。
+
+问卷仍待医生审阅；自动测试和渲染不代表 Word/WPS 人工验收。M6 其余五份人工验收继续后补。
+
+## 允许路径
+
+- `knowledge-base/companion/intake/syncope_seizure.json`
+- `knowledge-base/companion/intake/urinary_abnormality.json`
+- `knowledge-base/companion/intake/itching_hair_loss.json`
+- `knowledge-base/companion/intake/lameness_pain.json`
+- `backend/chief_complaint_intake.py`
+- `backend/main.py`
+- `frontend/src/chiefComplaintIntakeState.js`
+- `frontend/src/components/ChiefComplaintIntake.jsx`
+- `frontend/src/App.jsx`
+- `frontend/src/consultDraft.js`
+- `tests/test_chief_complaint_intake.py`
+- `frontend/tests/chief-complaint-intake.test.jsx`
+- `tests/acceptance/chief_complaint_intake_checks.cjs`
+- `tests/acceptance/postgres_checks.py`
+- `.github/workflows/consult-browser-postgres.yml`
+- `docs/clinical_docs/INTAKE_BATCH_B2.md`
+- `tests/test_clinical_doc_lifecycle.py`
+- `frontend/tests/consult-draft.test.jsx`
+- `tests/test_consult_first_save.py`
+- `frontend/tests/consult-first-save.test.jsx`

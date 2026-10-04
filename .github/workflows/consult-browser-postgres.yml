@@ -43,6 +43,7 @@ on:
       - 'frontend/tests/chief-complaint-intake.test.jsx'
       - 'tests/test_chief_complaint_intake.py'
       - 'docs/clinical_docs/INTAKE_BATCH_B1.md'
+      - 'docs/clinical_docs/INTAKE_BATCH_B2.md'
       - 'docs/clinical_docs/VISIT_MILESTONE_M7.md'
 
 permissions:
@@ -63,7 +64,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind fixed M7, identity supplement and approved B1 increment
+      - name: Bind fixed M7, identity supplement, B1 and approved B2 increment
         run: |
           set -euo pipefail
           mkdir -p acceptance-results
@@ -103,9 +104,16 @@ jobs:
           assert 0 < len(supplement) <= 8 and supplement <= supplement_allowed, sorted(supplement - supplement_allowed)
           open('acceptance-results/outpatient-identity-scope.json', 'w').write(json.dumps({'baseline': m7, 'changed': sorted(supplement), 'allowed': sorted(supplement_allowed)}, indent=2))
           b1_allowed = {'tests/test_diarrhea_intake.py', 'backend/chief_complaint_intake.py', 'frontend/tests/run-consult-update-review.mjs', 'frontend/src/chiefComplaintIntakeState.js', 'tests/test_consult_first_save.py', 'knowledge-base/companion/intake/cough_breathing.json', 'backend/main.py', 'tests/acceptance/postgres_checks.py', '.github/workflows/consult-browser-postgres.yml', 'frontend/tests/diarrhea-intake.test.jsx', 'knowledge-base/companion/intake/appetite_weight.json', 'tests/test_consult_update_preview.py', 'frontend/tests/consult-update-review.test.jsx', 'knowledge-base/companion/intake/polyuria_polydipsia.json', 'tests/test_chief_complaint_intake.py', 'tests/acceptance/chief_complaint_intake_checks.cjs', 'tests/test_manual_case_create.py', 'frontend/tests/chief-complaint-intake.test.jsx', 'frontend/tests/manual-case-create.test.jsx', 'frontend/tests/consult-draft.test.jsx', 'frontend/tests/consult-first-save.test.jsx', 'frontend/src/App.jsx', 'frontend/src/components/DiarrheaIntake.jsx', 'frontend/src/diarrheaIntakeState.js', 'frontend/src/consultDraft.js', 'tests/acceptance/diarrhea_intake_checks.cjs', 'tests/test_clinical_doc_lifecycle.py', 'frontend/src/components/ChiefComplaintIntake.jsx', 'backend/diarrhea_intake.py', 'docs/clinical_docs/INTAKE_BATCH_B1.md'}
-          b1_changed = set(subprocess.check_output(['git', 'diff', '--name-only', identity, 'HEAD'], text=True).splitlines())
+          b1 = '482b484071b00a28e96cd81b1ead71712bd84354'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', b1, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', b1 + '^{tree}'], text=True).strip() == 'c2d804f635262b843997e3fd0ab6ffd071bcd21a'
+          b1_changed = set(subprocess.check_output(['git', 'diff', '--name-only', identity, b1], text=True).splitlines())
           assert 0 < len(b1_changed) <= 30 and b1_changed <= b1_allowed, sorted(b1_changed - b1_allowed)
           open('acceptance-results/b1-scope.json', 'w').write(json.dumps({'baseline': identity, 'changed': sorted(b1_changed), 'allowed': sorted(b1_allowed)}, indent=2))
+          b2_allowed = {'backend/main.py', 'knowledge-base/companion/intake/lameness_pain.json', 'frontend/tests/chief-complaint-intake.test.jsx', 'backend/chief_complaint_intake.py', 'frontend/src/consultDraft.js', 'frontend/tests/consult-draft.test.jsx', 'tests/acceptance/chief_complaint_intake_checks.cjs', 'knowledge-base/companion/intake/urinary_abnormality.json', '.github/workflows/consult-browser-postgres.yml', 'tests/test_consult_first_save.py', 'tests/test_clinical_doc_lifecycle.py', 'tests/acceptance/postgres_checks.py', 'frontend/src/chiefComplaintIntakeState.js', 'docs/clinical_docs/INTAKE_BATCH_B2.md', 'frontend/src/components/ChiefComplaintIntake.jsx', 'knowledge-base/companion/intake/syncope_seizure.json', 'frontend/src/App.jsx', 'frontend/tests/consult-first-save.test.jsx', 'tests/test_chief_complaint_intake.py', 'knowledge-base/companion/intake/itching_hair_loss.json'}
+          b2_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b1, 'HEAD'], text=True).splitlines())
+          assert 0 < len(b2_changed) <= 20 and b2_changed <= b2_allowed, sorted(b2_changed - b2_allowed)
+          open('acceptance-results/b2-scope.json', 'w').write(json.dumps({'baseline': b1, 'changed': sorted(b2_changed), 'allowed': sorted(b2_allowed)}, indent=2))
           PY
           git rev-parse HEAD > acceptance-results/test-commit.txt
           git rev-parse HEAD > acceptance-results/application-commit.txt
@@ -147,7 +155,7 @@ jobs:
         run: python tests/test_clinical_doc_lifecycle.py
       - name: M7 versioned intake, original states and AI failure without external calls
         run: python tests/test_diarrhea_intake.py
-      - name: B1 canonical intake and knowledge base validation
+      - name: B1 and B2 canonical intake and knowledge base validation
         run: |
           python tests/test_chief_complaint_intake.py
           python tools/validate_kb.py
@@ -221,7 +229,7 @@ jobs:
         run: |
           set -o pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/diarrhea_intake_checks.cjs 2>&1 | tee acceptance-results/diarrhea-intake-checks.log
-      - name: Real Chromium B1 enabled chief complaints for dog and cat
+      - name: Real Chromium B1 and B2 enabled chief complaints for dog and cat
         run: |
           set -o pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/chief_complaint_intake_checks.cjs 2>&1 | tee acceptance-results/b1-intake-checks.log
@@ -275,7 +283,7 @@ jobs:
                   name = f'part-{len(parts) + 1:02d}.bin'
                   (target / name).write_bytes(data)
                   parts.append({'path': name, 'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
-          assert 1 <= len(parts) <= 4, 'Evidence exceeds four upload slots; no part may be silently dropped'
+          assert 1 <= len(parts) <= 8, 'Evidence exceeds eight upload slots; no part may be silently dropped'
           manifest = {
               'format': 'pmai-evidence-parts-v1',
               'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
@@ -350,6 +358,38 @@ jobs:
         with:
           name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-04
           path: ${{ runner.temp }}/pmai-evidence-parts/part-04.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part5 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-05
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-05.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part6 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-06
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-06.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part7 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-07
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-07.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part8 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-08
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-08.bin
           compression-level: 0
           if-no-files-found: error
           retention-days: 14

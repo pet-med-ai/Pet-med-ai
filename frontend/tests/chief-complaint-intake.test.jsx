@@ -10,7 +10,7 @@ import { cleanIntakeDraft as cleanDiarrheaDraft, intakeReviewed as diarrheaRevie
 import { DRAFT_KEY, cleanDraft, writeDraft, readDraft } from "../src/consultDraft";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-const templates = ["appetite_weight", "polyuria_polydipsia", "cough_breathing"].map(k => {
+const templates = ["appetite_weight", "polyuria_polydipsia", "cough_breathing", "syncope_seizure", "urinary_abnormality", "itching_hair_loss", "lameness_pain"].map(k => {
   const rel = "knowledge-base/companion/intake/"+k+".json";
   return [resolve(rel),resolve("..",rel)].find(existsSync);
 }).filter(Boolean).map(p=>JSON.parse(readFileSync(p,"utf8")));

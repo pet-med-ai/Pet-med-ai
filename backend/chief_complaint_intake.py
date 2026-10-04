@@ -1,4 +1,4 @@
-"""B1 versioned clinician observations. No database access or clinical inference."""
+"""Versioned clinician observations. No database access or clinical inference."""
 from copy import deepcopy
 from functools import lru_cache
 import hashlib
@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / "knowledge-base/companion/intake"
-TEMPLATES = {"appetite_weight": "食欲下降／消瘦", "polyuria_polydipsia": "多饮多尿", "cough_breathing": "咳嗽／呼吸困难"}
+TEMPLATES = {"appetite_weight": "食欲下降／消瘦", "polyuria_polydipsia": "多饮多尿", "cough_breathing": "咳嗽／呼吸困难", "syncope_seizure": "晕厥／抽搐"}
 try:
     from . import diarrhea_intake as legacy
 except ImportError:
@@ -23,7 +23,7 @@ class IntakeError(ValueError):
         self.status = status
 
 
-@lru_cache(maxsize=3)
+@lru_cache(maxsize=len(TEMPLATES))
 def _template(key):
     if key not in TEMPLATES:
         raise IntakeError("未知的主诉问卷。", 404)

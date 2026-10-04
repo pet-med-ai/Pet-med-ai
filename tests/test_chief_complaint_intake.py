@@ -168,6 +168,26 @@ class ChiefComplaintTests(unittest.TestCase):
         self.assertNotIn('20',context)
         self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
 
+    def test_syncope_records_independent_observations_without_event_classification(self):
+        key='syncope_seizure'
+        raw={'consciousness':{'state':'uncertain','text':'当时未回应是否代表意识变化无法判断'},
+             'consciousness_detail':{'state':'observed','text':'旧分支：曾怀疑意识变化'},
+             'posture':{'state':'observed','text':'  左侧卧地🐾；目击者口述  '},
+             'limb_movements':{'state':'unobservable','text':'被遮挡，未看到肢体'},
+             'duration':{'state':'uncertain','text':'约 20 秒；未计时'},
+             'after_episode':{'state':'observed','text':'事件后行走；恢复时间未记录'}}
+        for animal in ['dog','cat']:
+            snapshot=intake.build_snapshot(key,request(key,animal,**raw))
+            text=main._structured_snapshot_text(snapshot)
+            for value in raw.values():self.assertIn(value['text'],text)
+            context=intake.ai_context(snapshot)
+            self.assertIn(raw['posture']['text'],context)
+            self.assertIn(raw['after_episode']['text'],context)
+            for field in ['consciousness','consciousness_detail','limb_movements','duration']:
+                self.assertNotIn(raw[field]['text'],context)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+            self.assertNotIn('risk_level',snapshot)
+
     def test_ai_failure_keeps_manual_history_with_no_session_write(self):
         for key in intake.TEMPLATES:
             snap=intake.build_snapshot(key,request(key,'cat',notes={'state':'observed','text':'原文🐾'}))
