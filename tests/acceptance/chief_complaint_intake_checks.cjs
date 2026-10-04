@@ -4,7 +4,7 @@ const assert=require('node:assert/strict'), fs=require('node:fs'), path=require(
 const {execFileSync}=require('node:child_process');
 const UI='http://127.0.0.1:5173', API='http://127.0.0.1:18026', out=process.env.PMAI_ACCEPTANCE_OUT;
 assert(out && process.env.PMAI_SYNTHETIC_ACCEPTANCE==='PR26'); fs.mkdirSync(out,{recursive:true});
-const families = ['appetite_weight', 'polyuria_polydipsia', 'cough_breathing', 'syncope_seizure', 'urinary_abnormality', 'itching_hair_loss', 'lameness_pain'].filter(k=>fs.existsSync(path.join(__dirname,'../../knowledge-base/companion/intake',k+'.json')));
+const families = ['appetite_weight', 'polyuria_polydipsia', 'cough_breathing', 'syncope_seizure', 'urinary_abnormality', 'itching_hair_loss', 'lameness_pain', 'fever_lethargy', 'senior_screening'].filter(k=>fs.existsSync(path.join(__dirname,'../../knowledge-base/companion/intake',k+'.json')));
 assert(families.includes('appetite_weight'));
 let family, title, config, batch, browser,context,page,auth; const passed=[],failures=[],external=[],errors=[],samples=[];
 const region=name=>page.getByRole('region',{name,exact:true});
@@ -42,6 +42,18 @@ async function runAnimal(animal){
  await q(textRows[2].key).locator('select').selectOption('unobservable');await q(branch.when).locator('select').selectOption('observed');
  await q(branch.key).locator('select').selectOption('observed');await q(branch.key).locator('textarea').fill('原条件分支🐾\n保留原文');
  await q(branch.when).locator('select').selectOption('absent');await expect(q(branch.key).locator('textarea')).toHaveValue('原条件分支🐾\n保留原文');await expect(q(branch.key).locator('textarea')).not.toBeEditable();
+ const domain = family==='fever_lethargy' ? {
+  temperature:['observed','39.4 ℃；复测 102.2 °F，原始单位不换算'],
+  temperature_time:['observed','2026-10-04 08:10；08:30'],
+  temperature_method:['observed','第一次直肠；复测方式未确认'],
+  appetite:['not_asked','进食尚待询问'],water:['uncertain','水量未能归属'],activity:['unobservable','未观察活动']
+ } : family==='senior_screening' ? {
+  age_source:['uncertain','领养时估计年龄，出生日期不详'],
+  daily_function:['observed','可自行进食，跳台阶未观察'],
+  appetite:['not_asked','饮食尚待询问'],water:['unobservable','多宠共用水碗，无法归属'],
+  sleep_behavior:['uncertain','夜间声音增多，是否睡眠改变未确认'],treatment:['observed','合成用药记录原文，未生成处方']
+ } : {};
+ for (const [key,[state,text]] of Object.entries(domain)) { await q(key).locator('select').selectOption(state);await q(key).locator('textarea').fill(text); }
  await q('notes').locator('select').selectOption('observed');await q('notes').locator('textarea').fill(raw);await confirmIntake();
  await q('notes').locator('textarea').fill(raw+'修改');await expect(form()).not.toContainText('当前'+title+'问卷已核对');await q('notes').locator('textarea').fill(raw);
  await page.getByRole('button',{name:'收起问卷并保留输入',exact:true}).click();await expect(form()).not.toBeVisible();await page.getByRole('button',{name:'使用犬猫'+title+'问诊',exact:true}).click();await expect(q('notes').locator('textarea')).toHaveValue(raw);await expect(form()).not.toContainText('当前'+title+'问卷已核对');
@@ -70,6 +82,7 @@ async function runAnimal(animal){
   await page.unroute('**/api/cases');await page.unroute(/\/api\/cases\/\d+$/);await record('cat_ai_failure_manual_fifteen_fields_unknown_readback_get_only');
  }
  let saved=await read(id);assert(saved.history.startsWith(original));assert.equal(saved.history.split(raw).length-1,1);
+ for(const [key,[state,text]] of Object.entries(domain)) { assert(saved.history.includes(text),key); }
  for(const state of ['未填写','未询问','明确否定','不确定','无法观察','已记录'])assert(saved.history.includes('状态：'+state),state);
  assert(saved.history.includes('当前不适用'));assert(saved.history.includes('模板版本：'+family+'-intake-v1+'));assert(saved.history.includes('医生采集'));
  await page.goto(UI);await page.getByRole('button',{name:'退出',exact:true}).click();await login();await page.goto(UI+'/cases/'+id);await page.reload();
@@ -90,5 +103,5 @@ async function runAnimal(animal){
  }
  await context.close();
 }
-async function main(){browser=await chromium.launch({headless:true});for(const key of families){family=key;batch=['appetite_weight','polyuria_polydipsia','cough_breathing'].includes(key)?'B1':'B2';config=JSON.parse(fs.readFileSync(path.join(__dirname,'../../knowledge-base/companion/intake',key+'.json'),'utf8'));title=config.label.replace(/^犬猫/,'').replace(/问诊$/,'');await runAnimal('dog');await runAnimal('cat');}assert.deepEqual(errors,[]);assert.deepEqual(external,[]);}
+async function main(){browser=await chromium.launch({headless:true});for(const key of families){family=key;batch=['appetite_weight','polyuria_polydipsia','cough_breathing'].includes(key)?'B1':['fever_lethargy','senior_screening'].includes(key)?'B3':'B2';config=JSON.parse(fs.readFileSync(path.join(__dirname,'../../knowledge-base/companion/intake',key+'.json'),'utf8'));title=config.label.replace(/^犬猫/,'').replace(/问诊$/,'');await runAnimal('dog');await runAnimal('cat');}assert.deepEqual(errors,[]);assert.deepEqual(external,[]);}
 main().catch(async e=>{process.exitCode=1;failures.push(String(e));console.error(e);if(page&&!page.isClosed()){await page.screenshot({path:path.join(out,'b1-failure.png'),fullPage:true}).catch(()=>{});fs.writeFileSync(path.join(out,'b1-failure-dom.txt'),await page.locator('body').innerText().catch(()=>''));}}).finally(async()=>{fs.writeFileSync(path.join(out,'b1-intake-checks.json'),JSON.stringify({passed,failures,errors,external,samples},null,2));if(browser)await browser.close();});

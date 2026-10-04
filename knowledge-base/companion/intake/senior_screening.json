@@ -1,0 +1,109 @@
+{
+  "key": "senior_screening",
+  "version": "senior_screening-intake-v1",
+  "label": "犬猫老年动物筛查问诊",
+  "review_status": "clinical_draft",
+  "species": [
+    "dog",
+    "cat"
+  ],
+  "source": "医生采集",
+  "questions": [
+    {
+      "key": "onset",
+      "label": "本次筛查目的、变化起始时间及观察跨度",
+      "kind": "text"
+    },
+    {
+      "key": "age_source",
+      "label": "年龄原始记录、估计依据与资料来源；不确定请注明",
+      "kind": "text"
+    },
+    {
+      "key": "daily_function",
+      "label": "日常进食、饮水、排泄及梳理等自主完成情况",
+      "kind": "text"
+    },
+    {
+      "key": "appetite",
+      "label": "食物种类、进食量与近期变化及观察时段",
+      "kind": "text"
+    },
+    {
+      "key": "water",
+      "label": "饮水量原文、计量方式与近期变化",
+      "kind": "text"
+    },
+    {
+      "key": "urination",
+      "label": "排尿频次、尿量和排尿行为的原始观察",
+      "kind": "text"
+    },
+    {
+      "key": "defecation",
+      "label": "排便频次、粪便表现及排便行为的原始观察",
+      "kind": "text"
+    },
+    {
+      "key": "mobility",
+      "label": "起身、行走、上下台阶与活动耐受的观察",
+      "kind": "text"
+    },
+    {
+      "key": "sleep_behavior",
+      "label": "睡眠、昼夜节律、互动及行为的原始观察",
+      "kind": "text"
+    },
+    {
+      "key": "senses",
+      "label": "视听反应及观察限制；不从行为推断感官诊断",
+      "kind": "text"
+    },
+    {
+      "key": "oral",
+      "label": "进食动作、口腔观察及无法检查的部位",
+      "kind": "text"
+    },
+    {
+      "key": "weight",
+      "label": "历次体重原值、单位与测量日期；无记录请注明",
+      "kind": "text"
+    },
+    {
+      "key": "change",
+      "label": "是否观察到其他近期变化",
+      "kind": "presence"
+    },
+    {
+      "key": "change_detail",
+      "label": "其他变化的具体表现、时段、趋势与资料来源",
+      "kind": "text",
+      "when": "change"
+    },
+    {
+      "key": "history",
+      "label": "已知疾病、手术、过敏及既往检查记录",
+      "kind": "text"
+    },
+    {
+      "key": "treatment",
+      "label": "当前药物、补充剂及既往处理的原文与时间",
+      "kind": "text"
+    },
+    {
+      "key": "records",
+      "label": "已有检查资料、检查日期及尚未获得的资料",
+      "kind": "text"
+    },
+    {
+      "key": "observer",
+      "label": "观察者、生活环境、多宠归属及观察限制",
+      "kind": "text"
+    },
+    {
+      "key": "notes",
+      "label": "医生补充与资料来源",
+      "kind": "text"
+    }
+  ]
+}
