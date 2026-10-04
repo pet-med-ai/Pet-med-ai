@@ -1,5 +1,5 @@
 import { cleanDiarrheaDraft, appendDiarrheaHistory } from "./diarrheaIntakeState";
-export const INTAKE_LABELS = { diarrhea: "腹泻", appetite_weight: "食欲下降／消瘦", polyuria_polydipsia: "多饮多尿", cough_breathing: "咳嗽／呼吸困难", syncope_seizure: "晕厥／抽搐", urinary_abnormality: "排尿异常", itching_hair_loss: "皮肤瘙痒／脱毛", lameness_pain: "跛行／疼痛" };
+export const INTAKE_LABELS = { diarrhea: "腹泻", appetite_weight: "食欲下降／消瘦", polyuria_polydipsia: "多饮多尿", cough_breathing: "咳嗽／呼吸困难", syncope_seizure: "晕厥／抽搐", urinary_abnormality: "排尿异常", itching_hair_loss: "皮肤瘙痒／脱毛", lameness_pain: "跛行／疼痛", fever_lethargy: "发热／精神沉郁", senior_screening: "老年动物筛查" };
 export const intakeKey = draft => draft?.template?.key || "diarrhea";
 export function cleanIntakeDraft(value) {
   if (value == null) return null;

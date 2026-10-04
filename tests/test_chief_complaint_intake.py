@@ -251,6 +251,48 @@ class ChiefComplaintTests(unittest.TestCase):
             for field in ['location','side','limb_count','activity','trauma','trauma_detail']:self.assertNotIn(raw[field]['text'],context)
             self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
 
+    def test_b3_temperature_and_demeanour_are_independent_literal_observations(self):
+        for animal in ['dog','cat']:
+            raw={'temperature':{'state':'observed','text':'  39.4 ℃；复测 102.2 °F，单位原样保留  '},
+                 'temperature_time':{'state':'observed','text':'2026-10-04 08:10；08:30'},
+                 'temperature_method':{'state':'observed','text':'第一次直肠；复测设备与部位未知'},
+                 'temperature_source':{'state':'uncertain','text':'宠主照片是否属于本动物未确认'},
+                 'mental_change':{'state':'absent','text':'医生明确否定精神变化'},
+                 'mental_detail':{'state':'observed','text':'旧分支精神变化原文🐾'}}
+            snapshot=intake.build_snapshot('fever_lethargy',request('fever_lethargy',animal,**raw))
+            history=main._structured_snapshot_text(snapshot)
+            context=intake.ai_context(snapshot)
+            for answer in raw.values():self.assertIn(answer['text'],history)
+            for field in ['temperature','temperature_time','temperature_method']:self.assertIn(raw[field]['text'],context)
+            for field in ['temperature_source','mental_change','mental_detail']:self.assertNotIn(raw[field]['text'],context)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+            raw['temperature']={'state':'unobservable','text':'未测量，仅描述摸起来热'}
+            raw['mental_change']={'state':'observed','text':'观察到反应变化'}
+            snapshot=intake.build_snapshot('fever_lethargy',request('fever_lethargy',animal,**raw))
+            context=intake.ai_context(snapshot)
+            self.assertNotIn('摸起来热',context)
+            self.assertNotIn('39.4',context)
+            self.assertIn(raw['mental_detail']['text'],context)
+            self.assertIn('未测量',main._structured_snapshot_text(snapshot))
+
+    def test_b3_senior_unknowns_do_not_become_normal_or_diagnoses(self):
+        for animal in ['dog','cat']:
+            raw={'age_source':{'state':'uncertain','text':'领养时估计年龄，不确定出生日期'},
+                 'daily_function':{'state':'observed','text':'可自行进食，跳台阶未观察'},
+                 'water':{'state':'unobservable','text':'多宠共用水碗，无法归属'},
+                 'sleep_behavior':{'state':'uncertain','text':'夜间声音增多，未确认是否睡眠改变'},
+                 'treatment':{'state':'not_asked','text':'药物和补充剂尚待询问'},
+                 'change':{'state':'absent','text':'否定其他变化'},
+                 'change_detail':{'state':'observed','text':'停用分支旧观察🐾'}}
+            snapshot=intake.build_snapshot('senior_screening',request('senior_screening',animal,**raw))
+            history=main._structured_snapshot_text(snapshot)
+            for answer in raw.values():self.assertIn(answer['text'],history)
+            context=intake.ai_context(snapshot)
+            self.assertIn(raw['daily_function']['text'],context)
+            for field in set(raw)-{'daily_function'}:self.assertNotIn(raw[field]['text'],context)
+            for term in ['正常','认知障碍','肾衰','已确诊']:self.assertNotIn(term,history)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+
     def test_ai_failure_keeps_manual_history_with_no_session_write(self):
         for key in intake.TEMPLATES:
             snap=intake.build_snapshot(key,request(key,'cat',notes={'state':'observed','text':'原文🐾'}))

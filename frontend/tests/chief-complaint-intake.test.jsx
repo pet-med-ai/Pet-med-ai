@@ -10,7 +10,7 @@ import { cleanIntakeDraft as cleanDiarrheaDraft, intakeReviewed as diarrheaRevie
 import { DRAFT_KEY, cleanDraft, writeDraft, readDraft } from "../src/consultDraft";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-const templates = ["appetite_weight", "polyuria_polydipsia", "cough_breathing", "syncope_seizure", "urinary_abnormality", "itching_hair_loss", "lameness_pain"].map(k => {
+const templates = ["appetite_weight", "polyuria_polydipsia", "cough_breathing", "syncope_seizure", "urinary_abnormality", "itching_hair_loss", "lameness_pain", "fever_lethargy", "senior_screening"].map(k => {
   const rel = "knowledge-base/companion/intake/"+k+".json";
   return [resolve(rel),resolve("..",rel)].find(existsSync);
 }).filter(Boolean).map(p=>JSON.parse(readFileSync(p,"utf8")));
@@ -56,6 +56,22 @@ beforeEach(async()=>{
   await act(async()=>{renderer=TestRenderer.create(<Harness/>);});
 });
 afterEach(()=>act(()=>renderer.unmount()));
+
+if (["fever_lethargy", "senior_screening"].includes(config.key)) test("B3 domain observations remain independent through restore and review",async()=>{
+  await click(`开始${title}问诊`);
+  const field = config.key === "fever_lethargy" ? "temperature" : "sleep_behavior";
+  const value = config.key === "fever_lethargy" ? "39.4 ℃；08:10 直肠；复测单位未知" : "夜间声音增多，来源为宠主转述，未确定原因";
+  const state = config.key === "fever_lethargy" ? "observed" : "uncertain";
+  await change(field,"select",state); await change(field,"textarea",value);
+  await change(branch.when,"select","absent");
+  assert.equal(raw.answers[field].state,state); assert.equal(raw.answers[field].text,value);
+  await confirm(); assert(reviewed.historyBlock.includes(value));
+  await change(field,"select","unobservable"); assert.equal(reviewed,null);
+  assert.equal(raw.answers[field].text,value);
+  await remount(); assert.equal(raw.answers[field].state,"unobservable");
+  assert.equal(raw.answers[field].text,value); assert.equal(reviewed,null);
+  assert.equal(raw.answers[branch.when].state,"absent");
+});
 
 test("B1 explicit start and missing states do not synthesize absence or zero",async()=>{
   assert.equal(raw,null); assert.equal(requests.length,0); await click(`开始${title}问诊`);
