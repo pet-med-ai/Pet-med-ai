@@ -137,6 +137,22 @@ test("B1 refresh restores questionnaire input but not its confirmation",async()=
   assert(button(`核对${title}问卷汇总`));
 });
 
+test("B1 unfinished questionnaire can close and restore without a preview or write",async()=>{
+  await remount(home());
+  await act(async()=>renderer.root.findByProps({"aria-label":"选择主诉问诊"}).props.onChange({target:{value:config.key}}));
+  await click(`使用犬猫${title}问诊`);await click(`开始${title}问诊`);
+  await change("onset","select","observed"); // Deliberately incomplete observed text.
+  await change("notes","textarea","暂存未完成原文🐾");
+  const writes=()=>requests.filter(r=>r.method!=="get").length;
+  assert.equal(writes(),0);await click("收起问卷并保留输入");
+  assert.equal(button(`核对${title}问卷汇总`),undefined);
+  await remount(home());await click("恢复本页草稿");
+  assert(out().includes("暂存未完成原文🐾"));assert.equal(writes(),0);
+  assert.equal(button(`确认当前${title}问卷`),undefined);
+  const onset=renderer.root.findAll(n=>n.props["data-intake-question"]==="onset")[0];
+  assert.equal(onset.findByType("select").props.value,"observed");assert.equal(onset.findByType("textarea").props.value,"");
+});
+
 test("B1 chief complaint switch invalidates confirmation and keeps the old raw",async()=>{
   await remount(home());
   const choose=async key=>act(async()=>renderer.root.findByProps({"aria-label":"选择主诉问诊"}).props.onChange({target:{value:key}}));

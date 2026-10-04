@@ -1,5 +1,5 @@
 import { cleanDiarrheaDraft, appendDiarrheaHistory } from "./diarrheaIntakeState";
-export const INTAKE_LABELS = { diarrhea: "腹泻", appetite_weight: "食欲下降／消瘦", polyuria_polydipsia: "多饮多尿" };
+export const INTAKE_LABELS = { diarrhea: "腹泻", appetite_weight: "食欲下降／消瘦", polyuria_polydipsia: "多饮多尿", cough_breathing: "咳嗽／呼吸困难" };
 export const intakeKey = draft => draft?.template?.key || "diarrhea";
 export function cleanIntakeDraft(value) {
   if (value == null) return null;

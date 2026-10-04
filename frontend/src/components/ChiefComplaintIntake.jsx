@@ -62,6 +62,7 @@ export default function ChiefComplaintIntake({ intakeKey = "diarrhea", draft, re
   return <section aria-label={`犬猫${title}问诊`} className="workbench-secondary">
     <h2>犬猫{title}问诊</h2>
     <p>医生采集 · 临床草稿，问题与条件需医生审阅。未填写不代表正常；问卷核对后仍需核对病例保存内容。</p>
+    {intakeKey === "cough_breathing" && <p>无需填完问卷；可随时收起问卷处理当前诊疗，已输入原文会保留。</p>}
     {!owned ? <p role="status">请使用当前登录账号重新进入；旧账号问卷不会显示或提交。</p> : <>
       <button type="button" disabled={disabled || busy || !["dog", "cat"].includes(context.species)} onClick={start}>{draft ? (matches ? `重新读取${title}模板` : `为当前病例开始${title}问卷`) : `开始${title}问诊`}</button>
       {!["dog", "cat"].includes(context.species) && <p>请明确选择犬或猫后使用专用问卷。</p>}

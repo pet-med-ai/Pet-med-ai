@@ -32,6 +32,7 @@ async function runAnimal(animal){
  await setup(); const raw='  '+animal+'医生原文🐾\n未见黑便 <5 & >2 {{literal}}\t保留尾部  \n'+(animal==='cat'?'长原文不截断🐾\n'.repeat(90):'');
  const original='  原医生病史🐾\n末尾保留。  \n';
  await field('病例名 / 宠物名').fill('B1合成'+animal);await field('物种').selectOption(animal);await field('主诉（必填）').fill('合成'+title+'采集，非真实病例');await field('既往史').fill(original);
+ await field('主人姓名').fill('B1合成宠主'+animal);await field('毛色').fill(animal==='dog'?'合成黑白色':'合成虎斑色');
  await page.getByLabel('选择主诉问诊',{exact:true}).selectOption(family);
  await page.getByRole('button',{name:'使用犬猫'+title+'问诊',exact:true}).click();await form().getByRole('button',{name:'开始'+title+'问诊',exact:true}).click();
  await q('onset').locator('select').selectOption('observed');await q('onset').locator('textarea').fill('医生记录起病经过');
@@ -78,10 +79,12 @@ async function runAnimal(animal){
  await record(animal+'_logout_relogin_backread_and_reviewed_correction_keep_original');
  for(const [label,key] of [['导出门诊病历草稿 DOCX','outpatient'],['导出宠主说明草稿 DOCX','owner-summary']]){
   const event=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/clinical-docs/render-preview');await page.getByRole('button',{name:label,exact:true}).click();const p=await (await event).json();assert.equal(p.context['visit.history'],saved.history);
+  if(key==='outpatient'){assert.equal(p.context['visit.owner_name'],'B1合成宠主'+animal);assert.equal(p.context['visit.coat_color'],animal==='dog'?'合成黑白色':'合成虎斑色');}
   const review=region('文书草稿内容核对');await expect(review.getByRole('button',{name:'确认并下载草稿 DOCX',exact:true})).toBeDisabled();
   await review.getByLabel('已核对本次草稿内容（仍未签署）',{exact:true}).check();const eventDownload=page.waitForEvent('download');await review.getByRole('button',{name:'确认并下载草稿 DOCX',exact:true}).click();const download=await eventDownload;
   const file=path.join(out,'b1-'+family+'-'+animal+'-'+key+'.docx');await download.saveAs(file);
   const text=execFileSync('python',['-c','import sys,zipfile;from xml.etree import ElementTree as E;root=E.fromstring(zipfile.ZipFile(sys.argv[1]).read("word/document.xml"));ns="{http://schemas.openxmlformats.org/wordprocessingml/2006/main}";print("\\n".join("".join((n.text or "") if n.tag==ns+"t" else "\\n" if n.tag==ns+"br" else "\\t" if n.tag==ns+"tab" else "" for n in p.iter()) for p in root.iter(ns+"p")))',file],{encoding:'utf8'});
+  if(key==='outpatient'){assert(text.includes('B1合成宠主'+animal));assert(text.includes(animal==='dog'?'合成黑白色':'合成虎斑色'));}
   assert(text.includes(saved.history));assert(text.includes(raw));assert.deepEqual(await read(id),saved);samples.push({family,species:animal,case_id:id,file:path.basename(file),history:saved.history});
   await review.getByRole('button',{name:'关闭草稿核对',exact:true}).click();await record(animal+'_'+key+'_review_and_actual_docx_exact_history_read_only');
  }

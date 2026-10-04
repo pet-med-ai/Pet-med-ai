@@ -152,6 +152,22 @@ class ChiefComplaintTests(unittest.TestCase):
         self.assertNotIn('ml/kg',text)
         self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
 
+    def test_cough_and_breathing_observations_are_independent(self):
+        key='cough_breathing'
+        raw={'cough':{'state':'absent','text':'医生明确否定咳嗽'},
+             'cough_detail':{'state':'observed','text':'旧咳嗽分支原文保留'},
+             'breathing':{'state':'observed','text':'医生记录呼吸表现'},
+             'breathing_detail':{'state':'observed','text':'  休息时呼吸用力；活动时未观察  '},
+             'respiratory_rate':{'state':'uncertain','text':'约 20 次 / 30 秒，估测；状态不确定'}}
+        snapshot=intake.build_snapshot(key,request(key,**raw))
+        text=main._structured_snapshot_text(snapshot)
+        for value in raw.values():self.assertIn(value['text'],text)
+        context=intake.ai_context(snapshot)
+        self.assertIn(raw['breathing_detail']['text'],context)
+        self.assertNotIn('咳嗽',context)
+        self.assertNotIn('20',context)
+        self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+
     def test_ai_failure_keeps_manual_history_with_no_session_write(self):
         for key in intake.TEMPLATES:
             snap=intake.build_snapshot(key,request(key,'cat',notes={'state':'observed','text':'原文🐾'}))
