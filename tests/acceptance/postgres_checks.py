@@ -421,7 +421,6 @@ for animal in ('dog', 'cat'):
     m7_expected.append({'case_id': m7_id, 'record': saved, 'session_url': m7_url})
     record('m7_'+animal+'_canonical_states_originals_concurrent_save_one_case')
 (f.OUT / 'm7-restart-expected.json').write_text(json.dumps(m7_expected, ensure_ascii=False))
-client.close(); f.db.engine.dispose()
 
 # B1 uses the same row lock and first-save token as M7, with a distinct template family.
 import chief_complaint_intake as b1
@@ -451,3 +450,5 @@ for key in b1.TEMPLATES:
         b1_expected.append({'case_id':results[0]['case_id'],'record':saved,'session_url':route})
         record('b1_'+key+'_'+animal+'_concurrent_save_one_case_exact_original')
 (f.OUT / 'b1-restart-expected.json').write_text(json.dumps(b1_expected,ensure_ascii=False))
+
+client.close(); f.db.engine.dispose()

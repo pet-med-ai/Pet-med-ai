@@ -31,7 +31,7 @@ async function setup(){
 async function runAnimal(animal){
  await setup(); const raw='  '+animal+'医生原文🐾\n未见黑便 <5 & >2 {{literal}}\t保留尾部  \n'+(animal==='cat'?'长原文不截断🐾\n'.repeat(90):'');
  const original='  原医生病史🐾\n末尾保留。  \n';
- await field('病例名 / 宠物名').fill('B1合成'+animal);await field('物种').selectOption(animal);await field('主诉（必填）').fill('合成腹泻采集，非真实病例');await field('既往史').fill(original);
+ await field('病例名 / 宠物名').fill('B1合成'+animal);await field('物种').selectOption(animal);await field('主诉（必填）').fill('合成'+title+'采集，非真实病例');await field('既往史').fill(original);
  await page.getByLabel('选择主诉问诊',{exact:true}).selectOption(family);
  await page.getByRole('button',{name:'使用犬猫'+title+'问诊',exact:true}).click();await form().getByRole('button',{name:'开始'+title+'问诊',exact:true}).click();
  await q('onset').locator('select').selectOption('observed');await q('onset').locator('textarea').fill('医生记录起病经过');
