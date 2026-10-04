@@ -45,6 +45,10 @@ on:
       - 'docs/clinical_docs/INTAKE_BATCH_B1.md'
       - 'docs/clinical_docs/INTAKE_BATCH_B2.md'
       - 'docs/clinical_docs/INTAKE_BATCH_B3.md'
+      - 'docs/clinical_docs/CONSULT_EVIDENCE_B4.md'
+      - 'tests/test_clinical_evidence.py'
+      - 'tests/test_consult_evidence.py'
+      - 'frontend/tests/consult-evidence.test.jsx'
       - 'docs/clinical_docs/VISIT_MILESTONE_M7.md'
 
 permissions:
@@ -65,7 +69,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind fixed M7, identity supplement, B1, B2 and approved B3 increment
+      - name: Bind fixed M7 through B3 and approved B4 increment
         run: |
           set -euo pipefail
           mkdir -p acceptance-results
@@ -119,9 +123,16 @@ jobs:
           assert 0 < len(b2_changed) <= 20 and b2_changed <= b2_allowed, sorted(b2_changed - b2_allowed)
           open('acceptance-results/b2-scope.json', 'w').write(json.dumps({'baseline': b1, 'changed': sorted(b2_changed), 'allowed': sorted(b2_allowed)}, indent=2))
           b3_allowed = {'knowledge-base/companion/intake/senior_screening.json', 'docs/clinical_docs/INTAKE_BATCH_B3.md', '.github/workflows/consult-browser-postgres.yml', 'frontend/src/chiefComplaintIntakeState.js', 'backend/chief_complaint_intake.py', 'knowledge-base/companion/intake/fever_lethargy.json', 'frontend/src/components/ChiefComplaintIntake.jsx', 'tests/test_chief_complaint_intake.py', 'tests/acceptance/chief_complaint_intake_checks.cjs', 'frontend/tests/chief-complaint-intake.test.jsx'}
-          b3_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b2, 'HEAD'], text=True).splitlines())
+          b3 = '59dcb643510e75d76efd0147545565a0fe327e3c'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', b3, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', b3 + '^{tree}'], text=True).strip() == 'a6a28084a251b38abd4b2e6a2c6348e33a846582'
+          b3_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b2, b3], text=True).splitlines())
           assert 0 < len(b3_changed) <= 10 and b3_changed <= b3_allowed, sorted(b3_changed - b3_allowed)
           open('acceptance-results/b3-scope.json', 'w').write(json.dumps({'baseline': b2, 'changed': sorted(b3_changed), 'allowed': sorted(b3_allowed)}, indent=2))
+          b4_allowed = {'frontend/src/App.jsx', 'frontend/tests/consult-evidence.test.jsx', 'frontend/tests/run-consult-update-review.mjs', 'backend/orchestrator.py', 'tests/acceptance/evidence_checks.cjs', 'tests/acceptance/postgres_checks.py', 'frontend/src/components/ConsultEvidence.jsx', 'backend/risk_engine.py', 'backend/feature_engine.py', '.github/workflows/consult-browser-postgres.yml', 'backend/dynamic_consult.py', 'backend/clinical_evidence.py', 'tests/test_clinical_evidence.py', 'tests/test_consult_evidence.py', 'backend/diagnosis_engine.py', 'backend/companion_animal_knowledge.py', 'backend/main.py', 'docs/clinical_docs/CONSULT_EVIDENCE_B4.md'}
+          b4_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b3, 'HEAD'], text=True).splitlines())
+          assert 0 < len(b4_changed) <= 18 and b4_changed <= b4_allowed, sorted(b4_changed - b4_allowed)
+          open('acceptance-results/b4-scope.json', 'w').write(json.dumps({'baseline': b3, 'changed': sorted(b4_changed), 'allowed': sorted(b4_allowed)}, indent=2))
           PY
           git rev-parse HEAD > acceptance-results/test-commit.txt
           git rev-parse HEAD > acceptance-results/application-commit.txt
@@ -168,6 +179,10 @@ jobs:
           python tests/test_consult_history_merge.py
           python tests/test_chief_complaint_intake.py
           python tools/validate_kb.py
+      - name: B4 offline assertions and authenticated save/readback/document evidence
+        run: |
+          python tests/test_clinical_evidence.py
+          python tests/test_consult_evidence.py
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -242,6 +257,10 @@ jobs:
         run: |
           set -o pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/chief_complaint_intake_checks.cjs 2>&1 | tee acceptance-results/b1-intake-checks.log
+      - name: Real Chromium B4 input evidence and document preservation
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/evidence_checks.cjs 2>&1 | tee acceptance-results/b4-evidence-checks.log
       - name: Stop test processes
         if: always()
         run: |

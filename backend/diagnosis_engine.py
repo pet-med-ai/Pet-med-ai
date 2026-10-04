@@ -21,6 +21,7 @@ def rank(features: Dict[str, Any], tree_path: List[str]) -> Dict[str, List[str]]
 
     companion_result = companion_knowledge_diagnosis(features)
     diseases.extend(companion_result.get("diseases") or [])
+    evidence = dict(companion_result.get("evidence") or {})
     checks.extend(companion_result.get("checks") or [])
     actions.extend(companion_result.get("actions") or [])
 
@@ -67,26 +68,37 @@ def rank(features: Dict[str, Any], tree_path: List[str]) -> Dict[str, List[str]]
             checks.extend(["具体物种确认", "饲养环境记录", "体重趋势", "基础体检和影像/粪检按需"])
             actions.extend(["先补齐物种、饲养环境、进食排泄和体重变化，再细化鉴别诊断。"])
 
+    def add_supported(names, key):
+        diseases.extend(names)
+        evidence.update({name: [key] for name in names})
+
     if features.get("blood"):
-        diseases.extend(["胃肠道出血", "胃肠溃疡/糜烂", "异物或严重炎症"])
+        add_supported(["胃肠道出血", "胃肠溃疡/糜烂", "异物或严重炎症"], "blood")
 
     if features.get("retching"):
-        diseases.extend(["异物", "胃扩张/扭转风险"])
+        add_supported(["异物"], "retching")
+        if species_group not in {"canine", "feline"}:
+            diseases.append("胃扩张/扭转风险")
+        if features.get("dog_gdv_risk"):
+            add_supported(["胃扩张/扭转风险"], "dog_gdv_risk")
 
     if features.get("diarrhea"):
-        diseases.extend(["胃肠炎", "寄生虫感染", "病毒性/细菌性肠炎"])
+        add_supported(["胃肠炎", "寄生虫感染", "病毒性/细菌性肠炎"], "diarrhea")
 
     if features.get("low_energy"):
-        diseases.extend(["感染性疾病", "代谢性疾病", "疼痛或脱水相关精神沉郁"])
+        add_supported(["感染性疾病", "代谢性疾病", "疼痛或脱水相关精神沉郁"], "low_energy")
 
     if "bloody_vomiting" in tree_path:
         diseases.insert(0, "严重胃肠道出血")
 
-    if not diseases:
+    if not diseases and species_group not in {"canine", "feline"}:
         diseases.extend(["非特异性胃肠不适", "饮食或环境变化相关问题"])
 
-    if not checks:
+    if not checks and species_group not in {"canine", "feline"}:
         checks.extend(["血常规", "生化", "腹部影像"])
+
+    if not diseases and species_group in {"canine", "feline"}:
+        actions.append("现有记录不足以形成有依据的疾病候选，请补充病史并由医生核对。")
 
     if not actions:
         actions.extend(["结合体征、实验室检查和影像进一步判断；高风险时先稳定生命体征。"])
@@ -99,4 +111,5 @@ def rank(features: Dict[str, Any], tree_path: List[str]) -> Dict[str, List[str]]
         "diseases": _dedupe(diseases),
         "checks": _dedupe(checks),
         "actions": _dedupe(actions),
+        "evidence": evidence,
     }

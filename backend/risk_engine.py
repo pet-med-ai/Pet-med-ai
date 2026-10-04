@@ -8,7 +8,7 @@ except ModuleNotFoundError:
     from companion_animal_knowledge import companion_knowledge_risk_level
 
 
-def evaluate(features: Dict[str, Any]) -> str:
+def _evaluate_rules(features: Dict[str, Any]) -> str:
     species_group = features.get("species_group")
     vomiting = features.get("vomiting")
     frequent_vomiting = features.get("frequent_vomiting")
@@ -119,3 +119,11 @@ def evaluate(features: Dict[str, Any]) -> str:
         return "中"
 
     return "低"
+
+
+def evaluate(features: Dict[str, Any]) -> str:
+    risk = _evaluate_rules(features)
+    # Explicit current red flags remain high even when another record conflicts.
+    if risk != "高" and features.get("input_evidence", {}).get("needs_review"):
+        return "待核对"
+    return risk

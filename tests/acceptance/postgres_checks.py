@@ -56,6 +56,12 @@ if '--readback' in sys.argv:
         assert read(item['case_id'], auth) == item['record']
         assert call('GET', item['session_url'], auth)['case_id'] == item['case_id']
     record('b1_all_enabled_dog_cat_fresh_process_exact_readback')
+    for item in json.loads((f.OUT / 'b4-restart-expected.json').read_text()):
+        assert read(item['case_id'], auth) == item['record']
+        reopened = call('GET', item['session_url'], auth)
+        assert reopened['result']['input_evidence'] == item['evidence']
+        assert reopened['case_id'] == item['case_id']
+    record('b4_dog_cat_fresh_process_exact_evidence_and_case_readback')
     sys.exit(0)
 
 f.prepare_empty_database()
@@ -450,5 +456,28 @@ for key in b1.TEMPLATES:
         b1_expected.append({'case_id':results[0]['case_id'],'record':saved,'session_url':route})
         record('b1_'+key+'_'+animal+'_concurrent_save_one_case_exact_original')
 (f.OUT / 'b1-restart-expected.json').write_text(json.dumps(b1_expected,ensure_ascii=False))
+
+b4_expected = []
+for animal in ['dog', 'cat']:
+    created = call('POST', '/api/ai/consult/session', owner, json={'text':'常规体检；未见黑便','species':animal})
+    route = '/api/ai/consult/session/' + created['session_id']
+    raw = '  不清楚🐾\n保留尾部  '
+    updated = call('POST', route+'/answer', owner, json={'question':'是否有黑便、干呕或腹胀？','answer':raw,'expected_answers_token':created['answers_token']})
+    assert updated['result']['risk_level'] == '待核对'
+    assert updated['result']['diseases']['diseases'] == []
+    assert updated['answers'][-1]['answer'] == raw
+    body = {'patient_name':'B4-PG-'+animal,'species':animal,'chief_complaint':'常规体检','history':'B4原记录'}
+    preview = call('POST', route+'/preview-case', owner, json=body)
+    request = {**body,'expected_preview_token':preview['preview_token']}
+    before = count()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _:call('POST',route+'/save-case',owner,json=request),range(2)))
+    assert len({x['case_id'] for x in results}) == 1 and count() == before + 1
+    saved = read(results[0]['case_id'],owner)
+    assert raw in saved['history'] and '待核对' in saved['treatment']
+    assert '扭转' not in saved['analysis']
+    b4_expected.append({'case_id':results[0]['case_id'],'record':saved,'session_url':route,'evidence':updated['result']['input_evidence']})
+    record('b4_'+animal+'_assertions_concurrent_save_one_case_evidence_preserved')
+(f.OUT / 'b4-restart-expected.json').write_text(json.dumps(b4_expected,ensure_ascii=False))
 
 client.close(); f.db.engine.dispose()
