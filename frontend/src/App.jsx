@@ -8,6 +8,7 @@ import { clearManualCreateAttempt } from "./components/ManualCaseCreateReview";
 import { clearManualCaseDraft } from "./manualCaseDraft";
 import { caseEditDraftOwner, clearCaseEditDrafts } from "./caseEditDraft";
 import { intakeReviewed as diarrheaReviewed, appendIntakeHistory as appendDiarrheaHistory, intakeKey, INTAKE_LABELS } from "./chiefComplaintIntakeState";
+import ConsultEvidence from "./components/ConsultEvidence";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
 import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/ConsultWorkbench";
@@ -1406,7 +1407,7 @@ export function Home() {
             ? "red"
             : result.risk_level === "medium" || result.risk_level === "中"
             ? "orange"
-            : "green",
+            : result.risk_level === "low" || result.risk_level === "低" ? "green" : "#555",
         fontWeight: "bold",
       }}
     >
@@ -1421,6 +1422,7 @@ export function Home() {
   </div>
 )}
             
+            <ConsultEvidence evidence={result?.input_evidence} />
             {result?.structured_intake && (
               <StructuredIntakeBlock
                 intake={result.structured_intake}

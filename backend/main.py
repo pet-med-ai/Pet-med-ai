@@ -998,6 +998,14 @@ def _format_structured_intake_history(raw: Optional[Dict[str, Any]]) -> str:
 
     return f"【{title}】\n{formatted}"
 
+def _snapshot_evidence(snapshot, source="问卷"):
+    try:
+        from backend.clinical_evidence import snapshot_rows
+    except ModuleNotFoundError:
+        from clinical_evidence import snapshot_rows
+    return snapshot_rows(snapshot, source)
+
+
 def _answers_with_structured_intake_context(
     answers: List[Dict[str, str]],
     structured_intake_answers: Optional[Dict[str, Any]],
@@ -1009,14 +1017,16 @@ def _answers_with_structured_intake_context(
         if snapshot:
             context = (_intake_module().ai_context(snapshot) if _intake_module().is_intake(snapshot)
                        else _structured_snapshot_text(snapshot, f"第 {index} 轮"))
-            if context:
-                items.append({"question": f"【已提交结构化问诊 · 第 {index} 轮】", "answer": context})
+            if context or snapshot:
+                items.append({"question": f"【已提交结构化问诊 · 第 {index} 轮】", "answer": context,
+                              "_clinical_rows": _snapshot_evidence(snapshot, f"问卷第{index}轮")})
     current = _clean_structured_snapshot(structured_intake_answers)
     if current:
         context = (_intake_module().ai_context(current) if _intake_module().is_intake(current)
                    else _structured_snapshot_text(current))
-        if context:
-            items.append({"question": "【本轮结构化问诊】", "answer": context})
+        if context or current:
+            items.append({"question": "【本轮结构化问诊】", "answer": context,
+                          "_clinical_rows": _snapshot_evidence(current, "本轮问卷")})
     return items
 
 
@@ -1228,7 +1238,7 @@ def _consult_session_to_case_fields(session: ConsultSession) -> Dict[str, str]:
             if not isinstance(item, dict):
                 continue
             question = str(item.get("question") or "").strip()
-            answer = str(item.get("answer") or "").strip()
+            answer = str(item.get("answer") or "")
             history_lines.append(f"{idx}. 问：{question or '未记录'}")
             history_lines.append(f"   答：{answer or '未记录'}")
     else:
@@ -1546,7 +1556,7 @@ async def ai_consult_session_create(
     observations = (_intake_module().ai_context(structured) if _intake_module().is_intake(structured)
                     else _structured_snapshot_text(structured))
     ai_text = text + ("\n\n" + observations if observations else "")
-    result = run_agent(ai_text)
+    result = run_agent(ai_text, evidence_observations=[{"source": "主诉", "text": text}] + _snapshot_evidence(structured))
     if not isinstance(result, dict):
         result = {
             "risk_level": "中",
@@ -1614,8 +1624,8 @@ def ai_consult_session_answer(
         raise HTTPException(status_code=404, detail="Consult session not found")
     assert_consult_session_access(session, user, allow_unowned=True)
 
-    answer = (data.answer or "").strip()
-    if not answer:
+    answer = data.answer or ""
+    if not answer.strip():
         raise HTTPException(status_code=400, detail="answer is required")
 
     question = (data.question or "").strip() or _first_session_question(session.result)

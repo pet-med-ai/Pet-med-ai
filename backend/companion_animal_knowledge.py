@@ -150,9 +150,9 @@ def augment_companion_animal_features(features: Dict[str, Any], raw_text: Any) -
         return features
 
     toxin_keywords = [
-        "中毒", "误食", "毒", "巧克力", "咖啡", "咖啡因", "葡萄", "葡萄干",
+        "中毒", "误食", "巧克力", "咖啡", "咖啡因", "葡萄", "葡萄干",
         "木糖醇", "xylitol", "洋葱", "大蒜", "韭菜", "百合", "老鼠药",
-        "杀虫剂", "除草剂", "布洛芬", "对乙酰氨基酚", "扑热息痛", "药片",
+        "杀虫剂", "除草剂", "布洛芬", "对乙酰氨基酚", "扑热息痛",
         "异烟肼", "酒精", "防冻液", "乙二醇",
     ]
     urinary_keywords = [
@@ -170,14 +170,15 @@ def augment_companion_animal_features(features: Dict[str, Any], raw_text: Any) -
     oral_dental_keywords = ["口炎", "牙龈红", "牙结石", "口臭", "口腔溃疡", "流口水", "流涎", "咀嚼疼", "牙疼"]
     pruritus_keywords = ["瘙痒", "痒", "抓挠", "舔咬", "蹭", "掉毛", "脱毛", "红疹", "皮屑", "结痂", "耳朵痒"]
     ortho_keywords = ["跛行", "瘸", "不敢着地", "抬脚", "骨折", "关节肿", "疼痛", "扭伤", "外伤", "车祸", "摔"]
-    foreign_body_keywords = ["异物", "吞了", "吃了袜子", "袜子", "玩具", "骨头", "玉米芯", "塑料", "布料", "海绵", "线", "绳"]
+    foreign_body_keywords = ["异物", "吞了", "吃了袜子", "袜子", "玩具", "骨头", "玉米芯", "塑料", "布料", "海绵", "吞线", "吞绳", "误食线", "误食绳"]
     cardiac_keywords = ["心脏病", "心衰", "晕厥", "舌头紫", "牙龈发紫", "咳嗽夜间", "运动不耐受"]
     bleeding_keywords = ["便血", "血便", "黑便", "柏油样便", "呕血", "吐血", "出血不止"]
     seizure_cluster_keywords = ["连续抽搐", "抽搐两次", "多次抽搐", "抽搐不止", "癫痫持续", "意识不清"]
 
     urinary_issue = _has_any(text, urinary_keywords)
     anuria = _has_any(text, anuria_keywords)
-    toxin_exposure = bool(features.get("toxin") or _has_any(text, toxin_keywords))
+    toxin_text = text.replace("咖啡色", "").replace("咖啡样", "").replace("咖啡渣", "")
+    toxin_exposure = bool(features.get("toxin") or _has_any(toxin_text, toxin_keywords))
     prolonged_anorexia = bool(features.get("anorexia") and _has_any(text, prolonged_anorexia_keywords))
     jaundice = _has_any(text, jaundice_keywords)
     oral_dental_issue = _has_any(text, oral_dental_keywords)
@@ -307,36 +308,47 @@ def companion_knowledge_diagnosis(features: Dict[str, Any]) -> Dict[str, List[st
     if not kb:
         return {"diseases": [], "checks": [], "actions": []}
 
-    diseases = list(kb.get("diseases", []))
-    checks = list(kb.get("checks", []))
-    actions = list(kb.get("actions", []))
+    # Species lists are reference catalogues, not patient-specific findings.
+    diseases, checks, actions = [], [], []
+    evidence = {}
+
+    def support(name, *keys):
+        evidence[name] = [key for key in keys if features.get(key)]
 
     reasons = companion_knowledge_risk_reasons(features)
     if reasons:
         actions.insert(0, "红旗提示：" + "；".join(reasons))
 
     if features.get("dog_gdv_risk"):
+        support("胃扩张/扭转（GDV）风险", "dog_gdv_risk")
         diseases.insert(0, "胃扩张/扭转（GDV）风险")
         checks.insert(0, "循环状态、腹部膨胀和右侧腹部影像评估")
     if features.get("dog_toxin_risk"):
+        support("犬可疑中毒/毒物暴露", "dog_toxin_risk")
         diseases.insert(0, "犬可疑中毒/毒物暴露")
         checks.insert(0, "毒物名称、摄入时间、估计剂量、体重和生命体征记录")
     if features.get("cat_urinary_obstruction_risk"):
+        support("猫尿道阻塞/尿闭风险", "cat_urinary_obstruction_risk")
         diseases.insert(0, "猫尿道阻塞/尿闭风险")
         checks.insert(0, "膀胱充盈度、血钾/肾功能、电解质和疼痛状态评估")
     if features.get("cat_anorexia_high_risk"):
+        support("猫持续厌食/脂肪肝风险", "cat_anorexia_high_risk")
         diseases.insert(0, "猫持续厌食/脂肪肝风险")
         checks.insert(0, "体重趋势、黄疸检查、肝胆指标和脱水评估")
     if features.get("respiratory_distress"):
+        support("呼吸困难/呼吸系统急症", "respiratory_distress")
         diseases.insert(0, "呼吸困难/呼吸系统急症")
         checks.insert(0, "低应激呼吸状态评估，必要时先供氧稳定再检查")
     if features.get("neurologic_signs"):
+        support("神经系统异常/中毒/代谢异常鉴别", "neurologic_signs")
         diseases.append("神经系统异常/中毒/代谢异常鉴别")
         checks.append("神经定位、血糖/电解质及毒物暴露史评估")
     if features.get("pruritus"):
+        support("过敏性皮肤病/寄生虫/感染性皮肤病鉴别", "pruritus")
         diseases.append("过敏性皮肤病/寄生虫/感染性皮肤病鉴别")
         checks.append("皮肤刮片、耳检、细胞学和寄生虫筛查按需")
     if features.get("orthopedic_or_trauma"):
+        support("骨科/创伤相关疼痛、骨折或软组织损伤", "orthopedic_or_trauma")
         diseases.append("骨科/创伤相关疼痛、骨折或软组织损伤")
         checks.append("疼痛评分、步态观察、触诊和影像按需")
 
@@ -344,6 +356,7 @@ def companion_knowledge_diagnosis(features: Dict[str, Any]) -> Dict[str, List[st
         "diseases": _dedupe(diseases),
         "checks": _dedupe(checks),
         "actions": _dedupe(actions),
+        "evidence": evidence,
     }
 
 
