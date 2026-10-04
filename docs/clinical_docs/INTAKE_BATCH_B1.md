@@ -1,0 +1,54 @@
+# B1：三项医生采集问诊
+
+2026-10-04 用户整批批准。范围：食欲下降／消瘦、多饮多尿、咳嗽／呼吸困难；犬猫适用，临床草稿，医生确认后沿用现有保存和文书链路。
+
+基线 `25bc2b10db8caffbe31dafc7a7bc4cebdea62bdc`（树 `d109805e9ff66e74863c74a8d29b02f7119749ed`）。分支 `feat/intake-batch-b1-20261004`，新草稿 PR 目标为 `feat/diarrhea-intake-m7-20261001`。原 PR #45 / #44 / #41 不修改；不合并、不部署、不操作生产数据，不改数据库或依赖，不启用 R1。
+
+## 实现与验收
+
+独立版本与指纹的模板只记录原文和明确状态；未知、空白、明确否定与停用分支不输入旧关键词引擎，原文仍完整进入病史。账号、病例、物种、会话或主诉切换使确认失效；切换模板保留旧原文，不自动重新映射。刷新只恢复输入，不恢复确认。收起问卷保留草稿。
+
+M7 接口、草稿字段与历史快照保持兼容。新增主诉存入独立的 `chiefComplaint` 草稿字段，一次只有一个活动问卷。AI 不可用时仍可核对后进入手工新建；保存未知沿用锁和回读，导出不写病例。门诊病历保留宠主姓名与毛色。
+
+每项犬猫各一个合成病例，真实 Chromium 完成保存、重新登录回看、更正和两类 DOCX；真实隔离 PostgreSQL 验证并发首次保存和新进程回读。测试不连接外部模型或生产数据库。旧 M7 的十八路径、补充八路径固定提交/树检查和原体积阈值保留，B1 单独检查三十路径。知识库校验加入本工作流，因独立 Validate KB 工作流只接收目标 main 的 PR。
+
+## 执行预算
+
+最多 30 路径；3 轮首次实现 + 3 轮共享修正；3 次完整本地回归；最多 6 次候选 CI（主动重跑另计）。一个新分支、一个新草稿 PR。先核对相同提交结果，不重复跑 CI。超预算或需要清单外文件时停止相关写操作并说明阻塞。
+
+当前检查点：B1-01 首次实现完成，后端 114/114、React 258/258、模板、知识库、构建与体积检查通过（初始 JS 456904 字节）。完整本地第 1 次中静态检查因未提交工作区停止；将在候选提交后针对性复核。首次联网审计因隔离运行器未保留代理失败，针对性联网复核已通过，零漏洞。浏览器尚待验。B1-02 / B1-03 待顺序实现。消耗：首次实现 1/3，共享修正 0/3，完整本地 1/3，候选 CI 0/6。
+
+M6 剩余五份 Word/WPS 验收继续后补。软件测试和自动渲染不代表人工 Word/WPS 验收、临床审阅或上线批准。
+
+## 允许路径
+
+- `knowledge-base/companion/intake/appetite_weight.json`
+- `knowledge-base/companion/intake/polyuria_polydipsia.json`
+- `knowledge-base/companion/intake/cough_breathing.json`
+- `backend/chief_complaint_intake.py`
+- `backend/diarrhea_intake.py`
+- `backend/main.py`
+- `frontend/src/components/ChiefComplaintIntake.jsx`
+- `frontend/src/components/DiarrheaIntake.jsx`
+- `frontend/src/chiefComplaintIntakeState.js`
+- `frontend/src/diarrheaIntakeState.js`
+- `frontend/src/App.jsx`
+- `frontend/src/consultDraft.js`
+- `tests/test_chief_complaint_intake.py`
+- `tests/test_diarrhea_intake.py`
+- `tests/test_consult_first_save.py`
+- `tests/test_consult_update_preview.py`
+- `tests/test_clinical_doc_lifecycle.py`
+- `frontend/tests/chief-complaint-intake.test.jsx`
+- `frontend/tests/diarrhea-intake.test.jsx`
+- `frontend/tests/consult-draft.test.jsx`
+- `frontend/tests/consult-first-save.test.jsx`
+- `frontend/tests/consult-update-review.test.jsx`
+- `frontend/tests/manual-case-create.test.jsx`
+- `frontend/tests/run-consult-update-review.mjs`
+- `tests/acceptance/postgres_checks.py`
+- `tests/acceptance/chief_complaint_intake_checks.cjs`
+- `tests/acceptance/diarrhea_intake_checks.cjs`
+- `.github/workflows/consult-browser-postgres.yml`
+- `docs/clinical_docs/INTAKE_BATCH_B1.md`
+- `tests/test_manual_case_create.py`

@@ -52,6 +52,10 @@ if '--readback' in sys.argv:
         assert read(item['case_id'], auth) == item['record']
         assert call('GET', item['session_url'], auth)['case_id'] == item['case_id']
     record('m7_dog_cat_fresh_process_relogin_and_exact_readback')
+    for item in json.loads((f.OUT / 'b1-restart-expected.json').read_text()):
+        assert read(item['case_id'], auth) == item['record']
+        assert call('GET', item['session_url'], auth)['case_id'] == item['case_id']
+    record('b1_all_enabled_dog_cat_fresh_process_exact_readback')
     sys.exit(0)
 
 f.prepare_empty_database()
@@ -418,3 +422,32 @@ for animal in ('dog', 'cat'):
     record('m7_'+animal+'_canonical_states_originals_concurrent_save_one_case')
 (f.OUT / 'm7-restart-expected.json').write_text(json.dumps(m7_expected, ensure_ascii=False))
 client.close(); f.db.engine.dispose()
+
+# B1 uses the same row lock and first-save token as M7, with a distinct template family.
+import chief_complaint_intake as b1
+b1_expected = []
+for key in b1.TEMPLATES:
+    for animal in ('dog', 'cat'):
+        template = b1.get_template(key, animal)
+        raw = '  B1 ' + key + ' 医生原文🐾\r\n<5 & {{literal}}\t末尾  \n'
+        snapshot = b1.build_snapshot(key, {'version':template['version'], 'fingerprint':template['fingerprint'], 'species':animal,
+            'answers':{'notes':{'state':'observed','text':raw}}})
+        created = call('POST', '/api/ai/consult/session', owner, json={'text':'隔离合成问诊','species':animal,'structured_intake_answers':snapshot})
+        route = '/api/ai/consult/session/' + created['session_id']
+        body = {'patient_name':'B1-PG-'+key+'-'+animal,'species':animal,'chief_complaint':'医生核对主诉',
+                'history':'  原病史\n','structured_intake_answers':snapshot}
+        preview = call('POST', route+'/preview-case', owner, json=body)
+        assert preview['history'].count(raw)==1
+        call('POST', route+'/preview-case', other, expected=404, json=body)
+        call('POST', route+'/save-case', owner, expected=409, json={**body,'species':'cat' if animal=='dog' else 'dog','expected_preview_token':preview['preview_token']})
+        before = count()
+        request = {**body,'expected_preview_token':preview['preview_token']}
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _:call('POST',route+'/save-case',owner,json=request),range(2)))
+        assert len({x['case_id'] for x in results})==1 and count()==before+1
+        saved = read(results[0]['case_id'],owner)
+        assert saved['history'].count(raw)==1 and saved['history'].startswith(body['history'])
+        assert f.main._stored_structured_snapshot(call('GET',route,owner)['answers'][0])==snapshot
+        b1_expected.append({'case_id':results[0]['case_id'],'record':saved,'session_url':route})
+        record('b1_'+key+'_'+animal+'_concurrent_save_one_case_exact_original')
+(f.OUT / 'b1-restart-expected.json').write_text(json.dumps(b1_expected,ensure_ascii=False))

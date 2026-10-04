@@ -38,7 +38,11 @@ on:
       - 'frontend/src/diarrheaIntakeState.js'
       - 'frontend/tests/diarrhea-intake.test.jsx'
       - 'tests/test_diarrhea_intake.py'
-      - 'knowledge-base/companion/intake/diarrhea.json'
+      - 'knowledge-base/companion/intake/*.json'
+      - 'frontend/src/chiefComplaintIntakeState.js'
+      - 'frontend/tests/chief-complaint-intake.test.jsx'
+      - 'tests/test_chief_complaint_intake.py'
+      - 'docs/clinical_docs/INTAKE_BATCH_B1.md'
       - 'docs/clinical_docs/VISIT_MILESTONE_M7.md'
 
 permissions:
@@ -59,7 +63,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind fixed M7 and the outpatient identity supplement
+      - name: Bind fixed M7, identity supplement and approved B1 increment
         run: |
           set -euo pipefail
           mkdir -p acceptance-results
@@ -92,9 +96,16 @@ jobs:
               'templates/clinical_docs/outpatient_record_zh.docx',
               '.github/workflows/consult-browser-postgres.yml',
           }
-          supplement = set(subprocess.check_output(['git', 'diff', '--name-only', m7, 'HEAD'], text=True).splitlines())
+          identity = '25bc2b10db8caffbe31dafc7a7bc4cebdea62bdc'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', identity, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', identity + '^{tree}'], text=True).strip() == 'd109805e9ff66e74863c74a8d29b02f7119749ed'
+          supplement = set(subprocess.check_output(['git', 'diff', '--name-only', m7, identity], text=True).splitlines())
           assert 0 < len(supplement) <= 8 and supplement <= supplement_allowed, sorted(supplement - supplement_allowed)
           open('acceptance-results/outpatient-identity-scope.json', 'w').write(json.dumps({'baseline': m7, 'changed': sorted(supplement), 'allowed': sorted(supplement_allowed)}, indent=2))
+          b1_allowed = {'tests/test_diarrhea_intake.py', 'backend/chief_complaint_intake.py', 'frontend/tests/run-consult-update-review.mjs', 'frontend/src/chiefComplaintIntakeState.js', 'tests/test_consult_first_save.py', 'knowledge-base/companion/intake/cough_breathing.json', 'backend/main.py', 'tests/acceptance/postgres_checks.py', '.github/workflows/consult-browser-postgres.yml', 'frontend/tests/diarrhea-intake.test.jsx', 'knowledge-base/companion/intake/appetite_weight.json', 'tests/test_consult_update_preview.py', 'frontend/tests/consult-update-review.test.jsx', 'knowledge-base/companion/intake/polyuria_polydipsia.json', 'tests/test_chief_complaint_intake.py', 'tests/acceptance/chief_complaint_intake_checks.cjs', 'tests/test_manual_case_create.py', 'frontend/tests/chief-complaint-intake.test.jsx', 'frontend/tests/manual-case-create.test.jsx', 'frontend/tests/consult-draft.test.jsx', 'frontend/tests/consult-first-save.test.jsx', 'frontend/src/App.jsx', 'frontend/src/components/DiarrheaIntake.jsx', 'frontend/src/diarrheaIntakeState.js', 'frontend/src/consultDraft.js', 'tests/acceptance/diarrhea_intake_checks.cjs', 'tests/test_clinical_doc_lifecycle.py', 'frontend/src/components/ChiefComplaintIntake.jsx', 'backend/diarrhea_intake.py', 'docs/clinical_docs/INTAKE_BATCH_B1.md'}
+          b1_changed = set(subprocess.check_output(['git', 'diff', '--name-only', identity, 'HEAD'], text=True).splitlines())
+          assert 0 < len(b1_changed) <= 30 and b1_changed <= b1_allowed, sorted(b1_changed - b1_allowed)
+          open('acceptance-results/b1-scope.json', 'w').write(json.dumps({'baseline': identity, 'changed': sorted(b1_changed), 'allowed': sorted(b1_allowed)}, indent=2))
           PY
           git rev-parse HEAD > acceptance-results/test-commit.txt
           git rev-parse HEAD > acceptance-results/application-commit.txt
@@ -136,6 +147,10 @@ jobs:
         run: python tests/test_clinical_doc_lifecycle.py
       - name: M7 versioned intake, original states and AI failure without external calls
         run: python tests/test_diarrhea_intake.py
+      - name: B1 canonical intake and knowledge base validation
+        run: |
+          python tests/test_chief_complaint_intake.py
+          python tools/validate_kb.py
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -206,6 +221,10 @@ jobs:
         run: |
           set -o pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/diarrhea_intake_checks.cjs 2>&1 | tee acceptance-results/diarrhea-intake-checks.log
+      - name: Real Chromium B1 enabled chief complaints for dog and cat
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/chief_complaint_intake_checks.cjs 2>&1 | tee acceptance-results/b1-intake-checks.log
       - name: Stop test processes
         if: always()
         run: |

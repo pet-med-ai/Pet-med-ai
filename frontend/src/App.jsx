@@ -7,7 +7,7 @@ import { clearDraft } from "./consultDraft";
 import { clearManualCreateAttempt } from "./components/ManualCaseCreateReview";
 import { clearManualCaseDraft } from "./manualCaseDraft";
 import { caseEditDraftOwner, clearCaseEditDrafts } from "./caseEditDraft";
-import { diarrheaReviewed, appendDiarrheaHistory } from "./diarrheaIntakeState";
+import { intakeReviewed as diarrheaReviewed, appendIntakeHistory as appendDiarrheaHistory, intakeKey, INTAKE_LABELS } from "./chiefComplaintIntakeState";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
 import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/ConsultWorkbench";
@@ -196,9 +196,10 @@ export function Home() {
   const [diarrheaDraft, setDiarrheaDraft] = useState(null);
   const [diarrheaReview, setDiarrheaReview] = useState(null);
   const [diarrheaOpen, setDiarrheaOpen] = useState(false);
-  const diarrheaContext = { owner: caseEditDraftOwner(), patientName, species, sessionId: consultSessionId };
+  const [intakeKind, setIntakeKind] = useState("diarrhea");
+  const diarrheaContext = { intakeKey: intakeKind, owner: caseEditDraftOwner(), patientName, species, sessionId: consultSessionId };
   const diarrheaConfirmed = diarrheaReviewed(diarrheaDraft, diarrheaReview, diarrheaContext);
-  useEffect(() => { setDiarrheaReview(null); }, [patientName, species, consultSessionId, diarrheaContext.owner]);
+  useEffect(() => { setDiarrheaReview(null); }, [patientName, species, consultSessionId, diarrheaContext.owner, intakeKind]);
 
   // ===== 列表 搜索 + 分页 =====
   const [q, setQ] = useState("");
@@ -235,7 +236,7 @@ export function Home() {
     sessionContext: consultDraftContext(consultAnswers, result, answersToken),
     followupAnswer, structuredAnswers: structuredIntakeAnswers,
     lastSubmission: lastStructuredIntakeSubmission, recoveredNotes: recoveredDraftNotes,
-    diarrhea: diarrheaDraft,
+    ...(intakeKey(diarrheaDraft) === "diarrhea" ? { diarrhea: diarrheaDraft } : { chiefComplaint: diarrheaDraft }),
   };
   const draft = useConsultDraft(draftSnapshot, loadingSession || loadingAnalyze || loadingFollowup || restoringDraft);
 
@@ -806,7 +807,7 @@ export function Home() {
       setFollowupAnswer(changed ? "" : snapshot.followupAnswer);
       setStructuredIntakeAnswers(changed ? {} : snapshot.structuredAnswers);
       setLastStructuredIntakeSubmission(changed ? null : snapshot.lastSubmission);
-      setDiarrheaDraft(snapshot.diarrhea || null); setDiarrheaReview(null); setDiarrheaOpen(!!snapshot.diarrhea);
+      setDiarrheaDraft(snapshot.chiefComplaint || snapshot.diarrhea || null); setIntakeKind(intakeKey(snapshot.chiefComplaint || snapshot.diarrhea)); setDiarrheaReview(null); setDiarrheaOpen(!!(snapshot.chiefComplaint || snapshot.diarrhea));
       setRecoveredDraftNotes([snapshot.recoveredNotes, pending].filter(Boolean).join("\n\n"));
       setReviewNavigationVersion(value => value + 1); setWorkbenchStep(1);
       const nextParams = new URLSearchParams(searchParams); nextParams.delete("restore_session_id");
@@ -962,7 +963,7 @@ export function Home() {
   e.preventDefault();
   if (followupBusy.current || followupUncertain) { setErrMsg("请先核对当前追问提交结果，再开始新的问诊。"); return; }
   if (historyAddendum.trim()) { alert("医生病史补记尚未保存，请先在第二步核对更新，或清空补记后再开始新的分析。"); return; }
-  if (diarrheaDraft && !diarrheaConfirmed) { setErrMsg("请先核对当前病例的腹泻问卷；旧确认或其他病例问卷不能用于本次分析。"); return; }
+  if (diarrheaDraft && !diarrheaConfirmed) { setErrMsg("请先核对当前病例的主诉问卷；旧确认或其他病例问卷不能用于本次分析。"); return; }
   const submittedDiarrhea = diarrheaConfirmed ? diarrheaReview.snapshot : null;
   const submittedDraft = diarrheaDraft;
 
@@ -1221,7 +1222,7 @@ export function Home() {
     if (consultSessionId || loadingAnalyze || result) return;
     const owner = caseEditDraftOwner();
     if (!owner) { alert("请先登录，再核对新建病例。"); return; }
-    if (diarrheaDraft && (!diarrheaConfirmed || diarrheaDraft.binding.owner !== owner)) { setErrMsg("请先核对当前病例的腹泻问卷，再进入手工新建。"); return; }
+    if (diarrheaDraft && (!diarrheaConfirmed || diarrheaDraft.binding.owner !== owner)) { setErrMsg("请先核对当前病例的主诉问卷，再进入手工新建。"); return; }
     navigate("/cases/new/edit", { state: { manualCase: { owner, values: {
       patient_name: patientName, species, sex, age_info: ageInfo, breed, weight,
       coat_color: coatColor, owner_name: ownerName, owner_phone: ownerPhone,
@@ -1346,15 +1347,23 @@ export function Home() {
         </div>
       </section>
 
-      {diarrheaOpen ? <Suspense fallback={<p role="status">正在加载腹泻问诊…</p>}>
-        <DiarrheaIntake draft={diarrheaDraft} review={diarrheaReview} context={diarrheaContext}
+      <section className="workbench-secondary" aria-label="主诉问诊入口">
+        <label>选择主诉问诊<select aria-label="选择主诉问诊" value={intakeKind}
+          disabled={!isAuthed || loadingAnalyze || loadingSession || loadingFollowup || !!followupUncertain || workbenchBusy}
+          onChange={e => { setIntakeKind(e.target.value); setDiarrheaReview(null); }}>
+          {Object.entries(INTAKE_LABELS).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+        </select></label>
+        {!diarrheaOpen && <button type="button" disabled={!isAuthed || !["dog", "cat"].includes(species)} onClick={() => setDiarrheaOpen(true)}>使用犬猫{INTAKE_LABELS[intakeKind]}问诊</button>}
+        {diarrheaOpen && <button type="button" disabled={loadingAnalyze || loadingSession || loadingFollowup || !!followupUncertain || workbenchBusy}
+          onClick={() => { setDiarrheaOpen(false); setDiarrheaReview(null); }}>收起问卷并保留输入</button>}
+      </section>
+      {diarrheaOpen && <Suspense fallback={<p role="status">正在加载主诉问诊…</p>}>
+        <DiarrheaIntake key={intakeKind} intakeKey={intakeKind} draft={diarrheaDraft} review={diarrheaReview} context={diarrheaContext}
           disabled={loadingAnalyze || loadingSession || loadingFollowup || !!followupUncertain || workbenchBusy}
           onChange={setDiarrheaDraft} onReview={setDiarrheaReview}
           onArchive={text => setRecoveredDraftNotes(prev => [prev, text].filter(Boolean).join("\n\n"))}
           onAppend={savedConsultCaseId ? text => setHistoryAddendum(prev => appendDiarrheaHistory(prev, text)) : null} />
-      </Suspense> : <section className="workbench-secondary" aria-label="腹泻问诊入口">
-        <button type="button" disabled={!isAuthed || !["dog", "cat"].includes(species)} onClick={() => setDiarrheaOpen(true)}>使用犬猫腹泻问诊</button>
-      </section>}
+      </Suspense>}
 
       {/* ====== 分析表单 ====== */}
       <section style={card}>

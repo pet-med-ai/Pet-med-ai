@@ -1,3 +1,4 @@
+import { cleanIntakeDraft, intakeKey } from "./chiefComplaintIntakeState";
 import { cleanDiarrheaDraft } from "./diarrheaIntakeState";
 export const DRAFT_KEY = "pmai.consult-draft.v1";
 export const DRAFT_MAX_AGE = 8 * 60 * 60 * 1000;
@@ -48,12 +49,16 @@ export function cleanDraft(value) {
   }));
   const data = { fields, sessionId: value.sessionId, followupAnswer: value.followupAnswer, sessionContext: value.sessionContext, structuredAnswers, lastSubmission: cleanSubmission(value.lastSubmission), recoveredNotes: value.recoveredNotes };
   if (value.diarrhea != null) data.diarrhea = cleanDiarrheaDraft(value.diarrhea);
+  if (value.chiefComplaint != null) {
+    data.chiefComplaint = cleanIntakeDraft(value.chiefComplaint);
+    if (intakeKey(data.chiefComplaint) === "diarrhea" || data.diarrhea) throw Error("Ambiguous active intake");
+  }
   if (JSON.stringify(data).length > MAX_LENGTH) throw new Error("Draft too large");
   return data;
 }
 
 export function hasDraftContent(data) {
-  return !!data.diarrhea || !!data.sessionId || draftFields.some(key => !["species", "auditReviewAction"].includes(key) && data.fields[key].trim()) || !!data.followupAnswer.trim() || Object.values(data.structuredAnswers).some(v => v.trim()) || !!data.recoveredNotes;
+  return !!data.chiefComplaint || !!data.diarrhea || !!data.sessionId || draftFields.some(key => !["species", "auditReviewAction"].includes(key) && data.fields[key].trim()) || !!data.followupAnswer.trim() || Object.values(data.structuredAnswers).some(v => v.trim()) || !!data.recoveredNotes;
 }
 
 export function clearDraft(storage) {
@@ -72,6 +77,7 @@ export function readDraft(owner, storage, now = Date.now()) {
     if (item.version !== 1 || !Number.isFinite(item.updatedAt) || now - item.updatedAt > DRAFT_MAX_AGE || item.updatedAt > now + 60000) throw new Error("Expired or invalid");
     const data = cleanDraft(item.data);
     if (data.diarrhea && data.diarrhea.binding.owner !== owner) throw new Error("Wrong diarrhea owner");
+    if (data.chiefComplaint && data.chiefComplaint.binding.owner !== owner) throw Error("Wrong intake owner");
     return { draft: { data, updatedAt: item.updatedAt }, error: "" };
   } catch {
     if (storage) clearDraft(storage);
@@ -85,6 +91,7 @@ export function writeDraft(owner, data, storage, now = Date.now()) {
     if (!owner) return false;
     const clean = cleanDraft(data);
     if (clean.diarrhea && clean.diarrhea.binding.owner !== owner) throw new Error("Wrong diarrhea owner");
+    if (clean.chiefComplaint && clean.chiefComplaint.binding.owner !== owner) throw Error("Wrong intake owner");
     if (!hasDraftContent(clean)) return clearDraft(storage);
     storage.setItem(DRAFT_KEY, JSON.stringify({ version: 1, owner, updatedAt: now, data: clean }));
     return true;
