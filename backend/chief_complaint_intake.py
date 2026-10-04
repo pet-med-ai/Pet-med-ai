@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / "knowledge-base/companion/intake"
-TEMPLATES = {"appetite_weight": "食欲下降／消瘦", "polyuria_polydipsia": "多饮多尿", "cough_breathing": "咳嗽／呼吸困难", "syncope_seizure": "晕厥／抽搐", "urinary_abnormality": "排尿异常"}
+TEMPLATES = {"appetite_weight": "食欲下降／消瘦", "polyuria_polydipsia": "多饮多尿", "cough_breathing": "咳嗽／呼吸困难", "syncope_seizure": "晕厥／抽搐", "urinary_abnormality": "排尿异常", "itching_hair_loss": "皮肤瘙痒／脱毛"}
 try:
     from . import diarrhea_intake as legacy
 except ImportError:

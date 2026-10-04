@@ -211,6 +211,25 @@ class ChiefComplaintTests(unittest.TestCase):
             self.call('POST','/api/ai/consult/intake/polyuria_polydipsia/preview',body,status=409)
             self.call('POST','/api/ai/consult/intake/'+key+'/preview',request('polyuria_polydipsia',animal),status=409)
 
+    def test_itching_and_hair_loss_states_sources_and_distribution_remain_separate(self):
+        key='itching_hair_loss'
+        raw={'itching':{'state':'absent','text':'医生明确否定瘙痒相关行为'},
+             'itching_detail':{'state':'observed','text':'旧分支抓挠原文🐾'},
+             'hair_loss':{'state':'observed','text':'宠主看到毛发减少'},
+             'hair_loss_detail':{'state':'observed','text':'  腹侧毛发较前稀疏；照片记录  '},
+             'distribution':{'state':'uncertain','text':'是否仅限腹侧无法确认'},
+             'ears':{'state':'unobservable','text':'耳道未能观察'},
+             'parasite_care':{'state':'observed','text':'合成驱虫产品；2026-09-20 使用，剂量未记录'}}
+        for animal in ['dog','cat']:
+            snapshot=intake.build_snapshot(key,request(key,animal,**raw))
+            text=main._structured_snapshot_text(snapshot)
+            for value in raw.values():self.assertIn(value['text'],text)
+            context=intake.ai_context(snapshot)
+            self.assertIn(raw['hair_loss_detail']['text'],context)
+            self.assertIn(raw['parasite_care']['text'],context)
+            for field in ['itching','itching_detail','distribution','ears']:self.assertNotIn(raw[field]['text'],context)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+
     def test_ai_failure_keeps_manual_history_with_no_session_write(self):
         for key in intake.TEMPLATES:
             snap=intake.build_snapshot(key,request(key,'cat',notes={'state':'observed','text':'原文🐾'}))
