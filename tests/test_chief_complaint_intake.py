@@ -168,6 +168,89 @@ class ChiefComplaintTests(unittest.TestCase):
         self.assertNotIn('20',context)
         self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
 
+    def test_syncope_records_independent_observations_without_event_classification(self):
+        key='syncope_seizure'
+        raw={'consciousness':{'state':'uncertain','text':'当时未回应是否代表意识变化无法判断'},
+             'consciousness_detail':{'state':'observed','text':'旧分支：曾怀疑意识变化'},
+             'posture':{'state':'observed','text':'  左侧卧地🐾；目击者口述  '},
+             'limb_movements':{'state':'unobservable','text':'被遮挡，未看到肢体'},
+             'duration':{'state':'uncertain','text':'约 20 秒；未计时'},
+             'after_episode':{'state':'observed','text':'事件后行走；恢复时间未记录'}}
+        for animal in ['dog','cat']:
+            snapshot=intake.build_snapshot(key,request(key,animal,**raw))
+            text=main._structured_snapshot_text(snapshot)
+            for value in raw.values():self.assertIn(value['text'],text)
+            context=intake.ai_context(snapshot)
+            self.assertIn(raw['posture']['text'],context)
+            self.assertIn(raw['after_episode']['text'],context)
+            for field in ['consciousness','consciousness_detail','limb_movements','duration']:
+                self.assertNotIn(raw[field]['text'],context)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+            self.assertNotIn('risk_level',snapshot)
+
+    def test_urinary_frequency_volume_and_last_observed_void_remain_independent_of_pupd(self):
+        key='urinary_abnormality'
+        raw={'urine_frequency':{'state':'observed','text':'  尝试 5 次 / 2 小时，确见排尿 1 次🐾  '},
+             'per_void_volume':{'state':'uncertain','text':'估计 3 mL / 次；非测量值'},
+             'last_urination':{'state':'observed','text':'2026-10-04 08:10；宠主目击，随后未观察'},
+             'straining':{'state':'observed','text':'蹲姿反复'},
+             'straining_detail':{'state':'observed','text':'有尝试，是否每次排出无法判断'},
+             'pain':{'state':'absent','text':'医生明确否定疼痛相关表现'},
+             'pain_detail':{'state':'observed','text':'先前疼痛分支保留'}}
+        for animal in ['dog','cat']:
+            body=request(key,animal,**raw)
+            snapshot=intake.build_snapshot(key,body)
+            text=main._structured_snapshot_text(snapshot)
+            for value in raw.values():self.assertIn(value['text'],text)
+            context=intake.ai_context(snapshot)
+            self.assertIn(raw['urine_frequency']['text'],context)
+            self.assertIn(raw['last_urination']['text'],context)
+            self.assertIn(raw['straining_detail']['text'],context)
+            for field in ['per_void_volume','pain','pain_detail']:self.assertNotIn(raw[field]['text'],context)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+            self.call('POST','/api/ai/consult/intake/polyuria_polydipsia/preview',body,status=409)
+            self.call('POST','/api/ai/consult/intake/'+key+'/preview',request('polyuria_polydipsia',animal),status=409)
+
+    def test_itching_and_hair_loss_states_sources_and_distribution_remain_separate(self):
+        key='itching_hair_loss'
+        raw={'itching':{'state':'absent','text':'医生明确否定瘙痒相关行为'},
+             'itching_detail':{'state':'observed','text':'旧分支抓挠原文🐾'},
+             'hair_loss':{'state':'observed','text':'宠主看到毛发减少'},
+             'hair_loss_detail':{'state':'observed','text':'  腹侧毛发较前稀疏；照片记录  '},
+             'distribution':{'state':'uncertain','text':'是否仅限腹侧无法确认'},
+             'ears':{'state':'unobservable','text':'耳道未能观察'},
+             'parasite_care':{'state':'observed','text':'合成驱虫产品；2026-09-20 使用，剂量未记录'}}
+        for animal in ['dog','cat']:
+            snapshot=intake.build_snapshot(key,request(key,animal,**raw))
+            text=main._structured_snapshot_text(snapshot)
+            for value in raw.values():self.assertIn(value['text'],text)
+            context=intake.ai_context(snapshot)
+            self.assertIn(raw['hair_loss_detail']['text'],context)
+            self.assertIn(raw['parasite_care']['text'],context)
+            for field in ['itching','itching_detail','distribution','ears']:self.assertNotIn(raw[field]['text'],context)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+
+    def test_lameness_unknown_location_side_and_limb_count_never_become_inferred_findings(self):
+        key='lameness_pain'
+        raw={'location':{'state':'uncertain','text':'  无法定位，宠主描述后躯但未确认🐾  '},
+             'side':{'state':'unobservable','text':'视频角度无法辨别左右'},
+             'limb_count':{'state':'uncertain','text':'单肢还是多肢无法确定'},
+             'weight_bearing':{'state':'observed','text':'站立时四足触地；未观察行走'},
+             'rest':{'state':'observed','text':'休息时卧下'},
+             'activity':{'state':'not_asked','text':'活动后情况尚未询问'},
+             'pain':{'state':'observed','text':'触碰时缩回'},
+             'pain_detail':{'state':'observed','text':'宠主描述触碰后缩回，部位未确认'},
+             'trauma':{'state':'absent','text':'医生明确否定已知外伤事件'},
+             'trauma_detail':{'state':'observed','text':'旧分支外伤原文保留'}}
+        for animal in ['dog','cat']:
+            snapshot=intake.build_snapshot(key,request(key,animal,**raw))
+            text=main._structured_snapshot_text(snapshot)
+            for value in raw.values():self.assertIn(value['text'],text)
+            context=intake.ai_context(snapshot)
+            for field in ['weight_bearing','rest','pain_detail']:self.assertIn(raw[field]['text'],context)
+            for field in ['location','side','limb_count','activity','trauma','trauma_detail']:self.assertNotIn(raw[field]['text'],context)
+            self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+
     def test_ai_failure_keeps_manual_history_with_no_session_write(self):
         for key in intake.TEMPLATES:
             snap=intake.build_snapshot(key,request(key,'cat',notes={'state':'observed','text':'原文🐾'}))

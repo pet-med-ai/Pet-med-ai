@@ -1,0 +1,105 @@
+{
+  "key": "syncope_seizure",
+  "version": "syncope_seizure-intake-v1",
+  "label": "犬猫晕厥／抽搐问诊",
+  "review_status": "clinical_draft",
+  "species": [
+    "dog",
+    "cat"
+  ],
+  "source": "医生采集",
+  "questions": [
+    {
+      "key": "onset",
+      "label": "首次与最近一次事件的时间、起始经过与变化趋势",
+      "kind": "text"
+    },
+    {
+      "key": "consciousness",
+      "label": "是否观察到意识或对呼唤反应变化",
+      "kind": "presence"
+    },
+    {
+      "key": "consciousness_detail",
+      "label": "意识、反应变化的实际经过；不据此判断事件类型",
+      "kind": "text",
+      "when": "consciousness"
+    },
+    {
+      "key": "posture",
+      "label": "事件中的姿势、倒地与身体位置的实际观察",
+      "kind": "text"
+    },
+    {
+      "key": "limb_movements",
+      "label": "事件中的肢体动作、涉及部位与左右侧；未观察请注明",
+      "kind": "text"
+    },
+    {
+      "key": "before_episode",
+      "label": "事件发生前的行为与表现",
+      "kind": "text"
+    },
+    {
+      "key": "during_episode",
+      "label": "事件过程及其他伴随表现的原始描述",
+      "kind": "text"
+    },
+    {
+      "key": "after_episode",
+      "label": "事件结束后的表现、恢复经过与恢复所需时间及单位",
+      "kind": "text"
+    },
+    {
+      "key": "context",
+      "label": "发生时的活动、休息或其他情境与可能接触",
+      "kind": "text"
+    },
+    {
+      "key": "duration",
+      "label": "每次事件的持续时间、单位及计时或估测来源",
+      "kind": "text"
+    },
+    {
+      "key": "frequency",
+      "label": "事件次数、统计时段与间隔；无法确定请注明",
+      "kind": "text"
+    },
+    {
+      "key": "recurrence",
+      "label": "是否有既往类似事件",
+      "kind": "presence"
+    },
+    {
+      "key": "recurrence_detail",
+      "label": "既往事件时间、表现及与本次的异同",
+      "kind": "text",
+      "when": "recurrence"
+    },
+    {
+      "key": "video",
+      "label": "目击者、视频或其他资料；记录时间与资料来源",
+      "kind": "text"
+    },
+    {
+      "key": "intervention",
+      "label": "事件期间与结束后已进行的处理及随后观察",
+      "kind": "text"
+    },
+    {
+      "key": "history",
+      "label": "既往疾病、检查记录及近期健康变化",
+      "kind": "text"
+    },
+    {
+      "key": "medication",
+      "label": "当前与近期用药、补充剂及可能接触物的原文记录",
+      "kind": "text"
+    },
+    {
+      "key": "notes",
+      "label": "医生补充与资料来源",
+      "kind": "text"
+    }
+  ]
+}

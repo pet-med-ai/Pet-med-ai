@@ -10,7 +10,7 @@ import { cleanIntakeDraft as cleanDiarrheaDraft, intakeReviewed as diarrheaRevie
 import { DRAFT_KEY, cleanDraft, writeDraft, readDraft } from "../src/consultDraft";
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
-const templates = ["appetite_weight", "polyuria_polydipsia", "cough_breathing"].map(k => {
+const templates = ["appetite_weight", "polyuria_polydipsia", "cough_breathing", "syncope_seizure", "urinary_abnormality", "itching_hair_loss", "lameness_pain"].map(k => {
   const rel = "knowledge-base/companion/intake/"+k+".json";
   return [resolve(rel),resolve("..",rel)].find(existsSync);
 }).filter(Boolean).map(p=>JSON.parse(readFileSync(p,"utf8")));
@@ -164,10 +164,12 @@ test("B1 chief complaint switch invalidates confirmation and keeps the old raw",
   await confirm();await click("收起问卷并保留输入");assert.equal(button(`核对${title}问卷汇总`),undefined);
   await click(`使用犬猫${title}问诊`);assert(out().includes("原主诉独立原文🐾"));assert.equal(button(`确认当前${title}问卷`),undefined);
 });
-test("B1 cross-family and cross-owner drafts are rejected without restoring review",async()=>{
+test("Independent cross-family and cross-owner drafts are rejected without restoring review",async()=>{
   await click(`开始${title}问诊`);await confirm();
-  assert(!diarrheaReviewed(raw,reviewed,{...context,intakeKey:"diarrhea"}));
-  assert.throws(()=>cleanDiarrheaDraft({...raw,binding:{...raw.binding,intakeKey:"diarrhea"}}));
+  for (const other of ["diarrhea", ...templates.map(t=>t.key)].filter(k=>k!==config.key)) {
+    assert(!diarrheaReviewed(raw,reviewed,{...context,intakeKey:other}));
+    assert.throws(()=>cleanDiarrheaDraft({...raw,binding:{...raw.binding,intakeKey:other}}));
+  }
   const base={fields:{},sessionId:null,followupAnswer:"",sessionContext:"",structuredAnswers:{},recoveredNotes:"",chiefComplaint:raw};
   assert.equal(writeDraft("other",base,window.sessionStorage),false);
   assert.equal(writeDraft("owner",base,window.sessionStorage),true);
