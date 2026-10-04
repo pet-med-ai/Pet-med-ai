@@ -137,6 +137,21 @@ class ChiefComplaintTests(unittest.TestCase):
                         self.assertEqual(current['context']['visit.owner_name'],'合成宠主')
                         self.assertEqual(current['context']['visit.coat_color'],'合成毛色')
 
+    def test_pupd_keeps_amount_frequency_units_and_uncertainty_separate(self):
+        key='polyuria_polydipsia'
+        raw={'water_amount':{'state':'uncertain','text':'  0.4 L / 12 h；仅一次估测，未完整测量  '},
+             'urine_frequency':{'state':'observed','text':'白天4次；夜间不确定'},
+             'urine_volume':{'state':'unobservable','text':'多宠家庭，无法归属；没有测量值'}}
+        snapshot=intake.build_snapshot(key,request(key,**raw))
+        text=main._structured_snapshot_text(snapshot)
+        for value in raw.values():self.assertIn(value['text'],text)
+        context=intake.ai_context(snapshot)
+        self.assertIn('白天4次',context)
+        self.assertNotIn('0.4 L',context)
+        self.assertNotIn('无法归属',context)
+        self.assertNotIn('ml/kg',text)
+        self.assertEqual(intake.validate_snapshot(snapshot),snapshot)
+
     def test_ai_failure_keeps_manual_history_with_no_session_write(self):
         for key in intake.TEMPLATES:
             snap=intake.build_snapshot(key,request(key,'cat',notes={'state':'observed','text':'原文🐾'}))

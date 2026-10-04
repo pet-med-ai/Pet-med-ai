@@ -56,3 +56,11 @@ M6 剩余五份 Word/WPS 验收继续后补。软件测试和自动渲染不代�
 - `.github/workflows/consult-browser-postgres.yml`
 - `docs/clinical_docs/INTAKE_BATCH_B1.md`
 - `tests/test_manual_case_create.py`
+
+## B1-02 检查点
+
+B1-01 修正候选 `65d383b6d1d14a4ecabf07ff2537d88b5544e3e4` 的四组 CI 全部成功。浏览器/PG 验收：https://github.com/pet-med-ai/Pet-med-ai/actions/runs/37185695922 。
+
+本检查点新增多饮多尿模板，饮水量、排尿频次及尿量分别保存；测量单位、时段、估测/未测与多宠家庭无法归属的原文保留。复用原权限、确认、保存和文书链路。新增原文与单位不被数值化或阈值解释的测试；共用犬猫浏览器及 PostgreSQL 用例自动覆盖两种主诉。
+
+本候选提交后执行第 2 次完整本地回归并提交第 3 次候选 CI；实时结果以草稿 PR #46 为准。预算规划：路径 16/30，首次实现 2/3，共享修正 1/3，完整本地 2/3，候选 CI 3/6。咳嗽／呼吸困难待此项通过后继续。
