@@ -280,5 +280,33 @@ class ConsultFirstSaveTests(unittest.TestCase):
         self.assertEqual(self.count(), self.initial_count)
 
 
+    def test_m7_both_species_exact_snapshot_stale_confirmation_and_duplicate_save(self):
+        from diarrhea_intake import get_template, build_snapshot
+        raw = "  医生未见呕吐🐾\r\n<5 & >2 {{literal}}\t末尾  \n"
+        for species in ("dog", "cat"):
+            t = get_template(species)
+            snapshot = build_snapshot({"version": t["version"], "fingerprint": t["fingerprint"], "species": species,
+                "answers": {"notes": {"state": "observed", "text": raw}, "blood": {"state": "uncertain", "text": "不确定"}}})
+            with patch.object(main, "run_agent", return_value={"risk_level": "low"}):
+                r = self.client.post("/api/ai/consult/session", headers=self.owner_headers,
+                    json={"text": "M7合成问诊", "species": species, "structured_intake_answers": snapshot})
+            self.assertEqual(r.status_code, 200, r.text)
+            self.url = "/api/ai/consult/session/" + r.json()["session_id"]
+            body = {**self.body, "species": species, "structured_intake_answers": snapshot}
+            p = self.preview(body)
+            self.assertTrue(p["history"].startswith(body["history"]))
+            self.assertEqual(p["history"].count(raw), 1)
+            self.assertIn(snapshot["version"], p["history"])
+            self.assertIn("状态：不确定", p["history"])
+            wrong = {**body, "species": "cat" if species == "dog" else "dog"}
+            self.assertEqual(self.client.post(self.url + "/preview-case", headers=self.owner_headers, json=wrong).status_code, 409)
+            self.assertEqual(self.save({**body, "history": "改变原病史", "expected_preview_token": p["preview_token"]}).status_code, 409)
+            saved = self.save({**body, "expected_preview_token": p["preview_token"]})
+            self.assertEqual(saved.status_code, 200, saved.text)
+            record = self.read(saved.json()["case_id"])
+            self.assertEqual(record["history"], p["history"])
+            self.assertEqual(self.save({**body, "expected_preview_token": p["preview_token"]}).json()["case_id"], record["id"])
+            self.assertEqual(self.read(record["id"]), record)
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

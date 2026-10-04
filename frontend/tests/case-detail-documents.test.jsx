@@ -20,6 +20,9 @@ const snapshot='a'.repeat(64);
 const previewResponse=c=>{
  const body=JSON.parse(c.data), context={};
  for(const k of ['case_id','pet_name','species','age','sex','weight','complaint','history','exam','assessment','plan','notes','follow_up'])context['visit.'+k]='未填写';
+ if(body.template_id==='outpatient_record_zh'){
+   context['visit.owner_name']='合成宠主 < & {{literal}}';context['visit.coat_color']='黑白（合成）';
+ }
  context['visit.case_id']=String(body.case_id);context['visit.pet_name']='合成病例-'+body.case_id;context['visit.history']='预览原文\n未见呕吐 < & {{literal}}';context['export.account_id']='1';
  return {config:c,status:200,data:{...body,context,content_snapshot:snapshot,missing_required_keys:[],writes_database:false}};
 };
@@ -109,6 +112,26 @@ test('review shows literal saved text and blocks unchecked confirmation',async()
  await click('确认并下载草稿 DOCX');assert.equal(exports().length,0);assert.equal(previews().length,1);
  assert(!renderer.root.findAll(n=>n.props.dangerouslySetInnerHTML).length);
 });
+test('outpatient review includes saved owner name and coat color before confirmation',async()=>{
+ await mount();await click('导出门诊病历草稿 DOCX');
+ for(const [label,value] of [['宠主姓名','合成宠主 < & {{literal}}'],['宠物毛色','黑白（合成）']]){
+   const section=renderer.root.findByProps({'aria-label':label+'核对内容'});
+   assert.equal(section.findByType('pre').children.join(''),value);
+ }
+ assert.equal(button('确认并下载草稿 DOCX').props.disabled,true);
+ await confirm();assert.equal(downloads.length,1);
+});
+for(const key of ['visit.owner_name','visit.coat_color']){
+ test(`missing ${key} refuses an incomplete outpatient preview`,async()=>{
+   const original=adapter;
+   adapter=async c=>{const response=await original(c);if(c.url.endsWith('render-preview')){
+     delete response.data.context[key];
+   }return response;};
+   await mount();await click('导出门诊病历草稿 DOCX');
+   assert.match(text(),/未收到可核对的完整草稿/);
+   assert.equal(button('确认并下载草稿 DOCX'),undefined);assert.equal(downloads.length,0);
+ });
+}
 test('same-tick double confirm exports one reviewed document',async()=>{
  await mount();await click('导出门诊病历草稿 DOCX');await check();
  const submit=button('确认并下载草稿 DOCX').props.onClick;

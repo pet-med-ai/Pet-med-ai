@@ -7,6 +7,7 @@ import { clearDraft } from "./consultDraft";
 import { clearManualCreateAttempt } from "./components/ManualCaseCreateReview";
 import { clearManualCaseDraft } from "./manualCaseDraft";
 import { caseEditDraftOwner, clearCaseEditDrafts } from "./caseEditDraft";
+import { diarrheaReviewed, appendDiarrheaHistory } from "./diarrheaIntakeState";
 import ConsultUpdateReview from "./components/ConsultUpdateReview";
 import ConsultSaveReview from "./components/ConsultSaveReview";
 import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/ConsultWorkbench";
@@ -15,6 +16,7 @@ import CaseEditorPage from "./pages/CaseEditorLite";
 
 // Secondary pages are loaded on navigation; keep consultation and case editing eager.
 const KpiDashboard = lazy(() => import("./pages/KpiDashboard"));
+const DiarrheaIntake = lazy(() => import("./components/DiarrheaIntake"));
 const WebhookInboxPage = lazy(() => import("./pages/WebhookInboxPage"));
 const EmrImportBatchPlanningPage = lazy(() => import("./pages/EmrImportBatchPlanningPage"));
 const OpsDashboard = lazy(() => import("./pages/OpsDashboard"));
@@ -191,6 +193,12 @@ export function Home() {
   const [coatColor, setCoatColor] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [ownerPhone, setOwnerPhone] = useState("");
+  const [diarrheaDraft, setDiarrheaDraft] = useState(null);
+  const [diarrheaReview, setDiarrheaReview] = useState(null);
+  const [diarrheaOpen, setDiarrheaOpen] = useState(false);
+  const diarrheaContext = { owner: caseEditDraftOwner(), patientName, species, sessionId: consultSessionId };
+  const diarrheaConfirmed = diarrheaReviewed(diarrheaDraft, diarrheaReview, diarrheaContext);
+  useEffect(() => { setDiarrheaReview(null); }, [patientName, species, consultSessionId, diarrheaContext.owner]);
 
   // ===== 列表 搜索 + 分页 =====
   const [q, setQ] = useState("");
@@ -227,6 +235,7 @@ export function Home() {
     sessionContext: consultDraftContext(consultAnswers, result, answersToken),
     followupAnswer, structuredAnswers: structuredIntakeAnswers,
     lastSubmission: lastStructuredIntakeSubmission, recoveredNotes: recoveredDraftNotes,
+    diarrhea: diarrheaDraft,
   };
   const draft = useConsultDraft(draftSnapshot, loadingSession || loadingAnalyze || loadingFollowup || restoringDraft);
 
@@ -797,6 +806,7 @@ export function Home() {
       setFollowupAnswer(changed ? "" : snapshot.followupAnswer);
       setStructuredIntakeAnswers(changed ? {} : snapshot.structuredAnswers);
       setLastStructuredIntakeSubmission(changed ? null : snapshot.lastSubmission);
+      setDiarrheaDraft(snapshot.diarrhea || null); setDiarrheaReview(null); setDiarrheaOpen(!!snapshot.diarrhea);
       setRecoveredDraftNotes([snapshot.recoveredNotes, pending].filter(Boolean).join("\n\n"));
       setReviewNavigationVersion(value => value + 1); setWorkbenchStep(1);
       const nextParams = new URLSearchParams(searchParams); nextParams.delete("restore_session_id");
@@ -837,6 +847,7 @@ export function Home() {
       const data = payload.result || {};
 
       applyDraftFields({});
+      setDiarrheaReview(null);
       setRecoveredDraftNotes(""); setDraftRestoreMessage("");
       rememberConsultSession(payload.session_id || sid);
       setChiefComplaint(payload.text || "");
@@ -951,6 +962,9 @@ export function Home() {
   e.preventDefault();
   if (followupBusy.current || followupUncertain) { setErrMsg("请先核对当前追问提交结果，再开始新的问诊。"); return; }
   if (historyAddendum.trim()) { alert("医生病史补记尚未保存，请先在第二步核对更新，或清空补记后再开始新的分析。"); return; }
+  if (diarrheaDraft && !diarrheaConfirmed) { setErrMsg("请先核对当前病例的腹泻问卷；旧确认或其他病例问卷不能用于本次分析。"); return; }
+  const submittedDiarrhea = diarrheaConfirmed ? diarrheaReview.snapshot : null;
+  const submittedDraft = diarrheaDraft;
 
   const epoch = ++consultEpoch.current, owner = caseEditDraftOwner();
   setAnswersToken(null);
@@ -960,6 +974,7 @@ export function Home() {
   setPrognosis("");
   setResult(null);
   setConsultSessionId(null);
+  if (submittedDraft) { setDiarrheaDraft({ ...submittedDraft, binding: { ...submittedDraft.binding, sessionId: null } }); setDiarrheaReview(null); }
   setConsultAnswers([]);
   setSavedConsultCaseId(null);
   setFollowupAnswer("");
@@ -988,7 +1003,8 @@ export function Home() {
 
     const res = await api.post(sessionCreatePath, {
       text,
-    });
+      ...(submittedDiarrhea ? { species, structured_intake_answers: submittedDiarrhea } : {}),
+    }, { expectedAuthOwner: submittedDiarrhea ? owner : undefined });
 
     const payload = res.data;
     if (!sameConsultRequest(epoch, owner)) return;
@@ -997,6 +1013,9 @@ export function Home() {
     console.log("RAW AI DATA =", payload);
     if (payload.session_id) {
       rememberConsultSession(payload.session_id);
+      if (submittedDraft) setDiarrheaDraft(current => current && current.template.fingerprint === submittedDraft.template.fingerprint &&
+        JSON.stringify(current.answers) === JSON.stringify(submittedDraft.answers)
+        ? { ...current, binding: { ...submittedDraft.binding, sessionId: payload.session_id } } : current);
     }
     setResult(data);
     setConsultAnswers(payload.answers || []); setAnswersToken(payload.answers_token || null);
@@ -1182,7 +1201,7 @@ export function Home() {
 
     return {
       chief_complaint: chiefComplaint,
-      history,
+      history: diarrheaConfirmed && structuredIntakePayload ? appendDiarrheaHistory(history, diarrheaReview.historyBlock) : history,
       patient_name: patientName?.trim() || "未命名病例",
       species: species || "dog",
       sex: sex || null,
@@ -1193,7 +1212,7 @@ export function Home() {
       owner_name: ownerName || null,
       owner_phone: ownerPhone || null,
       exam_findings: examFindings || null,
-      structured_intake_answers: structuredIntakePayload || null,
+      structured_intake_answers: structuredIntakePayload || (diarrheaConfirmed ? diarrheaReview.snapshot : null),
     };
   };
 
@@ -1202,10 +1221,11 @@ export function Home() {
     if (consultSessionId || loadingAnalyze || result) return;
     const owner = caseEditDraftOwner();
     if (!owner) { alert("请先登录，再核对新建病例。"); return; }
+    if (diarrheaDraft && (!diarrheaConfirmed || diarrheaDraft.binding.owner !== owner)) { setErrMsg("请先核对当前病例的腹泻问卷，再进入手工新建。"); return; }
     navigate("/cases/new/edit", { state: { manualCase: { owner, values: {
       patient_name: patientName, species, sex, age_info: ageInfo, breed, weight,
       coat_color: coatColor, owner_name: ownerName, owner_phone: ownerPhone,
-      chief_complaint: chiefComplaint, history, exam_findings: examFindings,
+      chief_complaint: chiefComplaint, history: diarrheaConfirmed ? appendDiarrheaHistory(history, diarrheaReview.historyBlock) : history, exam_findings: examFindings,
     } } } });
   };
 
@@ -1242,7 +1262,7 @@ export function Home() {
 
   const currentQuestion = getCurrentQuestion();
 
-  const workbenchValues = [consultSessionId, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, consultAnswers, result, followupAnswer, structuredIntakeAnswers, auditLogReceipt];
+  const workbenchValues = [consultSessionId, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, consultAnswers, result, followupAnswer, structuredIntakeAnswers, auditLogReceipt, diarrheaDraft, diarrheaConfirmed];
   const workbenchRevision = JSON.stringify([...workbenchValues, historyAddendum]);
   const currentReadback = consultSaveReceipt?.sessionId === consultSessionId && consultSaveReceipt?.verified ? consultSaveReceipt : null;
 
@@ -1325,6 +1345,16 @@ export function Home() {
           </Field>
         </div>
       </section>
+
+      {diarrheaOpen ? <Suspense fallback={<p role="status">正在加载腹泻问诊…</p>}>
+        <DiarrheaIntake draft={diarrheaDraft} review={diarrheaReview} context={diarrheaContext}
+          disabled={loadingAnalyze || loadingSession || loadingFollowup || !!followupUncertain || workbenchBusy}
+          onChange={setDiarrheaDraft} onReview={setDiarrheaReview}
+          onArchive={text => setRecoveredDraftNotes(prev => [prev, text].filter(Boolean).join("\n\n"))}
+          onAppend={savedConsultCaseId ? text => setHistoryAddendum(prev => appendDiarrheaHistory(prev, text)) : null} />
+      </Suspense> : <section className="workbench-secondary" aria-label="腹泻问诊入口">
+        <button type="button" disabled={!isAuthed || !["dog", "cat"].includes(species)} onClick={() => setDiarrheaOpen(true)}>使用犬猫腹泻问诊</button>
+      </section>}
 
       {/* ====== 分析表单 ====== */}
       <section style={card}>
@@ -1527,7 +1557,7 @@ export function Home() {
                 payload={buildConsultSaveCasePayload()}
                 revision={JSON.stringify([reviewNavigationVersion, consultAnswers, result, followupAnswer, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId])}
                 allowed={isAuthed && !auditReviewRequired}
-                blocked={!!followupUncertain || loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim()}
+                blocked={!!followupUncertain || loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim() || (!!diarrheaDraft && !diarrheaConfirmed)}
                 hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value) !== "")}
                 onSaved={async (record, receipt) => {
                   if (!receipt.inputsChanged && !recoveredDraftNotes) draft.markSaved();

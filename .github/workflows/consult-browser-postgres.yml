@@ -35,6 +35,11 @@ on:
       - 'frontend/src/consultDraft.js'
       - 'frontend/src/useConsultDraft.js'
       - 'frontend/src/components/**'
+      - 'frontend/src/diarrheaIntakeState.js'
+      - 'frontend/tests/diarrhea-intake.test.jsx'
+      - 'tests/test_diarrhea_intake.py'
+      - 'knowledge-base/companion/intake/diarrhea.json'
+      - 'docs/clinical_docs/VISIT_MILESTONE_M7.md'
 
 permissions:
   contents: read
@@ -54,24 +59,47 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind driver repair to the reviewed integrated release and five-file scope
+      - name: Bind fixed M7 and the outpatient identity supplement
         run: |
           set -euo pipefail
           mkdir -p acceptance-results
-          baseline=393e3366055e759b760abacf584b48f3203253da
-          reviewed=2b04d38873b680de4e52309ec42d7bb4ccec8118
-          # PR #42 was squash-merged: source branches are not main ancestors.
-          # Keep the entire reviewed application tree as the immutable baseline.
-          # This tree also belongs to reviewed HEAD 2b04d388; do not depend on
-          # the old PR branch remaining available in a fresh checkout.
+          baseline=793894523be602bd8da265f8f7e8e63e417027a7
           git merge-base --is-ancestor "$baseline" HEAD
-          test "$(git rev-parse "$baseline^{tree}")" = c52b3d2815a744f61ac4f6298ee97c19ce5faabc
-          git diff --exit-code "$baseline" HEAD -- . ':(exclude)backend/db.py' ':(exclude)backend/requirements.txt' ':(exclude)tests/test_database_startup.py' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/DATABASE_DRIVER_DEPLOY_FIX.md'
-          test "$(git diff --name-only "$baseline" HEAD | wc -l)" -eq 5
+          test "$(git rev-parse "$baseline^{tree}")" = 63bd051e6e99f0719f474e0ecf38fc70fbc21f42
+          python - <<'PY'
+          import json, subprocess
+          allowed = {
+              'knowledge-base/companion/intake/diarrhea.json', 'backend/diarrhea_intake.py', 'backend/main.py',
+              'frontend/src/components/DiarrheaIntake.jsx', 'frontend/src/diarrheaIntakeState.js', 'frontend/src/App.jsx',
+              'frontend/src/consultDraft.js', 'tests/test_diarrhea_intake.py', 'tests/test_consult_first_save.py',
+              'tests/test_clinical_doc_lifecycle.py', 'frontend/tests/diarrhea-intake.test.jsx',
+              'frontend/tests/consult-draft.test.jsx', 'frontend/tests/manual-case-create.test.jsx',
+              'frontend/tests/run-consult-update-review.mjs', 'tests/acceptance/postgres_checks.py',
+              'tests/acceptance/diarrhea_intake_checks.cjs', '.github/workflows/consult-browser-postgres.yml',
+              'docs/clinical_docs/VISIT_MILESTONE_M7.md',
+          }
+          m7 = '99a4f25ee7267f57414d336bd836f86b27cbbcd8'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', m7, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', m7 + '^{tree}'], text=True).strip() == '0021fe336ce6ebc8cfc2875474c1a4ef5515408a'
+          changed = set(subprocess.check_output(['git', 'diff', '--name-only', '793894523be602bd8da265f8f7e8e63e417027a7', m7], text=True).splitlines())
+          assert 0 < len(changed) <= 18 and changed <= allowed, sorted(changed - allowed)
+          open('acceptance-results/m7-scope.json', 'w').write(json.dumps({'changed': sorted(changed), 'allowed': sorted(allowed)}, indent=2))
+          supplement_allowed = {
+              'backend/clinical_docs_api.py', 'frontend/src/components/ClinicalDocReview.jsx',
+              'frontend/tests/case-detail-documents.test.jsx', 'tests/test_clinical_doc_lifecycle.py',
+              'scripts/validate_outpatient_document_templates.py',
+              'templates/clinical_docs/CLINICAL_DOCS_TEMPLATE_ASSETS_MANIFEST.json',
+              'templates/clinical_docs/outpatient_record_zh.docx',
+              '.github/workflows/consult-browser-postgres.yml',
+          }
+          supplement = set(subprocess.check_output(['git', 'diff', '--name-only', m7, 'HEAD'], text=True).splitlines())
+          assert 0 < len(supplement) <= 8 and supplement <= supplement_allowed, sorted(supplement - supplement_allowed)
+          open('acceptance-results/outpatient-identity-scope.json', 'w').write(json.dumps({'baseline': m7, 'changed': sorted(supplement), 'allowed': sorted(supplement_allowed)}, indent=2))
+          PY
           git rev-parse HEAD > acceptance-results/test-commit.txt
           git rev-parse HEAD > acceptance-results/application-commit.txt
           git rev-parse "$baseline" > acceptance-results/application-baseline.txt
-          printf '%s\n' "$reviewed" > acceptance-results/reviewed-integration.txt
+          git rev-parse "$baseline^{tree}" > acceptance-results/application-baseline-tree.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -106,6 +134,8 @@ jobs:
         run: python scripts/validate_outpatient_document_templates.py
       - name: Document lifecycle with real authentication and disposable SQLite
         run: python tests/test_clinical_doc_lifecycle.py
+      - name: M7 versioned intake, original states and AI failure without external calls
+        run: python tests/test_diarrhea_intake.py
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -172,6 +202,10 @@ jobs:
         run: |
           set -o pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/visit_document_checks.cjs 2>&1 | tee acceptance-results/visit-document-checks.log
+      - name: Real Chromium M7 dog and cat intake, recovery and document lifecycle
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/diarrhea_intake_checks.cjs 2>&1 | tee acceptance-results/diarrhea-intake-checks.log
       - name: Stop test processes
         if: always()
         run: |

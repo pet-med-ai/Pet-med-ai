@@ -308,6 +308,7 @@ class AIConsultDynamicIn(BaseModel):
 class AIConsultSessionCreateIn(BaseModel):
     text: str
     species: Optional[str] = None
+    structured_intake_answers: Optional[Dict[str, Any]] = None
 
 class AIConsultSessionAnswerIn(BaseModel):
     answer: str
@@ -788,7 +789,34 @@ def _first_session_question(result: Optional[Dict[str, Any]]) -> str:
 STRUCTURED_SNAPSHOT_KEY = "structured_intake_snapshot"
 
 
-def _clean_structured_snapshot(raw):
+def _diarrhea_module():
+    try:
+        from backend import diarrhea_intake
+    except ModuleNotFoundError:
+        import diarrhea_intake
+    return diarrhea_intake
+
+
+def _diarrhea_call(operation, *args):
+    module = _diarrhea_module()
+    try:
+        return getattr(module, operation)(*args)
+    except module.DiarrheaIntakeError as error:
+        raise HTTPException(status_code=error.status, detail=str(error)) from error
+
+
+@app.get("/api/ai/consult/intake/diarrhea", tags=["ai"])
+def diarrhea_intake_template(species: str, user=Depends(get_current_user)):
+    return _diarrhea_call("get_template", species)
+
+
+@app.post("/api/ai/consult/intake/diarrhea/preview", tags=["ai"])
+def diarrhea_intake_preview(data: Dict[str, Any], user=Depends(get_current_user)):
+    snapshot = _diarrhea_call("build_snapshot", data)
+    return {"snapshot": snapshot, "history_block": _structured_snapshot_text(snapshot)}
+
+
+def _clean_structured_snapshot(raw, *, current=True):
     if raw is None:
         return None
     def invalid():
@@ -830,6 +858,8 @@ def _clean_structured_snapshot(raw):
         clean["sections"].append(group)
     if len(json.dumps(clean, ensure_ascii=False)) > 250000:
         invalid()
+    if current and _diarrhea_module().is_diarrhea(raw):
+        return _diarrhea_call("validate_snapshot", clean)
     return clean if any(s["answers"] for s in clean["sections"]) else None
 
 
@@ -840,7 +870,7 @@ def _stored_structured_snapshot(item):
     try:
         if not isinstance(raw, str) or len(raw) > 250000:
             raise ValueError("Invalid stored snapshot")
-        return _clean_structured_snapshot(json.loads(raw))
+        return _clean_structured_snapshot(json.loads(raw), current=False)
     except (ValueError, TypeError, HTTPException):
         raise HTTPException(status_code=409, detail="已提交结构化记录无法核对，请停止保存并检查原问诊。")
 
@@ -950,10 +980,16 @@ def _answers_with_structured_intake_context(
         items.append({key: answer.get(key, "") for key in ("question", "answer")})
         snapshot = _stored_structured_snapshot(answer)
         if snapshot:
-            items.append({"question": f"【已提交结构化问诊 · 第 {index} 轮】", "answer": _structured_snapshot_text(snapshot, f"第 {index} 轮")})
+            context = (_diarrhea_module().ai_context(snapshot) if _diarrhea_module().is_diarrhea(snapshot)
+                       else _structured_snapshot_text(snapshot, f"第 {index} 轮"))
+            if context:
+                items.append({"question": f"【已提交结构化问诊 · 第 {index} 轮】", "answer": context})
     current = _clean_structured_snapshot(structured_intake_answers)
     if current:
-        items.append({"question": "【本轮结构化问诊】", "answer": _structured_snapshot_text(current)})
+        context = (_diarrhea_module().ai_context(current) if _diarrhea_module().is_diarrhea(current)
+                   else _structured_snapshot_text(current))
+        if context:
+            items.append({"question": "【本轮结构化问诊】", "answer": context})
     return items
 
 
@@ -1236,6 +1272,9 @@ def _consult_save_snapshot(session: ConsultSession, data: AIConsultSessionSaveCa
 
     structured = _clean_structured_snapshot(data.structured_intake_answers)
     retained = [_stored_structured_snapshot(item) for item in (session.answers or [])]
+    if any(_diarrhea_module().is_diarrhea(item) and item.get("template_key") != data.species
+           for item in [structured, *retained] if item):
+        raise HTTPException(status_code=409, detail="腹泻问卷与当前病例物种不一致，请核对原问诊，未保存。")
     latest = next((item for item in reversed(retained) if item), None)
     # Old clients resend the latest snapshot; do not append that same receipt twice.
     same_latest = structured and latest and all(structured[key] == latest[key] for key in structured if key != "category")
@@ -1472,7 +1511,15 @@ async def ai_consult_session_create(
         raise HTTPException(status_code=400, detail="text is required")
 
     text = _text_with_species(text, data.species)
-    result = run_agent(text)
+    structured = _clean_structured_snapshot(data.structured_intake_answers)
+    if structured and not user:
+        raise HTTPException(status_code=401, detail="请登录后提交医生采集的问卷。")
+    if _diarrhea_module().is_diarrhea(structured) and data.species != structured["template_key"]:
+        raise HTTPException(status_code=409, detail="腹泻问卷与本次物种不一致，请重新核对。")
+    observations = (_diarrhea_module().ai_context(structured) if _diarrhea_module().is_diarrhea(structured)
+                    else _structured_snapshot_text(structured))
+    ai_text = text + ("\n\n" + observations if observations else "")
+    result = run_agent(ai_text)
     if not isinstance(result, dict):
         result = {
             "risk_level": "中",
@@ -1489,15 +1536,20 @@ async def ai_consult_session_create(
     except ModuleNotFoundError:
         from dynamic_consult import clean_consult_result
 
-    result = clean_consult_result(result, text, [])
+    result = clean_consult_result(result, ai_text, [])
     session_id = uuid4().hex
-    result = _stamp_session_dynamic(result, session_id, 0)
+    answers = []
+    if structured:
+        answers.append({"question": "医生核对的结构化病史采集", "answer": "医生已核对；问题、状态和原文保留在本轮结构化快照中。",
+                        STRUCTURED_SNAPSHOT_KEY: json.dumps(structured, ensure_ascii=False, sort_keys=True, separators=(",", ":"))})
+    result = _stamp_session_dynamic(result, session_id, len(answers))
+    result = _mark_structured_intake_context(result, bool(structured))
 
     session = ConsultSession(
         session_uid=session_id,
         owner_id=getattr(user, "id", None) if user else None,
         text=text,
-        answers=[],
+        answers=answers,
         result=result,
     )
     db.add(session)
@@ -1547,6 +1599,8 @@ def ai_consult_session_answer(
     if data.expected_answers_token is not None and not hmac.compare_digest(data.expected_answers_token, _answers_token(session.answers)):
         raise HTTPException(status_code=409, detail="问诊已变化，请先重新读取并核对，未重复提交。")
     structured = _clean_structured_snapshot(data.structured_intake_answers)
+    if _diarrhea_module().is_diarrhea(structured) and not user:
+        raise HTTPException(status_code=401, detail="请登录后提交医生采集的问卷。")
     answers = list(session.answers or [])
     answers.append({
         "question": question,
