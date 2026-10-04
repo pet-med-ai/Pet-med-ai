@@ -59,7 +59,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind M7 to fixed main and the approved eighteen-path scope
+      - name: Bind fixed M7 and the outpatient identity supplement
         run: |
           set -euo pipefail
           mkdir -p acceptance-results
@@ -78,9 +78,23 @@ jobs:
               'tests/acceptance/diarrhea_intake_checks.cjs', '.github/workflows/consult-browser-postgres.yml',
               'docs/clinical_docs/VISIT_MILESTONE_M7.md',
           }
-          changed = set(subprocess.check_output(['git', 'diff', '--name-only', '793894523be602bd8da265f8f7e8e63e417027a7', 'HEAD'], text=True).splitlines())
+          m7 = '99a4f25ee7267f57414d336bd836f86b27cbbcd8'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', m7, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', m7 + '^{tree}'], text=True).strip() == '0021fe336ce6ebc8cfc2875474c1a4ef5515408a'
+          changed = set(subprocess.check_output(['git', 'diff', '--name-only', '793894523be602bd8da265f8f7e8e63e417027a7', m7], text=True).splitlines())
           assert 0 < len(changed) <= 18 and changed <= allowed, sorted(changed - allowed)
           open('acceptance-results/m7-scope.json', 'w').write(json.dumps({'changed': sorted(changed), 'allowed': sorted(allowed)}, indent=2))
+          supplement_allowed = {
+              'backend/clinical_docs_api.py', 'frontend/src/components/ClinicalDocReview.jsx',
+              'frontend/tests/case-detail-documents.test.jsx', 'tests/test_clinical_doc_lifecycle.py',
+              'scripts/validate_outpatient_document_templates.py',
+              'templates/clinical_docs/CLINICAL_DOCS_TEMPLATE_ASSETS_MANIFEST.json',
+              'templates/clinical_docs/outpatient_record_zh.docx',
+              '.github/workflows/consult-browser-postgres.yml',
+          }
+          supplement = set(subprocess.check_output(['git', 'diff', '--name-only', m7, 'HEAD'], text=True).splitlines())
+          assert 0 < len(supplement) <= 8 and supplement <= supplement_allowed, sorted(supplement - supplement_allowed)
+          open('acceptance-results/outpatient-identity-scope.json', 'w').write(json.dumps({'baseline': m7, 'changed': sorted(supplement), 'allowed': sorted(supplement_allowed)}, indent=2))
           PY
           git rev-parse HEAD > acceptance-results/test-commit.txt
           git rev-parse HEAD > acceptance-results/application-commit.txt

@@ -90,15 +90,22 @@ OUTPATIENT_CASE_FIELDS = {
     "visit.history": "history", "visit.exam": "exam_findings",
     "visit.assessment": "analysis", "visit.plan": "treatment", "visit.notes": "prognosis",
 }
+OUTPATIENT_RECORD_IDENTITY_FIELDS = {
+    "visit.owner_name": "owner_name", "visit.coat_color": "coat_color",
+}
 OUTPATIENT_TEMPLATES = {
     "outpatient_record_zh": ("门诊病历草稿（待医生核对）", "petmed-outpatient-draft"),
     "owner_visit_summary_zh": ("宠主说明草稿（待医生核对）", "petmed-owner-summary-draft"),
 }
 for _template_id, (_label, _prefix) in OUTPATIENT_TEMPLATES.items():
+    _case_fields = {**OUTPATIENT_CASE_FIELDS, **(
+        OUTPATIENT_RECORD_IDENTITY_FIELDS if _template_id == "outpatient_record_zh" else {}
+    )}
     TEMPLATES[_template_id] = {
         "file": _template_id + ".docx", "label": _label,
         "output_filename_prefix": _prefix,
-        "required_keys": list(OUTPATIENT_CASE_FIELDS) + [
+        "case_fields": _case_fields,
+        "required_keys": list(_case_fields) + [
             "visit.follow_up", "export.account_id", "timestamp", "hash",
         ],
     }
@@ -251,7 +258,7 @@ def _build_context(case: Case, *, data: ClinicalDocRenderIn, user, template_id: 
         if data.include_diagnostic_data:
             raise HTTPException(status_code=422, detail="门诊文书草稿仅使用已保存病例，不支持附加诊断数据合并")
         context = {}
-        for key, attribute in OUTPATIENT_CASE_FIELDS.items():
+        for key, attribute in TEMPLATES[template_id]["case_fields"].items():
             value = getattr(case, attribute, None)
             raw = str(value) if value is not None else ""
             if any(not (ch in "\t\r\n" or "\x20" <= ch <= "\ud7ff" or "\ue000" <= ch <= "\ufffd" or "\U00010000" <= ch <= "\U0010ffff") for ch in raw):

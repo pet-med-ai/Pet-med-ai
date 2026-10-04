@@ -13,6 +13,10 @@ const fields = [
 ];
 
 export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose }) {
+  const reviewFields = templateId === "outpatient_record_zh" ? [
+    ...fields.slice(0, 2), ["visit.owner_name", "宠主姓名"], ["visit.coat_color", "宠物毛色"],
+    ...fields.slice(2),
+  ] : fields;
   const [preview, setPreview] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -36,7 +40,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
       if (data.case_id !== caseId || data.template_id !== templateId ||
           !/^[a-f0-9]{64}$/.test(data.content_snapshot || "") ||
           data.context?.["visit.case_id"] !== String(caseId) ||
-          !fields.every(([key]) => typeof data.context?.[key] === "string") ||
+          !reviewFields.every(([key]) => typeof data.context?.[key] === "string") ||
           !Array.isArray(data.missing_required_keys) || data.missing_required_keys.length || data.writes_database !== false) {
         throw new Error("未收到可核对的完整草稿，当前服务可能尚未支持。请重新读取，暂不能确认下载。");
       }
@@ -88,7 +92,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     <button type="button" disabled={busy} onClick={load}>重新读取草稿</button>
     {message && <p role="status" aria-live="polite">{message}</p>}
     {preview && <div>
-      {fields.map(([key, title]) => <section key={key} aria-label={title + "核对内容"}>
+      {reviewFields.map(([key, title]) => <section key={key} aria-label={title + "核对内容"}>
         <h3>{title}</h3>
         <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", font: "inherit", lineHeight: 1.6 }}>{preview.context[key]}</pre>
       </section>)}

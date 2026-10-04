@@ -122,6 +122,58 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
             self.assertGreaterEqual(text.count('未填写'), 5)
             self.assertNotIn('无异常', text)
 
+    def test_outpatient_identity_is_literal_reviewed_and_read_only(self):
+        case = self.create()
+        values = {'owner_name': '  合成宠主 < & {{visit.plan}}  ', 'coat_color': '黑白\n局部棕色（合成）'}
+        with db.SessionLocal() as session:
+            row = session.get(models.Case, case['id'])
+            for key, value in values.items():
+                setattr(row, key, value)
+            session.commit()
+        saved = self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json()
+        template = 'outpatient_record_zh'
+        preview = self.render(case['id'], template, 'render-preview').json()
+        self.assertEqual(preview['missing_required_keys'], [])
+        for key, value in values.items():
+            self.assertEqual(preview['context']['visit.' + key], value)
+        result = self.checked_render(case['id'], template, preview['content_snapshot'])
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.headers['X-PMAI-Writes-Database'], 'false')
+        text = '\n'.join(paragraphs(result.content))
+        self.assertIn('宠主姓名：' + values['owner_name'], text)
+        self.assertIn('宠物毛色：' + values['coat_color'], text)
+        self.assertEqual(self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json(), saved)
+        # Each field participates in the same confirmation contract as the medical text.
+        for key in values:
+            previous = self.render(case['id'], template, 'render-preview').json()['content_snapshot']
+            with db.SessionLocal() as session:
+                setattr(session.get(models.Case, case['id']), key, '已更正（合成）')
+                session.commit()
+            self.assertEqual(self.checked_render(case['id'], template, previous).status_code, 409)
+            latest = self.render(case['id'], template, 'render-preview').json()
+            self.assertEqual(latest['context']['visit.' + key], '已更正（合成）')
+            self.assertEqual(self.checked_render(case['id'], template, latest['content_snapshot']).status_code, 200)
+        summary = self.render(case['id'], 'owner_visit_summary_zh', 'render-preview').json()
+        self.assertNotIn('visit.owner_name', summary['context'])
+        self.assertNotIn('visit.coat_color', summary['context'])
+
+    def test_outpatient_missing_identity_is_explicit(self):
+        cid = self.create()['id']
+        for value in [None, '', ' \t\n']:
+            with self.subTest(value=value):
+                with db.SessionLocal() as session:
+                    row = session.get(models.Case, cid)
+                    row.owner_name = value; row.coat_color = value
+                    session.commit()
+                preview = self.render(cid, 'outpatient_record_zh', 'render-preview').json()
+                for key in ['visit.owner_name', 'visit.coat_color']:
+                    self.assertEqual(preview['context'][key], '未填写')
+                result = self.checked_render(cid, 'outpatient_record_zh', preview['content_snapshot'])
+                self.assertEqual(result.status_code, 200)
+                text = '\n'.join(paragraphs(result.content))
+                self.assertIn('宠主姓名：未填写', text)
+                self.assertIn('宠物毛色：未填写', text)
+
     def test_new_account_is_authenticated_and_follow_up_is_not_inferred(self):
         case = self.create()
         for template in DRAFTS:
