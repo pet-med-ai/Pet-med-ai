@@ -1,3 +1,4 @@
+import { cleanVoiceDraft } from "./voiceDraftState";
 import { cleanIntakeDraft, intakeKey } from "./chiefComplaintIntakeState";
 import { cleanDiarrheaDraft } from "./diarrheaIntakeState";
 export const DRAFT_KEY = "pmai.consult-draft.v1";
@@ -48,6 +49,7 @@ export function cleanDraft(value) {
     return [key, v];
   }));
   const data = { fields, sessionId: value.sessionId, followupAnswer: value.followupAnswer, sessionContext: value.sessionContext, structuredAnswers, lastSubmission: cleanSubmission(value.lastSubmission), recoveredNotes: value.recoveredNotes };
+  if (value.voice != null) data.voice = cleanVoiceDraft(value.voice);
   if (value.diarrhea != null) data.diarrhea = cleanDiarrheaDraft(value.diarrhea);
   if (value.chiefComplaint != null) {
     data.chiefComplaint = cleanIntakeDraft(value.chiefComplaint);
@@ -76,6 +78,7 @@ export function readDraft(owner, storage, now = Date.now()) {
     if (item.owner !== owner) { clearDraft(storage); return { draft: null, error: "" }; }
     if (item.version !== 1 || !Number.isFinite(item.updatedAt) || now - item.updatedAt > DRAFT_MAX_AGE || item.updatedAt > now + 60000) throw new Error("Expired or invalid");
     const data = cleanDraft(item.data);
+    if (data.voice && JSON.parse(data.voice.identity)[0] !== owner) throw new Error("Wrong voice owner");
     if (data.diarrhea && data.diarrhea.binding.owner !== owner) throw new Error("Wrong diarrhea owner");
     if (data.chiefComplaint && data.chiefComplaint.binding.owner !== owner) throw Error("Wrong intake owner");
     return { draft: { data, updatedAt: item.updatedAt }, error: "" };
@@ -90,6 +93,7 @@ export function writeDraft(owner, data, storage, now = Date.now()) {
     storage = storage || window.sessionStorage;
     if (!owner) return false;
     const clean = cleanDraft(data);
+    if (clean.voice && JSON.parse(clean.voice.identity)[0] !== owner) throw new Error("Wrong voice owner");
     if (clean.diarrhea && clean.diarrhea.binding.owner !== owner) throw new Error("Wrong diarrhea owner");
     if (clean.chiefComplaint && clean.chiefComplaint.binding.owner !== owner) throw Error("Wrong intake owner");
     if (!hasDraftContent(clean)) return clearDraft(storage);

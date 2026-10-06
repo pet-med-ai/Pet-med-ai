@@ -62,6 +62,16 @@ if '--readback' in sys.argv:
         assert reopened['result']['input_evidence'] == item['evidence']
         assert reopened['case_id'] == item['case_id']
     record('b4_dog_cat_fresh_process_exact_evidence_and_case_readback')
+    import speech_budget as speech_budget
+    from sqlalchemy.orm import sessionmaker
+    speech_factory = sessionmaker(bind=f.db.engine.execution_options(schema_translate_map={None: 'cwb5_budget_test'}))
+    assert speech_budget.budget_status(speech_factory)['attempts'] == 100
+    saved_voice = json.loads((f.OUT / 'cwb5-restart-expected.json').read_text())
+    assert read(saved_voice['case_id'], auth) == saved_voice['record']
+    with f.db.SessionLocal() as session:
+        rows = session.query(f.models.AuditLog).filter_by(case_id=saved_voice['case_id'], event_type='speech_confirm').order_by(f.models.AuditLog.created_at, f.models.AuditLog.log_id).all()
+        assert len(rows) == 2 and [row.extra_data for row in rows] == saved_voice['audits']
+    record('cwb5_fresh_process_exact_history_audit_and_spent_budget')
     sys.exit(0)
 
 f.prepare_empty_database()
@@ -479,5 +489,64 @@ for animal in ['dog', 'cat']:
     b4_expected.append({'case_id':results[0]['case_id'],'record':saved,'session_url':route,'evidence':updated['result']['input_evidence']})
     record('b4_'+animal+'_assertions_concurrent_save_one_case_evidence_preserved')
 (f.OUT / 'b4-restart-expected.json').write_text(json.dumps(b4_expected,ensure_ascii=False))
+
+# CW-B5: isolate the budget stress ledger in a second synthetic schema so it
+# cannot reset/reuse the application ledger subsequently used by browser checks.
+import speech_budget as speech_budget
+import speech_transcription as speech_provider
+from sqlalchemy.orm import sessionmaker
+from unittest.mock import AsyncMock
+import base64, io, wave
+with f.db.engine.begin() as connection:
+    connection.execute(text('CREATE SCHEMA cwb5_budget_test'))
+speech_engine = f.db.engine.execution_options(schema_translate_map={None: 'cwb5_budget_test'})
+f.db.Base.metadata.create_all(speech_engine)
+speech_factory = sessionmaker(bind=speech_engine)
+speech_budget.initialize_ledger(speech_factory)
+def spend(_):
+    try:
+        return speech_budget.reserve(uuid4().hex, owner_id, {'session_id': 'synthetic-budget'}, 'f'*64, 1, speech_factory)
+    except speech_provider.SpeechError as error:
+        assert error.code == 'batch_budget_exhausted'; return None
+with ThreadPoolExecutor(max_workers=12) as pool:
+    results = list(pool.map(spend, range(112)))
+assert sorted(x for x in results if x) == list(range(1,101))
+assert speech_budget.budget_status(speech_factory)['reserved_fen'] == 100
+record('cwb5_native_postgresql_concurrent_100_attempt_1yuan_cap')
+speech_budget.initialize_ledger()
+voice_session = call('POST', '/api/ai/consult/session', owner, json={'text':'CW-B5合成语音验收','species':'dog'})['session_id']
+voice_route = '/api/ai/consult/session/' + voice_session
+buf = io.BytesIO()
+with wave.open(buf, 'wb') as writer:
+    writer.setnchannels(1); writer.setsampwidth(2); writer.setframerate(16000); writer.writeframes(b'\x00\x00'*16000)
+def transcript():
+    binding = call('GET', '/api/speech/context/' + voice_session, owner)
+    binding.update(patient_name='CW-B5合成犬', species='dog', draft_version='b'*64)
+    req = {'request_id':uuid4().hex,'binding':binding,'synthetic_only':True,'audio_base64':base64.b64encode(buf.getvalue()).decode()}
+    with patch.object(speech_provider, 'ensure_enabled'), patch.object(speech_provider, 'recognize', AsyncMock(return_value={'text':'未见呕吐，零点五毫升','provider_request_id':'synthetic-only'})):
+        r = call('POST','/api/speech/transcribe',owner,json=req)
+        call('POST','/api/speech/transcribe',owner,expected=409,json=req)
+    return {'receipt':r['receipt'],'original_text':r['text'],'edited_text':'未见呕吐，0.5 毫升。','reviewed':True}
+entry = transcript()
+body = {'patient_name':'CW-B5合成犬','species':'dog','history':'原始病史\n'+entry['edited_text'],'voice_confirmations':[entry]}
+preview = call('POST',voice_route+'/preview-case',owner,json=body)
+request = {**body,'expected_preview_token':preview['preview_token']}
+with ThreadPoolExecutor(max_workers=2) as pool:
+    results = list(pool.map(lambda _: call('POST',voice_route+'/save-case',owner,json=request),range(2)))
+assert len({x['case_id'] for x in results}) == 1
+voice_id = results[0]['case_id']; before_voice = read(voice_id,owner)
+record('cwb5_concurrent_first_save_one_case_one_voice_audit')
+entry = transcript(); entry['edited_text']='补记：核对毫升单位。'
+body = {'history_addendum':entry['edited_text'],'update_mode':'history_only','voice_confirmations':[entry]}
+preview = call('POST',voice_route+'/preview-update-case',owner,json=body)
+request = {**body,'expected_preview_token':preview['preview_token']}
+call('POST',voice_route+'/update-case',owner,json=request)
+call('POST',voice_route+'/update-case',owner,expected=409,json=request)
+saved = read(voice_id,owner); assert saved['history'].startswith(before_voice['history'])
+with f.db.SessionLocal() as session:
+    audits=[row.extra_data for row in session.query(f.models.AuditLog).filter_by(case_id=voice_id,event_type='speech_confirm').order_by(f.models.AuditLog.created_at, f.models.AuditLog.log_id).all()]
+assert len(audits)==2 and audits[1]['edited_text']==entry['edited_text']
+(f.OUT / 'cwb5-restart-expected.json').write_text(json.dumps({'case_id':voice_id,'record':saved,'audits':audits},ensure_ascii=False))
+record('cwb5_addendum_consumed_once_and_atomic_provenance')
 
 client.close(); f.db.engine.dispose()

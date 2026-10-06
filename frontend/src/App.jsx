@@ -9,8 +9,10 @@ import { clearManualCaseDraft } from "./manualCaseDraft";
 import { caseEditDraftOwner, clearCaseEditDrafts } from "./caseEditDraft";
 import { intakeReviewed as diarrheaReviewed, appendIntakeHistory as appendDiarrheaHistory, intakeKey, INTAKE_LABELS } from "./chiefComplaintIntakeState";
 import ConsultEvidence from "./components/ConsultEvidence";
-import ConsultUpdateReview from "./components/ConsultUpdateReview";
-import ConsultSaveReview from "./components/ConsultSaveReview";
+const ConsultUpdateReview = lazy(() => import("./components/ConsultUpdateReview"));
+const ConsultSaveReview = lazy(() => import("./components/ConsultSaveReview"));
+const VoiceDraft = lazy(() => import("./components/VoiceDraft"));
+import { voiceReady, voicePayload } from "./voiceDraftState";
 import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/ConsultWorkbench";
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
@@ -228,12 +230,19 @@ export function Home() {
   };
 
   const [historyAddendum, setHistoryAddendum] = useState("");
+  const [voiceDraft, setVoiceDraft] = useState(null);
+  const [voiceOpen, setVoiceOpen] = useState(false);
+  const voiceContext = { owner: caseEditDraftOwner(), sessionId: consultSessionId, caseId: savedConsultCaseId, patientName, species, revision: answersToken };
+  const voiceText = savedConsultCaseId ? historyAddendum : history;
+  const voiceConfirmed = voiceReady(voiceDraft, voiceContext, voiceText);
+  useEffect(() => { if (voiceDraft && !voiceText) setVoiceDraft(null); }, [voiceText, voiceDraft]);
   const [recoveredDraftNotes, setRecoveredDraftNotes] = useState("");
   const [draftRestoreMessage, setDraftRestoreMessage] = useState("");
   const [restoringDraft, setRestoringDraft] = useState(false);
   const draftSnapshot = {
     fields: { patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, chiefComplaint, history, historyAddendum, examFindings, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId },
     sessionId: consultSessionId,
+    ...(voiceDraft ? { voice: voiceDraft } : {}),
     sessionContext: consultDraftContext(consultAnswers, result, answersToken),
     followupAnswer, structuredAnswers: structuredIntakeAnswers,
     lastSubmission: lastStructuredIntakeSubmission, recoveredNotes: recoveredDraftNotes,
@@ -805,6 +814,7 @@ export function Home() {
       if (data) applyConsultResult(data, "DRAFT RESTORED FROM CURRENT SESSION");
       resetAuditReviewState(); setConsultSaveReceipt(null);
       applyDraftFields(snapshot.fields);
+      setVoiceDraft(snapshot.voice || null); setVoiceOpen(!!snapshot.voice);
       setFollowupAnswer(changed ? "" : snapshot.followupAnswer);
       setStructuredIntakeAnswers(changed ? {} : snapshot.structuredAnswers);
       setLastStructuredIntakeSubmission(changed ? null : snapshot.lastSubmission);
@@ -849,6 +859,7 @@ export function Home() {
       const data = payload.result || {};
 
       applyDraftFields({});
+      setVoiceDraft(null);
       setDiarrheaReview(null);
       setRecoveredDraftNotes(""); setDraftRestoreMessage("");
       rememberConsultSession(payload.session_id || sid);
@@ -961,6 +972,7 @@ export function Home() {
 
   // ===== 即时分析（不入库） =====
  const handleAnalyzeSubmit = async (e) => {
+  if (voiceDraft?.entries?.length) { e?.preventDefault(); alert("请先保存本次语音病史，再开始新的问诊分析。"); return; }
   e.preventDefault();
   if (followupBusy.current || followupUncertain) { setErrMsg("请先核对当前追问提交结果，再开始新的问诊。"); return; }
   if (historyAddendum.trim()) { alert("医生病史补记尚未保存，请先在第二步核对更新，或清空补记后再开始新的分析。"); return; }
@@ -1202,6 +1214,7 @@ export function Home() {
     const structuredIntakePayload = buildStructuredIntakeSubmission(result?.structured_intake, structuredIntakeAnswers) || lastStructuredIntakeSubmission;
 
     return {
+      ...(voiceDraft?.entries?.length ? { voice_confirmations: voicePayload(voiceDraft) } : {}),
       chief_complaint: chiefComplaint,
       history: diarrheaConfirmed && structuredIntakePayload ? appendDiarrheaHistory(history, diarrheaReview.historyBlock) : history,
       patient_name: patientName?.trim() || "未命名病例",
@@ -1543,6 +1556,9 @@ export function Home() {
         <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{recoveredDraftNotes}</pre>
       </section>}
       <p>未填写不代表正常。草稿暂存不等于病例已保存，请完成第二步核对。</p>
+      <button type="button" onClick={() => setVoiceOpen(v => !v)}>{voiceOpen ? "关闭语音草稿" : "打开语音草稿"}</button>
+      {(voiceOpen || voiceDraft?.entries?.length) && <Suspense fallback={<p>正在加载语音草稿…</p>}><VoiceDraft context={voiceContext} text={voiceText} draft={voiceDraft} onChange={savedConsultCaseId ? setHistoryAddendum : setHistory} onDraft={setVoiceDraft} disabled={workbenchBusy || loadingSession || loadingAnalyze || loadingFollowup || !isAuthed} /></Suspense>}
+      {!voiceConfirmed && <p role="status">语音来源尚待重新核对，请在语音草稿中核对当前病史。</p>}
       <div className="workbench-actions"><button type="button" className="workbench-primary" disabled={!consultSessionId || workbenchBusy} onClick={() => changeWorkbenchStep(2)}>进入保存前核对 →</button></div>
       </div>
 
@@ -1559,7 +1575,7 @@ export function Home() {
             }}
           >
             {!savedConsultCaseId && (
-              <ConsultSaveReview
+              <Suspense fallback={<p>正在加载保存核对…</p>}><ConsultSaveReview
                 key={consultSessionId}
                 sessionId={consultSessionId}
                 onReturnToEdit={() => changeWorkbenchStep(1)}
@@ -1568,13 +1584,14 @@ export function Home() {
                 payload={buildConsultSaveCasePayload()}
                 revision={JSON.stringify([reviewNavigationVersion, consultAnswers, result, followupAnswer, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId])}
                 allowed={isAuthed && !auditReviewRequired}
-                blocked={!!followupUncertain || loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim() || (!!diarrheaDraft && !diarrheaConfirmed)}
+                blocked={!voiceConfirmed || !!followupUncertain || loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting || !consultSessionId || !chiefComplaint.trim() || (!!diarrheaDraft && !diarrheaConfirmed)}
                 hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value) !== "")}
                 onSaved={async (record, receipt) => {
                   if (!receipt.inputsChanged && !recoveredDraftNotes) draft.markSaved();
                   setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, inputsChanged: receipt.inputsChanged, record, revision: workbenchRevision, mode: "create" });
                   setWorkbenchStep(3);
                   setSavedConsultCaseId(record.id);
+                  setVoiceDraft(null);
                   await fetchCases({ page: 1 });
                   await fetchSessionHistory();
                 }}
@@ -1582,11 +1599,11 @@ export function Home() {
                   setConsultSaveReceipt({ sessionId: consultSessionId, caseId, verified: false });
                   setSavedConsultCaseId(caseId);
                 }}
-              />
+              /></Suspense>
             )}
 
             {savedConsultCaseId && (
-              <ConsultUpdateReview
+              <Suspense fallback={<p>正在加载更新核对…</p>}><ConsultUpdateReview
                 key={`${consultSessionId}:${savedConsultCaseId}`}
                 sessionId={consultSessionId}
                 onReturnToEdit={() => changeWorkbenchStep(1)}
@@ -1594,18 +1611,19 @@ export function Home() {
                 contentRevision={workbenchRevision}
                 caseId={savedConsultCaseId}
                 historyAddendum={historyAddendum}
+                voiceConfirmations={voiceDraft?.entries?.length ? voicePayload(voiceDraft) : undefined}
                 allowed={isAuthed && !auditReviewRequired}
-                blocked={!!followupUncertain || loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting}
+                blocked={!voiceConfirmed || !!followupUncertain || loadingSession || loadingAnalyze || loadingFollowup || auditSubmitting}
                 hasPendingAnswers={!!followupAnswer.trim() || Object.values(structuredIntakeAnswers).some(value => value != null && String(value) !== "")}
                 revision={JSON.stringify([reviewNavigationVersion, consultSessionId, consultAnswers, result, chiefComplaint, history, examFindings, patientName, species, sex, ageInfo, breed, weight, coatColor, ownerName, ownerPhone, followupAnswer, structuredIntakeAnswers, auditLogReceipt, auditReviewAction, auditReviewReason, auditReviewNote, auditClinicianId, loadingSession, loadingAnalyze, loadingFollowup, auditSubmitting])}
                 onUpdated={async (record, receipt) => {
                   const cleared = historyAddendum === receipt.historyAddendum;
-                  if (cleared) setHistoryAddendum("");
+                  if (cleared) { setHistoryAddendum(""); setVoiceDraft(null); }
                   setConsultSaveReceipt({ sessionId: consultSessionId, caseId: record.id, verified: true, record, revision: JSON.stringify([...workbenchValues, cleared ? "" : historyAddendum]), mode: "update", inputsChanged: receipt.inputsChanged });
                   setWorkbenchStep(3);
                   await fetchCases({ page: 1 }); await fetchSessionHistory();
                 }}
-              />
+              /></Suspense>
             )}
 
           </div>
