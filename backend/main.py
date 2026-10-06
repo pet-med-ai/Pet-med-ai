@@ -23,6 +23,7 @@ from jose import jwt, JWTError
 
 from db import SessionLocal, Base, engine
 from models import Case, ConsultSession, User
+from speech_transcription_api import router as speech_router, VoiceConfirmation, validate_confirmations, append_confirmation_audits, bind_confirmation_preview
 from auth_jwt import router as auth_router, get_current_user
 import auth_jwt as auth_jwt_mod
 try:
@@ -110,6 +111,7 @@ elif _is_production():
 
 # 统一挂载 Auth 路由（保持你原来逻辑，路径保持不变，如 /auth/login 等）
 app.include_router(auth_router)
+app.include_router(speech_router)
 
 
 def _text_with_species(text: str, species: Optional[str] = None) -> str:
@@ -343,6 +345,7 @@ class AIConsultSessionListOut(BaseModel):
     page_size: int = 20
 
 class AIConsultSessionSaveCaseIn(BaseModel):
+    voice_confirmations: List[VoiceConfirmation] = Field(default_factory=list, max_length=20)
     chief_complaint: Optional[str] = None
     history: Optional[str] = None
     expected_preview_token: Optional[str] = Field(default=None, min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
@@ -364,6 +367,7 @@ class AIConsultSessionSaveCaseOut(BaseModel):
     message: str = "saved"
 
 class AIConsultSessionUpdatePreviewIn(BaseModel):
+    voice_confirmations: List[VoiceConfirmation] = Field(default_factory=list, max_length=20)
     history_addendum: str = Field(default="", max_length=20000, strict=True)
     update_mode: Literal["consult_sync", "history_only"] = "consult_sync"
 
@@ -1383,7 +1387,9 @@ def ai_consult_session_preview_case(
     if not session:
         raise HTTPException(status_code=404, detail="Consult session not found")
     assert_consult_session_access(session, user, allow_unowned=True)
-    return _consult_save_snapshot(session, data)
+    snapshot = _consult_save_snapshot(session, data)
+    validate_confirmations(db, data.voice_confirmations, session, user, snapshot["patient_name"], snapshot["species"], snapshot["history"])
+    return snapshot
 
 
 @app.post("/api/ai/consult/session/{session_id}/save-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
@@ -1400,10 +1406,13 @@ def ai_consult_session_save_case(
     if session.case_id:
         return {"case_id": session.case_id, "session_id": session.session_uid, "message": "already_saved"}
 
+    if data.voice_confirmations and data.expected_preview_token is None:
+        raise HTTPException(status_code=409, detail="语音病史须先预览核对再保存。")
     snapshot = _consult_save_snapshot(session, data)
     if data.expected_preview_token is not None and not hmac.compare_digest(data.expected_preview_token, snapshot["preview_token"]):
         raise HTTPException(status_code=409, detail="问诊或保存内容已改变，请重新预览并核对。")
 
+    verified_voice = validate_confirmations(db, data.voice_confirmations, session, user, snapshot["patient_name"], snapshot["species"], snapshot["history"])
     obj = Case(owner_id=user.id, **{name: snapshot[name] for name in CONSULT_SAVE_FIELDS})
     session_row_id, session_uid = session.id, session.session_uid
     db.add(obj)
@@ -1426,6 +1435,7 @@ def ai_consult_session_save_case(
         if not current.case_id:
             raise HTTPException(status_code=409, detail="问诊已改变，请重新核对。")
         return {"case_id": current.case_id, "session_id": session_uid, "message": "already_saved"}
+    append_confirmation_audits(db, verified_voice, user, obj.id, session_uid)
     db.commit()
     db.refresh(obj)
     return {"case_id": obj.id, "session_id": session_uid, "message": "saved"}
@@ -1486,7 +1496,11 @@ def ai_consult_session_preview_update_case(
 
     obj = get_owned_case_or_404(db, session.case_id, user)
 
-    return _consult_update_snapshot(session, obj, _consult_session_to_case_fields(session), data.history_addendum if data else "", data.update_mode if data else "consult_sync")
+    voice = data.voice_confirmations if data else []
+    snapshot = _consult_update_snapshot(session, obj, _consult_session_to_case_fields(session), data.history_addendum if data else "", data.update_mode if data else "consult_sync")
+    snapshot = bind_confirmation_preview(snapshot, voice)
+    validate_confirmations(db, voice, session, user, obj.patient_name, obj.species, data.history_addendum if data else "", obj)
+    return snapshot
 
 
 @app.post("/api/ai/consult/session/{session_id}/update-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
@@ -1510,9 +1524,11 @@ def ai_consult_session_update_case(
     history_addendum = data.history_addendum if data else ""
     update_mode = data.update_mode if data else "consult_sync"
     snapshot = _consult_update_snapshot(session, obj, case_fields, history_addendum, update_mode)
+    snapshot = bind_confirmation_preview(snapshot, data.voice_confirmations if data else [])
     if data is not None and not hmac.compare_digest(data.expected_preview_token, snapshot["preview_token"]):
         raise HTTPException(status_code=409, detail="病例或问诊内容已改变，请重新预览并核对。")
     proposed = snapshot["proposed"]
+    verified_voice = validate_confirmations(db, data.voice_confirmations if data else [], session, user, obj.patient_name, obj.species, history_addendum, obj)
 
     obj.chief_complaint = proposed["chief_complaint"]
     obj.history = proposed["history"]
@@ -1526,6 +1542,7 @@ def ai_consult_session_update_case(
 
     db.add(obj)
     db.add(session)
+    append_confirmation_audits(db, verified_voice, user, obj.id, session.session_uid)
     db.commit()
     db.refresh(obj)
 

@@ -1,0 +1,174 @@
+[
+  {
+    "id": "cwb5-01",
+    "text": "没有呕吐，未见黑便。",
+    "terms": [
+      "没有",
+      "未见"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-02",
+    "text": "今天呕吐两次，尚未用药。",
+    "terms": [
+      "两次",
+      "尚未"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-03",
+    "text": "体重五点二千克。",
+    "terms": [
+      "体重"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-04",
+    "text": "记录为零点五毫升，不是五毫升。",
+    "terms": [
+      "不是"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-05",
+    "text": "主人说没有咳嗽，呼吸情况不清楚。",
+    "terms": [
+      "没有",
+      "不清楚"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-06",
+    "text": "以前吃过阿莫西林，今天没有用药。",
+    "terms": [
+      "阿莫西林",
+      "没有"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-07",
+    "text": "恩诺沙星的名称需要医生核对。",
+    "terms": [
+      "恩诺沙星"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-08",
+    "text": "美洛昔康，剂量尚未确认。",
+    "terms": [
+      "美洛昔康",
+      "尚未"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-09",
+    "text": "每十二小时一次，这是既往用药记录。",
+    "terms": [
+      "既往"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-10",
+    "text": "每二十四小时一次，不是每天两次。",
+    "terms": [
+      "不是"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-11",
+    "text": "体温三十八点五摄氏度。",
+    "terms": [
+      "体温"
+    ],
+    "condition": "light_noise"
+  },
+  {
+    "id": "cwb5-12",
+    "text": "持续三天，今天精神尚可。",
+    "terms": [
+      "三天"
+    ],
+    "condition": "light_noise"
+  },
+  {
+    "id": "cwb5-13",
+    "text": "不排除其他原因，但没有确认诊断。",
+    "terms": [
+      "不排除",
+      "没有"
+    ],
+    "condition": "light_noise"
+  },
+  {
+    "id": "cwb5-14",
+    "text": "排尿次数增加，未见血尿。",
+    "terms": [
+      "增加",
+      "未见"
+    ],
+    "condition": "light_noise"
+  },
+  {
+    "id": "cwb5-15",
+    "text": "左后肢跛行，右后肢未见异常。",
+    "terms": [
+      "左后肢",
+      "右后肢"
+    ],
+    "condition": "light_noise"
+  },
+  {
+    "id": "cwb5-16",
+    "text": "饮水量不详，食欲有所下降。",
+    "terms": [
+      "不详",
+      "下降"
+    ],
+    "condition": "light_noise"
+  },
+  {
+    "id": "cwb5-17",
+    "text": "病史为合成台词，没有真实宠主信息。",
+    "terms": [
+      "合成",
+      "没有"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-18",
+    "text": "零点零五毫克，单位需再次核对。",
+    "terms": [
+      "毫克"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-19",
+    "text": "症状曾在上周出现，今天尚待检查。",
+    "terms": [
+      "上周",
+      "尚待"
+    ],
+    "condition": "quiet"
+  },
+  {
+    "id": "cwb5-20",
+    "text": "未见抽搐，但是否晕厥不确定。",
+    "terms": [
+      "未见",
+      "不确定"
+    ],
+    "condition": "quiet"
+  }
+]
