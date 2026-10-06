@@ -8,7 +8,7 @@ export default function CaseAttachments(props) {
   return <AttachmentPanel key={JSON.stringify([props.caseId, props.requestToken])} {...props} />;
 }
 
-function AttachmentPanel({ caseId, requestToken }) {
+function AttachmentPanel({ caseId, requestToken, onChanged }) {
   const [list, setList] = useState(null), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [file, setFile] = useState(null), [stage, setStage] = useState(null), [editing, setEditing] = useState(null);
   const [meta, setMeta] = useState(attachmentMetadata), [reason, setReason] = useState("");
@@ -47,7 +47,7 @@ function AttachmentPanel({ caseId, requestToken }) {
     if (pending.kind === "upload" && result.state === "pending") {
       setStage({ ...result.attachment, uploadId: pending.id }); setUnknown(null); setMessage("上传已核实，请核对后确认关联。");
     } else if (["committed", "active", "withdrawn", "already_attached"].includes(result.state)) {
-      reset(); await refresh(); if (current()) setMessage("操作结果已回读，未重复提交。");
+      reset(); await refresh(); if (current()) { onChanged?.(); setMessage("操作结果已回读，未重复提交。"); }
     } else if (["expired", "cancelled"].includes(result.state)) {
       reset(); await refresh(); if (current()) setMessage("暂存已取消或到期，请重新选择文件。");
     } else if (result.state === "not_committed") {
@@ -79,7 +79,7 @@ function AttachmentPanel({ caseId, requestToken }) {
     const pending = { kind: "operation", id: review.body.request_id };
     try {
       await client("post", "/confirm", { ...review.body, preview_token: review.preview_token, reviewed: true });
-      if (current()) { reset(); clearImage(); await refresh(); if (current()) setMessage("资料操作已保存。"); }
+      if (current()) { reset(); clearImage(); await refresh(); if (current()) { onChanged?.(); setMessage("资料操作已保存。"); } }
     } catch (error) {
       if (!current()) return;
       setUnknown(pending); setChecked(false); setMessage(attachmentMessage(error));

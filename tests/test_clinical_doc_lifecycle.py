@@ -60,6 +60,28 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
             self.assertNotIn('{{', text)
             self.assertEqual(self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json(), case)
 
+    @patch.object(docs, "_utc_timestamp", return_value="2026-10-06T10:00:00Z")
+    def test_manual_lab_states_do_not_enter_existing_documents_or_snapshot(self, _clock):
+        case = self.create()
+        for model in (models.DiagnosticReport, models.Observation, models.ImagingStudy): model.__table__.create(db.engine, checkfirst=True)
+        def document(template, endpoint='render-preview'):
+            return self.client.post('/api/clinical-docs/'+endpoint,headers=self.owner,json={
+                'case_id':case['id'],'template_id':template,'include_diagnostic_data':template in LEGACY})
+        before = {t:document(t).json() for t in ALL_TEMPLATES}
+        with db.SessionLocal() as session:
+            for state in ('confirmed','needs_review','superseded','withdrawn'):
+                report=models.DiagnosticReport(case_id=case['id'],title='CW-B7 ONLY secret synthetic',report_type='cbc',source_type='manual-lab-cw-b7',status=state,ai_summary='never ingest')
+                session.add(report);session.flush()
+                session.add(models.Observation(case_id=case['id'],diagnostic_report_id=report.id,display_name='CW-B7 ONLY',value_text='0.0100',source_type='manual-lab-cw-b7',review_status=state))
+            session.commit()
+        for template in ALL_TEMPLATES:
+            after=document(template).json()
+            self.assertEqual(after['context'],before[template]['context'])
+            self.assertEqual(after.get('content_snapshot'),before[template].get('content_snapshot'))
+            rendered=document(template,'render')
+            self.assertEqual(rendered.status_code,200)
+            self.assertNotIn('CW-B7 ONLY',''.join(paragraphs(rendered.content)))
+
     def test_deleted_case_refuses_both_preview_and_download(self):
         case = self.create()
         self.assertEqual(self.client.delete(f"/api/cases/{case['id']}", headers=self.owner).status_code, 204)

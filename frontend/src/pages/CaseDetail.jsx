@@ -5,6 +5,7 @@ import api from "../api";
 import ClinicalDocReview from "../components/ClinicalDocReview";
 import { draftOwner } from "../consultDraft";
 const CaseAttachments = lazy(() => import("../components/CaseAttachments"));
+const CaseLabResults = lazy(() => import("../components/CaseLabResults"));
 
 export default function CaseDetail() {
   const { id } = useParams();
@@ -23,6 +24,7 @@ export default function CaseDetail() {
 
 function CaseDetailContent({ requestToken }) {
   const [showAttachments, setShowAttachments] = useState(false);
+  const [showLab, setShowLab] = useState(false), [labDirty, setLabDirty] = useState(false), [sourceRevision, setSourceRevision] = useState(0);
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -930,7 +932,9 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       <style>{css}</style>
       <div className="screen-only">
         <button type="button" onClick={() => setShowAttachments(value => !value)}>{showAttachments ? "收起检查资料" : "打开检查资料"}</button>
-        {showAttachments && <Suspense fallback={<p>正在读取检查资料…</p>}><CaseAttachments key={JSON.stringify([data.id, requestToken])} caseId={Number(data.id)} requestToken={requestToken} /></Suspense>}
+        {showAttachments && <Suspense fallback={<p>正在读取检查资料…</p>}><CaseAttachments key={JSON.stringify([data.id, requestToken])} caseId={Number(data.id)} requestToken={requestToken} onChanged={() => setSourceRevision(v => v + 1)} /></Suspense>}
+        <button type="button" onClick={() => { if (!showLab || !labDirty || window.confirm("检验草稿尚未保存，收起会丢失。是否继续？")) setShowLab(v => !v); }}>{showLab ? "收起检验项目" : "打开检验项目"}</button>
+        {showLab && <Suspense fallback={<p>正在读取检验项目…</p>}><CaseLabResults caseId={Number(data.id)} requestToken={requestToken} sourceRevision={sourceRevision} onDirtyChange={setLabDirty} /></Suspense>}
       </div>
 
       <div className="screen-toolbar" style={toolbar}>

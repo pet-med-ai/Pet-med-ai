@@ -54,7 +54,7 @@ from build_attachment_cw_b6_fixtures import samples as attachment_samples
 import case_attachment_store as attachment_store
 import case_attachment_service as attachment_service
 attachment_directory = Path(tempfile.gettempdir()) / ('pmai-cwb6-pg-' + hashlib.sha256(str(f.OUT).encode()).hexdigest()[:20])
-os.environ.update(CASE_ATTACHMENTS_ENABLED='1', CASE_ATTACHMENTS_SYNTHETIC_ONLY='1', CASE_ATTACHMENTS_DIR=str(attachment_directory))
+os.environ.update(CASE_ATTACHMENTS_ENABLED='1', CASE_ATTACHMENTS_SYNTHETIC_ONLY='1', CASE_ATTACHMENTS_DIR=str(attachment_directory), MANUAL_LAB_RESULTS_ENABLED='1', MANUAL_LAB_RESULTS_SYNTHETIC_ONLY='1')
 
 def attachment_readback():
     saved = json.loads((f.OUT / 'cwb6-restart-expected.json').read_text())
@@ -71,6 +71,19 @@ def attachment_readback():
     with f.db.SessionLocal() as db:
         assert db.query(f.models.AuditLog).filter_by(case_id=saved['case_id'], event_type='attachment_confirm').count() == 2
     record('cwb6_fresh_process_exact_refs_raw_sha256_and_withdrawn_access')
+
+
+def manual_lab_readback():
+    saved = json.loads((f.OUT / 'cwb7-restart-expected.json').read_text())
+    auth = login('pg-owner')
+    assert call('GET',f'/api/cases/{saved["case_id"]}/manual-lab',auth) == saved['listing']
+    assert read(saved['case_id'],auth) == saved['case']
+    with f.db.SessionLocal() as db:
+        rows=db.query(f.models.AuditLog).filter_by(case_id=saved['case_id'],source='manual-lab-cw-b7').order_by(f.models.AuditLog.log_id).all()
+        assert [{'id':r.log_id,'event':r.event_type,'data':r.extra_data} for r in rows] == saved['audits']
+    for extra in json.loads((f.OUT / 'cwb7-extra-restart.json').read_text()):
+        assert call('GET',f'/api/cases/{extra["case_id"]}/manual-lab',auth)==extra['listing']
+    record('cwb7_fresh_process_exact_versions_sources_decimal_and_audit')
 
 
 if '--readback' in sys.argv:
@@ -104,6 +117,7 @@ if '--readback' in sys.argv:
         assert len(rows) == 2 and [row.extra_data for row in rows] == saved_voice['audits']
     record('cwb5_fresh_process_exact_history_audit_and_spent_budget')
     attachment_readback()
+    manual_lab_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -652,6 +666,121 @@ assert report['verified'] and report['files']==2 and report['database_restored']
 (f.OUT/'cwb6-backup-readback.json').write_text(json.dumps(report,indent=2))
 (f.OUT/'cwb6-restart-expected.json').write_text(json.dumps({'case_id':aid_case,'listing':call('GET',attachment_root,owner)},ensure_ascii=False,indent=2))
 record('cwb6_postgresql_atomic_rollback_retry_private_backup_readback')
+
+
+# CW-B7: exact authenticated routes, independent transactions, no mock provider.
+import manual_lab_results as manual_lab
+lab_case=call('POST','/api/cases',owner,expected=201,json={**manual,'patient_name':'CW-B7 PG合成犬'})['id']
+lab_root=f'/api/cases/{lab_case}/manual-lab'; lab_files=f'/api/cases/{lab_case}/attachments'
+source_request=uuid4().hex
+name,mime,raw=attachment_samples()[0]
+source=call('POST',lab_files+'/uploads/'+source_request,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',lab_files,owner)['case_token']},content=raw)['attachment']
+b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'confirm','expected_case_token':call('GET',lab_files,owner)['case_token'],'metadata':meta,'reason':''}
+p=call('POST',lab_files+'/preview',owner,json=b)
+call('POST',lab_files+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+lab_data=json.loads((f.ROOT/'tests/fixtures/manual_lab_cw_b7_cases.json').read_text())
+def lab_body(old=None,op='create'):
+    return {'request_id':uuid4().hex,'attachment_id':source['id'],'operation':op,'expected_case_token':call('GET',lab_root,owner)['case_token'],
+            'report_id':old['id'] if old else None,'expected_report_token':old['token'] if old else '',
+            'data':None if op=='withdraw' else lab_data,'reason':'合成更正或撤销' if old else ''}
+def lab_review(body):
+    p=call('POST',lab_root+'/preview',owner,json=body)
+    return {**body,'preview_token':p['preview_token'],'reviewed':True}
+req=lab_review(lab_body())
+with ThreadPoolExecutor(max_workers=2) as pool:
+    rows=list(pool.map(lambda _:call('POST',lab_root+'/confirm',owner,json=req)['report'],range(2)))
+assert rows[0]['id']==rows[1]['id']
+assert manual_lab.input_data(rows[0]['data'])==lab_data
+assert rows[0]['data']['items'][0]['decimal']=='0.0100'
+call('GET',lab_root,other,expected=404)
+call('POST',lab_root+'/confirm',owner,expected=409,json={**req,'reason':'changed'})
+assert call('GET',lab_root+'/requests/'+req['request_id'],owner)['state']=='committed'
+with f.db.SessionLocal() as db:
+    assert db.query(f.models.DiagnosticReport).filter_by(case_id=lab_case).count()==1
+    assert db.query(f.models.Observation).filter_by(case_id=lab_case).count()==len(lab_data['items'])
+    assert db.query(f.models.AuditLog).filter_by(case_id=lab_case,event_type='manual_lab_create').count()==1
+record('cwb7_postgresql_duplicate_confirmation_one_report_observations_audit_exact_originals')
+requests=[lab_review(lab_body(rows[0],'correct')) for _ in range(2)]
+with ThreadPoolExecutor(max_workers=2) as pool:
+    results=list(pool.map(lambda r:client.post(lab_root+'/confirm',headers=owner,json=r),requests))
+assert sorted(r.status_code for r in results)==[200,409]
+row=call('GET',lab_root,owner)['reports'][-1]
+req=lab_review(lab_body(row,'correct'))
+with patch.object(Session,'commit',side_effect=OperationalError('synthetic',{},Exception('fail'))):
+    call('POST',lab_root+'/confirm',owner,expected=503,json=req)
+assert call('GET',lab_root+'/requests/'+req['request_id'],owner)['state']=='not_committed'
+assert len(call('GET',lab_root,owner)['reports'])==2
+record('cwb7_postgresql_competing_versions_and_commit_failure_atomic_rollback')
+# Case row lock serializes a concurrent identity change with lab correction.
+with ThreadPoolExecutor(max_workers=2) as pool:
+    change=pool.submit(client.put,f'/api/cases/{lab_case}',headers=owner,json={'owner_name':'并发更正合成宠主'})
+    confirm=pool.submit(client.post,lab_root+'/confirm',headers=owner,json=req)
+    assert change.result().status_code==200
+    assert confirm.result().status_code in (200,409)
+rows=call('GET',lab_root,owner)['reports'];assert rows[-1]['state']=='needs_review'
+assert all(r['state']!='confirmed' for r in rows)
+row=call('POST',lab_root+'/confirm',owner,json=lab_review(lab_body(rows[-1],'correct')))['report']
+assert row['state']=='confirmed'
+# Updating the attached report atomically invalidates the latest lab version.
+b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'update','expected_case_token':call('GET',lab_files,owner)['case_token'],'metadata':{**meta,'title':'PG更正原报告'},'reason':''}
+p=call('POST',lab_files+'/preview',owner,json=b)
+call('POST',lab_files+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+row=call('GET',lab_root,owner)['reports'][-1];assert row['state']=='needs_review'
+call('POST',lab_root+'/confirm',owner,json=lab_review(lab_body(row,'withdraw')))
+assert call('GET',lab_root,owner)['reports'][-1]['state']=='withdrawn'
+with f.db.SessionLocal() as db:
+    audits=[{'id':r.log_id,'event':r.event_type,'data':r.extra_data} for r in db.query(f.models.AuditLog).filter_by(case_id=lab_case,source=manual_lab.SOURCE).order_by(f.models.AuditLog.log_id)]
+(f.OUT/'cwb7-restart-expected.json').write_text(json.dumps({'case_id':lab_case,'listing':call('GET',lab_root,owner),'case':read(lab_case,owner),'audits':audits},ensure_ascii=False,indent=2))
+record('cwb7_postgresql_identity_race_source_revision_withdrawal_and_audit')
+
+
+# Separate synthetic cases exercise first-create and correct/withdraw races, plus
+# original withdrawal versus first confirmation using the same store/case order.
+import copy
+lab_extra=[]
+for scenario,panel in [('first_competition','cbc'),('correct_withdraw','chemistry'),('source_withdraw','urine')]:
+    ecid=call('POST','/api/cases',owner,expected=201,json={**manual,'patient_name':'CW-B7 '+scenario})['id']
+    eroot=f'/api/cases/{ecid}/manual-lab';efiles=f'/api/cases/{ecid}/attachments'
+    name,mime,raw=attachment_samples()[0]
+    eitem=call('POST',efiles+'/uploads/'+uuid4().hex,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',efiles,owner)['case_token']},content=raw)['attachment']
+    ab={'request_id':uuid4().hex,'attachment_id':eitem['id'],'operation':'confirm','expected_case_token':call('GET',efiles,owner)['case_token'],'metadata':meta,'reason':''}
+    ap=call('POST',efiles+'/preview',owner,json=ab)
+    call('POST',efiles+'/confirm',owner,json={**ab,'preview_token':ap['preview_token'],'reviewed':True})
+    edata=copy.deepcopy(lab_data);edata['report']['panel']=panel
+    eb={'request_id':uuid4().hex,'attachment_id':eitem['id'],'operation':'create','expected_case_token':call('GET',eroot,owner)['case_token'],'report_id':None,'expected_report_token':'','data':edata,'reason':''}
+    def er(body):
+        preview=call('POST',eroot+'/preview',owner,json=body)
+        return {**body,'preview_token':preview['preview_token'],'reviewed':True}
+    first=er(eb)
+    if scenario=='first_competition':
+        # A failure in the audit append rolls back report and all observations.
+        with patch.object(manual_lab,'append_audit',side_effect=OperationalError('synthetic',{},Exception('audit unavailable'))):
+            call('POST',eroot+'/confirm',owner,expected=503,json=first)
+        assert call('GET',eroot,owner)['reports']==[]
+        requests=[first,er({**eb,'request_id':uuid4().hex})]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            result=list(pool.map(lambda req:client.post(eroot+'/confirm',headers=owner,json=req),requests))
+        assert sorted(r.status_code for r in result)==[200,409]
+    elif scenario=='correct_withdraw':
+        old=call('POST',eroot+'/confirm',owner,json=first)['report']
+        base={**eb,'report_id':old['id'],'expected_report_token':old['token'],'reason':'并发合成更正或撤销'}
+        requests=[er({**base,'request_id':uuid4().hex,'operation':op,'data':None if op=='withdraw' else edata}) for op in ('correct','withdraw')]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            result=list(pool.map(lambda req:client.post(eroot+'/confirm',headers=owner,json=req),requests))
+        assert sorted(r.status_code for r in result)==[200,409]
+    else:
+        ab={**ab,'request_id':uuid4().hex,'operation':'withdraw','expected_case_token':call('GET',efiles,owner)['case_token'],'reason':'并发合成撤销来源'}
+        ap=call('POST',efiles+'/preview',owner,json=ab)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            save=pool.submit(client.post,eroot+'/confirm',headers=owner,json=first)
+            withdrawal=pool.submit(client.post,efiles+'/confirm',headers=owner,json={**ab,'preview_token':ap['preview_token'],'reviewed':True})
+            assert save.result().status_code in (200,409);assert withdrawal.result().status_code==200
+        assert all(r['state']!='confirmed' for r in call('GET',eroot,owner)['reports'])
+    listing=call('GET',eroot,owner)
+    assert sum(r['state']=='confirmed' for r in listing['reports'])<=1
+    lab_extra.append({'case_id':ecid,'listing':listing})
+    record('cwb7_postgresql_'+scenario+'_one_current_version')
+(f.OUT/'cwb7-extra-restart.json').write_text(json.dumps(lab_extra,ensure_ascii=False,indent=2))
 
 
 client.close(); f.db.engine.dispose()

@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
+try:
+    from backend.manual_lab_results import legacy_only as manual_lab_legacy_only, is_manual as is_manual_lab
+except ModuleNotFoundError:
+    from manual_lab_results import legacy_only as manual_lab_legacy_only, is_manual as is_manual_lab
+
+
 from datetime import datetime, timezone
 import hashlib
 import hmac
@@ -211,14 +217,14 @@ def _clinical_docs_diagnostic_data_merge_for_case(db: Session, case: Case, *, in
         }
 
     reports = (
-        db.query(DiagnosticReport)
+        db.query(DiagnosticReport).filter(manual_lab_legacy_only(DiagnosticReport.source_type))
         .filter(DiagnosticReport.case_id == int(getattr(case, "id")))
         .order_by(DiagnosticReport.created_at.desc(), DiagnosticReport.id.desc())
         .limit(20)
         .all()
     )
     observations = (
-        db.query(Observation)
+        db.query(Observation).filter(manual_lab_legacy_only(Observation.source_type))
         .filter(Observation.case_id == int(getattr(case, "id")))
         .order_by(Observation.created_at.desc(), Observation.id.desc())
         .limit(50)

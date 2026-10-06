@@ -72,6 +72,13 @@ on:
       - 'docs/product/PET_MED_AI_CLINICAL_WORKFLOW_BATCH_INDEX.md'
       - 'docs/product/PET_MED_AI_FUTURE_DEVELOPMENT_OUTLINE_V1.md'
       - 'scripts/validate_case_attachments_cw_b6.py'
+      - 'frontend/src/manualLabResults.js'
+      - 'frontend/tests/manual-lab-results.test.jsx'
+      - 'tests/test_manual_lab_results.py'
+      - 'tests/test_manual_lab_result_concurrency.py'
+      - 'tests/fixtures/manual_lab_cw_b7_cases.json'
+      - 'scripts/validate_manual_lab_cw_b7.py'
+      - 'docs/clinical_docs/MANUAL_LAB_RESULTS_CW_B7.md'
 
 permissions:
   contents: read
@@ -91,12 +98,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind fixed M7 through CW-B5 and approved CW-B6 increment
+      - name: Bind frozen M7 through CW-B6 and approved CW-B7 increment
         run: |
           set -euo pipefail
-          python scripts/validate_case_attachments_cw_b6.py > "$RUNNER_TEMP/cwb6-scope.json"
+          python scripts/validate_manual_lab_cw_b7.py > "$RUNNER_TEMP/cwb7-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb6-scope.json" acceptance-results/cwb6-scope.json
+          cp "$RUNNER_TEMP/cwb7-scope.json" acceptance-results/cwb7-scope.json
+          python - <<'PY_SCOPE'
+          import json
+          scope = json.load(open('acceptance-results/cwb7-scope.json'))
+          open('acceptance-results/cwb6-scope.json','w').write(json.dumps(scope['frozen_cwb6'],indent=2))
+          PY_SCOPE
           baseline=793894523be602bd8da265f8f7e8e63e417027a7
           git merge-base --is-ancestor "$baseline" HEAD
           test "$(git rev-parse "$baseline^{tree}")" = 63bd051e6e99f0719f474e0ecf38fc70fbc21f42
@@ -224,6 +236,11 @@ jobs:
           python tests/test_case_attachment_store.py 2>&1 | tee acceptance-results/cwb6-store-tests.log
           python tests/test_case_attachments.py 2>&1 | tee acceptance-results/cwb6-route-tests.log
           python tests/test_case_attachment_concurrency.py 2>&1 | tee acceptance-results/cwb6-concurrency-tests.log
+      - name: CW-B7 exact manual results, isolation and atomic SQLite concurrency
+        run: |
+          set -euo pipefail
+          python tests/test_manual_lab_results.py 2>&1 | tee acceptance-results/cwb7-route-tests.log
+          python tests/test_manual_lab_result_concurrency.py 2>&1 | tee acceptance-results/cwb7-concurrency-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -323,6 +340,10 @@ jobs:
           else: raise RuntimeError('Previous test server did not stop')
           PY
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/attachment_checks.cjs 2>&1 | tee acceptance-results/cwb6-browser.log
+      - name: CW-B7 real Chromium manual lab review and original-source lifecycle
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/manual_lab_checks.cjs 2>&1 | tee acceptance-results/cwb7-browser.log
       - name: Audit locked frontend dependencies
         run: |
           set -o pipefail
