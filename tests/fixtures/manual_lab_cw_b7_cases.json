@@ -1,0 +1,105 @@
+{
+  "report": {
+    "title": "CW-B7 合成检验 < & {{literal}}",
+    "panel": "mixed",
+    "specimen": "合成血液/尿液",
+    "collected_at": "2026-10-06T10:30:00+08:00",
+    "reported_at": "",
+    "laboratory": "合成实验室",
+    "device": "合成仪器",
+    "note": "仅用于软件验收，不作医学判断"
+  },
+  "items": [
+    {
+      "name": "合成白细胞 < & {{literal}}",
+      "result_type": "number",
+      "value": "0.0100",
+      "unit": "10^9/L",
+      "reference": "0.0001–10.5000（合成范围）",
+      "reference_low": "0.0001",
+      "reference_high": "10.5000",
+      "reference_unit": "10^9/L",
+      "flag": "H（仅抄录）",
+      "position": "第1页第1行",
+      "checked": true
+    },
+    {
+      "name": "合成项目2",
+      "result_type": "comparison",
+      "value": "<0.0010",
+      "unit": "",
+      "reference": "",
+      "reference_low": "",
+      "reference_high": "",
+      "reference_unit": "",
+      "flag": "",
+      "position": "第1页第2行",
+      "checked": true
+    },
+    {
+      "name": "合成项目3",
+      "result_type": "text",
+      "value": "未见结晶 < & {{literal}}",
+      "unit": "",
+      "reference": "",
+      "reference_low": "",
+      "reference_high": "",
+      "reference_unit": "",
+      "flag": "",
+      "position": "第1页第3行",
+      "checked": true
+    },
+    {
+      "name": "合成项目4",
+      "result_type": "not_tested",
+      "value": "",
+      "unit": "",
+      "reference": "",
+      "reference_low": "",
+      "reference_high": "",
+      "reference_unit": "",
+      "flag": "",
+      "position": "第1页第4行",
+      "checked": true
+    },
+    {
+      "name": "合成项目5",
+      "result_type": "not_provided",
+      "value": "",
+      "unit": "",
+      "reference": "",
+      "reference_low": "",
+      "reference_high": "",
+      "reference_unit": "",
+      "flag": "",
+      "position": "第1页第5行",
+      "checked": true
+    },
+    {
+      "name": "合成项目6",
+      "result_type": "number",
+      "value": "0",
+      "unit": "",
+      "reference": "",
+      "reference_low": "",
+      "reference_high": "",
+      "reference_unit": "",
+      "flag": "",
+      "position": "第1页第6行",
+      "checked": true
+    },
+    {
+      "name": "合成项目7",
+      "result_type": "comparison",
+      "value": "≥5.20",
+      "unit": "",
+      "reference": "",
+      "reference_low": "",
+      "reference_high": "",
+      "reference_unit": "",
+      "flag": "",
+      "position": "第1页第7行",
+      "checked": true
+    }
+  ]
+}
