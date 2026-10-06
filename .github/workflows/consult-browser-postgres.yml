@@ -94,7 +94,9 @@ jobs:
       - name: Bind fixed M7 through CW-B5 and approved CW-B6 increment
         run: |
           set -euo pipefail
+          python scripts/validate_case_attachments_cw_b6.py > "$RUNNER_TEMP/cwb6-scope.json"
           mkdir -p acceptance-results
+          cp "$RUNNER_TEMP/cwb6-scope.json" acceptance-results/cwb6-scope.json
           baseline=793894523be602bd8da265f8f7e8e63e417027a7
           git merge-base --is-ancestor "$baseline" HEAD
           test "$(git rev-parse "$baseline^{tree}")" = 63bd051e6e99f0719f474e0ecf38fc70fbc21f42
@@ -166,7 +168,6 @@ jobs:
           assert 0 < len(voice_changed) <= 25 and voice_changed <= voice_allowed, sorted(voice_changed - voice_allowed)
           open('acceptance-results/cwb5-scope.json', 'w').write(json.dumps({'baseline': b4, 'changed': sorted(voice_changed), 'allowed': sorted(voice_allowed)}, indent=2))
           PY
-          python scripts/validate_case_attachments_cw_b6.py > acceptance-results/cwb6-scope.json
           git rev-parse HEAD > acceptance-results/test-commit.txt
           git rev-parse HEAD > acceptance-results/application-commit.txt
           git rev-parse "$baseline" > acceptance-results/application-baseline.txt

@@ -4,11 +4,11 @@
 
 | 本线名称 | 历史名称 / PR | 范围 | 草稿候选 | CI 通过 | 已合并 | 已上线 | 医生验收 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| CW-M7 | M7 / [#45](https://github.com/pet-med-ai/Pet-med-ai/pull/45) | 犬猫腹泻采集；后补门诊宠主姓名/毛色 | 草稿 PR | 历史候选已通过 | 否 | 否 | 待补 |
-| CW-B1 | B1 / [#46](https://github.com/pet-med-ai/Pet-med-ai/pull/46) | 食欲/消瘦、多饮多尿、咳嗽/呼吸 | 草稿 PR | 历史候选已通过 | 否 | 否 | 待补 |
-| CW-B2 | B2 / [#47](https://github.com/pet-med-ai/Pet-med-ai/pull/47) | 晕厥/抽搐、排尿、皮肤、跛行/疼痛 | 草稿 PR | 历史候选已通过 | 否 | 否 | 待补 |
-| CW-B3 | B3 / [#48](https://github.com/pet-med-ai/Pet-med-ai/pull/48) | 发热/精神沉郁、老年筛查 | 草稿 PR | 历史候选已通过 | 否 | 否 | 待补 |
-| CW-B4 | B4 / [#49](https://github.com/pet-med-ai/Pet-med-ai/pull/49) | 输入依据和问诊链路修复 | 草稿 PR | 历史候选已通过 | 否 | 否 | 待补 |
+| CW-M7 | M7 / [#45](https://github.com/pet-med-ai/Pet-med-ai/pull/45) | 犬猫腹泻采集；后补门诊宠主姓名/毛色 | 草稿 PR | 历史候选已通过 | 否 | 待核验 | 待补 |
+| CW-B1 | B1 / [#46](https://github.com/pet-med-ai/Pet-med-ai/pull/46) | 食欲/消瘦、多饮多尿、咳嗽/呼吸 | 草稿 PR | 历史候选已通过 | 否 | 待核验 | 待补 |
+| CW-B2 | B2 / [#47](https://github.com/pet-med-ai/Pet-med-ai/pull/47) | 晕厥/抽搐、排尿、皮肤、跛行/疼痛 | 草稿 PR | 历史候选已通过 | 否 | 待核验 | 待补 |
+| CW-B3 | B3 / [#48](https://github.com/pet-med-ai/Pet-med-ai/pull/48) | 发热/精神沉郁、老年筛查 | 草稿 PR | 历史候选已通过 | 否 | 待核验 | 待补 |
+| CW-B4 | B4 / [#49](https://github.com/pet-med-ai/Pet-med-ai/pull/49) | 输入依据和问诊链路修复 | 草稿 PR | 历史候选已通过 | 否 | 待核验 | 待补 |
 | CW-B5 | CW-B5 / [#50](https://github.com/pet-med-ai/Pet-med-ai/pull/50) | 外部语音草稿、医生确认、费用上限 | 草稿 PR | bba8703 四组适用 CI 通过 | 否 | 否 | 待补；真实服务调用未验收 |
 | CW-B6 | 检查资料归档 | 手工原件归档、核对、授权回看、撤销 | 已批准，独立分支首次实现 | 待本批候选验证（建档时） | 否 | 否 | 未验收 |
 
