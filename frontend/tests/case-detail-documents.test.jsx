@@ -205,3 +205,14 @@ test('changing credentials before confirmation cannot dispatch a new account req
  await mount();await click('导出门诊病历草稿 DOCX');await check();storage='synthetic-other';await click('确认并下载草稿 DOCX');
  assert.equal(exports().length,0);assert.equal(downloads.length,0);
 });
+
+
+test('CW-B6 attachments load only on explicit open and preserve existing history', async () => {
+ await mount(); assert.equal(requests.filter(c=>c.url.includes('/attachments')).length,0);
+ const original=adapter; adapter=c=>c.url.endsWith('/attachments')?{config:c,status:200,data:{case_id:1,patient_name:'合成病例-1',species:'dog',items:[],case_token:'a'.repeat(64)}}:original(c);
+ await click('打开检查资料'); await act(async()=>{});
+ assert.equal(requests.filter(c=>c.url.includes('/attachments')).length,1);
+ assert.match(text(),/病史-1/); assert.equal(exports().length,0);
+ await move('/cases/2'); assert.doesNotMatch(text(),/原件已暂存/);
+ assert.equal(requests.filter(c=>c.method!=='get').length,0);
+});

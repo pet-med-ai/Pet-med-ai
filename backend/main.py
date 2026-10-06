@@ -112,6 +112,8 @@ elif _is_production():
 # 统一挂载 Auth 路由（保持你原来逻辑，路径保持不变，如 /auth/login 等）
 app.include_router(auth_router)
 app.include_router(speech_router)
+from case_attachments_api import router as case_attachments_router
+app.include_router(case_attachments_router)
 
 
 def _text_with_species(text: str, species: Optional[str] = None) -> str:

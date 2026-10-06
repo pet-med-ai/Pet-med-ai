@@ -42,6 +42,37 @@ def read(cid, auth):
     return call('GET', f'/api/cases/{cid}', auth)
 
 
+# CW-B6 reuses the real Case/AuditLog schema and actual routes on native PostgreSQL.
+# No SQLite test fixture is imported here; fixture.py rejects SQLite and egress.
+import hashlib
+import os
+import tempfile
+from pathlib import Path
+from urllib.parse import quote
+sys.path.insert(0, str(f.ROOT / 'tests' / 'fixtures'))
+from build_attachment_cw_b6_fixtures import samples as attachment_samples
+import case_attachment_store as attachment_store
+import case_attachment_service as attachment_service
+attachment_directory = Path(tempfile.gettempdir()) / ('pmai-cwb6-pg-' + hashlib.sha256(str(f.OUT).encode()).hexdigest()[:20])
+os.environ.update(CASE_ATTACHMENTS_ENABLED='1', CASE_ATTACHMENTS_SYNTHETIC_ONLY='1', CASE_ATTACHMENTS_DIR=str(attachment_directory))
+
+def attachment_readback():
+    saved = json.loads((f.OUT / 'cwb6-restart-expected.json').read_text())
+    auth = login('pg-owner')
+    root = f'/api/cases/{saved["case_id"]}/attachments'
+    listing = call('GET', root, auth)
+    assert listing == saved['listing']
+    for item in listing['items']:
+        r = client.get(root + '/' + item['id'] + '/content', headers=auth, params={'request_id': uuid4().hex})
+        if item['state'] == 'withdrawn':
+            assert r.status_code == 404
+        else:
+            assert r.status_code == 200 and hashlib.sha256(r.content).hexdigest() == item['sha256']
+    with f.db.SessionLocal() as db:
+        assert db.query(f.models.AuditLog).filter_by(case_id=saved['case_id'], event_type='attachment_confirm').count() == 2
+    record('cwb6_fresh_process_exact_refs_raw_sha256_and_withdrawn_access')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -72,6 +103,8 @@ if '--readback' in sys.argv:
         rows = session.query(f.models.AuditLog).filter_by(case_id=saved_voice['case_id'], event_type='speech_confirm').order_by(f.models.AuditLog.created_at, f.models.AuditLog.log_id).all()
         assert len(rows) == 2 and [row.extra_data for row in rows] == saved_voice['audits']
     record('cwb5_fresh_process_exact_history_audit_and_spent_budget')
+    attachment_readback()
+    client.close(); f.db.engine.dispose()
     sys.exit(0)
 
 f.prepare_empty_database()
@@ -548,5 +581,77 @@ with f.db.SessionLocal() as session:
 assert len(audits)==2 and audits[1]['edited_text']==entry['edited_text']
 (f.OUT / 'cwb5-restart-expected.json').write_text(json.dumps({'case_id':voice_id,'record':saved,'audits':audits},ensure_ascii=False))
 record('cwb5_addendum_consumed_once_and_atomic_provenance')
+
+# Isolated private directory must not contain files from another candidate.
+assert not attachment_directory.exists(), 'Refusing a pre-existing attachment test store'
+a_case = call('POST', '/api/cases', owner, expected=201, json={**manual, 'patient_name':'CW-B6 PG合成犬'})
+aid_case = a_case['id']; attachment_root = f'/api/cases/{aid_case}/attachments'
+before_attachment = read(aid_case, owner)
+meta = {'title':'合成检验报告','kind':'lab','taken_at':'','reported_at':'','source':'','note':''}
+def attachment_body(item, operation='confirm', metadata=None, reason=''):
+    return {'request_id':uuid4().hex, 'attachment_id':item['id'], 'operation':operation,
+            'expected_case_token':call('GET',attachment_root,owner)['case_token'], 'metadata':metadata or meta, 'reason':reason}
+def attachment_review(body):
+    preview = call('POST', attachment_root+'/preview', owner, json=body)
+    return {**body, 'preview_token':preview['preview_token'], 'reviewed':True}
+originals = attachment_samples()
+# Same idempotency key on independent real route transactions yields one upload/audit.
+name, mime, data = originals[0]
+version = call('GET',attachment_root,owner)['case_token']; upload_id=uuid4().hex
+headers={**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':version}
+with ThreadPoolExecutor(max_workers=2) as pool:
+    uploaded=list(pool.map(lambda _:call('POST',attachment_root+'/uploads/'+upload_id,headers,content=data),range(2)))
+assert uploaded[0]['attachment']['id']==uploaded[1]['attachment']['id']
+item=uploaded[0]['attachment']; request=attachment_review(attachment_body(item))
+with ThreadPoolExecutor(max_workers=2) as pool:
+    confirmed=list(pool.map(lambda _:call('POST',attachment_root+'/confirm',owner,json=request),range(2)))
+assert len(call('GET',attachment_root,owner)['items'])==1
+call('POST',attachment_root+'/confirm',owner,expected=409,json={**request,'reason':'mutated'})
+with f.db.SessionLocal() as db:
+    assert db.query(f.models.AuditLog).filter_by(case_id=aid_case,event_type='attachment_upload').count()==1
+    assert db.query(f.models.AuditLog).filter_by(case_id=aid_case,event_type='attachment_confirm').count()==1
+record('cwb6_postgresql_concurrent_upload_confirm_one_reference_and_audit')
+# Rival metadata corrections invalidate the other preview rather than last-write-wins.
+requests=[attachment_review(attachment_body(item,'update',{**meta,'title':'合成更正'+str(i)})) for i in range(2)]
+with ThreadPoolExecutor(max_workers=2) as pool:
+    results=list(pool.map(lambda req:client.post(attachment_root+'/confirm',headers=owner,json=req),requests))
+assert sorted(r.status_code for r in results)==[200,409]
+record('cwb6_postgresql_concurrent_metadata_revision_rejects_stale_review')
+# Fresh connection reads original bytes; foreign and deleted cases never obtain them.
+path=attachment_root+'/'+item['id']+'/content'
+r=client.get(path,headers=owner,params={'request_id':uuid4().hex}); assert r.content==data
+assert client.get(path,headers=other,params={'request_id':uuid4().hex}).status_code==404
+f.db.engine.dispose(); assert call('GET',attachment_root,owner)['items'][0]['sha256']==hashlib.sha256(data).hexdigest()
+withdraw=attachment_review(attachment_body(item,'withdraw',reason='合成误关联'))
+call('POST',attachment_root+'/confirm',owner,json=withdraw)
+assert client.get(path,headers=owner,params={'request_id':uuid4().hex}).status_code==404
+assert call('GET',attachment_root+'/requests/'+request['request_id'],owner)['attachment']['state']=='withdrawn'
+assert attachment_store.Store().path(item['id'],'.blob').read_bytes()==data
+# A second format remains active, providing byte-exact independent-process readback.
+name,mime,data=originals[1]; upload_id=uuid4().hex
+headers={**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',attachment_root,owner)['case_token']}
+item2=call('POST',attachment_root+'/uploads/'+upload_id,headers,content=data)['attachment']
+req=attachment_review(attachment_body(item2)); call('POST',attachment_root+'/confirm',owner,json=req)
+assert read(aid_case,owner)['history']==before_attachment['history']
+record('cwb6_postgresql_authorized_bytes_withdrawal_history_unchanged')
+# Simulated database commit failure must leave no partial association or audit.
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session
+change=attachment_review(attachment_body(item2,'update',{**meta,'title':'故障后更正'}))
+with patch.object(Session,'commit',side_effect=OperationalError('synthetic',{},Exception('injected'))):
+    call('POST',attachment_root+'/confirm',owner,expected=503,json=change)
+assert call('GET',attachment_root+'/requests/'+change['request_id'],owner)['state']=='not_committed'
+call('POST',attachment_root+'/confirm',owner,json=change)
+sys.path.insert(0,str(f.ROOT/'scripts'))
+from verify_case_attachment_storage import backup_readback
+with tempfile.TemporaryDirectory(prefix='cwb6-pg-backup-') as backup:
+    with f.db.SessionLocal() as db:
+        case=db.get(f.models.Case,aid_case)
+        report=backup_readback(attachment_store.Store(),[{'case_id':case.id,'owner_id':case.owner_id,'attachments':case.attachments}],Path(backup)/'restored')
+assert report['verified'] and report['files']==2 and report['database_restored'] is False
+(f.OUT/'cwb6-backup-readback.json').write_text(json.dumps(report,indent=2))
+(f.OUT/'cwb6-restart-expected.json').write_text(json.dumps({'case_id':aid_case,'listing':call('GET',attachment_root,owner)},ensure_ascii=False,indent=2))
+record('cwb6_postgresql_atomic_rollback_retry_private_backup_readback')
+
 
 client.close(); f.db.engine.dispose()

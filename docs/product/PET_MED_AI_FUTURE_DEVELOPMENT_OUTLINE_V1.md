@@ -928,3 +928,7 @@ Define why client-facing dose output remains disabled by default.
 Pet-Med-AI Future Development Outline V1: complete only after validator PASS, CI PASS, smoke PASS, and production schema gate remains 0009_diag_data.
 decision=GO_TO_EXOTICS_DRUG_DOSE_SOURCE_REVIEW_METADATA_ONLY_COLLECTION_WORKSPACE_GOVERNANCE_SIGNOFF_RECORD_VALIDATION_V1
 ```
+
+## Companion-animal clinical workflow index (CW)
+
+The parallel clinician workflow and five distinct delivery states are recorded in [PET_MED_AI_CLINICAL_WORKFLOW_BATCH_INDEX.md](PET_MED_AI_CLINICAL_WORKFLOW_BATCH_INDEX.md). Historical exotics B5 remains Snake Depth V2; original PRs, commits and budgets are unchanged. This link does not authorize merging, deployment or production data operations.
