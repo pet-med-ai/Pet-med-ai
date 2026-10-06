@@ -1,9 +1,10 @@
 // src/pages/CaseDetail.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
 import ClinicalDocReview from "../components/ClinicalDocReview";
 import { draftOwner } from "../consultDraft";
+const CaseAttachments = lazy(() => import("../components/CaseAttachments"));
 
 export default function CaseDetail() {
   const { id } = useParams();
@@ -21,6 +22,7 @@ export default function CaseDetail() {
 }
 
 function CaseDetailContent({ requestToken }) {
+  const [showAttachments, setShowAttachments] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -926,6 +928,10 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       style={{ padding: 24, maxWidth: 980, margin: "0 auto", fontFamily: "system-ui,-apple-system,Arial" }}
     >
       <style>{css}</style>
+      <div className="screen-only">
+        <button type="button" onClick={() => setShowAttachments(value => !value)}>{showAttachments ? "收起检查资料" : "打开检查资料"}</button>
+        {showAttachments && <Suspense fallback={<p>正在读取检查资料…</p>}><CaseAttachments key={JSON.stringify([data.id, requestToken])} caseId={Number(data.id)} requestToken={requestToken} /></Suspense>}
+      </div>
 
       <div className="screen-toolbar" style={toolbar}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -1157,10 +1163,10 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         <TextCard>{data.prognosis}</TextCard>
       </Section>
 
-      {Array.isArray(data.attachments) && data.attachments.length > 0 && (
+      {Array.isArray(data.attachments) && data.attachments.some(a => a?.schema !== "case-attachment-cw-b6-v1") && (
         <Section title="八、附件">
           <ul className="attach-list">
-            {data.attachments.map((a) => (
+            {data.attachments.filter(a => a?.schema !== "case-attachment-cw-b6-v1").map((a) => (
               <li key={a.id}>
                 <span className="attach-name">{a.name}</span>
                 {a.url && (

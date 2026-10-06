@@ -61,6 +61,17 @@ on:
       - 'docs/clinical_docs/VOICE_DRAFT_CW_B5.md'
       - 'scripts/verify_voice_provider_cw_b5.py'
       - 'tests/fixtures/voice_cw_b5_cases.json'
+      - 'frontend/src/caseAttachments.js'
+      - 'frontend/tests/case-attachments.test.jsx'
+      - 'tests/test_case_attachment_store.py'
+      - 'tests/test_case_attachments.py'
+      - 'tests/test_case_attachment_concurrency.py'
+      - 'tests/fixtures/build_attachment_cw_b6_fixtures.py'
+      - 'scripts/verify_case_attachment_storage.py'
+      - 'docs/clinical_docs/CASE_ATTACHMENTS_CW_B6.md'
+      - 'docs/product/PET_MED_AI_CLINICAL_WORKFLOW_BATCH_INDEX.md'
+      - 'docs/product/PET_MED_AI_FUTURE_DEVELOPMENT_OUTLINE_V1.md'
+      - 'scripts/validate_case_attachments_cw_b6.py'
 
 permissions:
   contents: read
@@ -80,10 +91,12 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind fixed M7 through B4 and approved CW-B5 increment
+      - name: Bind fixed M7 through CW-B5 and approved CW-B6 increment
         run: |
           set -euo pipefail
+          python scripts/validate_case_attachments_cw_b6.py > "$RUNNER_TEMP/cwb6-scope.json"
           mkdir -p acceptance-results
+          cp "$RUNNER_TEMP/cwb6-scope.json" acceptance-results/cwb6-scope.json
           baseline=793894523be602bd8da265f8f7e8e63e417027a7
           git merge-base --is-ancestor "$baseline" HEAD
           test "$(git rev-parse "$baseline^{tree}")" = 63bd051e6e99f0719f474e0ecf38fc70fbc21f42
@@ -148,7 +161,10 @@ jobs:
           assert 0 < len(b4_changed) <= 18 and b4_changed <= b4_allowed, sorted(b4_changed - b4_allowed)
           open('acceptance-results/b4-scope.json', 'w').write(json.dumps({'baseline': b3, 'changed': sorted(b4_changed), 'allowed': sorted(b4_allowed)}, indent=2))
           voice_allowed = set(['backend/speech_transcription.py', 'backend/speech_transcription_api.py', 'backend/speech_budget.py', 'backend/main.py', 'frontend/src/App.jsx', 'frontend/src/components/VoiceDraft.jsx', 'frontend/src/voiceDraftState.js', 'frontend/src/audioCapture.js', 'frontend/src/audioCapture.worklet.js', 'frontend/src/components/ConsultSaveReview.jsx', 'frontend/src/components/ConsultUpdateReview.jsx', 'frontend/src/consultDraft.js', 'frontend/tests/voice-draft.test.jsx', 'frontend/tests/audio-capture.test.jsx', 'tests/test_speech_transcription.py', 'tests/test_speech_budget.py', 'tests/test_speech_history.py', 'tests/acceptance/speech_checks.cjs', 'tests/acceptance/postgres_checks.py', 'frontend/tests/run-consult-update-review.mjs', '.github/workflows/consult-browser-postgres.yml', 'docs/clinical_docs/VOICE_DRAFT_CW_B5.md', 'scripts/verify_voice_provider_cw_b5.py', 'tests/fixtures/voice_cw_b5_cases.json', 'frontend/package-lock.json'])
-          voice_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b4, 'HEAD'], text=True).splitlines())
+          voice = 'bba87033eb7e392ded7e9d48652a1ac185b04058'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', voice, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', voice + '^{tree}'], text=True).strip() == 'f72860b116c474b356fc5f6d988dd71cdacdb12e'
+          voice_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b4, voice], text=True).splitlines())
           assert 0 < len(voice_changed) <= 25 and voice_changed <= voice_allowed, sorted(voice_changed - voice_allowed)
           open('acceptance-results/cwb5-scope.json', 'w').write(json.dumps({'baseline': b4, 'changed': sorted(voice_changed), 'allowed': sorted(voice_allowed)}, indent=2))
           PY
@@ -202,6 +218,12 @@ jobs:
           python tests/test_speech_transcription.py
           python tests/test_speech_budget.py
           python tests/test_speech_history.py
+      - name: CW-B6 private files, authenticated lifecycle and SQLite concurrency
+        run: |
+          set -euo pipefail
+          python tests/test_case_attachment_store.py 2>&1 | tee acceptance-results/cwb6-store-tests.log
+          python tests/test_case_attachments.py 2>&1 | tee acceptance-results/cwb6-route-tests.log
+          python tests/test_case_attachment_concurrency.py 2>&1 | tee acceptance-results/cwb6-concurrency-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -289,6 +311,18 @@ jobs:
             sleep 0.2
           done
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/speech_checks.cjs 2>&1 | tee acceptance-results/cwb5-browser.log
+      - name: CW-B6 real Chromium synthetic originals and doctor review
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import socket, time
+          for attempt in range(50):
+              with socket.socket() as stream:
+                  if stream.connect_ex(('127.0.0.1', 18026)) != 0: break
+              time.sleep(0.1)
+          else: raise RuntimeError('Previous test server did not stop')
+          PY
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/attachment_checks.cjs 2>&1 | tee acceptance-results/cwb6-browser.log
       - name: Audit locked frontend dependencies
         run: |
           set -o pipefail
