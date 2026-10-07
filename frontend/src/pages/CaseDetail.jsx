@@ -9,6 +9,7 @@ const CaseLabResults = lazy(() => import("../components/CaseLabResults"));
 const CaseImagingRecords = lazy(() => import("../components/CaseImagingRecords"));
 const CaseVisitOverview = lazy(() => import("../components/CaseVisitOverview"));
 const CaseLabRangeReview = lazy(() => import("../components/CaseLabRangeReview"));
+const CaseLabComparison = lazy(() => import("../components/CaseLabComparison"));
 
 export default function CaseDetail() {
   const { id } = useParams();
@@ -41,6 +42,7 @@ function CaseDetailContent({ requestToken }) {
   const [labRevision, setLabRevision] = useState(0);
   const savedRevision = sourceRevision + labRevision;
   const [showRangeReview, setShowRangeReview] = useState(false), [labTarget, setLabTarget] = useState(null);
+  const [showLabComparison, setShowLabComparison] = useState(false);
   const [showImaging, setShowImaging] = useState(false), [imagingDirty, setImagingDirty] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
@@ -964,7 +966,9 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       <style>{css}</style>
       <div className="screen-only">
         <button type="button" onClick={() => setShowRangeReview(v => !v)}>{showRangeReview ? "收起检验结果区间核对" : "打开检验结果区间核对"}</button>
-        {showRangeReview && <Suspense fallback={<p>正在读取检验区间组件…</p>}><CaseLabRangeReview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} /></Suspense>}
+        {showRangeReview && <Suspense fallback={<p>正在读取检验区间组件…</p>}><CaseLabRangeReview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} onCompare={() => setShowLabComparison(true)} /></Suspense>}
+        <button type="button" onClick={() => setShowLabComparison(v => !v)}>{showLabComparison ? "收起检验前后对照" : "打开检验前后对照"}</button>
+        {showLabComparison && <Suspense fallback={<p>正在读取检验对照组件…</p>}><CaseLabComparison caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} /></Suspense>}
         <button type="button" onClick={() => setShowOverview(value => !value)}>{showOverview ? "收起就诊资料总览" : "打开就诊资料总览"}</button>
         {showOverview && <Suspense fallback={<p>正在读取总览组件…</p>}><CaseVisitOverview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onNavigate={navigateOverview} /></Suspense>}
         <div ref={node => { overviewAnchors.current.attachments = node; }} tabIndex={-1} />

@@ -6,7 +6,7 @@ import { labStates, labTypes } from "../manualLabResults";
 const box = { padding: 16, margin: "12px 0", border: "1px solid #ccd5d1", borderRadius: 8, overflowWrap: "anywhere" };
 const literal = value => value === "" ? "未提供" : value;
 export default function CaseLabRangeReview(props) { return <RangeReview key={JSON.stringify([props.caseId, props.requestToken])} {...props} />; }
-function RangeReview({ caseId, requestToken, sourceRevision = 0, onInspect }) {
+function RangeReview({ caseId, requestToken, sourceRevision = 0, onInspect, onCompare }) {
   const [saved, setSaved] = useState(null), [message, setMessage] = useState(""), [busy, setBusy] = useState(false), [filter, setFilter] = useState("all");
   const active = useRef(false), epoch = useRef(0), controller = useRef(null), refresh = useRef(null);
   const current = () => active.current && Boolean(requestToken) && localStorage.getItem("token") === requestToken;
@@ -46,6 +46,7 @@ function RangeReview({ caseId, requestToken, sourceRevision = 0, onInspect }) {
   const source = row => <><p>采样时间：{literal(row.report.collected_at)} · 报告时间：{literal(row.report.reported_at)}</p><p>核对账号：{row.reviewed_by} · 核对时间：{row.reviewed_at}</p><p>来源文件：{row.source.name} · SHA256：<code>{row.source.sha256}</code></p>{inspect(row)}</>;
   return <section aria-label="检验结果区间核对" style={box}>
     <h2>检验结果区间核对</h2>
+    {onCompare && <button type="button" onClick={() => { if (current()) onCompare(); }}>进入同次就诊检验前后对照</button>}
     <p>仅比较已保存、当前有效的人工检验记录；未保存草稿不参与。这里只表示数值与原报告参考区间的位置，不作诊断。</p>
     <p>位于上下限之间、没有区间外项目或已核对，都不代表健康或排除疾病。边界含义仍需医生核对。</p>
     <button type="button" onClick={() => refresh.current()}>刷新检验区间核对</button><p role="status" aria-live="polite">{busy ? "正在读取检验区间…" : message}</p>
