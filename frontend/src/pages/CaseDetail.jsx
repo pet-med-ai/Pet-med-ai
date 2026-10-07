@@ -6,6 +6,7 @@ import ClinicalDocReview from "../components/ClinicalDocReview";
 import { draftOwner } from "../consultDraft";
 const CaseAttachments = lazy(() => import("../components/CaseAttachments"));
 const CaseLabResults = lazy(() => import("../components/CaseLabResults"));
+const CaseImagingRecords = lazy(() => import("../components/CaseImagingRecords"));
 
 export default function CaseDetail() {
   const { id } = useParams();
@@ -25,6 +26,7 @@ export default function CaseDetail() {
 function CaseDetailContent({ requestToken }) {
   const [showAttachments, setShowAttachments] = useState(false);
   const [showLab, setShowLab] = useState(false), [labDirty, setLabDirty] = useState(false), [sourceRevision, setSourceRevision] = useState(0);
+  const [showImaging, setShowImaging] = useState(false), [imagingDirty, setImagingDirty] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -819,7 +821,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     // Wait until the opener is enabled again before restoring keyboard focus.
     setTimeout(() => { if (isCurrent()) reviewOpener.current?.focus(); }, 0);
   };
-  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = []) => {
+  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = [], imagingIds = []) => {
     if (reviewActive.current && !expectedSnapshot) return;
     if (!data?.id || !isCurrent()) {
       alert("病例尚未加载或登录已变化，请重新打开病例后导出。");
@@ -840,6 +842,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           output: "docx",
           ...(expectedSnapshot ? { expected_content_snapshot: expectedSnapshot } : {}),
           ...(labIds.length ? { manual_lab_report_ids: labIds } : {}),
+          ...(imagingIds.length ? { manual_imaging_report_ids: imagingIds } : {}),
         },
         {
           responseType: "blob",
@@ -936,6 +939,8 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         {showAttachments && <Suspense fallback={<p>正在读取检查资料…</p>}><CaseAttachments key={JSON.stringify([data.id, requestToken])} caseId={Number(data.id)} requestToken={requestToken} onChanged={() => setSourceRevision(v => v + 1)} /></Suspense>}
         <button type="button" onClick={() => { if (!showLab || !labDirty || window.confirm("检验草稿尚未保存，收起会丢失。是否继续？")) setShowLab(v => !v); }}>{showLab ? "收起检验项目" : "打开检验项目"}</button>
         {showLab && <Suspense fallback={<p>正在读取检验项目…</p>}><CaseLabResults caseId={Number(data.id)} requestToken={requestToken} sourceRevision={sourceRevision} onDirtyChange={setLabDirty} /></Suspense>}
+        <button type="button" onClick={()=>{if(!showImaging || !imagingDirty || window.confirm("影像草稿尚未保存，收起会丢失。是否继续？"))setShowImaging(v=>!v);}}>{showImaging?"收起影像记录":"打开影像记录"}</button>
+        {showImaging && <Suspense fallback={<p>正在读取影像记录…</p>}><CaseImagingRecords caseId={Number(data.id)} requestToken={requestToken} sourceRevision={sourceRevision} onDirtyChange={setImagingDirty} onChanged={()=>setSourceRevision(v=>v+1)}/></Suspense>}
       </div>
 
       <div className="screen-toolbar" style={toolbar}>
@@ -982,7 +987,9 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         templateId={docReview.templateId} label={docReview.label} requestToken={requestToken}
         onClose={closeDocReview}
         onInspectLab={()=>{closeDocReview();setShowLab(true);}}
-        onDownload={(snapshot, current, ids) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids)} />}
+        sourceRevision={sourceRevision}
+        onInspectImaging={()=>{closeDocReview();setShowImaging(true);}}
+        onDownload={(snapshot, current, ids, imagingIds) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds)} />}
 
       {exportStatus && (
         <div role="status" aria-live="polite" className="clinical-doc-export-status screen-only">

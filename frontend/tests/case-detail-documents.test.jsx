@@ -229,3 +229,12 @@ test('CW-B6 attachments load only on explicit open and preserve existing history
  await move('/cases/2'); assert.doesNotMatch(text(),/原件已暂存/);
  assert.equal(requests.filter(c=>c.method!=='get').length,0);
 });
+
+
+test('CW-B9 imaging opens lazily and preserves the existing case history',async()=>{
+ await mount();assert.equal(requests.filter(c=>c.url.includes('/manual-imaging')).length,0);
+ const original=adapter;adapter=c=>c.url.endsWith('/manual-imaging')?{config:c,status:200,data:{case_id:1,patient_name:'合成病例-1',species:'dog',sources:[],reports:[],case_token:'a'.repeat(64)}}:original(c);
+ await click('打开影像记录');await act(async()=>{});
+ assert.equal(requests.filter(c=>c.url.includes('/manual-imaging')).length,1);assert.match(text(),/病史-1/);
+ await move('/cases/2');assert.equal(requests.filter(c=>c.method!=='get').length,0);
+});

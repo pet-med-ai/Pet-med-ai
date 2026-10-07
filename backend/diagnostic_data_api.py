@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+try:
+    from backend.manual_imaging_records import legacy_only as manual_imaging_legacy_only, is_manual as is_manual_imaging
+except ModuleNotFoundError:
+    from manual_imaging_records import legacy_only as manual_imaging_legacy_only, is_manual as is_manual_imaging
+
 
 try:
     from backend.manual_lab_results import legacy_only as manual_lab_legacy_only, is_manual as is_manual_lab
@@ -253,7 +258,7 @@ def _observation_query_for_case(db: Session, case_id: int):
 
 
 def _imaging_query_for_case(db: Session, case_id: int):
-    return db.query(ImagingStudy).filter(ImagingStudy.case_id == int(case_id))
+    return db.query(ImagingStudy).filter(manual_imaging_legacy_only(ImagingStudy.source_type)).filter(ImagingStudy.case_id == int(case_id))
 
 
 @router.get("/cases/{case_id}/summary", response_model=dict)
@@ -1459,7 +1464,7 @@ def get_clinical_qa_dashboard_v2_summary(
             .all()
         )
         imaging_studies = (
-            db.query(ImagingStudy)
+            db.query(ImagingStudy).filter(manual_imaging_legacy_only(ImagingStudy.source_type))
             .filter(ImagingStudy.case_id.in_(case_ids))
             .order_by(ImagingStudy.updated_at.desc(), ImagingStudy.id.desc())
             .limit(1000)
@@ -1728,6 +1733,8 @@ def apply_imagingstudy_review_workflow_endpoint(
         raise HTTPException(status_code=404, detail="Imaging study not found")
 
     case = _owned_case_or_404(db, int(imaging_study.case_id), user)
+    if is_manual_imaging(imaging_study):
+        raise HTTPException(status_code=409, detail="manual_imaging_use_dedicated_review")
     raw_case_id = data.get("case_id")
     if raw_case_id not in (None, "") and int(raw_case_id) != int(case.id):
         raise HTTPException(status_code=422, detail="case_id does not match imaging study")

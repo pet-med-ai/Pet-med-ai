@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import api from "../api";
 import { draftOwner } from "../consultDraft";
 import { validDocumentReports } from "../manualLabDocuments";
+import { validImagingReports } from "../manualImagingDocuments";
+const ClinicalDocImagingSelection = lazy(() => import("./ClinicalDocImagingSelection"));
 const ClinicalDocLabSelection = lazy(() => import("./ClinicalDocLabSelection"));
 
 const fields = [
@@ -14,7 +16,7 @@ const fields = [
   ["visit.follow_up", "复查安排状态"], ["export.account_id", "导出账号（非签名）"],
 ];
 
-export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose, onInspectLab }) {
+export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose, onInspectLab, onInspectImaging, sourceRevision = 0 }) {
   const reviewFields = templateId === "outpatient_record_zh" ? [
     ...fields.slice(0, 2), ["visit.owner_name", "宠主姓名"], ["visit.coat_color", "宠物毛色"],
     ...fields.slice(2),
@@ -25,6 +27,8 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
   const [message, setMessage] = useState("");
   const [labOpen, setLabOpen] = useState(false), [labIds, setLabIds] = useState([]);
   const selected = useRef([]);
+  const [imagingOpen, setImagingOpen] = useState(false), [imagingIds, setImagingIds] = useState([]);
+  const selectedImaging = useRef([]), previousSourceRevision = useRef(sourceRevision);
   const active = useRef(false), pending = useRef(false), generation = useRef(0), heading = useRef(null);
   const callbacks = useRef({ onDownload, onClose });
   callbacks.current = { onDownload, onClose };
@@ -35,12 +39,13 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     if (pending.current || !active.current || localStorage.getItem("token") !== requestToken) return;
     pending.current = true;
     const stamp = ++generation.current;
-    const ids = [...selected.current];
+    const ids = [...selected.current], imageIds = [...selectedImaging.current];
     setBusy(true); setPreview(null); setConfirmed(false); setMessage("正在读取已保存的草稿内容…");
     try {
       const { data } = await api.post("/api/clinical-docs/render-preview", {
         case_id: caseId, template_id: templateId, output: "docx",
         ...(ids.length ? {manual_lab_report_ids:ids} : {}),
+        ...(imageIds.length ? {manual_imaging_report_ids:imageIds} : {}),
       }, { timeout: 15000, expectedAuthOwner: draftOwner(requestToken) });
       if (!current(stamp)) return;
       if (data.case_id !== caseId || data.template_id !== templateId ||
@@ -49,7 +54,9 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
           !reviewFields.every(([key]) => typeof data.context?.[key] === "string") ||
           !Array.isArray(data.missing_required_keys) || data.missing_required_keys.length || data.writes_database !== false ||
           (ids.length && !validDocumentReports(data.manual_lab_reports, ids)) ||
-          (!ids.length && data.manual_lab_reports?.length)) {
+          (!ids.length && data.manual_lab_reports?.length) ||
+          (imageIds.length && !validImagingReports(data.manual_imaging_reports, imageIds)) ||
+          (!imageIds.length && data.manual_imaging_reports?.length)) {
         throw new Error("未收到可核对的完整草稿，当前服务可能尚未支持。请重新读取，暂不能确认下载。");
       }
       setPreview(data); setMessage("");
@@ -67,6 +74,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     active.current = true;
     pending.current = false;
     selected.current=[]; setLabIds([]); setLabOpen(false);
+    selectedImaging.current=[]; setImagingIds([]); setImagingOpen(false);
     heading.current?.focus();
     void load();
     return () => { active.current = false; generation.current++; };
@@ -78,6 +86,15 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     setMessage("检验选择或来源状态已变化，请重新读取完整草稿并核对。");
   }
 
+  function selectImaging(ids) {
+    generation.current++; pending.current=false;
+    selectedImaging.current=[...ids]; setImagingIds([...ids]); setPreview(null); setConfirmed(false); setBusy(false);
+    setMessage("影像选择或来源状态已变化，请重新读取完整草稿并核对。");
+  }
+  useEffect(()=>{
+    if(previousSourceRevision.current!==sourceRevision){previousSourceRevision.current=sourceRevision;selectLabs([]);selectImaging([]);setLabOpen(false);setImagingOpen(false);}
+  },[sourceRevision]);
+
   function leave() {
     active.current = false; generation.current++;
   }
@@ -87,7 +104,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     if (pending.current || !current(stamp) || !preview || !confirmed) return;
     pending.current = true; setBusy(true); setConfirmed(false); setMessage("正在生成已核对的草稿…");
     try {
-      const result = await callbacks.current.onDownload(preview.content_snapshot, () => current(stamp), [...selected.current]);
+      const result = await callbacks.current.onDownload(preview.content_snapshot, () => current(stamp), [...selected.current], [...selectedImaging.current]);
       if (!current(stamp)) return;
       setPreview(null);
       setMessage(result?.ok ? "已生成本次核对的草稿；仍未签署。再次下载请重新读取并核对。" :
@@ -108,6 +125,9 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     {" "}<button type="button" disabled={busy} onClick={()=>{selectLabs([]);setLabOpen(v=>!v);}}>{labOpen ? "不纳入检验报告" : "选择已核对检验报告"}</button>
     {labOpen && <Suspense fallback={<p>正在打开检验选择…</p>}><ClinicalDocLabSelection caseId={caseId} requestToken={requestToken}
       selected={labIds} onChange={selectLabs} onInspect={()=>{leave();onInspectLab?.();}}/></Suspense>}
+    {" "}<button type="button" disabled={busy} onClick={()=>{selectImaging([]);setImagingOpen(v=>!v);}}>{imagingOpen ? "不纳入影像报告" : "选择已核对影像报告"}</button>
+    {imagingOpen && <Suspense fallback={<p>正在打开影像选择…</p>}><ClinicalDocImagingSelection caseId={caseId} requestToken={requestToken}
+      selected={imagingIds} onChange={selectImaging} onInspect={()=>{leave();onInspectImaging?.();}}/></Suspense>}
     {message && <p role="status" aria-live="polite">{message}</p>}
     {preview && <div>
       {reviewFields.map(([key, title]) => <section key={key} aria-label={title + "核对内容"}>
@@ -115,6 +135,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
         <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", font: "inherit", lineHeight: 1.6 }}>{preview.context[key]}</pre>
       </section>)}
       {!!preview.manual_lab_reports?.length && <Suspense fallback={<p>正在显示检验附节…</p>}><ClinicalDocLabSelection mode="preview" reports={preview.manual_lab_reports}/></Suspense>}
+      {!!preview.manual_imaging_reports?.length && <Suspense fallback={<p>正在显示影像附节…</p>}><ClinicalDocImagingSelection mode="preview" reports={preview.manual_imaging_reports}/></Suspense>}
       <label><input type="checkbox" checked={confirmed} disabled={busy}
         onChange={event => setConfirmed(event.target.checked)} /> 已核对本次草稿内容（仍未签署）</label>{" "}
       <button type="button" disabled={busy || !confirmed} onClick={download}>确认并下载草稿 DOCX</button>

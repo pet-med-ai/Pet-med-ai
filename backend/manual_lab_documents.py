@@ -46,6 +46,14 @@ def _validate_text(value):
     elif isinstance(value, str): _xml_text(value)
 
 
+def read_selected(store, db, case, ids):
+    rows = lab.document_reports(store, db, case, selection(ids))
+    if sum(len(r['data']['items']) for r in rows) > MAX_ITEMS:
+        raise AttachmentError('manual_lab_document_item_limit', 422)
+    _validate_text(rows)
+    return rows
+
+
 @contextmanager
 def snapshot(uid, cid, ids):
     ensure_enabled()
@@ -53,11 +61,7 @@ def snapshot(uid, cid, ids):
     store = Store()
     # Same order as source/identity/report mutations; render bytes before releasing.
     with store.locked(), attachments.transaction(uid, cid) as (db, case):
-        rows = lab.document_reports(store, db, case, ids)
-        if sum(len(r['data']['items']) for r in rows) > MAX_ITEMS:
-            raise AttachmentError('manual_lab_document_item_limit', 422)
-        _validate_text(rows)
-        yield db, case, rows
+        yield db, case, read_selected(store, db, case, ids)
 
 
 def options(uid, cid):

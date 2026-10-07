@@ -86,6 +86,16 @@ on:
       - 'tests/fixtures/manual_lab_cw_b8_cases.json'
       - 'scripts/validate_manual_lab_documents_cw_b8.py'
       - 'docs/clinical_docs/MANUAL_LAB_DOCUMENTS_CW_B8.md'
+      - 'frontend/src/manualImagingRecords.js'
+      - 'frontend/src/manualImagingDocuments.js'
+      - 'frontend/tests/manual-imaging-records.test.jsx'
+      - 'frontend/tests/manual-imaging-documents.test.jsx'
+      - 'tests/test_manual_imaging_records.py'
+      - 'tests/test_manual_imaging_concurrency.py'
+      - 'tests/test_manual_imaging_documents.py'
+      - 'tests/fixtures/manual_imaging_cw_b9_cases.json'
+      - 'scripts/validate_manual_imaging_cw_b9.py'
+      - 'docs/clinical_docs/MANUAL_IMAGING_CW_B9.md'
 
 permissions:
   contents: read
@@ -105,16 +115,18 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B7 and approved CW-B8 increment
+      - name: Bind frozen M7 through CW-B8 and approved CW-B9 increment
         run: |
           set -euo pipefail
-          python scripts/validate_manual_lab_documents_cw_b8.py > "$RUNNER_TEMP/cwb8-scope.json"
+          python scripts/validate_manual_imaging_cw_b9.py > "$RUNNER_TEMP/cwb9-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb8-scope.json" acceptance-results/cwb8-scope.json
+          cp "$RUNNER_TEMP/cwb9-scope.json" acceptance-results/cwb9-scope.json
           python - <<'PY_SCOPE'
           import json
-          current = json.load(open('acceptance-results/cwb8-scope.json'))
-          scope = current['frozen_cwb7']
+          current = json.load(open('acceptance-results/cwb9-scope.json'))
+          cwb8 = current['frozen_cwb8']
+          open('acceptance-results/cwb8-scope.json','w').write(json.dumps(cwb8,indent=2))
+          scope = cwb8['frozen_cwb7']
           open('acceptance-results/cwb7-scope.json','w').write(json.dumps(scope,indent=2))
           open('acceptance-results/cwb6-scope.json','w').write(json.dumps(scope['frozen_cwb6'],indent=2))
           PY_SCOPE
@@ -255,6 +267,12 @@ jobs:
           set -euo pipefail
           python tests/test_manual_lab_documents.py 2>&1 | tee acceptance-results/cwb8-doc-tests.log
           python tests/test_manual_lab_document_concurrency.py 2>&1 | tee acceptance-results/cwb8-concurrency-tests.log
+      - name: CW-B9 manual imaging, mixed snapshots and SQLite races
+        run: |
+          set -euo pipefail
+          python tests/test_manual_imaging_records.py 2>&1 | tee acceptance-results/cwb9-route-tests.log
+          python tests/test_manual_imaging_concurrency.py 2>&1 | tee acceptance-results/cwb9-concurrency-tests.log
+          PMAI_CWB9_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb9-doc-samples" python tests/test_manual_imaging_documents.py 2>&1 | tee acceptance-results/cwb9-document-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -264,7 +282,7 @@ jobs:
           /usr/lib/postgresql/16/bin/createdb -h 127.0.0.1 -p 55432 -U pmai_acceptance pmai_acceptance
       - name: PostgreSQL real routes and concurrent transactions
         run: |
-          set -o pipefail
+          set -euo pipefail
           python tests/acceptance/postgres_checks.py 2>&1 | tee acceptance-results/postgres-checks.log
           python tests/acceptance/postgres_checks.py --readback 2>&1 | tee acceptance-results/restart-readback.log
       - name: Build and serve exact application locally
@@ -362,6 +380,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/manual_lab_document_checks.cjs 2>&1 | tee acceptance-results/cwb8-browser.log
+      - name: CW-B9 real Chromium manual imaging and mixed document downloads
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/manual_imaging_checks.cjs 2>&1 | tee acceptance-results/cwb9-browser.log
       - name: Audit locked frontend dependencies
         run: |
           set -o pipefail
