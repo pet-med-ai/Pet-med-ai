@@ -135,6 +135,19 @@ def range_readback():
     record('cwb11_fresh_process_relogin_exact_values_versions_sources_and_snapshot')
 
 
+def comparison_readback():
+    f.enable_lab_comparison(); auth = login('pg-owner')
+    for item in json.loads((f.OUT / 'cwb12-restart-expected.json').read_text()):
+        url = f'/api/cases/{item["case_id"]}/lab-comparison'
+        result = call('GET', url, auth); result.pop('read_at')
+        assert result == item['review']
+        if item.get('preview'):
+            result = call('POST', url + '/preview', auth, json=item['choice']); result.pop('read_at')
+            assert result == item['preview']
+        else: call('POST', url + '/preview', auth, json=item['choice'], expected=409)
+    record('cwb12_fresh_process_relogin_exact_raw_versions_sources_snapshot_and_difference')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -171,6 +184,7 @@ if '--readback' in sys.argv:
     manual_imaging_readback()
     overview_readback()
     range_readback()
+    comparison_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -1145,5 +1159,90 @@ for scenario in ('control', 'correct', 'withdraw', 'source', 'source_metadata', 
     range_expected.append({'case_id': cid, 'review': saved})
     record('cwb11_postgresql_' + scenario + '_exact_readonly_snapshot')
 (f.OUT / 'cwb11-restart-expected.json').write_text(json.dumps(range_expected, ensure_ascii=False, indent=2))
+
+# CW-B12: independent sources and explicit selection; native PostgreSQL only.
+f.enable_lab_comparison()
+import clinical_lab_comparison as lab_comparison
+from build_attachment_cw_b6_fixtures import pdf as comparison_pdf
+comparison_fixture = json.loads((f.ROOT / 'tests/fixtures/clinical_lab_comparison_cw_b12_cases.json').read_text())
+comparison_expected = []
+
+
+def comparison_pg(scenario, previewing):
+    global statements
+    cid = call('POST', '/api/cases', owner, expected=201, json={**comparison_fixture['case'], 'patient_name': 'CW-B12 ' + scenario + str(previewing)})['id']
+    files, root, url = (f'/api/cases/{cid}/' + suffix for suffix in ('attachments', 'manual-lab', 'lab-comparison'))
+    sources, rows = [], []
+    metadata = {'title': '合成对照原件', 'kind': 'lab', 'taken_at': '', 'reported_at': '', 'source': '', 'note': ''}
+    for index, data in enumerate(comparison_fixture['reports']):
+        raw = comparison_pdf().replace(b'CW-B6', f'CW-B{index}'.encode())
+        item = call('POST', files + '/uploads/' + uuid4().hex,
+                    {**owner, 'Content-Type': 'application/pdf', 'X-Attachment-Filename': f'comparison-{index}.pdf', 'X-Case-Token': call('GET', files, owner)['case_token']}, content=raw)['attachment']
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'confirm', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': metadata, 'reason': ''}
+        p = call('POST', files + '/preview', owner, json=body)
+        sources.append(call('POST', files + '/confirm', owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})['attachment'])
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'create', 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': None, 'expected_report_token': '', 'data': data, 'reason': ''}
+        p = call('POST', root + '/preview', owner, json=body)
+        rows.append(call('POST', root + '/confirm', owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})['report'])
+    before = call('GET', url, owner)
+    def choice(index):
+        return {'snapshot': before['snapshot'], 'a': lab_comparison.selection(before['reports'][0], before['reports'][0]['items'][index]),
+                'b': lab_comparison.selection(before['reports'][1], before['reports'][1]['items'][index]), 'doctor_confirmed': True}
+    request = choice(3)
+    expected_delta = comparison_fixture['expected_deltas'][3]
+    assert call('POST', url + '/preview', owner, json=request)['delta']['value'] == expected_delta
+    if scenario == 'control':
+        call('GET', url, other, expected=404); call('GET', url, expected=401)
+        call('POST', url + '/preview', other, json=request, expected=404)
+        previous = business_digest(); statements = []
+        event.listen(f.db.engine, 'before_cursor_execute', capture_writes)
+        try:
+            with patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('No comparison cleanup')):
+                assert call('GET', url, owner)['snapshot'] == before['snapshot']
+                for index, delta in enumerate(comparison_fixture['expected_deltas']):
+                    assert call('POST', url + '/preview', owner, json=choice(index))['delta']['value'] == delta
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture_writes)
+        assert statements == [] and business_digest() == previous
+    else:
+        row, source = rows[0], sources[0]
+        if scenario in {'correct', 'withdraw'}:
+            data = deepcopy(comparison_fixture['reports'][0]); data['items'][0]['value'] = '1.500'
+            body = {'request_id': uuid4().hex, 'attachment_id': row['attachment_id'], 'operation': scenario, 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': row['id'], 'expected_report_token': row['token'], 'data': data if scenario == 'correct' else None, 'reason': '合成前后对照并发核对'}
+            p = call('POST', root + '/preview', owner, json=body)
+            mutation = lambda: client.post(root + '/confirm', headers=owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})
+        elif scenario in {'source', 'source_metadata'}:
+            body = {'request_id': uuid4().hex, 'attachment_id': source['id'], 'operation': 'withdraw' if scenario == 'source' else 'update', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': {**metadata, 'title': '合成对照来源更正'}, 'reason': '合成来源核对'}
+            p = call('POST', files + '/preview', owner, json=body)
+            mutation = lambda: client.post(files + '/confirm', headers=owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})
+        else: mutation = lambda: client.put(f'/api/cases/{cid}', headers=owner, json={'owner_name': '对照并发身份更正'})
+        entered, release, attempted = Event(), Event(), Event(); normal = lab_comparison.assemble
+        def held(*args): entered.set(); assert release.wait(10); return normal(*args)
+        def mutate(): attempted.set(); return mutation()
+        with ThreadPoolExecutor(max_workers=2) as pool, patch.object(lab_comparison, 'assemble', side_effect=held):
+            reading = pool.submit(call, 'POST', url + '/preview', owner, json=request) if previewing else pool.submit(call, 'GET', url, owner)
+            try:
+                assert entered.wait(10); changing = pool.submit(mutate)
+                assert attempted.wait(10); assert not changing.done()
+            finally: release.set()
+            result = reading.result(10); assert result['snapshot'] == before['snapshot']
+            if previewing: assert result['delta']['value'] == expected_delta
+            assert changing.result(10).status_code == 200
+        after = call('GET', url, owner); assert after['snapshot'] != before['snapshot']
+        call('POST', url + '/preview', owner, json=request, expected=409)
+        if scenario == 'correct':
+            current = next(r for r in after['reports'] if r['root_id'] == row['root_id'])
+            assert current['version'] == 2 and current['items'][0]['value'] == '1.500'
+        else: assert len(after['reports']) == (0 if scenario == 'identity' else 1)
+    saved = call('GET', url, owner); saved.pop('read_at')
+    preview_saved = call('POST', url + '/preview', owner, json=request) if scenario == 'control' else None
+    if preview_saved: preview_saved.pop('read_at')
+    comparison_expected.append({'case_id': cid, 'review': saved, 'choice': request, 'preview': preview_saved})
+    record('cwb12_postgresql_' + scenario + ('_preview' if previewing else '_get') + '_consistent_readonly_snapshot')
+
+
+comparison_pg('control', True)
+for comparison_scenario in ('correct', 'withdraw', 'source', 'source_metadata', 'identity'):
+    for comparison_preview in (False, True): comparison_pg(comparison_scenario, comparison_preview)
+(f.OUT / 'cwb12-restart-expected.json').write_text(json.dumps(comparison_expected, ensure_ascii=False, indent=2))
 
 client.close(); f.db.engine.dispose()

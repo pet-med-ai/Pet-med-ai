@@ -75,6 +75,11 @@ def enable_lab_range_review():
     os.environ.update(LAB_RANGE_REVIEW_ENABLED='1', LAB_RANGE_REVIEW_SYNTHETIC_ONLY='1')
 
 
+def enable_lab_comparison():
+    assert os.environ.get('ENVIRONMENT') == 'test' and os.environ.get('RENDER') == 'false'
+    os.environ.update(LAB_COMPARISON_ENABLED='1', LAB_COMPARISON_SYNTHETIC_ONLY='1')
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(main.app, host='127.0.0.1', port=18026, loop='asyncio')
