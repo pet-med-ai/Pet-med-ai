@@ -96,6 +96,14 @@ on:
       - 'tests/fixtures/manual_imaging_cw_b9_cases.json'
       - 'scripts/validate_manual_imaging_cw_b9.py'
       - 'docs/clinical_docs/MANUAL_IMAGING_CW_B9.md'
+      - 'frontend/src/visitOverview.js'
+      - 'frontend/tests/visit-overview.test.jsx'
+      - 'frontend/tests/case-detail-overview.test.jsx'
+      - 'tests/test_clinical_case_overview.py'
+      - 'tests/test_clinical_case_overview_concurrency.py'
+      - 'tests/fixtures/clinical_case_overview_cw_b10_cases.json'
+      - 'scripts/validate_clinical_case_overview_cw_b10.py'
+      - 'docs/clinical_docs/CLINICAL_CASE_OVERVIEW_CW_B10.md'
 
 permissions:
   contents: read
@@ -115,16 +123,18 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B8 and approved CW-B9 increment
+      - name: Bind frozen M7 through CW-B9 and approved CW-B10 increment
         run: |
           set -euo pipefail
-          python scripts/validate_manual_imaging_cw_b9.py > "$RUNNER_TEMP/cwb9-scope.json"
+          python scripts/validate_clinical_case_overview_cw_b10.py > "$RUNNER_TEMP/cwb10-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb9-scope.json" acceptance-results/cwb9-scope.json
+          cp "$RUNNER_TEMP/cwb10-scope.json" acceptance-results/cwb10-scope.json
           python - <<'PY_SCOPE'
           import json
-          current = json.load(open('acceptance-results/cwb9-scope.json'))
-          cwb8 = current['frozen_cwb8']
+          current = json.load(open('acceptance-results/cwb10-scope.json'))
+          cwb9 = current['frozen_cwb9']
+          open('acceptance-results/cwb9-scope.json','w').write(json.dumps(cwb9,indent=2))
+          cwb8 = cwb9['frozen_cwb8']
           open('acceptance-results/cwb8-scope.json','w').write(json.dumps(cwb8,indent=2))
           scope = cwb8['frozen_cwb7']
           open('acceptance-results/cwb7-scope.json','w').write(json.dumps(scope,indent=2))
@@ -273,6 +283,11 @@ jobs:
           python tests/test_manual_imaging_records.py 2>&1 | tee acceptance-results/cwb9-route-tests.log
           python tests/test_manual_imaging_concurrency.py 2>&1 | tee acceptance-results/cwb9-concurrency-tests.log
           PMAI_CWB9_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb9-doc-samples" python tests/test_manual_imaging_documents.py 2>&1 | tee acceptance-results/cwb9-document-tests.log
+      - name: CW-B10 read-only inventory, saved fields and SQLite consistency
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_case_overview.py 2>&1 | tee acceptance-results/cwb10-route-tests.log
+          python tests/test_clinical_case_overview_concurrency.py 2>&1 | tee acceptance-results/cwb10-concurrency-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -384,6 +399,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/manual_imaging_checks.cjs 2>&1 | tee acceptance-results/cwb9-browser.log
+      - name: CW-B10 real Chromium overview, existing navigation and stale responses
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_case_overview_checks.cjs 2>&1 | tee acceptance-results/cwb10-browser.log
       - name: Audit locked frontend dependencies
         run: |
           set -o pipefail

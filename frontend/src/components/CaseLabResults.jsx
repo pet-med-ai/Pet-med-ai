@@ -13,7 +13,7 @@ function Results({ data }) {
 }
 
 export default function CaseLabResults(props) { return <LabPanel key={JSON.stringify([props.caseId, props.requestToken])} {...props} />; }
-function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange }) {
+function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onChanged }) {
   const [list, setList] = useState(null), [draft, setDraft] = useState(null), [review, setReview] = useState(null);
   const [checked, setChecked] = useState(false), [busy, setBusy] = useState(false), [unknown, setUnknown] = useState(null), [message, setMessage] = useState("");
   const active = useRef(false), control = useRef(null), inFlight = useRef(false), dirty = useRef(false), reviewEpoch = useRef(0), pendingRefresh = useRef(false), readEpoch = useRef(0);
@@ -70,12 +70,12 @@ function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange }) {
   }
   async function readUnknown(id) {
     const result = await client("get", `/requests/${id}`); if (!current()) return;
-    if (result.state === "committed") { reset(); await refresh(); if (current()) setMessage("已回读保存结果，未重复提交。"); }
+    if (result.state === "committed") { reset(); await refresh(); if (current()) { setMessage("已回读保存结果，未重复提交。"); onChanged?.(); } }
     else if (result.state === "not_committed") { setUnknown(null); invalidate(); await refresh(); if (current()) setMessage("未找到已提交记录，请重新核对后保存。"); }
   }
   async function confirm() {
     const id = review.body.request_id;
-    try { await client("post", "/confirm", { ...review.body, preview_token: review.preview_token, reviewed: true }); if (current()) { reset(); await refresh(); if (current()) setMessage("检验记录已保存。"); } }
+    try { await client("post", "/confirm", { ...review.body, preview_token: review.preview_token, reviewed: true }); if (current()) { reset(); await refresh(); if (current()) { setMessage("检验记录已保存。"); onChanged?.(); } } }
     catch (error) {
       if (!current()) return;
       setUnknown(id); setChecked(false);

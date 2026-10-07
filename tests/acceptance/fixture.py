@@ -64,6 +64,12 @@ def enable_manual_imaging():
     enable_manual_lab_documents()
 
 
+def enable_visit_overview():
+    assert os.environ.get('ENVIRONMENT') == 'test' and os.environ.get('RENDER') == 'false'
+    os.environ.update(VISIT_OVERVIEW_ENABLED='1', VISIT_OVERVIEW_SYNTHETIC_ONLY='1')
+    enable_manual_imaging()
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(main.app, host='127.0.0.1', port=18026, loop='asyncio')

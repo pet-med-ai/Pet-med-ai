@@ -116,6 +116,16 @@ def manual_imaging_readback():
     record('cwb9_fresh_process_relogin_exact_versions_audits_mixed_snapshot_and_docx')
 
 
+def overview_readback():
+    f.enable_visit_overview(); auth = login('pg-owner')
+    saved = json.loads((f.OUT / 'cwb10-restart-expected.json').read_text())
+    for item in saved:
+        response = call('GET', f'/api/cases/{item["case_id"]}/visit-overview', auth)
+        response.pop('read_at')
+        assert response == item['overview']
+    record('cwb10_fresh_process_relogin_exact_saved_inventory_and_snapshot')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -150,6 +160,7 @@ if '--readback' in sys.argv:
     manual_lab_readback()
     manual_lab_document_readback()
     manual_imaging_readback()
+    overview_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -975,5 +986,90 @@ for scenario in ('control','duplicate','first_competition','corrections','correc
     image_expected.append({'case_id':cid,'listing':listing,'audits':audits,**(retained if scenario=='control' else {})})
     record('cwb9_postgresql_'+scenario+'_exact_atomic_imaging')
 (f.OUT/'cwb9-restart-expected.json').write_text(json.dumps(image_expected,ensure_ascii=False,indent=2))
+
+
+# CW-B10 reads all saved material in one Store/case transaction, never listing cleanup.
+f.enable_visit_overview()
+import clinical_case_overview as visit_overview
+overview_expected = []
+overview_case = json.loads((f.ROOT / 'tests/fixtures/clinical_case_overview_cw_b10_cases.json').read_text())['case']
+overview_image = json.loads((f.ROOT / 'tests/fixtures/manual_imaging_cw_b9_cases.json').read_text())
+for scenario in ('control', 'imaging', 'lab', 'withdraw', 'source', 'identity', 'history'):
+    cid = call('POST', '/api/cases', owner, expected=201, json={**overview_case, 'patient_name': 'CW-B10 ' + scenario})['id']
+    files = f'/api/cases/{cid}/attachments'
+    records, source_records = {}, {}
+    for kind, sample in [('imaging', attachment_samples()[0]), ('lab', attachment_samples()[1])]:
+        name, mime, raw = sample
+        item = call('POST', files + '/uploads/' + uuid4().hex,
+                    {**owner, 'Content-Type': mime, 'X-Attachment-Filename': quote(name), 'X-Case-Token': call('GET', files, owner)['case_token']}, content=raw)['attachment']
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'confirm',
+                'expected_case_token': call('GET', files, owner)['case_token'],
+                'metadata': {'title': '合成' + kind, 'kind': 'dr' if kind == 'imaging' else 'lab', 'taken_at': '', 'reported_at': '', 'source': '', 'note': ''}, 'reason': ''}
+        preview = call('POST', files + '/preview', owner, json=body)
+        source_records[kind] = call('POST', files + '/confirm', owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})['attachment']
+        root = f'/api/cases/{cid}/manual-' + kind
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'create',
+                'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': None, 'expected_report_token': '',
+                'data': overview_image if kind == 'imaging' else lab_data, 'reason': ''}
+        preview = call('POST', root + '/preview', owner, json=body)
+        records[kind] = call('POST', root + '/confirm', owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})['report']
+    url = f'/api/cases/{cid}/visit-overview'
+    before = call('GET', url, owner)
+    assert before['groups']['lab']['counts']['confirmed'] == before['groups']['imaging']['counts']['confirmed'] == 1
+    assert next(row['value'] for row in before['fields'] if row['key'] == 'history') == overview_case['history']
+    if scenario == 'control':
+        call('GET', url, other, expected=404)
+        call('GET', url, expected=401)
+        statements = []
+        from sqlalchemy import event
+        def capture_writes(_conn, _cursor, statement, *_):
+            if statement.lstrip().split()[0].upper() in {'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER'}: statements.append(statement)
+        def business_digest():
+            with f.db.engine.connect() as connection:
+                rows = {table.name: [list(map(str, row)) for row in connection.execute(table.select().order_by(*table.primary_key.columns))]
+                        for table in [f.models.Case.__table__, f.models.DiagnosticReport.__table__, f.models.Observation.__table__, f.models.ImagingStudy.__table__, f.models.AuditLog.__table__]}
+            files = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in attachment_directory.iterdir() if p.is_file() and p.name != '.cw-b6.lock'}
+            return rows, files
+        previous = business_digest()
+        event.listen(f.db.engine, 'before_cursor_execute', capture_writes)
+        try:
+            with patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('Overview cannot clean originals or temporary files')):
+                assert call('GET', url, owner)['snapshot'] == before['snapshot']
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture_writes)
+        assert statements == [] and previous == business_digest()
+    else:
+        if scenario in {'imaging', 'lab', 'withdraw'}:
+            kind = 'lab' if scenario == 'lab' else 'imaging'; row = records[kind]
+            root = f'/api/cases/{cid}/manual-' + kind
+            body = {'request_id': uuid4().hex, 'attachment_id': row['attachment_id'], 'operation': 'withdraw' if scenario == 'withdraw' else 'correct',
+                    'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': row['id'], 'expected_report_token': row['token'],
+                    'data': None if scenario == 'withdraw' else (overview_image if kind == 'imaging' else lab_data), 'reason': '合成总览并发验证'}
+            preview = call('POST', root + '/preview', owner, json=body)
+            request = {**body, 'preview_token': preview['preview_token'], 'reviewed': True}
+            mutation = lambda: client.post(root + '/confirm', headers=owner, json=request)
+        elif scenario == 'source':
+            source = source_records['imaging']
+            body = {'request_id': uuid4().hex, 'attachment_id': source['id'], 'operation': 'withdraw',
+                    'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': source['metadata'], 'reason': '合成来源撤销'}
+            preview = call('POST', files + '/preview', owner, json=body)
+            mutation = lambda: client.post(files + '/confirm', headers=owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})
+        else:
+            mutation = lambda: client.put(f'/api/cases/{cid}', headers=owner, json={('owner_name' if scenario == 'identity' else 'history'): '合成并发修改'})
+        entered, release, attempted = Event(), Event(), Event(); normal = visit_overview.assemble
+        def held(*args): entered.set(); assert release.wait(10); return normal(*args)
+        def mutate(): attempted.set(); return mutation()
+        with ThreadPoolExecutor(max_workers=2) as pool, patch.object(visit_overview, 'assemble', side_effect=held):
+            reading = pool.submit(call, 'GET', url, owner)
+            try:
+                assert entered.wait(10)
+                changing = pool.submit(mutate); assert attempted.wait(10); assert not changing.done()
+            finally: release.set()
+            assert reading.result(10)['snapshot'] == before['snapshot']
+            assert changing.result(10).status_code == 200
+        assert call('GET', url, owner)['snapshot'] != before['snapshot']
+    saved = call('GET', url, owner); saved.pop('read_at')
+    overview_expected.append({'case_id': cid, 'overview': saved})
+    record('cwb10_postgresql_' + scenario + '_consistent_readonly_inventory')
+(f.OUT / 'cwb10-restart-expected.json').write_text(json.dumps(overview_expected, ensure_ascii=False, indent=2))
 
 client.close(); f.db.engine.dispose()

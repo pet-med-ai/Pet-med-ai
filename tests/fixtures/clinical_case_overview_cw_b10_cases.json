@@ -1,0 +1,166 @@
+{
+  "case": {
+    "patient_name": "CW-B10 合成病例",
+    "species": "dog",
+    "owner_name": "合成宠主 < & {{literal}}",
+    "coat_color": "黑白（合成）",
+    "chief_complaint": "资料核对，不新增诊断",
+    "history": "  未见呕吐；不能排除间歇症状。\r\n保留否定词 <tag> & {{visit.history}} 🐾\t  ",
+    "exam_findings": "未填写体温不代表体温正常",
+    "analysis": "评估记录，尚不能确认病因",
+    "treatment": "需医生核对原计划",
+    "prognosis": ""
+  },
+  "scenarios": [
+    {
+      "name": "complete",
+      "expected": "recorded"
+    },
+    {
+      "name": "missing",
+      "expected": "missing"
+    },
+    {
+      "name": "corrected",
+      "expected": [
+        "superseded",
+        "confirmed"
+      ]
+    },
+    {
+      "name": "withdrawn",
+      "expected": "withdrawn"
+    },
+    {
+      "name": "corrupt_source",
+      "expected": "source_unavailable"
+    },
+    {
+      "name": "changed_identity",
+      "expected": "needs_review"
+    },
+    {
+      "name": "disabled",
+      "expected": "disabled"
+    },
+    {
+      "name": "unreadable",
+      "expected_http": 409
+    }
+  ],
+  "overview": {
+    "schema": "clinical-case-overview-cw-b10-v1",
+    "case_id": 1,
+    "identity": {
+      "patient_name": "CW-B10 合成病例",
+      "species": "dog",
+      "sex": null,
+      "breed": null,
+      "coat_color": "黑白（合成）",
+      "owner_name": "合成宠主 < & {{literal}}",
+      "owner_phone": null,
+      "age_info": null,
+      "weight": null
+    },
+    "fields": [
+      {
+        "key": "chief_complaint",
+        "label": "主诉",
+        "state": "recorded",
+        "value": "资料核对，不新增诊断",
+        "target": "edit"
+      },
+      {
+        "key": "history",
+        "label": "病史",
+        "state": "recorded",
+        "value": "  未见呕吐；不能排除间歇症状。\r\n保留否定词 <tag> & {{visit.history}} 🐾\t  ",
+        "target": "edit"
+      },
+      {
+        "key": "exam_findings",
+        "label": "查体记录",
+        "state": "recorded",
+        "value": "未填写体温不代表体温正常",
+        "target": "edit"
+      },
+      {
+        "key": "analysis",
+        "label": "评估内容",
+        "state": "recorded",
+        "value": "评估记录，尚不能确认病因",
+        "target": "edit"
+      },
+      {
+        "key": "treatment",
+        "label": "诊疗计划",
+        "state": "recorded",
+        "value": "需医生核对原计划",
+        "target": "edit"
+      },
+      {
+        "key": "prognosis",
+        "label": "预后与补充说明",
+        "state": "missing",
+        "value": "",
+        "target": "edit"
+      }
+    ],
+    "groups": {
+      "attachments": {
+        "status": "available",
+        "records": [],
+        "legacy_count": 0,
+        "counts": {
+          "active": 0,
+          "source_unavailable": 0,
+          "withdrawn": 0
+        }
+      },
+      "lab": {
+        "status": "available",
+        "records": [],
+        "legacy_count": 0,
+        "counts": {
+          "confirmed": 0,
+          "needs_review": 0,
+          "source_unavailable": 0,
+          "superseded": 0,
+          "withdrawn": 0
+        }
+      },
+      "imaging": {
+        "status": "available",
+        "records": [],
+        "legacy_count": 0,
+        "counts": {
+          "confirmed": 0,
+          "needs_review": 0,
+          "source_unavailable": 0,
+          "superseded": 0,
+          "withdrawn": 0
+        }
+      }
+    },
+    "notices": [
+      {
+        "code": "field_missing",
+        "label": "预后与补充说明尚未填写",
+        "target": "edit"
+      }
+    ],
+    "navigation_targets": [
+      "edit",
+      "attachments",
+      "lab",
+      "imaging",
+      "outpatient",
+      "owner_summary"
+    ],
+    "read_only": true,
+    "writes_database": false,
+    "includes_unsaved_drafts": false,
+    "snapshot": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "read_at": "2026-10-07T05:00:00+00:00"
+  }
+}

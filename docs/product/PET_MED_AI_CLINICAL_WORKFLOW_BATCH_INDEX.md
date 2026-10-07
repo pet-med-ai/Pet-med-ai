@@ -13,10 +13,13 @@
 | CW-B6 | CW-B6 / [#51](https://github.com/pet-med-ai/Pet-med-ai/pull/51) | 手工原件归档、核对、授权回看、撤销 | 草稿 PR | b981aed 四组适用 CI 通过 | 否 | 否 | 未验收 |
 | CW-B7 | [#52](https://github.com/pet-med-ai/Pet-med-ai/pull/52) | 原件抄录、逐项核对、版本更正和撤销 | 草稿 PR | 553584a 四组适用 CI 通过 | 否 | 否 | 未验收 |
 | CW-B8 | [#53](https://github.com/pet-med-ai/Pet-med-ai/pull/53) | 整份报告选择、快照复核、两类文书附节 | 草稿 PR | cdd80aa 三组适用 CI 通过 | 否 | 否 | 未验收 |
-| CW-B9 | 影像报告人工录入与文书闭环 | 原件抄录、版本留痕、混合文书快照 | 已批准，独立候选实现 | 待本批精确提交验证，结果追加本批 PR | 否 | 否 | 未验收 |
+| CW-B9 | [#54](https://github.com/pet-med-ai/Pet-med-ai/pull/54) | 原件抄录、版本留痕、混合文书快照 | 草稿 PR | 99a8a0b 四组适用 CI 通过 | 否 | 否 | 未验收 |
+| CW-B10 | 就诊资料总览与缺项核对 | 已保存状态、来源追溯、原入口导航 | 已批准，独立候选实现 | 待本批精确提交验证，结果追加本批 PR | 否 | 否 | 未验收 |
 
 历史 CI 状态仅对应各历史候选；不能作为新提交的 CI 结果。最后四项是独立状态：“草稿 PR + CI 通过”不代表合并、上线或医生验收。后续精确提交/工作流与实际预算在对应 PR 和 [CW-B6 批准页](https://chatgpt.com/space/page_0f8a935095e8819191bf42662c7ded6a)追加，不为记录状态重跑成功 CI。
 
-开发顺序：CW-B8 已到草稿 PR 和 CI；当前推进已批准的 CW-B9 影像报告人工录入与文书闭环，方案见 [MANUAL_IMAGING_CW_B9.md](../clinical_docs/MANUAL_IMAGING_CW_B9.md)及[批准页](https://chatgpt.com/space/page_5ba15d73071c8191886ea0704a3d1139)。精确提交、CI 和实际预算追加本批 PR，不为更新目录文字重跑成功 CI。OCR、设备接入、生产持久存储及上线未预先授权。CW-B5 外部转写仍沿用单独 100 次/1 元额度；CW-B9 业务外部服务调用与新增采购均为 0。五份 Mac Word 人工检查继续后补。
+开发顺序：CW-B9 已到草稿 PR #54 和四组 CI；精确 HEAD `99a8a0b4bd5516e72d7cb32f910757f7c912783f`，实耗 30/30 文件、初始实现 1/1、修正 1/3、完整本地回归 1/2、候选 CI 1/3。当前推进已批准的 CW-B10，见 [CLINICAL_CASE_OVERVIEW_CW_B10.md](../clinical_docs/CLINICAL_CASE_OVERVIEW_CW_B10.md)及[批准方案](https://chatgpt.com/space/page_f6a84fe340fc8191bce92eed92170257)。本批 20 个指定路径、初始实现 1、修正最多 3、完整回归最多 2、候选 CI 最多 3、独立分支及草稿 PR 各 1；业务外部调用 0 次、新采购 0 元，不挪用旧批次余额。
+
+B9 最终结果已追加在其 PR；原提交中的“待验证”是冻结提交时的状态，本索引登记其后确认的结果，不为更改历史文字新建 B9 提交或重跑成功 CI。B10 精确提交、工作流、证据和实际预算同样追加本批 PR。OCR、设备接入、生产持久存储及上线未预先授权。CW-B5 外部转写仍沿用单独 100 次/1 元额度；五份 Mac Word 人工检查与医生人工验收继续后补。
 
 CW-B6 技术方案及限制见 [CASE_ATTACHMENTS_CW_B6.md](../clinical_docs/CASE_ATTACHMENTS_CW_B6.md)。所有阶段继续保留不合并、不部署、不操作生产数据的边界。
