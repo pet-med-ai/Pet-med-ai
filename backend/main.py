@@ -120,6 +120,8 @@ app.include_router(manual_lab_router)
 from manual_imaging_records_api import router as manual_imaging_router
 from manual_imaging_records import invalidate_identity as invalidate_imaging_identity
 app.include_router(manual_imaging_router)
+from clinical_case_overview_api import router as visit_overview_router
+app.include_router(visit_overview_router)
 
 
 def _text_with_species(text: str, species: Optional[str] = None) -> str:
