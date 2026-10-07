@@ -36,6 +36,9 @@ function CaseDetailContent({ requestToken }) {
     setOverviewTarget(null);
   }, [overviewTarget]);
   const [showLab, setShowLab] = useState(false), [labDirty, setLabDirty] = useState(false), [sourceRevision, setSourceRevision] = useState(0);
+  // A lab save already refreshes its own list; notify the overview/document without clearing its outcome.
+  const [labRevision, setLabRevision] = useState(0);
+  const savedRevision = sourceRevision + labRevision;
   const [showImaging, setShowImaging] = useState(false), [imagingDirty, setImagingDirty] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
@@ -959,13 +962,13 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       <style>{css}</style>
       <div className="screen-only">
         <button type="button" onClick={() => setShowOverview(value => !value)}>{showOverview ? "收起就诊资料总览" : "打开就诊资料总览"}</button>
-        {showOverview && <Suspense fallback={<p>正在读取总览组件…</p>}><CaseVisitOverview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={sourceRevision} onNavigate={navigateOverview} /></Suspense>}
+        {showOverview && <Suspense fallback={<p>正在读取总览组件…</p>}><CaseVisitOverview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onNavigate={navigateOverview} /></Suspense>}
         <div ref={node => { overviewAnchors.current.attachments = node; }} tabIndex={-1} />
         <button type="button" onClick={() => setShowAttachments(value => !value)}>{showAttachments ? "收起检查资料" : "打开检查资料"}</button>
         {showAttachments && <Suspense fallback={<p>正在读取检查资料…</p>}><CaseAttachments key={JSON.stringify([data.id, requestToken])} caseId={Number(data.id)} requestToken={requestToken} onChanged={() => setSourceRevision(v => v + 1)} /></Suspense>}
         <div ref={node => { overviewAnchors.current.lab = node; }} tabIndex={-1} />
         <button type="button" onClick={() => { if (!showLab || !labDirty || window.confirm("检验草稿尚未保存，收起会丢失。是否继续？")) setShowLab(v => !v); }}>{showLab ? "收起检验项目" : "打开检验项目"}</button>
-        {showLab && <Suspense fallback={<p>正在读取检验项目…</p>}><CaseLabResults caseId={Number(data.id)} requestToken={requestToken} sourceRevision={sourceRevision} onDirtyChange={setLabDirty} onChanged={() => setSourceRevision(v => v + 1)} /></Suspense>}
+        {showLab && <Suspense fallback={<p>正在读取检验项目…</p>}><CaseLabResults caseId={Number(data.id)} requestToken={requestToken} sourceRevision={sourceRevision} onDirtyChange={setLabDirty} onChanged={() => setLabRevision(v => v + 1)} /></Suspense>}
         <div ref={node => { overviewAnchors.current.imaging = node; }} tabIndex={-1} />
         <button type="button" onClick={()=>{if(!showImaging || !imagingDirty || window.confirm("影像草稿尚未保存，收起会丢失。是否继续？"))setShowImaging(v=>!v);}}>{showImaging?"收起影像记录":"打开影像记录"}</button>
         {showImaging && <Suspense fallback={<p>正在读取影像记录…</p>}><CaseImagingRecords caseId={Number(data.id)} requestToken={requestToken} sourceRevision={sourceRevision} onDirtyChange={setImagingDirty} onChanged={()=>setSourceRevision(v=>v+1)}/></Suspense>}
@@ -1015,7 +1018,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         templateId={docReview.templateId} label={docReview.label} requestToken={requestToken}
         onClose={closeDocReview}
         onInspectLab={()=>{closeDocReview();setShowLab(true);}}
-        sourceRevision={sourceRevision}
+        sourceRevision={savedRevision}
         onInspectImaging={()=>{closeDocReview();setShowImaging(true);}}
         onDownload={(snapshot, current, ids, imagingIds) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds)} />}
 

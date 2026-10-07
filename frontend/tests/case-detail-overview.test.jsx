@@ -67,3 +67,36 @@ test('both overview document entrances preserve whole-document review and do not
   assert(!requests.some(c=>c.url==='/api/clinical-docs/render'));
   assert(requests.every(c=>c.method==='get'||c.url.endsWith('render-preview')));
 });
+
+for(const lostReply of [false,true])test(`lab save ${lostReply?'readback':'reply'} retains its outcome while refreshing overview and invalidating document confirmation`,async()=>{
+  const normal=adapter,aid='a'.repeat(64),version='b'.repeat(64);
+  const source={id:aid,name:'synthetic.pdf',mime:'application/pdf',size:3,sha256:'c'.repeat(64),metadata:{title:'合成原件'}};
+  const current={case_id:1,case_token:version,patient_name:fixture.case.patient_name,species:'dog'};
+  let records=[];
+  adapter=async c=>{
+    if(c.url.endsWith('/manual-lab'))return {config:c,data:{...current,sources:[source],reports:records}};
+    if(c.url.endsWith('/manual-lab/preview')){const b=JSON.parse(c.data);return {config:c,data:{case:current,identity:{},source,operation:b.operation,data:b.data,before:null,reason:'',preview_token:version}};}
+    if(c.url.endsWith('/manual-lab/confirm')){
+      const b=JSON.parse(c.data);records=[{id:1,attachment_id:aid,token:version,source,data:b.data,version:1,state:'confirmed',reviewed_by:'1',reviewed_at:'synthetic'}];
+      if(lostReply)throw Object.assign(Error('lost reply after save'),{config:c});
+      return {config:c,data:{state:'committed',report:records[0]}};
+    }
+    if(c.url.includes('/manual-lab/requests/'))return {config:c,data:{state:'committed'}};
+    return normal(c);
+  };
+  await mount();await click('打开检验项目');await click('打开就诊资料总览');await click('核对门诊病历草稿');
+  await act(async()=>renderer.root.findByProps({'aria-label':'文书草稿内容核对'}).findByType('input').props.onChange({target:{checked:true}}));
+  assert.equal(button('确认并下载草稿 DOCX').props.disabled,false);
+  const reads=requests.filter(c=>c.url.endsWith('/visit-overview')).length;
+  await click('录入检验报告');
+  for(const [label,value] of [['检验原件',aid],['报告标题','合成报告'],['项目 1 项目名称','合成项目'],['项目 1 结果原文','0.0100'],['项目 1 页码或原件位置','第1页']])await act(async()=>renderer.root.findByProps({'aria-label':label}).props.onChange({target:{value}}));
+  await act(async()=>renderer.root.findByProps({'aria-label':'已核对项目 1'}).props.onChange({target:{checked:true}}));
+  await click('核对整份检验记录');await act(async()=>renderer.root.findByProps({'aria-label':'已核对整份检验记录'}).props.onChange({target:{checked:true}}));
+  await click('确认保存检验记录');
+  assert.match(text(),lostReply?/已回读保存结果，未重复提交/:/检验记录已保存/);
+  assert.equal(requests.filter(c=>c.url.endsWith('/manual-lab/confirm')).length,1);
+  assert.equal(requests.filter(c=>c.url.includes('/manual-lab/requests/')).length,Number(lostReply));
+  assert(requests.filter(c=>c.url.endsWith('/visit-overview')).length>reads);
+  assert.equal(button('确认并下载草稿 DOCX'),undefined);
+  assert(!requests.some(c=>c.url==='/api/clinical-docs/render'));
+});
