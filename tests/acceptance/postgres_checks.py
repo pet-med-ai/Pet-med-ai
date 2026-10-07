@@ -843,7 +843,7 @@ for scenario in ('control','correct','withdraw','source','identity','history'):
         review=call('POST',root+'/preview',owner,json=update)
         mutation=lambda:client.post(root+'/confirm',headers=owner,json={**update,'preview_token':review['preview_token'],'reviewed':True})
     elif scenario=='source':
-        update={**ab,'request_id':uuid4().hex,'operation':'withdraw','reason':'合成原件撤销'};review=call('POST',files+'/preview',owner,json=update)
+        update={**ab,'request_id':uuid4().hex,'operation':'withdraw','reason':'合成原件撤销','expected_case_token':call('GET',files,owner)['case_token']};review=call('POST',files+'/preview',owner,json=update)
         mutation=lambda:client.post(files+'/confirm',headers=owner,json={**update,'preview_token':review['preview_token'],'reviewed':True})
     else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=owner,json={('owner_name' if scenario=='identity' else 'history'):'并发更正合成字段'})
     entered,release,attempted=Event(),Event(),Event();normal=document_api._render_docx
