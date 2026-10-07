@@ -97,6 +97,25 @@ def manual_lab_document_readback():
     record('cwb8_fresh_process_exact_reports_source_hashes_and_document_snapshot')
 
 
+def manual_imaging_readback():
+    f.enable_manual_imaging();auth=login('pg-owner')
+    saved=json.loads((f.OUT/'cwb9-restart-expected.json').read_text())
+    for item in saved:
+        cid=item['case_id']
+        assert call('GET',f'/api/cases/{cid}/manual-imaging',auth)==item['listing']
+        with f.db.SessionLocal() as db:
+            audits=[{'id':r.log_id,'event':r.event_type,'data':r.extra_data} for r in db.query(f.models.AuditLog).filter_by(case_id=cid,source='manual-imaging-cw-b9').order_by(f.models.AuditLog.log_id)]
+        assert audits==item['audits']
+        if 'body' in item:
+            p=call('POST','/api/clinical-docs/render-preview',auth,json=item['body'])
+            assert p['content_snapshot']==item['snapshot']
+            assert p['manual_imaging_reports']==item['images'] and p['manual_lab_reports']==item['labs']
+            r=client.post('/api/clinical-docs/render',headers=auth,json={**item['body'],'expected_content_snapshot':item['snapshot']})
+            assert r.status_code==200 and r.headers['x-pmai-content-snapshot']==item['snapshot']
+            (f.OUT/'cwb9-restarted.docx').write_bytes(r.content)
+    record('cwb9_fresh_process_relogin_exact_versions_audits_mixed_snapshot_and_docx')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -130,6 +149,7 @@ if '--readback' in sys.argv:
     attachment_readback()
     manual_lab_readback()
     manual_lab_document_readback()
+    manual_imaging_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -858,5 +878,102 @@ for scenario in ('control','correct','withdraw','source','identity','history'):
     call('POST','/api/clinical-docs/render',owner,expected=409,json=request)
     record('cwb8_postgresql_export_serializes_'+scenario+'_then_rejects_old_snapshot')
 
+
+# CW-B9 real PostgreSQL transactions and independently logged-in restart readback.
+f.enable_manual_imaging()
+import manual_imaging_records as imaging
+image_data=json.loads((f.ROOT/'tests/fixtures/manual_imaging_cw_b9_cases.json').read_text())
+image_expected=[]
+for scenario in ('control','duplicate','first_competition','corrections','correct_withdraw','source_race','identity_race','mixed_export'):
+    cid=call('POST','/api/cases',owner,expected=201,json={**manual,'patient_name':'CW-B9 '+scenario})['id']
+    files=f'/api/cases/{cid}/attachments';root=f'/api/cases/{cid}/manual-imaging'
+    def make_source(index,kind):
+        name,mime,raw=attachment_samples()[index]
+        item=call('POST',files+'/uploads/'+uuid4().hex,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',files,owner)['case_token']},content=raw)['attachment']
+        b={'request_id':uuid4().hex,'attachment_id':item['id'],'operation':'confirm','expected_case_token':call('GET',files,owner)['case_token'],'metadata':{**meta,'kind':kind},'reason':''}
+        p=call('POST',files+'/preview',owner,json=b)
+        return call('POST',files+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})['attachment']
+    source=make_source(0,'dr')
+    def ib(old=None,op='create'):
+        return {'request_id':uuid4().hex,'attachment_id':source['id'],'operation':op,'expected_case_token':call('GET',root,owner)['case_token'],
+                'report_id':old['id'] if old else None,'expected_report_token':old['token'] if old else '',
+                'data':None if op=='withdraw' else copy.deepcopy(image_data),'reason':'合成影像更正/撤销' if old else ''}
+    def ir(b):
+        p=call('POST',root+'/preview',owner,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    first=ir(ib())
+    call('GET',root,other,expected=404)
+    if scenario=='source_race':
+        b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'withdraw','expected_case_token':call('GET',files,owner)['case_token'],'metadata':{**meta,'kind':'dr'},'reason':'合成原件撤销'}
+        p=call('POST',files+'/preview',owner,json=b)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            save=pool.submit(client.post,root+'/confirm',headers=owner,json=first)
+            removal=pool.submit(client.post,files+'/confirm',headers=owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+            assert save.result().status_code in (200,409);assert removal.result().status_code==200
+        assert all(r['state']!='confirmed' for r in call('GET',root,owner)['reports'])
+    elif scenario in ('first_competition','duplicate'):
+        # Both audit and database failures leave no report or ledger entry.
+        for target,attribute in [(imaging,'append_audit'),(Session,'commit')]:
+            with patch.object(target,attribute,side_effect=OperationalError('synthetic',{},Exception('injected'))):
+                call('POST',root+'/confirm',owner,expected=503,json=first)
+            assert call('GET',root,owner)['reports']==[]
+            assert call('GET',root+'/requests/'+first['request_id'],owner)['state']=='not_committed'
+        requests=[first,first if scenario=='duplicate' else ir(ib())]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            result=list(pool.map(lambda req:client.post(root+'/confirm',headers=owner,json=req),requests))
+        assert sorted(r.status_code for r in result)==([200,200] if scenario=='duplicate' else [200,409])
+        assert len(call('GET',root,owner)['reports'])==1
+        with f.db.SessionLocal() as db:assert db.query(f.models.AuditLog).filter_by(case_id=cid,event_type='manual_imaging_create').count()==1
+    else:
+        row=call('POST',root+'/confirm',owner,json=first)['report'];assert row['data']==image_data
+        with f.db.SessionLocal() as db:assert db.get(f.models.ImagingStudy,row['id']).taken_at.isoformat()=='2026-10-07T01:30:00'
+        if scenario in ('corrections','correct_withdraw'):
+            reqs=[ir(ib(row,op)) for op in ('correct','correct' if scenario=='corrections' else 'withdraw')]
+            with ThreadPoolExecutor(max_workers=2) as pool:result=list(pool.map(lambda req:client.post(root+'/confirm',headers=owner,json=req),reqs))
+            assert sorted(r.status_code for r in result)==[200,409]
+        elif scenario=='identity_race':
+            req=ir(ib(row,'correct'))
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                change=pool.submit(client.put,f'/api/cases/{cid}',headers=owner,json={'owner_name':'并发影像宠主更正'})
+                save=pool.submit(client.post,root+'/confirm',headers=owner,json=req)
+                assert change.result().status_code==200;assert save.result().status_code in (200,409)
+            assert all(r['state']!='confirmed' for r in call('GET',root,owner)['reports'])
+        else:
+            source_lab=make_source(1,'lab');lab_root=f'/api/cases/{cid}/manual-lab'
+            b={'request_id':uuid4().hex,'attachment_id':source_lab['id'],'operation':'create','expected_case_token':call('GET',lab_root,owner)['case_token'],'report_id':None,'expected_report_token':'','data':lab_data,'reason':''}
+            p=call('POST',lab_root+'/preview',owner,json=b)
+            labrow=call('POST',lab_root+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})['report']
+            body={'case_id':cid,'template_id':'outpatient_record_zh','manual_imaging_report_ids':[row['id']],'manual_lab_report_ids':[labrow['id']]}
+            preview=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+            req={**body,'expected_content_snapshot':preview['content_snapshot']}
+            if scenario=='control':
+                for template in ('outpatient_record_zh','owner_visit_summary_zh'):
+                    q={**body,'template_id':template};p=call('POST','/api/clinical-docs/render-preview',owner,json=q)
+                    r=client.post('/api/clinical-docs/render',headers=owner,json={**q,'expected_content_snapshot':p['content_snapshot']})
+                    assert r.status_code==200
+                    for value in [image_data['taken_at'],source['sha256'],image_data['impression'],'0.0100']:assert value in document_text(r.content)
+                    (f.OUT/('cwb9-pg-'+template+'.docx')).write_bytes(r.content)
+                retained={'body':body,'snapshot':preview['content_snapshot'],'images':preview['manual_imaging_reports'],'labs':preview['manual_lab_reports']}
+            else:
+                image_update=ir(ib(row,'withdraw'))
+                lb={**b,'request_id':uuid4().hex,'operation':'withdraw','report_id':labrow['id'],'expected_report_token':labrow['token'],'data':None,'reason':'并发混合附节验证'}
+                lp=call('POST',lab_root+'/preview',owner,json=lb)
+                entered,release=Event(),Event();normal=document_api._render_docx
+                def held(*a,**k):entered.set();assert release.wait(10);return normal(*a,**k)
+                with ThreadPoolExecutor(max_workers=3) as pool,patch.object(document_api,'_render_docx',side_effect=held):
+                    export=pool.submit(client.post,'/api/clinical-docs/render',headers=owner,json=req);assert entered.wait(10)
+                    a=pool.submit(client.post,root+'/confirm',headers=owner,json=image_update)
+                    b=pool.submit(client.post,lab_root+'/confirm',headers=owner,json={**lb,'preview_token':lp['preview_token'],'reviewed':True})
+                    assert not a.done() and not b.done();release.set()
+                    r=export.result(15);assert r.status_code==200
+                    assert image_data['impression'] in document_text(r.content) and '0.0100' in document_text(r.content)
+                    assert a.result(15).status_code==200 and b.result(15).status_code==200
+                call('POST','/api/clinical-docs/render',owner,expected=409,json=req)
+    listing=call('GET',root,owner)
+    assert sum(r['state']=='confirmed' for r in listing['reports'])<=1
+    with f.db.SessionLocal() as db:
+        audits=[{'id':r.log_id,'event':r.event_type,'data':r.extra_data} for r in db.query(f.models.AuditLog).filter_by(case_id=cid,source=imaging.SOURCE).order_by(f.models.AuditLog.log_id)]
+    image_expected.append({'case_id':cid,'listing':listing,'audits':audits,**(retained if scenario=='control' else {})})
+    record('cwb9_postgresql_'+scenario+'_exact_atomic_imaging')
+(f.OUT/'cwb9-restart-expected.json').write_text(json.dumps(image_expected,ensure_ascii=False,indent=2))
 
 client.close(); f.db.engine.dispose()

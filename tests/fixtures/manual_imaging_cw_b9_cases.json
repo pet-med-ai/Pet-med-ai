@@ -1,0 +1,14 @@
+{
+  "title": "合成 DR 报告（仅供验收）",
+  "modality": "dr",
+  "body_part": "胸部",
+  "taken_at": "2026-10-07T09:30:00+08:00",
+  "institution": "合成影像机构",
+  "findings": "所见原文：未见明显异常。\n保留限定描述，不排除其他原因。",
+  "impression": "报告结论原文：请结合临床资料。",
+  "limitations": "体位限制，部分区域显示欠清。",
+  "note": "仅为合成报告抄录，不生成诊断。",
+  "position": "第 1 页，所见和结论段",
+  "checked_findings": true,
+  "checked_impression": true
+}

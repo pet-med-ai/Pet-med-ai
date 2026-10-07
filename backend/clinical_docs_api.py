@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+try:
+    from backend.manual_imaging_records import legacy_only as manual_imaging_legacy_only, is_manual as is_manual_imaging
+except ModuleNotFoundError:
+    from manual_imaging_records import legacy_only as manual_imaging_legacy_only, is_manual as is_manual_imaging
+
 
 try:
     from backend.manual_lab_results import legacy_only as manual_lab_legacy_only, is_manual as is_manual_lab
@@ -128,6 +133,7 @@ class ClinicalDocRenderIn(BaseModel):
     include_diagnostic_data: bool = Field(default=False)
     expected_content_snapshot: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     manual_lab_report_ids: list[StrictInt] = Field(default_factory=list, max_length=5)
+    manual_imaging_report_ids: list[StrictInt] = Field(default_factory=list, max_length=5)
 
 
 def _text(value: Any, fallback: str = "") -> str:
@@ -232,7 +238,7 @@ def _clinical_docs_diagnostic_data_merge_for_case(db: Session, case: Case, *, in
         .all()
     )
     imaging_studies = (
-        db.query(ImagingStudy)
+        db.query(ImagingStudy).filter(manual_imaging_legacy_only(ImagingStudy.source_type))
         .filter(ImagingStudy.case_id == int(getattr(case, "id")))
         .order_by(ImagingStudy.created_at.desc(), ImagingStudy.id.desc())
         .limit(20)
@@ -439,6 +445,8 @@ def _content_snapshot(meta: Dict[str, Any], context: Dict[str, str], template_by
     }
     if '__manual_lab_documents' in context:
         payload['manual_lab_documents'] = context['__manual_lab_documents']
+    if '__manual_imaging_documents' in context:
+        payload['manual_imaging_documents'] = context['__manual_imaging_documents']
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
@@ -454,6 +462,8 @@ def _render_docx(template_path: Path, context: Dict[str, str], *, preserve_text_
                     raw = _replace_placeholders_in_xml(raw, context, preserve_text_layout=preserve_text_layout)
                 if item.filename == "word/document.xml" and context.get('__manual_lab_documents'):
                     raw = _lab_documents().append_section(raw, context)
+                if item.filename == 'word/document.xml' and context.get('__manual_imaging_documents'):
+                    raw = _imaging_documents().append_section(raw, context)
                 zout.writestr(item, raw)
     return out.getvalue()
 
@@ -505,17 +515,37 @@ def _lab_documents():
     return manual_lab_documents
 
 
+def _imaging_documents():
+    try:
+        from backend import manual_imaging_documents
+    except ModuleNotFoundError:
+        import manual_imaging_documents
+    return manual_imaging_documents
+
+
 def _with_manual_documents(data, user, operation):
     module = _lab_documents()
     if data.template_id not in OUTPATIENT_TEMPLATES or data.include_diagnostic_data:
-        raise HTTPException(422, '仅两类门诊草稿支持单独选择已核对检验报告')
+        raise HTTPException(422, '仅两类门诊草稿支持选择已核对检查记录')
     try:
+        if data.manual_imaging_report_ids:
+            with _imaging_documents().snapshot(user.id, data.case_id, data.manual_imaging_report_ids, data.manual_lab_report_ids) as (locked_db, labs, images):
+                return operation(locked_db, labs, images)
         with module.snapshot(user.id, data.case_id, data.manual_lab_report_ids) as (locked_db, _case, reports):
-            return operation(locked_db, reports)
+            return operation(locked_db, reports, None)
     except module.AttachmentError as error:
         raise HTTPException(error.status, error.code) from error
     except (OSError, KeyError, TypeError, ValueError):
-        raise HTTPException(409, 'manual_lab_document_unavailable') from None
+        raise HTTPException(409, 'manual_document_unavailable') from None
+
+
+@router.get('/cases/{case_id}/manual-imaging-options')
+def manual_imaging_document_options(case_id: int, user=Depends(get_current_user)):
+    module = _imaging_documents()
+    try: return module.options(user.id, case_id)
+    except module.AttachmentError as error: raise HTTPException(error.status, error.code) from error
+    except (OSError, KeyError, TypeError, ValueError):
+        raise HTTPException(409, 'manual_imaging_document_unavailable') from None
 
 
 @router.get('/cases/{case_id}/manual-lab-options')
@@ -531,12 +561,12 @@ def manual_lab_document_options(case_id: int, user=Depends(get_current_user)):
 
 @router.post("/render-preview", response_model=dict)
 def preview_clinical_doc_context(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    if data.manual_lab_report_ids:
-        return _with_manual_documents(data, user, lambda locked, rows: _preview_clinical_doc(data, locked, user, rows))
+    if data.manual_lab_report_ids or data.manual_imaging_report_ids:
+        return _with_manual_documents(data, user, lambda locked, rows, images: _preview_clinical_doc(data, locked, user, rows, images))
     return _preview_clinical_doc(data, db, user)
 
 
-def _preview_clinical_doc(data, db, user, manual_reports=None):
+def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None):
     meta = _template_meta(data.template_id)
     case = _case_or_404(db, data.case_id, user)
     context = _build_context(case, data=data, user=user, template_id=str(meta["template_id"]))
@@ -549,6 +579,9 @@ def _preview_clinical_doc(data, db, user, manual_reports=None):
 
     if manual_reports:
         context = _lab_documents().add_context(context, manual_reports)
+    if imaging_reports:
+        context = _imaging_documents().add_context(context, imaging_reports)
+    if manual_reports or imaging_reports:
         context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [
@@ -567,6 +600,7 @@ def _preview_clinical_doc(data, db, user, manual_reports=None):
         "missing_required_keys": missing_required,
         "context": context,
         **({'manual_lab_reports': manual_reports} if manual_reports else {}),
+        **({'manual_imaging_reports': imaging_reports} if imaging_reports else {}),
         "diagnostic_data_merge": diagnostic_data_merge,
         "writes_database": False,
         "creates_case": False,
@@ -578,14 +612,14 @@ def _preview_clinical_doc(data, db, user, manual_reports=None):
 
 @router.post("/render", response_class=StreamingResponse)
 def render_clinical_doc(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
-    if data.manual_lab_report_ids:
+    if data.manual_lab_report_ids or data.manual_imaging_report_ids:
         if not data.expected_content_snapshot:
             raise HTTPException(409, 'manual_lab_document_review_required')
-        return _with_manual_documents(data, user, lambda locked, rows: _render_clinical_doc(data, locked, user, rows))
+        return _with_manual_documents(data, user, lambda locked, rows, images: _render_clinical_doc(data, locked, user, rows, images))
     return _render_clinical_doc(data, db, user)
 
 
-def _render_clinical_doc(data, db, user, manual_reports=None):
+def _render_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None):
     if data.output.lower() != "docx":
         raise HTTPException(status_code=422, detail="Clinical Docs Export API V1 supports output=docx only")
 
@@ -601,6 +635,9 @@ def _render_clinical_doc(data, db, user, manual_reports=None):
 
     if manual_reports:
         context = _lab_documents().add_context(context, manual_reports)
+    if imaging_reports:
+        context = _imaging_documents().add_context(context, imaging_reports)
+    if manual_reports or imaging_reports:
         context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [

@@ -239,6 +239,8 @@ def commit(uid, cid, body, token):
         if body["operation"] in {"update", "withdraw"}:
             from manual_lab_results import invalidate
             invalidate(db, case, attachment_id=item["id"], reason="source_" + body["operation"])
+            from manual_imaging_records import invalidate as invalidate_imaging
+            invalidate_imaging(db, case, attachment_id=item["id"], reason="source_" + body["operation"])
         case.updated_at = datetime.utcnow()
         result = {"state": "committed", "attachment": public(item)}
         audit(db, uid, cid, body["request_id"], body["operation"], fingerprint, result,

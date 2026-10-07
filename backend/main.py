@@ -117,6 +117,9 @@ app.include_router(case_attachments_router)
 from manual_lab_results_api import router as manual_lab_router
 from manual_lab_results import invalidate_identity as invalidate_lab_identity
 app.include_router(manual_lab_router)
+from manual_imaging_records_api import router as manual_imaging_router
+from manual_imaging_records import invalidate_identity as invalidate_imaging_identity
+app.include_router(manual_imaging_router)
 
 
 def _text_with_species(text: str, species: Optional[str] = None) -> str:
@@ -652,6 +655,7 @@ def confirm_case_edit(case_id: int, data: CaseEditConfirmIn,
     if not hmac.compare_digest(data.expected_preview_token, preview["preview_token"]):
         raise HTTPException(status_code=409, detail="本次修改与核对内容不一致，请重新预览。")
     invalidate_lab_identity(db, obj, preview["changes"])
+    invalidate_imaging_identity(db, obj, preview["changes"])
     for key, value in preview["changes"].items():
         setattr(obj, key, value)
     obj.updated_at = datetime.utcnow()
@@ -669,6 +673,7 @@ def update_case(
     obj = get_owned_case_or_404(db, case_id, user, for_update=True)
     updates = {k: v for k, v in data.model_dump(exclude_unset=True).items()}
     invalidate_lab_identity(db, obj, updates)
+    invalidate_imaging_identity(db, obj, updates)
     for k, v in updates.items():
         setattr(obj, k, v)
     db.add(obj); db.commit(); db.refresh(obj)
@@ -717,6 +722,7 @@ def reanalyze_case(
 ):
     obj = get_owned_case_or_404(db, case_id, user, for_update=True)
     invalidate_lab_identity(db, obj, {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None})
+    invalidate_imaging_identity(db, obj, {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None})
 
     if payload.chief_complaint is not None:
         obj.chief_complaint = payload.chief_complaint
