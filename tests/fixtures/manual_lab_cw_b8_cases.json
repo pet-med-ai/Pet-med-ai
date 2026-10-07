@@ -1,0 +1,1 @@
+{"schema":"manual-lab-documents-cw-b8-fixtures-v1","species":["dog","cat"],"templates":["outpatient_record_zh","owner_visit_summary_zh"],"sample_shapes":["short","long","limit200","special"],"literal":"  未见异常描述；不排除其他原因。<5 & >2 {{visit.plan}} 🐾\n\t尾部  ","limits":{"reports":5,"items":200}}

@@ -5,6 +5,7 @@ import {test, beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import CaseDetail from '../src/pages/CaseDetail';
 import api from '../src/api';
+import labData from '../../tests/fixtures/manual_lab_cw_b7_cases.json';
 
 const mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const record=id=>({id,patient_name:`合成病例-${id}`,history:`病史-${id}`,treatment:`更正治疗-${id}`});
@@ -45,6 +46,17 @@ afterEach(()=>{if(renderer)act(()=>renderer.unmount());renderer=null;URL.createO
 
 test('detail shows server history and corrected treatment',async()=>{await mount();assert.match(text(),/病史-1/);assert.match(text(),/更正治疗-1/);});
 test('manual lab entry stays lazy and does not alter document preview requests',async()=>{await mount();assert(button('打开检验项目'));assert(!requests.some(c=>c.url.includes('/manual-lab')));await click('导出门诊病历草稿 DOCX');assert(!requests.some(c=>c.url.includes('/manual-lab')));assert.equal(previews().length,1);});
+test('CW-B8 selected ids and snapshot reach actual download request',async()=>{
+ const row={id:9,root_id:9,version:1,state:'confirmed',reviewed_by:'1',reviewed_at:'synthetic',source:{name:'synthetic.pdf',sha256:snapshot},data:labData};const normal=adapter;
+ adapter=async c=>{if(c.url.endsWith('/manual-lab-options'))return{data:{case_id:1,reports:[row],writes_database:false}};const r=await normal(c);if(c.url.endsWith('render-preview')&&JSON.parse(c.data).manual_lab_report_ids)r.data.manual_lab_reports=[row];return r;};
+ await mount();await click('导出门诊病历草稿 DOCX');await click('选择已核对检验报告');await act(async()=>renderer.root.findByProps({'aria-label':'纳入 '+labData.report.title}).props.onChange({target:{checked:true}}));await click('重新读取草稿');
+ await act(async()=>renderer.root.findByProps({'aria-label':'文书草稿内容核对'}).findAllByType('input').find(n=>!n.props['aria-label']).props.onChange({target:{checked:true}}));await click('确认并下载草稿 DOCX');
+ assert.deepEqual(JSON.parse(exports()[0].data).manual_lab_report_ids,[9]);assert.equal(JSON.parse(exports()[0].data).expected_content_snapshot,snapshot);assert.equal(downloads.length,1);
+});
+test('CW-B8 return to source closes document review and opens existing lab panel',async()=>{
+ const normal=adapter;adapter=c=>c.url.endsWith('/manual-lab-options')?{data:{case_id:1,reports:[],writes_database:false}}:c.url.endsWith('/manual-lab')?{data:{case_id:1,case_token:snapshot,patient_name:'合成病例-1',species:'dog',sources:[],reports:[]}}:normal(c);
+ await mount();await click('导出门诊病历草稿 DOCX');await click('选择已核对检验报告');await click('返回检验项目与原件');assert.equal(button('确认并下载草稿 DOCX'),undefined);assert.match(text(),/检验项目人工录入/);assert.equal(exports().length,0);
+});
 test('route change immediately removes previous case until current GET completes',async()=>{await mount();const gate=deferred();const original=adapter;adapter=c=>c.url==='/api/cases/2'?gate.promise:original(c);await move('/cases/2');assert.doesNotMatch(text(),/合成病例-1/);assert.match(text(),/加载中/);assert.equal(button('打印病例'),undefined);await act(async()=>gate.resolve({data:record(2)}));assert.match(text(),/合成病例-2/);});
 test('late old detail response cannot replace the new case',async()=>{const gate=deferred(),original=adapter;adapter=c=>c.url==='/api/cases/1'?gate.promise:original(c);await mount();await move('/cases/2');await act(async()=>gate.resolve({data:record(1)}));assert.match(text(),/合成病例-2/);assert.doesNotMatch(text(),/合成病例-1/);});
 test('late old failure cannot hide the new case',async()=>{const gate=deferred(),original=adapter;adapter=c=>c.url==='/api/cases/1'?gate.promise:original(c);await mount();await move('/cases/2');await act(async()=>gate.reject(Error('old-failure')));assert.match(text(),/合成病例-2/);assert.doesNotMatch(text(),/old-failure/);});
