@@ -86,6 +86,17 @@ def manual_lab_readback():
     record('cwb7_fresh_process_exact_versions_sources_decimal_and_audit')
 
 
+def manual_lab_document_readback():
+    saved=json.loads((f.OUT/'cwb8-restart-expected.json').read_text())
+    auth=login('pg-owner');f.enable_manual_lab_documents()
+    p=call('POST','/api/clinical-docs/render-preview',auth,json=saved['body'])
+    assert p['content_snapshot']==saved['snapshot'] and p['manual_lab_reports']==saved['reports']
+    r=client.post('/api/clinical-docs/render',headers=auth,json={**saved['body'],'expected_content_snapshot':saved['snapshot']})
+    assert r.status_code==200 and r.headers['x-pmai-content-snapshot']==saved['snapshot']
+    (f.OUT/'cwb8-restarted.docx').write_bytes(r.content)
+    record('cwb8_fresh_process_exact_reports_source_hashes_and_document_snapshot')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -118,6 +129,7 @@ if '--readback' in sys.argv:
     record('cwb5_fresh_process_exact_history_audit_and_spent_budget')
     attachment_readback()
     manual_lab_readback()
+    manual_lab_document_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -781,6 +793,70 @@ for scenario,panel in [('first_competition','cbc'),('correct_withdraw','chemistr
     lab_extra.append({'case_id':ecid,'listing':listing})
     record('cwb7_postgresql_'+scenario+'_one_current_version')
 (f.OUT/'cwb7-extra-restart.json').write_text(json.dumps(lab_extra,ensure_ascii=False,indent=2))
+
+
+# CW-B8 uses real report/source routes and holds the case snapshot until bytes exist.
+f.enable_manual_lab_documents()
+import io,zipfile
+from xml.etree import ElementTree as ET
+from threading import Event
+import clinical_docs_api as document_api
+
+def document_text(raw):
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        return ''.join(ET.fromstring(z.read('word/document.xml')).itertext())
+
+for scenario in ('control','correct','withdraw','source','identity','history'):
+    cid=call('POST','/api/cases',owner,expected=201,json={**manual,'patient_name':'CW-B8 '+scenario})['id']
+    files=f'/api/cases/{cid}/attachments';root=f'/api/cases/{cid}/manual-lab'
+    name,mime,raw=attachment_samples()[0]
+    item=call('POST',files+'/uploads/'+uuid4().hex,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',files,owner)['case_token']},content=raw)['attachment']
+    ab={'request_id':uuid4().hex,'attachment_id':item['id'],'operation':'confirm','expected_case_token':call('GET',files,owner)['case_token'],'metadata':meta,'reason':''}
+    ap=call('POST',files+'/preview',owner,json=ab);call('POST',files+'/confirm',owner,json={**ab,'preview_token':ap['preview_token'],'reviewed':True})
+    b={'request_id':uuid4().hex,'attachment_id':item['id'],'operation':'create','expected_case_token':call('GET',root,owner)['case_token'],'report_id':None,'expected_report_token':'','data':lab_data,'reason':''}
+    p=call('POST',root+'/preview',owner,json=b);row=call('POST',root+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})['report']
+    body={'case_id':cid,'template_id':'outpatient_record_zh','manual_lab_report_ids':[row['id']]}
+    p=call('POST','/api/clinical-docs/render-preview',owner,json=body);request={**body,'expected_content_snapshot':p['content_snapshot']}
+    call('POST','/api/clinical-docs/render-preview',other,expected=404,json=body)
+    if scenario=='control':
+        from sqlalchemy import event
+        statements=[]
+        def writes(_conn,_cursor,statement,*_):
+            if statement.lstrip().split(' ',1)[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}:statements.append(statement)
+        event.listen(f.db.engine,'before_cursor_execute',writes)
+        try:
+            for template in ('outpatient_record_zh','owner_visit_summary_zh'):
+                q={**body,'template_id':template};pr=call('POST','/api/clinical-docs/render-preview',owner,json=q)
+                r=client.post('/api/clinical-docs/render',headers=owner,json={**q,'expected_content_snapshot':pr['content_snapshot']});assert r.status_code==200
+                content=document_text(r.content)
+                for exact in ('0.0100','<0.0010','未测','未提供',item['sha256']):assert exact in content
+                assert r.headers['x-pmai-writes-database']=='false'
+                (f.OUT/('cwb8-pg-'+template+'.docx')).write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',writes)
+        assert statements==[]
+        (f.OUT/'cwb8-restart-expected.json').write_text(json.dumps({'body':body,'snapshot':p['content_snapshot'],'reports':p['manual_lab_reports']},ensure_ascii=False,indent=2))
+        record('cwb8_postgresql_two_templates_literal_values_no_database_writes')
+        continue
+    if scenario in ('correct','withdraw'):
+        update={**b,'request_id':uuid4().hex,'operation':scenario,'report_id':row['id'],'expected_report_token':row['token'],'reason':'合成并发文书验证','data':None if scenario=='withdraw' else copy.deepcopy(lab_data)}
+        if scenario=='correct':update['data']['items'][0]['value']='0.0990'
+        review=call('POST',root+'/preview',owner,json=update)
+        mutation=lambda:client.post(root+'/confirm',headers=owner,json={**update,'preview_token':review['preview_token'],'reviewed':True})
+    elif scenario=='source':
+        update={**ab,'request_id':uuid4().hex,'operation':'withdraw','reason':'合成原件撤销'};review=call('POST',files+'/preview',owner,json=update)
+        mutation=lambda:client.post(files+'/confirm',headers=owner,json={**update,'preview_token':review['preview_token'],'reviewed':True})
+    else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=owner,json={('owner_name' if scenario=='identity' else 'history'):'并发更正合成字段'})
+    entered,release,attempted=Event(),Event(),Event();normal=document_api._render_docx
+    def held(*args,**kwargs):
+        entered.set();assert release.wait(10);return normal(*args,**kwargs)
+    def change():attempted.set();return mutation()
+    with ThreadPoolExecutor(max_workers=2) as pool,patch.object(document_api,'_render_docx',side_effect=held):
+        export=pool.submit(client.post,'/api/clinical-docs/render',headers=owner,json=request)
+        assert entered.wait(10);rival=pool.submit(change);assert attempted.wait(10);assert not rival.done();release.set()
+        r=export.result(15);assert r.status_code==200 and '0.0100' in document_text(r.content) and '0.0990' not in document_text(r.content)
+        assert rival.result(15).status_code==200
+    call('POST','/api/clinical-docs/render',owner,expected=409,json=request)
+    record('cwb8_postgresql_export_serializes_'+scenario+'_then_rejects_old_snapshot')
 
 
 client.close(); f.db.engine.dispose()

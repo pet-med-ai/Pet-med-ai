@@ -147,6 +147,25 @@ def listing(uid, cid):
     with store.locked(), attachments.transaction(uid, cid) as (db, case): return _state(store, db, case)
 
 
+def document_reports(store, db, case, ids):
+    """Read selected current versions inside the caller's source and case locks."""
+    from copy import deepcopy
+    rows = reports(db, case.id)
+    latest = {}
+    for row in rows:
+        latest[(row.metadata_json or {}).get('root_id', row.id)] = row
+    result = []
+    for rid in ids:
+        row = next((r for r in rows if r.id == rid), None)
+        if row is None: raise AttachmentError('manual_lab_not_found', 404)
+        if latest.get(row.metadata_json.get('root_id')) is not row or effective(store, case, row) != 'confirmed':
+            raise AttachmentError('manual_lab_document_stale', 409)
+        if validate(input_data(row.metadata_json['data'])) != row.metadata_json['data']:
+            raise AttachmentError('manual_lab_document_stale', 409)
+        result.append(deepcopy(public(store, case, row)))
+    return result
+
+
 def _get(db, case, rid):
     row = db.query(DiagnosticReport).filter_by(id=rid, case_id=case.id, source_type=SOURCE).first()
     if row is None: raise AttachmentError('manual_lab_not_found', 404)

@@ -53,6 +53,11 @@ def prepare_empty_database():
     (OUT / 'postgres-environment.json').write_text(json.dumps(details, indent=2))
 
 
+def enable_manual_lab_documents():
+    assert os.environ.get('ENVIRONMENT') == 'test' and os.environ.get('RENDER') == 'false'
+    os.environ.update(MANUAL_LAB_DOCUMENTS_ENABLED='1', MANUAL_LAB_DOCUMENTS_SYNTHETIC_ONLY='1')
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(main.app, host='127.0.0.1', port=18026, loop='asyncio')

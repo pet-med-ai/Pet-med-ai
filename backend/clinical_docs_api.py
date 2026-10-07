@@ -20,7 +20,7 @@ from xml.etree import ElementTree as ET
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StrictInt
 from sqlalchemy.orm import Session
 
 try:
@@ -127,6 +127,7 @@ class ClinicalDocRenderIn(BaseModel):
     include_preview_context: bool = Field(default=False)
     include_diagnostic_data: bool = Field(default=False)
     expected_content_snapshot: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    manual_lab_report_ids: list[StrictInt] = Field(default_factory=list, max_length=5)
 
 
 def _text(value: Any, fallback: str = "") -> str:
@@ -436,6 +437,8 @@ def _content_snapshot(meta: Dict[str, Any], context: Dict[str, str], template_by
         "asset_sha256": hashlib.sha256(template_bytes).hexdigest(),
         "fields": {key: context[key] for key in meta["required_keys"] if key not in {"timestamp", "hash"}},
     }
+    if '__manual_lab_documents' in context:
+        payload['manual_lab_documents'] = context['__manual_lab_documents']
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
@@ -449,6 +452,8 @@ def _render_docx(template_path: Path, context: Dict[str, str], *, preserve_text_
                     raw = _append_diagnostic_data_section_to_document_xml(raw, context)
                 if item.filename.startswith("word/") and item.filename.endswith(".xml"):
                     raw = _replace_placeholders_in_xml(raw, context, preserve_text_layout=preserve_text_layout)
+                if item.filename == "word/document.xml" and context.get('__manual_lab_documents'):
+                    raw = _lab_documents().append_section(raw, context)
                 zout.writestr(item, raw)
     return out.getvalue()
 
@@ -492,12 +497,46 @@ def list_clinical_doc_templates():
     }
 
 
+def _lab_documents():
+    try:
+        from backend import manual_lab_documents
+    except ModuleNotFoundError:
+        import manual_lab_documents
+    return manual_lab_documents
+
+
+def _with_manual_documents(data, user, operation):
+    module = _lab_documents()
+    if data.template_id not in OUTPATIENT_TEMPLATES or data.include_diagnostic_data:
+        raise HTTPException(422, '仅两类门诊草稿支持单独选择已核对检验报告')
+    try:
+        with module.snapshot(user.id, data.case_id, data.manual_lab_report_ids) as (locked_db, _case, reports):
+            return operation(locked_db, reports)
+    except module.AttachmentError as error:
+        raise HTTPException(error.status, error.code) from error
+    except (OSError, KeyError, TypeError, ValueError):
+        raise HTTPException(409, 'manual_lab_document_unavailable') from None
+
+
+@router.get('/cases/{case_id}/manual-lab-options')
+def manual_lab_document_options(case_id: int, user=Depends(get_current_user)):
+    module = _lab_documents()
+    try:
+        return module.options(user.id, case_id)
+    except module.AttachmentError as error:
+        raise HTTPException(error.status, error.code) from error
+    except (OSError, KeyError, TypeError, ValueError):
+        raise HTTPException(409, 'manual_lab_document_unavailable') from None
+
+
 @router.post("/render-preview", response_model=dict)
-def preview_clinical_doc_context(
-    data: ClinicalDocRenderIn,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
+def preview_clinical_doc_context(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if data.manual_lab_report_ids:
+        return _with_manual_documents(data, user, lambda locked, rows: _preview_clinical_doc(data, locked, user, rows))
+    return _preview_clinical_doc(data, db, user)
+
+
+def _preview_clinical_doc(data, db, user, manual_reports=None):
     meta = _template_meta(data.template_id)
     case = _case_or_404(db, data.case_id, user)
     context = _build_context(case, data=data, user=user, template_id=str(meta["template_id"]))
@@ -507,6 +546,10 @@ def preview_clinical_doc_context(
         include=bool(data.include_diagnostic_data),
     )
     context = _apply_diagnostic_data_context_to_clinical_doc_context(context, diagnostic_data_merge)
+
+    if manual_reports:
+        context = _lab_documents().add_context(context, manual_reports)
+        context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [
         key for key in meta["required_keys"]
@@ -523,6 +566,7 @@ def preview_clinical_doc_context(
            if meta["template_id"] in OUTPATIENT_TEMPLATES else {}),
         "missing_required_keys": missing_required,
         "context": context,
+        **({'manual_lab_reports': manual_reports} if manual_reports else {}),
         "diagnostic_data_merge": diagnostic_data_merge,
         "writes_database": False,
         "creates_case": False,
@@ -533,11 +577,15 @@ def preview_clinical_doc_context(
 
 
 @router.post("/render", response_class=StreamingResponse)
-def render_clinical_doc(
-    data: ClinicalDocRenderIn,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
+def render_clinical_doc(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if data.manual_lab_report_ids:
+        if not data.expected_content_snapshot:
+            raise HTTPException(409, 'manual_lab_document_review_required')
+        return _with_manual_documents(data, user, lambda locked, rows: _render_clinical_doc(data, locked, user, rows))
+    return _render_clinical_doc(data, db, user)
+
+
+def _render_clinical_doc(data, db, user, manual_reports=None):
     if data.output.lower() != "docx":
         raise HTTPException(status_code=422, detail="Clinical Docs Export API V1 supports output=docx only")
 
@@ -550,6 +598,10 @@ def render_clinical_doc(
         include=bool(data.include_diagnostic_data),
     )
     context = _apply_diagnostic_data_context_to_clinical_doc_context(context, diagnostic_data_merge)
+
+    if manual_reports:
+        context = _lab_documents().add_context(context, manual_reports)
+        context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [
         key for key in meta["required_keys"]

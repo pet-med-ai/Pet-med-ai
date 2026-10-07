@@ -819,7 +819,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     // Wait until the opener is enabled again before restoring keyboard focus.
     setTimeout(() => { if (isCurrent()) reviewOpener.current?.focus(); }, 0);
   };
-  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true) => {
+  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = []) => {
     if (reviewActive.current && !expectedSnapshot) return;
     if (!data?.id || !isCurrent()) {
       alert("病例尚未加载或登录已变化，请重新打开病例后导出。");
@@ -839,6 +839,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           template_id: templateId,
           output: "docx",
           ...(expectedSnapshot ? { expected_content_snapshot: expectedSnapshot } : {}),
+          ...(labIds.length ? { manual_lab_report_ids: labIds } : {}),
         },
         {
           responseType: "blob",
@@ -980,7 +981,8 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       {docReview && <ClinicalDocReview key={docReview.templateId} caseId={Number(data.id)}
         templateId={docReview.templateId} label={docReview.label} requestToken={requestToken}
         onClose={closeDocReview}
-        onDownload={(snapshot, current) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current)} />}
+        onInspectLab={()=>{closeDocReview();setShowLab(true);}}
+        onDownload={(snapshot, current, ids) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids)} />}
 
       {exportStatus && (
         <div role="status" aria-live="polite" className="clinical-doc-export-status screen-only">
