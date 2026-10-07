@@ -13,10 +13,11 @@ function Results({ data }) {
 }
 
 export default function CaseLabResults(props) { return <LabPanel key={JSON.stringify([props.caseId, props.requestToken])} {...props} />; }
-function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onChanged }) {
+function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onChanged, inspectTarget }) {
   const [list, setList] = useState(null), [draft, setDraft] = useState(null), [review, setReview] = useState(null);
   const [checked, setChecked] = useState(false), [busy, setBusy] = useState(false), [unknown, setUnknown] = useState(null), [message, setMessage] = useState("");
   const active = useRef(false), control = useRef(null), inFlight = useRef(false), dirty = useRef(false), reviewEpoch = useRef(0), pendingRefresh = useRef(false), readEpoch = useRef(0);
+  const recordNodes = useRef({});
   const current = () => active.current && localStorage.getItem("token") === requestToken;
   const client = (method, path, data) => manualLabClient(caseId, requestToken, control.current?.signal)(method, path, data);
   const invalidate = () => { reviewEpoch.current++; setReview(null); setChecked(false); };
@@ -54,6 +55,17 @@ function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onC
     window.addEventListener("beforeunload", unload); document.addEventListener?.("click", click, true);
     return () => { window.removeEventListener("beforeunload", unload); document.removeEventListener?.("click", click, true); };
   }, []);
+  useEffect(() => {
+    if (inspectTarget?.caseId === caseId) {
+      // Re-read the saved version without replacing or clearing any editor draft.
+      if (inFlight.current) pendingRefresh.current = true; else action(refresh);
+    }
+  }, [inspectTarget]);
+  const inspected = list?.reports.find(row => row.id === inspectTarget?.id);
+  const targetMatches = inspectTarget?.caseId === caseId && inspected?.version === inspectTarget?.version && inspected?.token === inspectTarget?.token;
+  useEffect(() => {
+    if (current() && targetMatches) { const node = recordNodes.current[inspected.id]; node?.scrollIntoView?.({ block: "nearest" }); node?.focus?.(); }
+  }, [list, inspectTarget]);
   function edit(row, operation) {
     if (dirty.current && !window.confirm(prompt)) return;
     invalidate(); setUnknown(null);
@@ -131,10 +143,12 @@ function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onC
         <button disabled={locked || !checked} onClick={() => action(confirm)}>确认保存检验记录</button>
       </section>}
       <h3>检验记录与版本历史</h3>
-      {list.reports.map(row => <article key={row.id} style={box} aria-label={`检验记录 ${row.id}`}>
+      {inspectTarget?.caseId === caseId && list && <p role="status">{targetMatches ? `已定位检验记录 #${inspected.id} 版本 ${inspected.version}。` : `所选记录 #${inspectTarget.id} 版本 ${inspectTarget.version} 的版本或状态已变化，未替换为其他记录；请刷新区间核对后重新选择。`}</p>}
+      {list.reports.map(row => <article key={row.id} style={{ ...box, overflowWrap: "anywhere" }} aria-label={`检验记录 ${row.id}`} tabIndex={-1} ref={node => { recordNodes.current[row.id] = node; }}>
         <strong>{row.data.report.title}</strong> · 版本 {row.version} · {labStates[row.state] || "需核对状态"}
         <p>原件 {row.source.name} · 核对账号 {row.reviewed_by} · 核对时间 {row.reviewed_at} · 原因 {row.reason || "首次录入"}</p>
-        <details><summary>查看该版本内容</summary><p>类型 {panels[row.data.report.panel]} · 样本 {row.data.report.specimen || "未提供"} · 采样 {row.data.report.collected_at || "未提供"} · 报告 {row.data.report.reported_at || "未提供"}</p><p>实验室 {row.data.report.laboratory || "未提供"} · 仪器 {row.data.report.device || "未提供"} · 备注 {row.data.report.note || "未提供"}</p><Results data={row.data}/></details>
+        <details open={targetMatches && inspected.id === row.id ? true : undefined}><summary>查看该版本内容</summary><p>类型 {panels[row.data.report.panel]} · 样本 {row.data.report.specimen || "未提供"} · 采样 {row.data.report.collected_at || "未提供"} · 报告 {row.data.report.reported_at || "未提供"}</p><p>实验室 {row.data.report.laboratory || "未提供"} · 仪器 {row.data.report.device || "未提供"} · 备注 {row.data.report.note || "未提供"}</p><Results data={row.data}/></details>
+        <button type="button" disabled={locked} onClick={() => action(() => sourceFile(row.source))}>打开该记录原件</button>
         {!['withdrawn','superseded'].includes(row.state) && <><button disabled={locked || Boolean(draft)} onClick={() => edit(row,"correct")}>更正检验记录</button><button disabled={locked || Boolean(draft)} onClick={() => edit(row,"withdraw")}>撤销检验记录</button></>}
       </article>)}
       {!list.reports.length && <p>暂无已保存的检验项目。</p>}

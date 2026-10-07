@@ -104,6 +104,17 @@ on:
       - 'tests/fixtures/clinical_case_overview_cw_b10_cases.json'
       - 'scripts/validate_clinical_case_overview_cw_b10.py'
       - 'docs/clinical_docs/CLINICAL_CASE_OVERVIEW_CW_B10.md'
+      - 'backend/clinical_lab_range_review.py'
+      - 'backend/clinical_lab_range_review_api.py'
+      - 'frontend/src/components/CaseLabRangeReview.jsx'
+      - 'frontend/src/labRangeReview.js'
+      - 'frontend/tests/lab-range-review.test.jsx'
+      - 'frontend/tests/case-detail-lab-range-review.test.jsx'
+      - 'tests/test_clinical_lab_range_review.py'
+      - 'tests/test_clinical_lab_range_review_concurrency.py'
+      - 'tests/fixtures/clinical_lab_range_review_cw_b11_cases.json'
+      - 'scripts/validate_clinical_lab_range_review_cw_b11.py'
+      - 'docs/clinical_docs/CLINICAL_LAB_RANGE_REVIEW_CW_B11.md'
 
 permissions:
   contents: read
@@ -123,15 +134,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B9 and approved CW-B10 increment
+      - name: Bind frozen M7 through CW-B10 and approved CW-B11 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_case_overview_cw_b10.py > "$RUNNER_TEMP/cwb10-scope.json"
+          python scripts/validate_clinical_lab_range_review_cw_b11.py > "$RUNNER_TEMP/cwb11-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb10-scope.json" acceptance-results/cwb10-scope.json
+          cp "$RUNNER_TEMP/cwb11-scope.json" acceptance-results/cwb11-scope.json
           python - <<'PY_SCOPE'
           import json
-          current = json.load(open('acceptance-results/cwb10-scope.json'))
+          increment = json.load(open('acceptance-results/cwb11-scope.json'))
+          current = increment['frozen_cwb10']
+          open('acceptance-results/cwb10-scope.json','w').write(json.dumps(current,indent=2))
           cwb9 = current['frozen_cwb9']
           open('acceptance-results/cwb9-scope.json','w').write(json.dumps(cwb9,indent=2))
           cwb8 = cwb9['frozen_cwb8']
@@ -288,6 +301,11 @@ jobs:
           set -euo pipefail
           python tests/test_clinical_case_overview.py 2>&1 | tee acceptance-results/cwb10-route-tests.log
           python tests/test_clinical_case_overview_concurrency.py 2>&1 | tee acceptance-results/cwb10-concurrency-tests.log
+      - name: CW-B11 exact decimal comparisons, read-only routes and SQLite races
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_lab_range_review.py 2>&1 | tee acceptance-results/cwb11-route-tests.log
+          python tests/test_clinical_lab_range_review_concurrency.py 2>&1 | tee acceptance-results/cwb11-concurrency-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -403,6 +421,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_case_overview_checks.cjs 2>&1 | tee acceptance-results/cwb10-browser.log
+      - name: CW-B11 real Chromium range checks, exact sources and saved-record navigation
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_lab_range_review_checks.cjs 2>&1 | tee acceptance-results/cwb11-browser.log
       - name: Audit locked frontend dependencies
         run: |
           set -o pipefail

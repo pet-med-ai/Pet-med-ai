@@ -1,0 +1,965 @@
+{
+  "case": {
+    "patient_name": "CW-B11 合成病例",
+    "species": "dog",
+    "owner_name": "合成宠主 < & {{literal}}",
+    "coat_color": "黑白（合成）",
+    "chief_complaint": "资料核对，不新增诊断",
+    "history": "  未见呕吐；不能排除间歇症状。\r\n保留否定词 <tag> & {{visit.history}} 🐾\t  ",
+    "exam_findings": "未填写体温不代表体温正常",
+    "analysis": "评估记录，尚不能确认病因",
+    "treatment": "需医生核对原计划",
+    "prognosis": ""
+  },
+  "data": {
+    "report": {
+      "title": "合成区间报告 < & 🐾",
+      "panel": "mixed",
+      "specimen": "合成样本",
+      "collected_at": "2026-10-07T09:30:00+08:00",
+      "reported_at": "",
+      "laboratory": "",
+      "device": "",
+      "note": "保留零、尾随零、科学记数和全部原文"
+    },
+    "items": [
+      {
+        "name": "零值低于下限",
+        "result_type": "number",
+        "value": "0",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 1–2",
+        "reference_low": "1",
+        "reference_high": "2",
+        "reference_unit": "mmol/L",
+        "flag": "L",
+        "position": "第 1 页第 1 项",
+        "checked": true
+      },
+      {
+        "name": "负值",
+        "result_type": "number",
+        "value": "-2.000",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & -1–0",
+        "reference_low": "-1",
+        "reference_high": "0",
+        "reference_unit": "mmol/L",
+        "flag": "H",
+        "position": "第 1 页第 2 项",
+        "checked": true
+      },
+      {
+        "name": "小数精度",
+        "result_type": "number",
+        "value": "0.10000000000000000000000000001",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 0.1–0.2",
+        "reference_low": "0.1",
+        "reference_high": "0.2",
+        "reference_unit": "mmol/L",
+        "flag": "",
+        "position": "第 1 页第 3 项",
+        "checked": true
+      },
+      {
+        "name": "科学记数原文",
+        "result_type": "number",
+        "value": "2.001e-8",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 1e-8–2e-8",
+        "reference_low": "1e-8",
+        "reference_high": "2e-8",
+        "reference_unit": "mmol/L",
+        "flag": "H",
+        "position": "第 1 页第 4 项",
+        "checked": true
+      },
+      {
+        "name": "低边界",
+        "result_type": "number",
+        "value": "0.0100",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 0.01–0.02",
+        "reference_low": "0.01",
+        "reference_high": "0.02",
+        "reference_unit": "mmol/L",
+        "flag": "L",
+        "position": "第 1 页第 5 项",
+        "checked": true
+      },
+      {
+        "name": "高边界",
+        "result_type": "number",
+        "value": "2.00",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 1–2",
+        "reference_low": "1",
+        "reference_high": "2",
+        "reference_unit": "mmol/L",
+        "flag": "H",
+        "position": "第 1 页第 6 项",
+        "checked": true
+      },
+      {
+        "name": "相同上下限",
+        "result_type": "number",
+        "value": "-0",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 0–0",
+        "reference_low": "0",
+        "reference_high": "0",
+        "reference_unit": "mmol/L",
+        "flag": "",
+        "position": "第 1 页第 7 项",
+        "checked": true
+      },
+      {
+        "name": "区间内H冲突",
+        "result_type": "number",
+        "value": "1.50",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 1–2",
+        "reference_low": "1",
+        "reference_high": "2",
+        "reference_unit": "mmol/L",
+        "flag": "H",
+        "position": "第 1 页第 8 项",
+        "checked": true
+      },
+      {
+        "name": "高值L冲突",
+        "result_type": "number",
+        "value": "3",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 1–2",
+        "reference_low": "1",
+        "reference_high": "2",
+        "reference_unit": "mmol/L",
+        "flag": "L",
+        "position": "第 1 页第 9 项",
+        "checked": true
+      },
+      {
+        "name": "低值H冲突",
+        "result_type": "number",
+        "value": "-1",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 0–2",
+        "reference_low": "0",
+        "reference_high": "2",
+        "reference_unit": "mmol/L",
+        "flag": "H",
+        "position": "第 1 页第 10 项",
+        "checked": true
+      },
+      {
+        "name": "单下限",
+        "result_type": "number",
+        "value": "9",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 1–",
+        "reference_low": "1",
+        "reference_high": "",
+        "reference_unit": "mmol/L",
+        "flag": "H",
+        "position": "第 1 页第 11 项",
+        "checked": true
+      },
+      {
+        "name": "单上限",
+        "result_type": "number",
+        "value": "-9",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & –2",
+        "reference_low": "",
+        "reference_high": "2",
+        "reference_unit": "mmol/L",
+        "flag": "L",
+        "position": "第 1 页第 12 项",
+        "checked": true
+      },
+      {
+        "name": "自由文本范围",
+        "result_type": "number",
+        "value": "1",
+        "unit": "mmol/L",
+        "reference": "详见原文，未结构化",
+        "reference_low": "",
+        "reference_high": "",
+        "reference_unit": "mmol/L",
+        "flag": "",
+        "position": "第 1 页第 13 项",
+        "checked": true
+      },
+      {
+        "name": "比较符",
+        "result_type": "comparison",
+        "value": "<0.0100",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 0–1",
+        "reference_low": "0",
+        "reference_high": "1",
+        "reference_unit": "mmol/L",
+        "flag": "L",
+        "position": "第 1 页第 14 项",
+        "checked": true
+      },
+      {
+        "name": "比较符大于等于",
+        "result_type": "comparison",
+        "value": "≥ 2e-8",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 0–1",
+        "reference_low": "0",
+        "reference_high": "1",
+        "reference_unit": "mmol/L",
+        "flag": "H",
+        "position": "第 1 页第 15 项",
+        "checked": true
+      },
+      {
+        "name": "文本阳性",
+        "result_type": "text",
+        "value": "阳性（合成）",
+        "unit": "",
+        "reference": "详见原文，未结构化",
+        "reference_low": "",
+        "reference_high": "",
+        "reference_unit": "",
+        "flag": "+",
+        "position": "第 1 页第 16 项",
+        "checked": true
+      },
+      {
+        "name": "未检",
+        "result_type": "not_tested",
+        "value": "",
+        "unit": "",
+        "reference": "详见原文，未结构化",
+        "reference_low": "",
+        "reference_high": "",
+        "reference_unit": "",
+        "flag": "",
+        "position": "第 1 页第 17 项",
+        "checked": true
+      },
+      {
+        "name": "未提供",
+        "result_type": "not_provided",
+        "value": "",
+        "unit": "",
+        "reference": "详见原文，未结构化",
+        "reference_low": "",
+        "reference_high": "",
+        "reference_unit": "",
+        "flag": "",
+        "position": "第 1 页第 18 项",
+        "checked": true
+      },
+      {
+        "name": "小写h不解释",
+        "result_type": "number",
+        "value": "3",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 1–2",
+        "reference_low": "1",
+        "reference_high": "2",
+        "reference_unit": "mmol/L",
+        "flag": "h",
+        "position": "第 1 页第 19 项",
+        "checked": true
+      },
+      {
+        "name": "复合标记不解释",
+        "result_type": "number",
+        "value": "0",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 1–2",
+        "reference_low": "1",
+        "reference_high": "2",
+        "reference_unit": "mmol/L",
+        "flag": "L (复核)",
+        "position": "第 1 页第 20 项",
+        "checked": true
+      },
+      {
+        "name": "特殊文本 & < {{原样}} 🐾长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长",
+        "result_type": "text",
+        "value": "<不是HTML>\n未见异常；仍需核对。长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长",
+        "unit": "",
+        "reference": "详见原文，未结构化",
+        "reference_low": "",
+        "reference_high": "",
+        "reference_unit": "",
+        "flag": "Ｈ\nH?",
+        "position": "第 1 页第 21 项",
+        "checked": true
+      },
+      {
+        "name": "大幅精度差",
+        "result_type": "number",
+        "value": "1e100",
+        "unit": "mmol/L",
+        "reference": "原报告范围 < & 9.99e99–1.01e100",
+        "reference_low": "9.99e99",
+        "reference_high": "1.01e100",
+        "reference_unit": "mmol/L",
+        "flag": "L",
+        "position": "第 1 页第 22 项",
+        "checked": true
+      }
+    ]
+  },
+  "expected": [
+    {
+      "state": "below",
+      "flag_state": "agrees"
+    },
+    {
+      "state": "below",
+      "flag_state": "conflict"
+    },
+    {
+      "state": "between",
+      "flag_state": "not_provided"
+    },
+    {
+      "state": "above",
+      "flag_state": "agrees"
+    },
+    {
+      "state": "boundary",
+      "flag_state": "not_assessed"
+    },
+    {
+      "state": "boundary",
+      "flag_state": "not_assessed"
+    },
+    {
+      "state": "boundary",
+      "flag_state": "not_provided"
+    },
+    {
+      "state": "between",
+      "flag_state": "conflict"
+    },
+    {
+      "state": "above",
+      "flag_state": "conflict"
+    },
+    {
+      "state": "below",
+      "flag_state": "conflict"
+    },
+    {
+      "state": "reference_incomplete",
+      "flag_state": "not_assessed"
+    },
+    {
+      "state": "reference_incomplete",
+      "flag_state": "not_assessed"
+    },
+    {
+      "state": "reference_incomplete",
+      "flag_state": "not_provided"
+    },
+    {
+      "state": "comparison",
+      "flag_state": "not_assessed"
+    },
+    {
+      "state": "comparison",
+      "flag_state": "not_assessed"
+    },
+    {
+      "state": "text",
+      "flag_state": "uninterpreted"
+    },
+    {
+      "state": "not_tested",
+      "flag_state": "not_provided"
+    },
+    {
+      "state": "not_provided",
+      "flag_state": "not_provided"
+    },
+    {
+      "state": "above",
+      "flag_state": "uninterpreted"
+    },
+    {
+      "state": "below",
+      "flag_state": "uninterpreted"
+    },
+    {
+      "state": "text",
+      "flag_state": "uninterpreted"
+    },
+    {
+      "state": "between",
+      "flag_state": "conflict"
+    }
+  ],
+  "review": {
+    "schema": "clinical-lab-range-review-cw-b11-v1",
+    "rules": "saved-decimal-closed-bounds-separate-v1",
+    "case_id": 1,
+    "identity": {
+      "patient_name": "CW-B11 合成病例",
+      "species": "dog",
+      "sex": null,
+      "breed": null,
+      "coat_color": "黑白（合成）",
+      "owner_name": "合成宠主 < & {{literal}}",
+      "owner_phone": null,
+      "age_info": null,
+      "weight": null
+    },
+    "reports": [
+      {
+        "id": 1,
+        "root_id": 1,
+        "version": 1,
+        "state": "confirmed",
+        "stored_state": "confirmed",
+        "title": "合成区间报告 < & 🐾",
+        "attachment_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "source": {
+          "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "name": "synthetic.pdf",
+          "mime": "application/pdf",
+          "size": 3,
+          "state": "active",
+          "metadata": {
+            "title": "合成原件",
+            "kind": "lab",
+            "taken_at": "",
+            "reported_at": "",
+            "source": "",
+            "note": ""
+          }
+        },
+        "source_state": "active",
+        "reviewed_by": "1",
+        "reviewed_at": "2026-10-07 01:30:00",
+        "reason": "",
+        "invalidated_reason": "",
+        "target": "lab",
+        "token": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "report": {
+          "title": "合成区间报告 < & 🐾",
+          "panel": "mixed",
+          "specimen": "合成样本",
+          "collected_at": "2026-10-07T09:30:00+08:00",
+          "reported_at": "",
+          "laboratory": "",
+          "device": "",
+          "note": "保留零、尾随零、科学记数和全部原文"
+        },
+        "items": [
+          {
+            "name": "零值低于下限",
+            "result_type": "number",
+            "value": "0",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 1–2",
+            "reference_low": "1",
+            "reference_high": "2",
+            "reference_unit": "mmol/L",
+            "flag": "L",
+            "position": "第 1 页第 1 项",
+            "checked": true,
+            "decimal": "0",
+            "comparator": null,
+            "reference_low_decimal": "1",
+            "reference_high_decimal": "2",
+            "index": 1,
+            "comparison": {
+              "state": "below",
+              "flag_state": "agrees"
+            }
+          },
+          {
+            "name": "负值",
+            "result_type": "number",
+            "value": "-2.000",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & -1–0",
+            "reference_low": "-1",
+            "reference_high": "0",
+            "reference_unit": "mmol/L",
+            "flag": "H",
+            "position": "第 1 页第 2 项",
+            "checked": true,
+            "decimal": "-2.000",
+            "comparator": null,
+            "reference_low_decimal": "-1",
+            "reference_high_decimal": "0",
+            "index": 2,
+            "comparison": {
+              "state": "below",
+              "flag_state": "conflict"
+            }
+          },
+          {
+            "name": "小数精度",
+            "result_type": "number",
+            "value": "0.10000000000000000000000000001",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 0.1–0.2",
+            "reference_low": "0.1",
+            "reference_high": "0.2",
+            "reference_unit": "mmol/L",
+            "flag": "",
+            "position": "第 1 页第 3 项",
+            "checked": true,
+            "decimal": "0.10000000000000000000000000001",
+            "comparator": null,
+            "reference_low_decimal": "0.1",
+            "reference_high_decimal": "0.2",
+            "index": 3,
+            "comparison": {
+              "state": "between",
+              "flag_state": "not_provided"
+            }
+          },
+          {
+            "name": "科学记数原文",
+            "result_type": "number",
+            "value": "2.001e-8",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 1e-8–2e-8",
+            "reference_low": "1e-8",
+            "reference_high": "2e-8",
+            "reference_unit": "mmol/L",
+            "flag": "H",
+            "position": "第 1 页第 4 项",
+            "checked": true,
+            "decimal": "2.001E-8",
+            "comparator": null,
+            "reference_low_decimal": "1E-8",
+            "reference_high_decimal": "2E-8",
+            "index": 4,
+            "comparison": {
+              "state": "above",
+              "flag_state": "agrees"
+            }
+          },
+          {
+            "name": "低边界",
+            "result_type": "number",
+            "value": "0.0100",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 0.01–0.02",
+            "reference_low": "0.01",
+            "reference_high": "0.02",
+            "reference_unit": "mmol/L",
+            "flag": "L",
+            "position": "第 1 页第 5 项",
+            "checked": true,
+            "decimal": "0.0100",
+            "comparator": null,
+            "reference_low_decimal": "0.01",
+            "reference_high_decimal": "0.02",
+            "index": 5,
+            "comparison": {
+              "state": "boundary",
+              "flag_state": "not_assessed"
+            }
+          },
+          {
+            "name": "高边界",
+            "result_type": "number",
+            "value": "2.00",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 1–2",
+            "reference_low": "1",
+            "reference_high": "2",
+            "reference_unit": "mmol/L",
+            "flag": "H",
+            "position": "第 1 页第 6 项",
+            "checked": true,
+            "decimal": "2.00",
+            "comparator": null,
+            "reference_low_decimal": "1",
+            "reference_high_decimal": "2",
+            "index": 6,
+            "comparison": {
+              "state": "boundary",
+              "flag_state": "not_assessed"
+            }
+          },
+          {
+            "name": "相同上下限",
+            "result_type": "number",
+            "value": "-0",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 0–0",
+            "reference_low": "0",
+            "reference_high": "0",
+            "reference_unit": "mmol/L",
+            "flag": "",
+            "position": "第 1 页第 7 项",
+            "checked": true,
+            "decimal": "-0",
+            "comparator": null,
+            "reference_low_decimal": "0",
+            "reference_high_decimal": "0",
+            "index": 7,
+            "comparison": {
+              "state": "boundary",
+              "flag_state": "not_provided"
+            }
+          },
+          {
+            "name": "区间内H冲突",
+            "result_type": "number",
+            "value": "1.50",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 1–2",
+            "reference_low": "1",
+            "reference_high": "2",
+            "reference_unit": "mmol/L",
+            "flag": "H",
+            "position": "第 1 页第 8 项",
+            "checked": true,
+            "decimal": "1.50",
+            "comparator": null,
+            "reference_low_decimal": "1",
+            "reference_high_decimal": "2",
+            "index": 8,
+            "comparison": {
+              "state": "between",
+              "flag_state": "conflict"
+            }
+          },
+          {
+            "name": "高值L冲突",
+            "result_type": "number",
+            "value": "3",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 1–2",
+            "reference_low": "1",
+            "reference_high": "2",
+            "reference_unit": "mmol/L",
+            "flag": "L",
+            "position": "第 1 页第 9 项",
+            "checked": true,
+            "decimal": "3",
+            "comparator": null,
+            "reference_low_decimal": "1",
+            "reference_high_decimal": "2",
+            "index": 9,
+            "comparison": {
+              "state": "above",
+              "flag_state": "conflict"
+            }
+          },
+          {
+            "name": "低值H冲突",
+            "result_type": "number",
+            "value": "-1",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 0–2",
+            "reference_low": "0",
+            "reference_high": "2",
+            "reference_unit": "mmol/L",
+            "flag": "H",
+            "position": "第 1 页第 10 项",
+            "checked": true,
+            "decimal": "-1",
+            "comparator": null,
+            "reference_low_decimal": "0",
+            "reference_high_decimal": "2",
+            "index": 10,
+            "comparison": {
+              "state": "below",
+              "flag_state": "conflict"
+            }
+          },
+          {
+            "name": "单下限",
+            "result_type": "number",
+            "value": "9",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 1–",
+            "reference_low": "1",
+            "reference_high": "",
+            "reference_unit": "mmol/L",
+            "flag": "H",
+            "position": "第 1 页第 11 项",
+            "checked": true,
+            "decimal": "9",
+            "comparator": null,
+            "reference_low_decimal": "1",
+            "reference_high_decimal": null,
+            "index": 11,
+            "comparison": {
+              "state": "reference_incomplete",
+              "flag_state": "not_assessed"
+            }
+          },
+          {
+            "name": "单上限",
+            "result_type": "number",
+            "value": "-9",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & –2",
+            "reference_low": "",
+            "reference_high": "2",
+            "reference_unit": "mmol/L",
+            "flag": "L",
+            "position": "第 1 页第 12 项",
+            "checked": true,
+            "decimal": "-9",
+            "comparator": null,
+            "reference_low_decimal": null,
+            "reference_high_decimal": "2",
+            "index": 12,
+            "comparison": {
+              "state": "reference_incomplete",
+              "flag_state": "not_assessed"
+            }
+          },
+          {
+            "name": "自由文本范围",
+            "result_type": "number",
+            "value": "1",
+            "unit": "mmol/L",
+            "reference": "详见原文，未结构化",
+            "reference_low": "",
+            "reference_high": "",
+            "reference_unit": "mmol/L",
+            "flag": "",
+            "position": "第 1 页第 13 项",
+            "checked": true,
+            "decimal": "1",
+            "comparator": null,
+            "reference_low_decimal": null,
+            "reference_high_decimal": null,
+            "index": 13,
+            "comparison": {
+              "state": "reference_incomplete",
+              "flag_state": "not_provided"
+            }
+          },
+          {
+            "name": "比较符",
+            "result_type": "comparison",
+            "value": "<0.0100",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 0–1",
+            "reference_low": "0",
+            "reference_high": "1",
+            "reference_unit": "mmol/L",
+            "flag": "L",
+            "position": "第 1 页第 14 项",
+            "checked": true,
+            "decimal": "0.0100",
+            "comparator": "<",
+            "reference_low_decimal": "0",
+            "reference_high_decimal": "1",
+            "index": 14,
+            "comparison": {
+              "state": "comparison",
+              "flag_state": "not_assessed"
+            }
+          },
+          {
+            "name": "比较符大于等于",
+            "result_type": "comparison",
+            "value": "≥ 2e-8",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 0–1",
+            "reference_low": "0",
+            "reference_high": "1",
+            "reference_unit": "mmol/L",
+            "flag": "H",
+            "position": "第 1 页第 15 项",
+            "checked": true,
+            "decimal": "2E-8",
+            "comparator": "≥",
+            "reference_low_decimal": "0",
+            "reference_high_decimal": "1",
+            "index": 15,
+            "comparison": {
+              "state": "comparison",
+              "flag_state": "not_assessed"
+            }
+          },
+          {
+            "name": "文本阳性",
+            "result_type": "text",
+            "value": "阳性（合成）",
+            "unit": "",
+            "reference": "详见原文，未结构化",
+            "reference_low": "",
+            "reference_high": "",
+            "reference_unit": "",
+            "flag": "+",
+            "position": "第 1 页第 16 项",
+            "checked": true,
+            "decimal": null,
+            "comparator": null,
+            "reference_low_decimal": null,
+            "reference_high_decimal": null,
+            "index": 16,
+            "comparison": {
+              "state": "text",
+              "flag_state": "uninterpreted"
+            }
+          },
+          {
+            "name": "未检",
+            "result_type": "not_tested",
+            "value": "",
+            "unit": "",
+            "reference": "详见原文，未结构化",
+            "reference_low": "",
+            "reference_high": "",
+            "reference_unit": "",
+            "flag": "",
+            "position": "第 1 页第 17 项",
+            "checked": true,
+            "decimal": null,
+            "comparator": null,
+            "reference_low_decimal": null,
+            "reference_high_decimal": null,
+            "index": 17,
+            "comparison": {
+              "state": "not_tested",
+              "flag_state": "not_provided"
+            }
+          },
+          {
+            "name": "未提供",
+            "result_type": "not_provided",
+            "value": "",
+            "unit": "",
+            "reference": "详见原文，未结构化",
+            "reference_low": "",
+            "reference_high": "",
+            "reference_unit": "",
+            "flag": "",
+            "position": "第 1 页第 18 项",
+            "checked": true,
+            "decimal": null,
+            "comparator": null,
+            "reference_low_decimal": null,
+            "reference_high_decimal": null,
+            "index": 18,
+            "comparison": {
+              "state": "not_provided",
+              "flag_state": "not_provided"
+            }
+          },
+          {
+            "name": "小写h不解释",
+            "result_type": "number",
+            "value": "3",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 1–2",
+            "reference_low": "1",
+            "reference_high": "2",
+            "reference_unit": "mmol/L",
+            "flag": "h",
+            "position": "第 1 页第 19 项",
+            "checked": true,
+            "decimal": "3",
+            "comparator": null,
+            "reference_low_decimal": "1",
+            "reference_high_decimal": "2",
+            "index": 19,
+            "comparison": {
+              "state": "above",
+              "flag_state": "uninterpreted"
+            }
+          },
+          {
+            "name": "复合标记不解释",
+            "result_type": "number",
+            "value": "0",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 1–2",
+            "reference_low": "1",
+            "reference_high": "2",
+            "reference_unit": "mmol/L",
+            "flag": "L (复核)",
+            "position": "第 1 页第 20 项",
+            "checked": true,
+            "decimal": "0",
+            "comparator": null,
+            "reference_low_decimal": "1",
+            "reference_high_decimal": "2",
+            "index": 20,
+            "comparison": {
+              "state": "below",
+              "flag_state": "uninterpreted"
+            }
+          },
+          {
+            "name": "特殊文本 & < {{原样}} 🐾长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长",
+            "result_type": "text",
+            "value": "<不是HTML>\n未见异常；仍需核对。长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长长",
+            "unit": "",
+            "reference": "详见原文，未结构化",
+            "reference_low": "",
+            "reference_high": "",
+            "reference_unit": "",
+            "flag": "Ｈ\nH?",
+            "position": "第 1 页第 21 项",
+            "checked": true,
+            "decimal": null,
+            "comparator": null,
+            "reference_low_decimal": null,
+            "reference_high_decimal": null,
+            "index": 21,
+            "comparison": {
+              "state": "text",
+              "flag_state": "uninterpreted"
+            }
+          },
+          {
+            "name": "大幅精度差",
+            "result_type": "number",
+            "value": "1e100",
+            "unit": "mmol/L",
+            "reference": "原报告范围 < & 9.99e99–1.01e100",
+            "reference_low": "9.99e99",
+            "reference_high": "1.01e100",
+            "reference_unit": "mmol/L",
+            "flag": "L",
+            "position": "第 1 页第 22 项",
+            "checked": true,
+            "decimal": "1E+100",
+            "comparator": null,
+            "reference_low_decimal": "9.99E+99",
+            "reference_high_decimal": "1.01E+100",
+            "index": 22,
+            "comparison": {
+              "state": "between",
+              "flag_state": "conflict"
+            }
+          }
+        ]
+      }
+    ],
+    "excluded": [],
+    "legacy_count": 0,
+    "counts": {
+      "reports": 1,
+      "items": 22,
+      "out_of_range": 7,
+      "unable": 9,
+      "boundary": 3,
+      "flag_conflicts": 5
+    },
+    "read_only": true,
+    "writes_database": false,
+    "includes_unsaved_drafts": false,
+    "snapshot": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "read_at": "2026-10-07T02:00:00+00:00"
+  }
+}
