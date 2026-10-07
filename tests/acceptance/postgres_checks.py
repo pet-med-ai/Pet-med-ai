@@ -126,6 +126,15 @@ def overview_readback():
     record('cwb10_fresh_process_relogin_exact_saved_inventory_and_snapshot')
 
 
+def range_readback():
+    f.enable_lab_range_review(); auth = login('pg-owner')
+    for item in json.loads((f.OUT / 'cwb11-restart-expected.json').read_text()):
+        result = call('GET', f'/api/cases/{item["case_id"]}/lab-range-review', auth)
+        result.pop('read_at')
+        assert result == item['review']
+    record('cwb11_fresh_process_relogin_exact_values_versions_sources_and_snapshot')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -161,6 +170,7 @@ if '--readback' in sys.argv:
     manual_lab_document_readback()
     manual_imaging_readback()
     overview_readback()
+    range_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -1071,5 +1081,69 @@ for scenario in ('control', 'imaging', 'lab', 'withdraw', 'source', 'identity', 
     overview_expected.append({'case_id': cid, 'overview': saved})
     record('cwb10_postgresql_' + scenario + '_consistent_readonly_inventory')
 (f.OUT / 'cwb10-restart-expected.json').write_text(json.dumps(overview_expected, ensure_ascii=False, indent=2))
+
+# CW-B11 exact decimal comparison on native PostgreSQL with saved-source and row locks.
+f.enable_lab_range_review()
+import clinical_lab_range_review as range_review
+from copy import deepcopy
+range_fixture = json.loads((f.ROOT / 'tests/fixtures/clinical_lab_range_review_cw_b11_cases.json').read_text())
+range_expected = []
+for scenario in ('control', 'correct', 'withdraw', 'source', 'source_metadata', 'identity'):
+    cid = call('POST', '/api/cases', owner, expected=201, json={**range_fixture['case'], 'patient_name': 'CW-B11 ' + scenario})['id']
+    files = f'/api/cases/{cid}/attachments'; root = f'/api/cases/{cid}/manual-lab'; url = f'/api/cases/{cid}/lab-range-review'
+    name, mime, raw = attachment_samples()[0]
+    item = call('POST', files + '/uploads/' + uuid4().hex,
+                {**owner, 'Content-Type': mime, 'X-Attachment-Filename': quote(name), 'X-Case-Token': call('GET', files, owner)['case_token']}, content=raw)['attachment']
+    metadata = {'title': '合成区间原件', 'kind': 'lab', 'taken_at': '', 'reported_at': '', 'source': '', 'note': ''}
+    body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'confirm', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': metadata, 'reason': ''}
+    preview = call('POST', files + '/preview', owner, json=body)
+    source = call('POST', files + '/confirm', owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})['attachment']
+    body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'create', 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': None, 'expected_report_token': '', 'data': range_fixture['data'], 'reason': ''}
+    preview = call('POST', root + '/preview', owner, json=body)
+    row = call('POST', root + '/confirm', owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})['report']
+    before = call('GET', url, owner)
+    assert before['counts'] == range_fixture['review']['counts']
+    assert [i['comparison'] for i in before['reports'][0]['items']] == range_fixture['expected']
+    assert before['reports'][0]['token'] == row['token'] and before['reports'][0]['source']['sha256'] == hashlib.sha256(raw).hexdigest()
+    if scenario == 'control':
+        call('GET', url, other, expected=404); call('GET', url, expected=401)
+        previous = business_digest(); statements = []
+        event.listen(f.db.engine, 'before_cursor_execute', capture_writes)
+        try:
+            with patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('No read cleanup')):
+                assert call('GET', url, owner)['snapshot'] == before['snapshot']
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture_writes)
+        assert statements == [] and business_digest() == previous
+    else:
+        if scenario in {'correct', 'withdraw'}:
+            data = deepcopy(range_fixture['data']); data['items'][0]['value'] = '1.500'
+            body = {'request_id': uuid4().hex, 'attachment_id': row['attachment_id'], 'operation': scenario, 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': row['id'], 'expected_report_token': row['token'], 'data': data if scenario == 'correct' else None, 'reason': '合成区间并发核对'}
+            preview = call('POST', root + '/preview', owner, json=body)
+            mutation = lambda: client.post(root + '/confirm', headers=owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})
+        elif scenario in {'source', 'source_metadata'}:
+            body = {'request_id': uuid4().hex, 'attachment_id': source['id'], 'operation': 'withdraw' if scenario == 'source' else 'update', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': {**metadata, 'title': '合成来源更正'}, 'reason': '合成来源核对'}
+            preview = call('POST', files + '/preview', owner, json=body)
+            mutation = lambda: client.post(files + '/confirm', headers=owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})
+        else:
+            mutation = lambda: client.put(f'/api/cases/{cid}', headers=owner, json={'owner_name': '合成身份更正'})
+        entered, release, attempted = Event(), Event(), Event(); normal = range_review.assemble
+        def held(*args): entered.set(); assert release.wait(10); return normal(*args)
+        def mutate(): attempted.set(); return mutation()
+        with ThreadPoolExecutor(max_workers=2) as pool, patch.object(range_review, 'assemble', side_effect=held):
+            reading = pool.submit(call, 'GET', url, owner)
+            try:
+                assert entered.wait(10); changing = pool.submit(mutate)
+                assert attempted.wait(10); assert not changing.done()
+            finally: release.set()
+            assert reading.result(10)['snapshot'] == before['snapshot']; assert changing.result(10).status_code == 200
+        after = call('GET', url, owner); assert after['snapshot'] != before['snapshot']
+        if scenario == 'correct':
+            assert after['reports'][0]['version'] == 2 and after['reports'][0]['items'][0]['value'] == '1.500'
+            assert after['reports'][0]['items'][0]['comparison']['state'] == 'between'
+        else: assert after['reports'] == []
+    saved = call('GET', url, owner); saved.pop('read_at')
+    range_expected.append({'case_id': cid, 'review': saved})
+    record('cwb11_postgresql_' + scenario + '_exact_readonly_snapshot')
+(f.OUT / 'cwb11-restart-expected.json').write_text(json.dumps(range_expected, ensure_ascii=False, indent=2))
 
 client.close(); f.db.engine.dispose()

@@ -70,6 +70,11 @@ def enable_visit_overview():
     enable_manual_imaging()
 
 
+def enable_lab_range_review():
+    assert os.environ.get('ENVIRONMENT') == 'test' and os.environ.get('RENDER') == 'false'
+    os.environ.update(LAB_RANGE_REVIEW_ENABLED='1', LAB_RANGE_REVIEW_SYNTHETIC_ONLY='1')
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(main.app, host='127.0.0.1', port=18026, loop='asyncio')
