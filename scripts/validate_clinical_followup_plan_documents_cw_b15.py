@@ -8,7 +8,7 @@ import tempfile
 ROOT = Path(__file__).resolve().parents[1]
 BASE = "65802b7ce59b48a0434f32d533a64b30e89030f9"
 TREE = "3c5297c504f7e98f3c062697110db77ea3563a74"
-ALLOWED = set(['backend/clinical_followup_plan_documents.py', 'backend/clinical_docs_api.py', 'frontend/src/components/ClinicalDocReview.jsx', 'frontend/src/components/ClinicalDocFollowupPlanSelection.jsx', 'frontend/src/followupPlanDocuments.js', 'frontend/src/pages/CaseDetail.jsx', 'frontend/src/components/CaseFollowupPlan.jsx', 'frontend/tests/followup-plan-documents.test.jsx', 'frontend/tests/case-detail-followup-plan-documents.test.jsx', 'frontend/tests/run-consult-update-review.mjs', 'tests/test_clinical_followup_plan_documents.py', 'tests/test_clinical_followup_plan_document_concurrency.py', 'tests/test_clinical_doc_lifecycle.py', 'tests/acceptance/clinical_followup_plan_document_checks.cjs', 'tests/acceptance/postgres_checks.py', 'tests/acceptance/fixture.py', 'tests/fixtures/clinical_followup_plan_documents_cw_b15_cases.json', '.github/workflows/consult-browser-postgres.yml', 'scripts/validate_clinical_followup_plan_documents_cw_b15.py', 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_DOCUMENTS_CW_B15.md', 'docs/product/PET_MED_AI_CLINICAL_WORKFLOW_BATCH_INDEX.md'])
+ALLOWED = set(['backend/clinical_followup_plan_documents.py', 'backend/clinical_docs_api.py', 'frontend/src/components/ClinicalDocReview.jsx', 'frontend/src/components/ClinicalDocFollowupPlanSelection.jsx', 'frontend/src/followupPlanDocuments.js', 'frontend/src/pages/CaseDetail.jsx', 'frontend/src/components/CaseFollowupPlan.jsx', 'frontend/tests/followup-plan-documents.test.jsx', 'frontend/tests/case-detail-followup-plan-documents.test.jsx', 'frontend/tests/run-consult-update-review.mjs', 'tests/test_clinical_followup_plan_documents.py', 'tests/test_clinical_followup_plan_document_concurrency.py', 'tests/test_clinical_doc_lifecycle.py', 'tests/acceptance/clinical_followup_plan_document_checks.cjs', 'tests/acceptance/postgres_checks.py', 'tests/acceptance/fixture.py', 'tests/fixtures/clinical_followup_plan_documents_cw_b15_cases.json', '.github/workflows/consult-browser-postgres.yml', 'scripts/validate_clinical_followup_plan_documents_cw_b15.py', 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_DOCUMENTS_CW_B15.md', 'docs/product/PET_MED_AI_CLINICAL_WORKFLOW_BATCH_INDEX.md', 'tests/acceptance/visit_document_checks.cjs'])
 
 
 def git(*args):
@@ -19,7 +19,7 @@ def main():
     subprocess.check_call(["git", "merge-base", "--is-ancestor", BASE, "HEAD"], cwd=ROOT)
     assert git("rev-parse", BASE + "^{tree}") == TREE
     changed = set(git("diff", "--name-only", BASE).splitlines()) | set(git("ls-files", "--others", "--exclude-standard").splitlines())
-    assert len(ALLOWED) == 21 and 0 < len(changed) <= 21 and changed <= ALLOWED, sorted(changed - ALLOWED)
+    assert len(ALLOWED) == 22 and 0 < len(changed) <= 22 and changed <= ALLOWED, sorted(changed - ALLOWED)
     assert all((ROOT / path).is_file() for path in changed)
     with tempfile.TemporaryDirectory(prefix="cwb15-frozen-") as temporary:
         frozen = str(Path(temporary) / "cw14")

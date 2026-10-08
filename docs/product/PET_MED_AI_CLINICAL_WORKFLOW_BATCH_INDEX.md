@@ -71,3 +71,5 @@ CW-B14 已按草稿 PR＋CI 范围完成：PR #59，最终 HEAD `65802b7ce59b48a
 2026-10-08 用户整批批准 CW-B15「复查计划纳入门诊病历草稿」21 文件范围，预算为初始实现 1、修正≤3、完整本地回归≤2、候选 CI≤3，独立分支与草稿 PR 各 1，业务外部调用 0、采购 0 元。承接 CW-B14 精确 HEAD，草稿 PR base 保留逐批叠加关系；详见 `docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_DOCUMENTS_CW_B15.md`。
 
 CW-B15 当前状态分列：草稿候选＝实施中；CI 通过＝待候选结果；已合并＝否；已上线＝否；医生验收＝未验收。最终状态以对应 PR 与精确 HEAD 的 CI 为准，不另加状态文字收尾提交。医生验收、五份 Mac Word 检查和 CW-B5 真实外部语音实测继续待补，100 次/1 元额度独立；异宠 B5＝Snake Depth V2。[skip render]
+
+2026-10-08 19:38（Asia/Shanghai）补充授权：CW-B15 扩至 22 文件，增加 `tests/acceptance/visit_document_checks.cjs`，沿用剩余预算推进现有草稿 PR [#60](https://github.com/pet-med-ai/Pet-med-ai/pull/60)。第 2 次候选 `37b88c3d1d36acb72d18a3a162ef69d15e4840f6` 的 5 个 job 成功，本批 PostgreSQL 并发与新进程回读通过；综合验收停在旧浏览器门诊提示断言。补修保持其余历史断言，22 路径门禁显式登记扩围；修正后该脚本的本地真实 Chromium 定向验收 13 项通过。补修提交前累计初始实现 1/1、修正 3/3、完整本地回归 1/2、候选 CI 2/3；最终第 3 次候选结果见 PR，不重置预算，不合并、不部署、不迁移、不操作生产数据。[skip render]
