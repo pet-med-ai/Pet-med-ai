@@ -1367,8 +1367,6 @@ for document_scenario in ('correct','withdraw','source','source_metadata','ident
     for rendering in (False,True):comparison_document_pg(document_scenario,rendering)
 (f.OUT/'cwb13-restart-expected.json').write_text(json.dumps(comparison_document_expected,ensure_ascii=False,indent=2))
 
-client.close(); f.db.engine.dispose()
-
 # CW-B14 native PostgreSQL: separate sessions, Case row locks, no SQLite imports.
 f.enable_followup_plans()
 import clinical_followup_plans as followup
@@ -1471,3 +1469,6 @@ with f.db.SessionLocal() as db:
 assert call('GET',kpi_url,owner)==legacy
 record('cwb14_postgresql_legacy_kpi_unchanged_with_broken_namespace')
 (f.OUT/'cwb14-restart-expected.json').write_text(json.dumps(followup_expected,ensure_ascii=False,indent=2))
+
+# Close only after every batch has finished using the shared authenticated client.
+client.close(); f.db.engine.dispose()
