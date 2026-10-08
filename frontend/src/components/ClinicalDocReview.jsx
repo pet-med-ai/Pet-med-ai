@@ -4,6 +4,9 @@ import api from "../api";
 import { draftOwner } from "../consultDraft";
 import { validDocumentReports } from "../manualLabDocuments";
 import { validImagingReports } from "../manualImagingDocuments";
+import { validDocumentComparison } from "../labComparisonDocuments";
+import { readComparison } from "../labComparison";
+const ClinicalDocLabComparisonSelection = lazy(() => import("./ClinicalDocLabComparisonSelection"));
 const ClinicalDocImagingSelection = lazy(() => import("./ClinicalDocImagingSelection"));
 const ClinicalDocLabSelection = lazy(() => import("./ClinicalDocLabSelection"));
 
@@ -29,6 +32,8 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
   const selected = useRef([]);
   const [imagingOpen, setImagingOpen] = useState(false), [imagingIds, setImagingIds] = useState([]);
   const selectedImaging = useRef([]), previousSourceRevision = useRef(sourceRevision);
+  const [comparisonOpen, setComparisonOpen] = useState(false), [comparisonChoice, setComparisonChoice] = useState(null);
+  const selectedComparison = useRef(null), comparisonSession = useRef(false), documentRequest = useRef(null), recheckRequest = useRef(null);
   const active = useRef(false), pending = useRef(false), generation = useRef(0), heading = useRef(null);
   const callbacks = useRef({ onDownload, onClose });
   callbacks.current = { onDownload, onClose };
@@ -39,14 +44,16 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     if (pending.current || !active.current || localStorage.getItem("token") !== requestToken) return;
     pending.current = true;
     const stamp = ++generation.current;
-    const ids = [...selected.current], imageIds = [...selectedImaging.current];
+    documentRequest.current?.abort(); documentRequest.current = new AbortController();
+    const ids = [...selected.current], imageIds = [...selectedImaging.current], choice = selectedComparison.current;
     setBusy(true); setPreview(null); setConfirmed(false); setMessage("正在读取已保存的草稿内容…");
     try {
       const { data } = await api.post("/api/clinical-docs/render-preview", {
         case_id: caseId, template_id: templateId, output: "docx",
         ...(ids.length ? {manual_lab_report_ids:ids} : {}),
         ...(imageIds.length ? {manual_imaging_report_ids:imageIds} : {}),
-      }, { timeout: 15000, expectedAuthOwner: draftOwner(requestToken) });
+        ...(choice ? {manual_lab_comparison:choice.request} : {}),
+      }, { signal: documentRequest.current.signal, timeout: 15000, expectedAuthOwner: draftOwner(requestToken) });
       if (!current(stamp)) return;
       if (data.case_id !== caseId || data.template_id !== templateId ||
           !/^[a-f0-9]{64}$/.test(data.content_snapshot || "") ||
@@ -56,7 +63,8 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
           (ids.length && !validDocumentReports(data.manual_lab_reports, ids)) ||
           (!ids.length && data.manual_lab_reports?.length) ||
           (imageIds.length && !validImagingReports(data.manual_imaging_reports, imageIds)) ||
-          (!imageIds.length && data.manual_imaging_reports?.length)) {
+          (!imageIds.length && data.manual_imaging_reports?.length) ||
+          !validDocumentComparison(data.manual_lab_comparison, choice, caseId)) {
         throw new Error("未收到可核对的完整草稿，当前服务可能尚未支持。请重新读取，暂不能确认下载。");
       }
       setPreview(data); setMessage("");
@@ -75,36 +83,64 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     pending.current = false;
     selected.current=[]; setLabIds([]); setLabOpen(false);
     selectedImaging.current=[]; setImagingIds([]); setImagingOpen(false);
+    selectedComparison.current=null; setComparisonChoice(null); setComparisonOpen(false); comparisonSession.current=false;
     heading.current?.focus();
     void load();
-    return () => { active.current = false; generation.current++; };
+    return () => { active.current = false; generation.current++; documentRequest.current?.abort(); recheckRequest.current?.abort(); };
+  }, [caseId, templateId, requestToken]);
+
+  function invalidateDocument() {
+    generation.current++; pending.current=false; documentRequest.current?.abort();
+    setPreview(null); setConfirmed(false); setBusy(false);
+  }
+  function selectComparison(choice) {
+    invalidateDocument(); selectedComparison.current=choice; setComparisonChoice(choice);
+    setMessage(choice ? "已选择一对项目，请重新读取完整草稿并逐项核对。" : "对照选择或来源已变化，请重新选择并核对完整草稿。");
+  }
+  // Remains installed when the selector is closed. Invalidate at request start,
+  // including failures/lost replies; never wait for the editor's follow-up GET.
+  useEffect(() => {
+    const reset = () => { if (active.current && comparisonSession.current) selectComparison(null); };
+    const focus = () => reset(), storage = e => { if (e.key === 'token' || e.key === null) reset(); };
+    const affects = c => c?.method?.toLowerCase() === 'post' && ['attachments','manual-lab','manual-imaging'].some(k => c.url === `/api/cases/${caseId}/${k}/confirm`);
+    const request = api.interceptors.request.use(c => { if (affects(c)) reset(); return c; });
+    const reread = c => {
+      if (affects(c) && active.current && comparisonSession.current) {
+        reset(); recheckRequest.current?.abort(); recheckRequest.current=new AbortController();
+        readComparison(caseId, requestToken, recheckRequest.current.signal).catch(() => {});
+      }
+    };
+    const response = api.interceptors.response.use(r => { reread(r.config); return r; }, e => { reread(e.config); return Promise.reject(e); });
+    window.addEventListener('focus', focus); window.addEventListener('storage', storage);
+    return () => { api.interceptors.request.eject(request); api.interceptors.response.eject(response); window.removeEventListener('focus', focus); window.removeEventListener('storage', storage); };
   }, [caseId, templateId, requestToken]);
 
   function selectLabs(ids) {
-    generation.current++; pending.current=false;
+    invalidateDocument();
     selected.current=[...ids]; setLabIds([...ids]); setPreview(null); setConfirmed(false); setBusy(false);
     setMessage("检验选择或来源状态已变化，请重新读取完整草稿并核对。");
   }
 
   function selectImaging(ids) {
-    generation.current++; pending.current=false;
+    invalidateDocument();
     selectedImaging.current=[...ids]; setImagingIds([...ids]); setPreview(null); setConfirmed(false); setBusy(false);
     setMessage("影像选择或来源状态已变化，请重新读取完整草稿并核对。");
   }
   useEffect(()=>{
-    if(previousSourceRevision.current!==sourceRevision){previousSourceRevision.current=sourceRevision;selectLabs([]);selectImaging([]);setLabOpen(false);setImagingOpen(false);}
+    if(previousSourceRevision.current!==sourceRevision){previousSourceRevision.current=sourceRevision;selectLabs([]);selectImaging([]);setLabOpen(false);setImagingOpen(false);selectComparison(null);setComparisonOpen(false);}
   },[sourceRevision]);
 
   function leave() {
-    active.current = false; generation.current++;
+    active.current = false; generation.current++; documentRequest.current?.abort();
   }
 
   async function download() {
     const stamp = generation.current;
     if (pending.current || !current(stamp) || !preview || !confirmed) return;
+    documentRequest.current?.abort(); documentRequest.current = new AbortController();
     pending.current = true; setBusy(true); setConfirmed(false); setMessage("正在生成已核对的草稿…");
     try {
-      const result = await callbacks.current.onDownload(preview.content_snapshot, () => current(stamp), [...selected.current], [...selectedImaging.current]);
+      const result = await callbacks.current.onDownload(preview.content_snapshot, () => current(stamp), [...selected.current], [...selectedImaging.current], selectedComparison.current?.request, documentRequest.current.signal);
       if (!current(stamp)) return;
       setPreview(null);
       setMessage(result?.ok ? "已生成本次核对的草稿；仍未签署。再次下载请重新读取并核对。" :
@@ -128,6 +164,12 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     {" "}<button type="button" disabled={busy} onClick={()=>{selectImaging([]);setImagingOpen(v=>!v);}}>{imagingOpen ? "不纳入影像报告" : "选择已核对影像报告"}</button>
     {imagingOpen && <Suspense fallback={<p>正在打开影像选择…</p>}><ClinicalDocImagingSelection caseId={caseId} requestToken={requestToken}
       selected={imagingIds} onChange={selectImaging} onInspect={()=>{leave();onInspectImaging?.();}}/></Suspense>}
+    {templateId === 'outpatient_record_zh' && <>
+      {' '}<button type="button" disabled={busy} onClick={() => { comparisonSession.current=true; selectComparison(null); setComparisonOpen(v => !v); }}>{comparisonOpen ? '关闭对照选择并移除' : '选择检验前后对照附节'}</button>
+      {comparisonChoice && <p>已明确选择一对项目；尚需重新读取完整草稿并确认。<button type="button" onClick={() => selectComparison(null)}>移除本次对照附节</button></p>}
+      {comparisonOpen && <Suspense fallback={<p>正在打开对照选择…</p>}><ClinicalDocLabComparisonSelection caseId={caseId} requestToken={requestToken} sourceRevision={sourceRevision}
+        onSelect={selectComparison} onInvalidated={() => selectComparison(null)} onInspect={target => {leave();onInspectLab?.(target);}} /></Suspense>}
+    </>}
     {message && <p role="status" aria-live="polite">{message}</p>}
     {preview && <div>
       {reviewFields.map(([key, title]) => <section key={key} aria-label={title + "核对内容"}>
@@ -136,6 +178,8 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
       </section>)}
       {!!preview.manual_lab_reports?.length && <Suspense fallback={<p>正在显示检验附节…</p>}><ClinicalDocLabSelection mode="preview" reports={preview.manual_lab_reports}/></Suspense>}
       {!!preview.manual_imaging_reports?.length && <Suspense fallback={<p>正在显示影像附节…</p>}><ClinicalDocImagingSelection mode="preview" reports={preview.manual_imaging_reports}/></Suspense>}
+      {preview.manual_lab_comparison && <Suspense fallback={<p>正在显示对照附节…</p>}><ClinicalDocLabComparisonSelection mode="preview" payload={preview.manual_lab_comparison}/></Suspense>}
+      <p>导出账号：{preview.context['export.account_id']} · 生成时间：{preview.context.timestamp} · 文书内容校验标识：{preview.document_hash}</p>
       <label><input type="checkbox" checked={confirmed} disabled={busy}
         onChange={event => setConfirmed(event.target.checked)} /> 已核对本次草稿内容（仍未签署）</label>{" "}
       <button type="button" disabled={busy || !confirmed} onClick={download}>确认并下载草稿 DOCX</button>

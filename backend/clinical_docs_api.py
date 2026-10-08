@@ -24,7 +24,8 @@ import zipfile
 from xml.etree import ElementTree as ET
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 from pydantic import BaseModel, Field, StrictInt
 from sqlalchemy.orm import Session
 
@@ -132,6 +133,7 @@ class ClinicalDocRenderIn(BaseModel):
     include_preview_context: bool = Field(default=False)
     include_diagnostic_data: bool = Field(default=False)
     expected_content_snapshot: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    manual_lab_comparison: Any = None
     manual_lab_report_ids: list[StrictInt] = Field(default_factory=list, max_length=5)
     manual_imaging_report_ids: list[StrictInt] = Field(default_factory=list, max_length=5)
 
@@ -447,6 +449,8 @@ def _content_snapshot(meta: Dict[str, Any], context: Dict[str, str], template_by
         payload['manual_lab_documents'] = context['__manual_lab_documents']
     if '__manual_imaging_documents' in context:
         payload['manual_imaging_documents'] = context['__manual_imaging_documents']
+    if '__manual_lab_comparison_document' in context:
+        payload['manual_lab_comparison'] = context['__manual_lab_comparison_document']
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
@@ -464,6 +468,8 @@ def _render_docx(template_path: Path, context: Dict[str, str], *, preserve_text_
                     raw = _lab_documents().append_section(raw, context)
                 if item.filename == 'word/document.xml' and context.get('__manual_imaging_documents'):
                     raw = _imaging_documents().append_section(raw, context)
+                if item.filename == 'word/document.xml' and context.get('__manual_lab_comparison_document'):
+                    raw = _comparison_documents().append_section(raw, context)
                 zout.writestr(item, raw)
     return out.getvalue()
 
@@ -523,6 +529,44 @@ def _imaging_documents():
     return manual_imaging_documents
 
 
+def _comparison_documents():
+    try:
+        from backend import clinical_lab_comparison_documents
+    except ModuleNotFoundError:
+        import clinical_lab_comparison_documents
+    return clinical_lab_comparison_documents
+
+
+def _has_comparison(data):
+    # Explicit null is a supplied malformed selection, never silently omitted.
+    return 'manual_lab_comparison' in data.model_fields_set
+
+
+def _with_comparison_document(data, user, operation, *, render=False):
+    module = _comparison_documents()
+    try:
+        if data.template_id != 'outpatient_record_zh' or data.include_diagnostic_data:
+            raise HTTPException(422, '仅门诊病历草稿支持检验前后对照附节')
+        if render and not data.expected_content_snapshot:
+            raise HTTPException(409, 'lab_comparison_document_review_required')
+        with module.snapshot(user.id, data.case_id, data.manual_lab_comparison,
+                             data.manual_lab_report_ids, data.manual_imaging_report_ids) as (locked, labs, images, payload):
+            result = operation(locked, labs, images, payload)
+            if render:
+                result.headers.update(module.PRIVATE_HEADERS)
+                return result
+            return JSONResponse(result, headers=module.PRIVATE_HEADERS)
+    except module.AttachmentError as error:
+        raise HTTPException(error.status, error.code, headers=module.PRIVATE_HEADERS) from error
+    except HTTPException as error:
+        error.headers = {**(error.headers or {}), **module.PRIVATE_HEADERS}
+        raise
+    except (OSError, SQLAlchemyError):
+        raise HTTPException(503, 'lab_comparison_document_unavailable', headers=module.PRIVATE_HEADERS) from None
+    except (KeyError, TypeError, ValueError, AttributeError, ArithmeticError):
+        raise HTTPException(409, 'lab_comparison_document_invalid_saved_data', headers=module.PRIVATE_HEADERS) from None
+
+
 def _with_manual_documents(data, user, operation):
     module = _lab_documents()
     if data.template_id not in OUTPATIENT_TEMPLATES or data.include_diagnostic_data:
@@ -561,12 +605,14 @@ def manual_lab_document_options(case_id: int, user=Depends(get_current_user)):
 
 @router.post("/render-preview", response_model=dict)
 def preview_clinical_doc_context(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if _has_comparison(data):
+        return _with_comparison_document(data, user, lambda locked, rows, images, comparison: _preview_clinical_doc(data, locked, user, rows, images, comparison), render=False)
     if data.manual_lab_report_ids or data.manual_imaging_report_ids:
         return _with_manual_documents(data, user, lambda locked, rows, images: _preview_clinical_doc(data, locked, user, rows, images))
     return _preview_clinical_doc(data, db, user)
 
 
-def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None):
+def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None, comparison=None):
     meta = _template_meta(data.template_id)
     case = _case_or_404(db, data.case_id, user)
     context = _build_context(case, data=data, user=user, template_id=str(meta["template_id"]))
@@ -581,7 +627,9 @@ def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=N
         context = _lab_documents().add_context(context, manual_reports)
     if imaging_reports:
         context = _imaging_documents().add_context(context, imaging_reports)
-    if manual_reports or imaging_reports:
+    if comparison:
+        context = _comparison_documents().add_context(context, comparison)
+    if manual_reports or imaging_reports or comparison:
         context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [
@@ -601,6 +649,7 @@ def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=N
         "context": context,
         **({'manual_lab_reports': manual_reports} if manual_reports else {}),
         **({'manual_imaging_reports': imaging_reports} if imaging_reports else {}),
+        **({'manual_lab_comparison': comparison} if comparison else {}),
         "diagnostic_data_merge": diagnostic_data_merge,
         "writes_database": False,
         "creates_case": False,
@@ -612,6 +661,8 @@ def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=N
 
 @router.post("/render", response_class=StreamingResponse)
 def render_clinical_doc(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if _has_comparison(data):
+        return _with_comparison_document(data, user, lambda locked, rows, images, comparison: _render_clinical_doc(data, locked, user, rows, images, comparison), render=True)
     if data.manual_lab_report_ids or data.manual_imaging_report_ids:
         if not data.expected_content_snapshot:
             raise HTTPException(409, 'manual_lab_document_review_required')
@@ -619,7 +670,7 @@ def render_clinical_doc(data: ClinicalDocRenderIn, db: Session = Depends(get_db)
     return _render_clinical_doc(data, db, user)
 
 
-def _render_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None):
+def _render_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None, comparison=None):
     if data.output.lower() != "docx":
         raise HTTPException(status_code=422, detail="Clinical Docs Export API V1 supports output=docx only")
 
@@ -637,7 +688,9 @@ def _render_clinical_doc(data, db, user, manual_reports=None, imaging_reports=No
         context = _lab_documents().add_context(context, manual_reports)
     if imaging_reports:
         context = _imaging_documents().add_context(context, imaging_reports)
-    if manual_reports or imaging_reports:
+    if comparison:
+        context = _comparison_documents().add_context(context, comparison)
+    if manual_reports or imaging_reports or comparison:
         context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [

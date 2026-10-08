@@ -7,12 +7,14 @@ const box = { padding: 16, margin: "12px 0", border: "1px solid #ccd5d1", border
 const literal = v => v === "" || v === null ? "未填写" : v;
 const empty = () => ({ a: { report: "", item: "" }, b: { report: "", item: "" } });
 export default function CaseLabComparison(props) { return <Comparison key={JSON.stringify([props.caseId, props.requestToken])} {...props} />; }
-function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect }) {
+function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect, onSelect, onInvalidated }) {
   const [saved, setSaved] = useState(null), [selected, setSelected] = useState(empty), [confirmed, setConfirmed] = useState(false);
   const [preview, setPreview] = useState(null), [message, setMessage] = useState(""), [busy, setBusy] = useState(false), [calculating, setCalculating] = useState(false);
   const active = useRef(false), epoch = useRef(0), calculation = useRef(0), reader = useRef(null), calculator = useRef(null), refresh = useRef(null);
+  const callbacks = useRef({ onSelect, onInvalidated }); callbacks.current = { onSelect, onInvalidated };
+  const previewRequest = useRef(null), runPending = useRef(false);
   const current = () => active.current && Boolean(requestToken) && localStorage.getItem("token") === requestToken;
-  const clearPreview = () => { calculation.current++; calculator.current?.abort(); setPreview(null); setCalculating(false); setConfirmed(false); };
+  const clearPreview = () => { callbacks.current.onInvalidated?.(); previewRequest.current = null; runPending.current = false; calculation.current++; calculator.current?.abort(); setPreview(null); setCalculating(false); setConfirmed(false); };
   const clear = () => { clearPreview(); setSelected(empty()); setSaved(null); };
   refresh.current = async () => {
     const attempt = ++epoch.current; reader.current?.abort(); reader.current = new AbortController(); clear(); setMessage("");
@@ -45,12 +47,13 @@ function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect }) {
   const inspect = row => <button type="button" onClick={() => { if (current() && data) onInspect?.({ caseId, id: row.id, version: row.version, token: row.token }); }}>回看检验记录 #{row.id} 版本 {row.version}</button>;
   const source = row => <><p>采样时间：{literal(row.report.collected_at)} · 报告时间：{literal(row.report.reported_at)}</p><p>核对账号：{row.reviewed_by} · 核对时间：{row.reviewed_at}</p><p>来源文件：{row.source.name} · SHA256：<code>{row.source.sha256}</code></p>{inspect(row)}</>;
   const run = async () => {
-    const a = pair("a"), b = pair("b"); if (!current() || !data || !a[1] || !b[1]) return;
+    const a = pair("a"), b = pair("b"); if (runPending.current || !current() || !data || !a[1] || !b[1]) return;
     const request = { snapshot: data.snapshot, a: itemSelection(...a), b: itemSelection(...b), doctor_confirmed: confirmed };
+    callbacks.current.onInvalidated?.(); runPending.current = true; previewRequest.current = null;
     const attempt = ++calculation.current; calculator.current?.abort(); calculator.current = new AbortController(); setPreview(null); setMessage(""); setCalculating(true);
-    try { const result = await previewComparison(data, request, requestToken, calculator.current.signal); if (current() && attempt === calculation.current) setPreview(result); }
+    try { const result = await previewComparison(data, request, requestToken, calculator.current.signal); if (current() && attempt === calculation.current) { previewRequest.current = request; setPreview(result); } }
     catch (error) { if (active.current && attempt === calculation.current) { setMessage(current() ? comparisonMessage(error) : "登录已变化，请重新打开病例。"); if ([401, 404, 409, 422].includes(error?.response?.status)) clear(); } }
-    finally { if (active.current && attempt === calculation.current) setCalculating(false); }
+    finally { if (active.current && attempt === calculation.current) { runPending.current = false; setCalculating(false); } }
   };
   return <section aria-label="同次就诊检验前后对照" style={box}>
     <h2>同次就诊检验前后对照</h2>
@@ -82,6 +85,7 @@ function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect }) {
         <p>核对时间：{preview.read_at}</p>
         {preview.reference_changed && <p>参考范围不同，请分别回看。两侧参考范围不会互相套用。</p>}
         {preview.can_calculate ? <><h3>{deltaStates[preview.delta.state]}</h3><p>差值 B−A：<strong>{preview.delta.value}</strong> {preview.delta.unit}</p><p>数值变化不等于病情变化，不自动写入诊断或文书。</p></> : <><h3>当前不能计算数值差</h3><ul>{preview.reasons.map(reason => <li key={reason}>{comparisonReasons[reason]}</li>)}</ul></>}
+        {onSelect && preview.can_calculate && <button type="button" onClick={() => { if (current() && previewRequest.current) callbacks.current.onSelect?.(data, previewRequest.current, preview); }}>纳入本次文书核对</button>}
       </article>}
       <h3>未纳入当前对照的记录</h3>
       {data.excluded.map(row => <article key={row.id} style={box}><h4>{row.title} · 版本 {row.version} · {labStates[row.state]}</h4>{source(row)}<p>原因：{row.invalidated_reason || row.reason || labStates[row.state]}</p></article>)}
