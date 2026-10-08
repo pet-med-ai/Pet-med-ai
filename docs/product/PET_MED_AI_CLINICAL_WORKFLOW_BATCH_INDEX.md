@@ -63,3 +63,13 @@ CW-B13 已完成草稿 PR [#58](https://github.com/pet-med-ai/Pet-med-ai/pull/58
 | CW-B14 | 人工复查计划保存与回看 | 已整批批准，独立候选实现 | 待本批精确提交验证，结果追加本批 PR | 否 | 否 | 未验收 |
 
 CW-B14 [批准方案](https://chatgpt.com/space/page_5c9bf4afa98c8191bbaf10fafb415259)与[实现约定](../clinical_docs/CLINICAL_FOLLOWUP_PLANS_CW_B14.md)：20 个指定路径、初始实现 1、修正最多 3、完整本地回归最多 2、候选 CI 最多 3、独立分支和草稿 PR 各 1。业务外部调用 0、新增采购 0 元；不挪用旧余额。连续做到草稿 PR 和 CI，不合并、不部署、不迁移、不操作生产数据。计划不等同实际复查、不进入本批 DOCX、不改变旧回访统计。保持 `[skip render]` 和提交前部署/预览关闭核对；医生、五份 Mac Word、CW-B5 独立真实语音实测继续待补。
+
+## CW-B14 收尾与 CW-B15 接续
+
+CW-B14 已按草稿 PR＋CI 范围完成：PR #59，最终 HEAD `65802b7ce59b48a0434f32d533a64b30e89030f9`，4 条工作流、7 个 job 全通过。实耗 20/20 文件、初始实现 1/1、修正 2/3、完整本地回归 1/2、候选 CI 2/3，业务外部调用 0、新增采购 0 元。旧冻结文档中待验证文字不覆盖该最终记录。
+
+2026-10-08 用户整批批准 CW-B15「复查计划纳入门诊病历草稿」21 文件范围，预算为初始实现 1、修正≤3、完整本地回归≤2、候选 CI≤3，独立分支与草稿 PR 各 1，业务外部调用 0、采购 0 元。承接 CW-B14 精确 HEAD，草稿 PR base 保留逐批叠加关系；详见 `docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_DOCUMENTS_CW_B15.md`。
+
+CW-B15 当前状态分列：草稿候选＝实施中；CI 通过＝待候选结果；已合并＝否；已上线＝否；医生验收＝未验收。最终状态以对应 PR 与精确 HEAD 的 CI 为准，不另加状态文字收尾提交。医生验收、五份 Mac Word 检查和 CW-B5 真实外部语音实测继续待补，100 次/1 元额度独立；异宠 B5＝Snake Depth V2。[skip render]
+
+2026-10-08 19:38（Asia/Shanghai）补充授权：CW-B15 扩至 22 文件，增加 `tests/acceptance/visit_document_checks.cjs`，沿用剩余预算推进现有草稿 PR [#60](https://github.com/pet-med-ai/Pet-med-ai/pull/60)。第 2 次候选 `37b88c3d1d36acb72d18a3a162ef69d15e4840f6` 的 5 个 job 成功，本批 PostgreSQL 并发与新进程回读通过；综合验收停在旧浏览器门诊提示断言。补修保持其余历史断言，22 路径门禁显式登记扩围；修正后该脚本的本地真实 Chromium 定向验收 13 项通过。补修提交前累计初始实现 1/1、修正 3/3、完整本地回归 1/2、候选 CI 2/3；最终第 3 次候选结果见 PR，不重置预算，不合并、不部署、不迁移、不操作生产数据。[skip render]

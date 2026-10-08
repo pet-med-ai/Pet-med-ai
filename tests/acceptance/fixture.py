@@ -91,6 +91,11 @@ def enable_followup_plans():
     os.environ.update(FOLLOWUP_PLANS_ENABLED='1', FOLLOWUP_PLANS_SYNTHETIC_ONLY='1')
 
 
+def enable_followup_plan_documents():
+    enable_followup_plans()
+    os.environ.update(FOLLOWUP_PLAN_DOCUMENTS_ENABLED='1', FOLLOWUP_PLAN_DOCUMENTS_SYNTHETIC_ONLY='1')
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(main.app, host='127.0.0.1', port=18026, loop='asyncio')

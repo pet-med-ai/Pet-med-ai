@@ -146,6 +146,17 @@ on:
       - 'tests/test_clinical_followup_plan_concurrency.py'
       - 'tests/fixtures/clinical_followup_plans_cw_b14_cases.json'
       - 'scripts/validate_clinical_followup_plans_cw_b14.py'
+      - 'backend/clinical_followup_plan_documents.py'
+      - 'frontend/src/components/ClinicalDocFollowupPlanSelection.jsx'
+      - 'frontend/src/followupPlanDocuments.js'
+      - 'frontend/tests/followup-plan-documents.test.jsx'
+      - 'frontend/tests/case-detail-followup-plan-documents.test.jsx'
+      - 'tests/test_clinical_followup_plan_documents.py'
+      - 'tests/test_clinical_followup_plan_document_concurrency.py'
+      - 'tests/acceptance/clinical_followup_plan_document_checks.cjs'
+      - 'tests/fixtures/clinical_followup_plan_documents_cw_b15_cases.json'
+      - 'scripts/validate_clinical_followup_plan_documents_cw_b15.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_DOCUMENTS_CW_B15.md'
       - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLANS_CW_B14.md'
 
 permissions:
@@ -182,15 +193,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B13 and approved CW-B14 increment
+      - name: Bind frozen M7 through CW-B14 and approved CW-B15 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_followup_plans_cw_b14.py > "$RUNNER_TEMP/cwb14-scope.json"
+          python scripts/validate_clinical_followup_plan_documents_cw_b15.py > "$RUNNER_TEMP/cwb15-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb14-scope.json" acceptance-results/cwb14-scope.json
+          cp "$RUNNER_TEMP/cwb15-scope.json" acceptance-results/cwb15-scope.json
           python - <<'PY_SCOPE'
           import json
-          cwb13 = json.load(open('acceptance-results/cwb14-scope.json'))['frozen_cwb13']
+          cwb14 = json.load(open('acceptance-results/cwb15-scope.json'))['frozen_cwb14']
+          open('acceptance-results/cwb14-scope.json','w').write(json.dumps(cwb14,indent=2))
+          cwb13 = cwb14['frozen_cwb13']
           open('acceptance-results/cwb13-scope.json','w').write(json.dumps(cwb13,indent=2))
           new_increment = cwb13['frozen_cwb12']
           open('acceptance-results/cwb12-scope.json','w').write(json.dumps(new_increment,indent=2))
@@ -373,6 +386,11 @@ jobs:
           set -o pipefail
           python tests/test_clinical_followup_plans.py 2>&1 | tee acceptance-results/cwb14-route-tests.log
           python tests/test_clinical_followup_plan_concurrency.py 2>&1 | tee acceptance-results/cwb14-concurrency-tests.log
+      - name: CW-B15 exact saved plan documents and SQLite full-document races
+        run: |
+          set -o pipefail
+          PMAI_CWB15_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb15-doc-samples" python tests/test_clinical_followup_plan_documents.py 2>&1 | tee acceptance-results/cwb15-document-tests.log
+          python tests/test_clinical_followup_plan_document_concurrency.py 2>&1 | tee acceptance-results/cwb15-concurrency-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -504,6 +522,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_plan_checks.cjs 2>&1 | tee acceptance-results/cwb14-browser.log
+      - name: CW-B15 real Chromium full plan documents and stale response guards
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_plan_document_checks.cjs 2>&1 | tee acceptance-results/cwb15-browser.log
       - name: Render CW-B13 synthetic DOCX samples to page evidence
         run: |
           sudo apt-get update -qq
@@ -527,6 +549,26 @@ jobs:
               result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
           (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
           PY_DOC
+      - name: Render every CW-B15 document sample page
+        run: |
+          python - <<'PY_DOC15'
+          import json, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results/cwb15-doc-samples')
+          files=sorted(root.glob('*.docx'))
+          assert len(files)==4
+          result=[]
+          for file in files:
+              target=root/file.stem
+              target.mkdir()
+              subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb15-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],check=True,timeout=90)
+              pdf=target/(file.stem+'.pdf')
+              assert pdf.is_file() and pdf.stat().st_size>0
+              subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+              pages=list(target.glob('page-*.png'));assert pages
+              result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
+          (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
+          PY_DOC15
       - name: Audit locked frontend dependencies
         run: |
           set -o pipefail

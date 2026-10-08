@@ -45,6 +45,7 @@ function CaseDetailContent({ requestToken }) {
   const [showRangeReview, setShowRangeReview] = useState(false), [labTarget, setLabTarget] = useState(null);
   const [showLabComparison, setShowLabComparison] = useState(false);
   const [showFollowupPlan, setShowFollowupPlan] = useState(false), [followupDirty, setFollowupDirty] = useState(false);
+  const [followupTarget,setFollowupTarget]=useState(null);
   const [showImaging, setShowImaging] = useState(false), [imagingDirty, setImagingDirty] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
@@ -840,7 +841,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     // Wait until the opener is enabled again before restoring keyboard focus.
     setTimeout(() => { if (isCurrent()) reviewOpener.current?.focus(); }, 0);
   };
-  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = [], imagingIds = [], comparison, signal) => {
+  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = [], imagingIds = [], comparison, signal, followup) => {
     if (reviewActive.current && !expectedSnapshot) return;
     if (!data?.id || !isCurrent()) {
       alert("病例尚未加载或登录已变化，请重新打开病例后导出。");
@@ -863,6 +864,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           ...(labIds.length ? { manual_lab_report_ids: labIds } : {}),
           ...(imagingIds.length ? { manual_imaging_report_ids: imagingIds } : {}),
           ...(comparison ? { manual_lab_comparison: comparison } : {}),
+          ...(followup ? { manual_followup_plan: followup } : {}),
         },
         {
           responseType: "blob", signal,
@@ -969,7 +971,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       <style>{css}</style>
       <div className="screen-only">
         <button type="button" onClick={() => { if (!showFollowupPlan || !followupDirty || window.confirm("复查计划草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？")) setShowFollowupPlan(v => !v); }}>{showFollowupPlan ? "收起复查计划" : "打开复查计划"}</button>
-        {showFollowupPlan && <Suspense fallback={<p>正在打开复查计划…</p>}><CaseFollowupPlan caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} onDirtyChange={setFollowupDirty}/></Suspense>}
+        {showFollowupPlan && <Suspense fallback={<p>正在打开复查计划…</p>}><CaseFollowupPlan caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} inspectTarget={followupTarget} onDirtyChange={setFollowupDirty}/></Suspense>}
         <button type="button" onClick={() => setShowRangeReview(v => !v)}>{showRangeReview ? "收起检验结果区间核对" : "打开检验结果区间核对"}</button>
         {showRangeReview && <Suspense fallback={<p>正在读取检验区间组件…</p>}><CaseLabRangeReview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} onCompare={() => setShowLabComparison(true)} /></Suspense>}
         <button type="button" onClick={() => setShowLabComparison(v => !v)}>{showLabComparison ? "收起检验前后对照" : "打开检验前后对照"}</button>
@@ -1033,7 +1035,8 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         onInspectLab={target=>{closeDocReview();setShowLab(true);if(target)setLabTarget({ ...target, request: {} });}}
         sourceRevision={savedRevision}
         onInspectImaging={()=>{closeDocReview();setShowImaging(true);}}
-        onDownload={(snapshot, current, ids, imagingIds, comparison, signal) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds, comparison, signal)} /></Suspense>}
+        onInspectFollowup={target=>{closeDocReview();setShowFollowupPlan(true);setFollowupTarget({...target,request:{}});}}
+        onDownload={(snapshot, current, ids, imagingIds, comparison, signal, followup) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds, comparison, signal, followup)} /></Suspense>}
 
       {exportStatus && (
         <div role="status" aria-live="polite" className="clinical-doc-export-status screen-only">

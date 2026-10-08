@@ -10,7 +10,9 @@ export function PlanContent({data}){return <dl style={{whiteSpace:'pre-wrap'}}>
   <dt>提前返回条件</dt><dd>{data.return_conditions||'未填写'}</dd><dt>备注</dt><dd>{data.note||'未填写'}</dd>
 </dl>;}
 export default function CaseFollowupPlan(props){return <Panel key={JSON.stringify([props.caseId,props.requestToken])} {...props}/>;}
-function Panel({caseId,requestToken,onDirtyChange,caseRevision=0}){
+function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget}){
+  const targets=useRef(new Map());
+  const [inspectNotice,setInspectNotice]=useState('');
   const [list,setList]=useState(null),[draft,setDraft]=useState(null),[review,setReview]=useState(null),[checked,setChecked]=useState(false);
   const [busy,setBusy]=useState(false),[unknown,setUnknown]=useState(null),[notice,setNotice]=useState('');
   const active=useRef(false),epoch=useRef(0),flight=useRef(false),control=useRef(null),queued=useRef(false),dirty=useRef(false),pending=useRef(null);
@@ -46,6 +48,12 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0}){
   },[caseId,requestToken]);
   useEffect(()=>{dirty.current=Boolean(draft||unknown);callback.current?.(dirty.current);},[draft,unknown]);
   const previousRevision=useRef(caseRevision);
+  useEffect(()=>{
+    if(!inspectTarget||!list)return;
+    const row=list.plans.find(p=>p.id===inspectTarget.id&&p.version===inspectTarget.version);
+    setInspectNotice(row?`正在回看计划 #${row.id} 版本 ${row.version}，未改变编辑草稿。`:'指定计划版本当前无法读取，请刷新核对。');
+    if(row){const node=targets.current.get(row.id);node?.scrollIntoView?.({block:'nearest'});node?.focus?.();}
+  },[inspectTarget,list]);
   useEffect(()=>{if(previousRevision.current!==caseRevision){previousRevision.current=caseRevision;reread();}},[caseRevision]);
   useEffect(()=>{
     const focus=()=>reread(),storage=e=>{if(e.key==='token'||e.key===null){invalidate();setList(null);}};
@@ -108,7 +116,8 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0}){
   }
   const locked=busy||Boolean(unknown),hasCurrent=list?.plans.some(p=>p.stored_state==='planned');
   return <section aria-label="人工复查计划" style={box}>
-    <h2>人工复查计划</h2><p>由医生填写并核对。计划不代表已复查，不会自动预约或发送消息。尚未纳入文书。</p>
+    <h2>人工复查计划</h2><p>由医生填写并核对。计划不代表已复查，不会自动预约或发送消息。门诊病历草稿可明确选择当前有效计划，仍需重新核对整份文书。</p>
+    {inspectNotice&&<p role="status">{inspectNotice}</p>}
     <p>未保存草稿仅留在本页；刷新、离开或切换病例和账号后清除。</p>
     <p role="status">{busy?'正在处理…':notice}</p>
     <button type="button" disabled={busy} onClick={reread}>刷新复查计划</button>
@@ -139,10 +148,10 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0}){
       <label><input type="checkbox" aria-label="已核对复查计划" disabled={locked} checked={checked} onChange={e=>setChecked(e.target.checked)}/>已核对病例、日期、全部原文及本次操作</label>
       <button disabled={locked||!checked} onClick={()=>run(confirm)}>确认保存复查计划</button>
     </section>}
-    {list&&<section aria-label="复查计划版本历史"><h3>已保存计划与版本历史</h3>{list.plans.map(p=><article key={p.id} aria-label={`复查计划记录 ${p.id}`} style={box}>
+    {list&&<section aria-label="复查计划版本历史"><h3>已保存计划与版本历史</h3>{list.plans.map(p=><article key={p.id} ref={node=>{if(node)targets.current.set(p.id,node);else targets.current.delete(p.id);}} tabIndex={-1} aria-label={`复查计划记录 ${p.id}`} style={box}>
       <strong>版本 {p.version} · {states[p.state]}</strong><p style={{whiteSpace:'pre-wrap'}}>确认账号 {p.reviewed_by} · 时间 {p.reviewed_at} · 原因 {p.reason||'首次建立'}</p>
       {p.data.planned_date<list.as_of_date&&p.stored_state==='planned'&&<p>计划日期已过；尚未登记实际复查结果。</p>}
-      <details><summary>查看复查计划 #{p.id} 版本 {p.version}</summary><PlanContent data={p.data}/><p>内容标识 {p.token}</p></details>
+      <details open={inspectTarget?.id===p.id&&inspectTarget?.version===p.version?true:undefined}><summary>查看复查计划 #{p.id} 版本 {p.version}</summary><PlanContent data={p.data}/><p>内容标识 {p.token}</p></details>
       {p.withdrawal&&<p style={{whiteSpace:'pre-wrap'}}>撤销原因 {p.withdrawal.reason} · 账号 {p.withdrawal.by} · 时间 {p.withdrawal.at}</p>}
       {p.stored_state==='planned'&&<><button disabled={locked||Boolean(draft)||list.plans.length>=50} onClick={()=>edit(p,'correct')}>更正复查计划</button><button disabled={locked||Boolean(draft)} onClick={()=>edit(p,'withdraw')}>撤销复查计划</button></>}
     </article>)}</section>}
