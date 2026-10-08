@@ -81,3 +81,12 @@ CW-B15 已按草稿 PR＋CI 范围完成：[PR #60](https://github.com/pet-med-a
 2026-10-08 21:16（Asia/Shanghai）用户整批批准 CW-B16「复查计划纳入宠主说明草稿」[21 文件方案](https://chatgpt.com/space/page_4ba2e124f5e081918a43bf9de56e8a48)，从 CW-B15 精确 HEAD 接续。独立预算：初始实现 1、修正≤3、完整本地回归≤2、候选 CI≤3，分支和草稿 PR 各 1；业务外部调用 0、采购 0 元。实现约定见 [CW-B16 文档](../clinical_docs/CLINICAL_FOLLOWUP_PLAN_OWNER_DOCUMENTS_CW_B16.md)。
 
 CW-B16 当前状态分列：草稿候选＝实施中；CI 通过＝待本批精确提交结果；已合并＝否；已上线＝否；医生验收＝未验收。最终结果和实际预算追加本批 PR，不新增状态文字收尾提交或重跑成功 CI。不合并、不部署、不迁移、不操作生产数据，提交前核对自动部署和预览关闭，保持 `[skip render]`。医生、原五份 Mac Word、CW-B5 独立 100 次/1 元真实语音实测继续待补；异宠 B5＝Snake Depth V2。
+
+
+## CW-B16 收尾与 CW-B17 接续
+
+CW-B16 已按草稿 PR＋CI 范围完成：[PR #61](https://github.com/pet-med-ai/Pet-med-ai/pull/61)，精确 HEAD `dde9b8c763e5c837b26b5f206240f31ead0cecfc`，树 `90fe32dc93a5dcc9018321a7f8b7d977fd034b66`。实际 3 条工作流、6 个 job 成功：CI Gate `37787155769`、更新预览 `37787155891`、综合验收 `37787155778`。实耗 21/21 文件、初始 1/1、修正 1/3、完整本地回归 1/2、候选 CI 1/3；业务调用 0、采购 0 元。开放、草稿、未合并、未上线、医生未验收。最终 PR 记录优先于旧冻结文字。
+
+2026-10-09 00:22:11（Asia/Shanghai）用户整批批准 CW-B17「复查计划纳入就诊资料总览」[20 文件方案](https://chatgpt.com/space/page_24c2da184d2c81919f73723960e8d890)。从 CW-B16 最终 HEAD 逐批叠加，独立预算：初始 1、修正≤3、完整本地回归≤2、候选 CI≤3，分支/草稿 PR 各 1，业务调用 0、采购 0 元。详见 [CW-B17 实现约定](../clinical_docs/CLINICAL_FOLLOWUP_PLAN_OVERVIEW_CW_B17.md)。
+
+本批草稿候选＝实施中；CI 通过＝待精确提交验证；已合并＝否；已上线＝否；医生验收＝未验收。连续做到草稿 PR 和 CI，不合并、不部署、不迁移、不操作生产数据。最终实耗和证据追加 PR，不为旧文字新增收尾提交或重跑成功 CI。医生、原五份 Mac Word、CW-B5 原 100 次/1 元独立真实语音实测继续待补；异宠 B5＝Snake Depth V2。[skip render]

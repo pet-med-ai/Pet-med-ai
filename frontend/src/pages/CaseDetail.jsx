@@ -922,13 +922,17 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     }
   };
 
-  const navigateOverview = (target, event) => {
+  const navigateOverview = (target, event, plan) => {
     if (!isCurrent()) return;
     if (target === "outpatient" || target === "owner_summary") {
       openDocReview(target === "outpatient" ? "outpatient_record_zh" : "owner_visit_summary_zh", target === "outpatient" ? "门诊病历草稿" : "宠主说明草稿", event);
       return;
     }
-    if (target === "attachments") setShowAttachments(true);
+    if (target === "followup") {
+      setShowFollowupPlan(true);
+      setFollowupTarget(plan ? { ...plan, request: {} } : null);
+    }
+    else if (target === "attachments") setShowAttachments(true);
     else if (target === "lab") setShowLab(true);
     else if (target === "imaging") setShowImaging(true);
     else return;
@@ -970,6 +974,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     >
       <style>{css}</style>
       <div className="screen-only">
+        <div ref={node => { overviewAnchors.current.followup = node; }} tabIndex={-1} />
         <button type="button" onClick={() => { if (!showFollowupPlan || !followupDirty || window.confirm("复查计划草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？")) setShowFollowupPlan(v => !v); }}>{showFollowupPlan ? "收起复查计划" : "打开复查计划"}</button>
         {showFollowupPlan && <Suspense fallback={<p>正在打开复查计划…</p>}><CaseFollowupPlan caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} inspectTarget={followupTarget} onDirtyChange={setFollowupDirty}/></Suspense>}
         <button type="button" onClick={() => setShowRangeReview(v => !v)}>{showRangeReview ? "收起检验结果区间核对" : "打开检验结果区间核对"}</button>

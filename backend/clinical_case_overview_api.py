@@ -10,10 +10,10 @@ router = APIRouter(prefix='/api/cases', tags=['visit-overview'])
 
 
 @router.get('/{case_id}/visit-overview')
-def overview(case_id: int, user=Depends(get_current_user)):
+def overview(case_id: int, include_followup_plan: bool = False, user=Depends(get_current_user)):
     headers = {'Cache-Control': 'private, no-store', 'X-PMAI-Writes-Database': 'false'}
     try:
-        return JSONResponse(service.overview(user.id, case_id), headers=headers)
+        return JSONResponse(service.overview(user.id, case_id, include_followup_plan), headers=headers)
     except AttachmentError as exc:
         return JSONResponse({'detail': 'visit_overview_data_unreadable' if exc.status == 422 else exc.code},
                             status_code=409 if exc.status == 422 else exc.status, headers=headers)

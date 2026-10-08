@@ -8,6 +8,7 @@ from case_attachment_store import Store, AttachmentError, digest, ensure_enabled
 import case_attachment_service as attachments
 import manual_lab_results as lab
 import manual_imaging_records as imaging
+import clinical_followup_plan_overview as followup
 
 SCHEMA = 'clinical-case-overview-cw-b10-v1'
 FIELDS = {'chief_complaint': '主诉', 'history': '病史', 'exam_findings': '查体记录',
@@ -165,11 +166,15 @@ def assemble(store, db, case):
             'read_only': True, 'writes_database': False, 'includes_unsaved_drafts': False}
 
 
-def overview(uid, cid):
+def overview(uid, cid, include_followup_plan=False):
     ensure_enabled()
     store = Store()
     with store.locked(), attachments.transaction(uid, cid) as (db, case):
         result = assemble(store, db, case)
+        if include_followup_plan and followup.enabled():
+            result['schema'] = followup.SCHEMA
+            result['navigation_targets'] = [*TARGETS, 'followup']
+            result['groups']['followup'] = followup.group(db, case)
         result['snapshot'] = digest(result)
         result['read_at'] = datetime.now(timezone.utc).isoformat()
         return result
