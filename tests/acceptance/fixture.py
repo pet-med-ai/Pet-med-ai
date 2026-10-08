@@ -80,6 +80,12 @@ def enable_lab_comparison():
     os.environ.update(LAB_COMPARISON_ENABLED='1', LAB_COMPARISON_SYNTHETIC_ONLY='1')
 
 
+def enable_lab_comparison_documents():
+    enable_lab_comparison()
+    enable_manual_lab_documents()
+    os.environ.update(LAB_COMPARISON_DOCUMENTS_ENABLED='1', LAB_COMPARISON_DOCUMENTS_SYNTHETIC_ONLY='1')
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(main.app, host='127.0.0.1', port=18026, loop='asyncio')

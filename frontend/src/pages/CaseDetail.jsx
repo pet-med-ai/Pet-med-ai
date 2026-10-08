@@ -2,7 +2,7 @@
 import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
-import ClinicalDocReview from "../components/ClinicalDocReview";
+const ClinicalDocReview = lazy(() => import("../components/ClinicalDocReview"));
 import { draftOwner } from "../consultDraft";
 const CaseAttachments = lazy(() => import("../components/CaseAttachments"));
 const CaseLabResults = lazy(() => import("../components/CaseLabResults"));
@@ -838,7 +838,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     // Wait until the opener is enabled again before restoring keyboard focus.
     setTimeout(() => { if (isCurrent()) reviewOpener.current?.focus(); }, 0);
   };
-  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = [], imagingIds = []) => {
+  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = [], imagingIds = [], comparison, signal) => {
     if (reviewActive.current && !expectedSnapshot) return;
     if (!data?.id || !isCurrent()) {
       alert("病例尚未加载或登录已变化，请重新打开病例后导出。");
@@ -860,9 +860,10 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           ...(expectedSnapshot ? { expected_content_snapshot: expectedSnapshot } : {}),
           ...(labIds.length ? { manual_lab_report_ids: labIds } : {}),
           ...(imagingIds.length ? { manual_imaging_report_ids: imagingIds } : {}),
+          ...(comparison ? { manual_lab_comparison: comparison } : {}),
         },
         {
-          responseType: "blob",
+          responseType: "blob", signal,
           expectedAuthOwner: draftOwner(requestToken),
         }
       );
@@ -1022,13 +1023,13 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         </div>
       </div>
 
-      {docReview && <ClinicalDocReview key={docReview.templateId} caseId={Number(data.id)}
+      {docReview && <Suspense fallback={<p>正在打开文书核对…</p>}><ClinicalDocReview key={docReview.templateId} caseId={Number(data.id)}
         templateId={docReview.templateId} label={docReview.label} requestToken={requestToken}
         onClose={closeDocReview}
-        onInspectLab={()=>{closeDocReview();setShowLab(true);}}
+        onInspectLab={target=>{closeDocReview();setShowLab(true);if(target)setLabTarget({ ...target, request: {} });}}
         sourceRevision={savedRevision}
         onInspectImaging={()=>{closeDocReview();setShowImaging(true);}}
-        onDownload={(snapshot, current, ids, imagingIds) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds)} />}
+        onDownload={(snapshot, current, ids, imagingIds, comparison, signal) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds, comparison, signal)} /></Suspense>}
 
       {exportStatus && (
         <div role="status" aria-live="polite" className="clinical-doc-export-status screen-only">

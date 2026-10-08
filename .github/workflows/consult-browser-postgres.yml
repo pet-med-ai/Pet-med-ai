@@ -127,11 +127,38 @@ on:
       - 'scripts/validate_clinical_lab_comparison_cw_b12.py'
       - 'docs/clinical_docs/CLINICAL_LAB_COMPARISON_CW_B12.md'
       - 'docs/clinical_docs/CLINICAL_LAB_RANGE_REVIEW_CW_B11.md'
+      - 'backend/clinical_lab_comparison_documents.py'
+      - 'frontend/src/components/ClinicalDocLabComparisonSelection.jsx'
+      - 'frontend/src/labComparisonDocuments.js'
+      - 'frontend/tests/lab-comparison-documents.test.jsx'
+      - 'frontend/tests/case-detail-lab-comparison-documents.test.jsx'
+      - 'tests/test_clinical_lab_comparison_documents.py'
+      - 'tests/test_clinical_lab_comparison_document_concurrency.py'
+      - 'tests/acceptance/clinical_lab_comparison_document_checks.cjs'
+      - 'tests/fixtures/clinical_lab_comparison_documents_cw_b13_cases.json'
+      - 'scripts/validate_clinical_lab_comparison_documents_cw_b13.py'
+      - 'docs/clinical_docs/CLINICAL_LAB_COMPARISON_DOCUMENTS_CW_B13.md'
 
 permissions:
   contents: read
 
 jobs:
+  history-preservation:
+    name: Consult history preservation
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run unchanged isolated history tests and route wiring check
+        run: python -B tests/test_consult_history_merge.py
+
   synthetic-acceptance:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
@@ -146,15 +173,16 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B11 and approved CW-B12 increment
+      - name: Bind frozen M7 through CW-B12 and approved CW-B13 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_lab_comparison_cw_b12.py > "$RUNNER_TEMP/cwb12-scope.json"
+          python scripts/validate_clinical_lab_comparison_documents_cw_b13.py > "$RUNNER_TEMP/cwb13-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb12-scope.json" acceptance-results/cwb12-scope.json
+          cp "$RUNNER_TEMP/cwb13-scope.json" acceptance-results/cwb13-scope.json
           python - <<'PY_SCOPE'
           import json
-          new_increment = json.load(open('acceptance-results/cwb12-scope.json'))
+          new_increment = json.load(open('acceptance-results/cwb13-scope.json'))['frozen_cwb12']
+          open('acceptance-results/cwb12-scope.json','w').write(json.dumps(new_increment,indent=2))
           increment = new_increment['frozen_cwb11']
           open('acceptance-results/cwb11-scope.json','w').write(json.dumps(increment,indent=2))
           current = increment['frozen_cwb10']
@@ -276,7 +304,6 @@ jobs:
         run: python tests/test_diarrhea_intake.py
       - name: B1, B2 and B3 canonical intake and knowledge base validation
         run: |
-          python tests/test_consult_history_merge.py
           python tests/test_chief_complaint_intake.py
           python tools/validate_kb.py
       - name: B4 offline assertions and authenticated save/readback/document evidence
@@ -325,6 +352,11 @@ jobs:
           set -euo pipefail
           python tests/test_clinical_lab_comparison.py 2>&1 | tee acceptance-results/cwb12-route-tests.log
           python tests/test_clinical_lab_comparison_concurrency.py 2>&1 | tee acceptance-results/cwb12-concurrency-tests.log
+      - name: CW-B13 selected comparison documents and full snapshot SQLite races
+        run: |
+          set -euo pipefail
+          PMAI_CWB13_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb13-doc-samples" python tests/test_clinical_lab_comparison_documents.py 2>&1 | tee acceptance-results/cwb13-document-tests.log
+          python tests/test_clinical_lab_comparison_document_concurrency.py 2>&1 | tee acceptance-results/cwb13-concurrency-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -448,6 +480,33 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_lab_comparison_checks.cjs 2>&1 | tee acceptance-results/cwb12-browser.log
+      - name: CW-B13 real Chromium explicit pair, full review and DOCX download
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_lab_comparison_document_checks.cjs 2>&1 | tee acceptance-results/cwb13-browser.log
+      - name: Render CW-B13 synthetic DOCX samples to page evidence
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libreoffice-writer fonts-noto-cjk fonts-noto-color-emoji poppler-utils
+          python - <<'PY_DOC'
+          import json, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results/cwb13-doc-samples')
+          files=sorted(root.glob('*.docx'))
+          assert len(files)==4
+          result=[]
+          for file in files:
+              target=root/file.stem
+              target.mkdir()
+              subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb13-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],check=True,timeout=90)
+              pdf=target/(file.stem+'.pdf')
+              assert pdf.is_file() and pdf.stat().st_size>0
+              subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+              pages=list(target.glob('page-*.png'))
+              assert pages
+              result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
+          (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
+          PY_DOC
       - name: Audit locked frontend dependencies
         run: |
           set -o pipefail

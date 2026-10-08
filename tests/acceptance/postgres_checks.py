@@ -148,6 +148,20 @@ def comparison_readback():
     record('cwb12_fresh_process_relogin_exact_raw_versions_sources_snapshot_and_difference')
 
 
+def comparison_document_readback():
+    f.enable_lab_comparison_documents(); auth=login('pg-owner')
+    for item in json.loads((f.OUT/'cwb13-restart-expected.json').read_text()):
+        preview=call('POST','/api/clinical-docs/render-preview',auth,json=item['body'])
+        assert preview['content_snapshot']==item['snapshot']
+        assert preview['manual_lab_comparison']==item['comparison']
+        assert preview.get('manual_lab_reports',[])==item['labs']
+        assert preview.get('manual_imaging_reports',[])==item['images']
+        response=client.post('/api/clinical-docs/render',headers=auth,json={**item['body'],'expected_content_snapshot':item['snapshot']})
+        assert response.status_code==200 and response.headers['x-pmai-content-snapshot']==item['snapshot']
+        (f.OUT/'cwb13-restarted.docx').write_bytes(response.content)
+    record('cwb13_fresh_process_relogin_exact_pair_provenance_mixed_sections_and_content_snapshot')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -185,6 +199,7 @@ if '--readback' in sys.argv:
     overview_readback()
     range_readback()
     comparison_readback()
+    comparison_document_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -1244,5 +1259,95 @@ comparison_pg('control', True)
 for comparison_scenario in ('correct', 'withdraw', 'source', 'source_metadata', 'identity'):
     for comparison_preview in (False, True): comparison_pg(comparison_scenario, comparison_preview)
 (f.OUT / 'cwb12-restart-expected.json').write_text(json.dumps(comparison_expected, ensure_ascii=False, indent=2))
+
+# CW-B13: native PostgreSQL lock spans selected raw pair, mixed sections and bytes.
+f.enable_lab_comparison_documents()
+import clinical_lab_comparison_documents as comparison_documents
+comparison_document_expected=[]
+
+
+def comparison_document_pg(scenario, rendering):
+    cid = call('POST', '/api/cases', owner, expected=201, json={**comparison_fixture['case'], 'patient_name': 'CW-B13 ' + scenario + str(rendering)})['id']
+    files, root, url = (f'/api/cases/{cid}/' + suffix for suffix in ('attachments', 'manual-lab', 'lab-comparison'))
+    sources, rows = [], []
+    metadata = {'title': '合成对照原件', 'kind': 'lab', 'taken_at': '', 'reported_at': '', 'source': '', 'note': ''}
+    for index, data in enumerate(comparison_fixture['reports']):
+        raw = comparison_pdf().replace(b'CW-B6', f'CW-B{index}'.encode())
+        item = call('POST', files + '/uploads/' + uuid4().hex,
+                    {**owner, 'Content-Type': 'application/pdf', 'X-Attachment-Filename': f'comparison-{index}.pdf', 'X-Case-Token': call('GET', files, owner)['case_token']}, content=raw)['attachment']
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'confirm', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': metadata, 'reason': ''}
+        p = call('POST', files + '/preview', owner, json=body)
+        sources.append(call('POST', files + '/confirm', owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})['attachment'])
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'create', 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': None, 'expected_report_token': '', 'data': data, 'reason': ''}
+        p = call('POST', root + '/preview', owner, json=body)
+        rows.append(call('POST', root + '/confirm', owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})['report'])
+    extras={}
+    if scenario in {'mixed','control'}:
+        name,mime,raw=attachment_samples()[0]
+        image_source=call('POST',files+'/uploads/'+uuid4().hex,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',files,owner)['case_token']},content=raw)['attachment']
+        b={'request_id':uuid4().hex,'attachment_id':image_source['id'],'operation':'confirm','expected_case_token':call('GET',files,owner)['case_token'],'metadata':{**metadata,'kind':'dr'},'reason':''}
+        p=call('POST',files+'/preview',owner,json=b);call('POST',files+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+        image_root=f'/api/cases/{cid}/manual-imaging'
+        b={'request_id':uuid4().hex,'attachment_id':image_source['id'],'operation':'create','expected_case_token':call('GET',image_root,owner)['case_token'],'report_id':None,'expected_report_token':'','data':image_data,'reason':''}
+        p=call('POST',image_root+'/preview',owner,json=b);image_row=call('POST',image_root+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})['report']
+        extras={'manual_lab_report_ids':[rows[0]['id']],'manual_imaging_report_ids':[image_row['id']]}
+    saved=call('GET',url,owner)
+    choice={'snapshot':saved['snapshot'],'a':lab_comparison.selection(saved['reports'][0],saved['reports'][0]['items'][3]),'b':lab_comparison.selection(saved['reports'][1],saved['reports'][1]['items'][3]),'doctor_confirmed':True}
+    body={'case_id':cid,'template_id':'outpatient_record_zh','manual_lab_comparison':choice,**extras}
+    preview=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+    request={**body,'expected_content_snapshot':preview['content_snapshot']}
+    if scenario=='control':
+        call('POST','/api/clinical-docs/render-preview',other,json=body,expected=404)
+        call('POST','/api/clinical-docs/render-preview',json=body,expected=401)
+        previous=business_digest();writes=[]
+        def capture(_c,_cur,sql,*_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','DROP','ALTER'}:writes.append(sql)
+        event.listen(f.db.engine,'before_cursor_execute',capture)
+        try:
+            p=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+            r=client.post('/api/clinical-docs/render',headers=owner,json=request)
+            assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
+            assert p['content_snapshot']==preview['content_snapshot']
+            assert comparison_fixture['expected_deltas'][3] in document_text(r.content)
+            (f.OUT/'cwb13-pg-mixed.docx').write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+        assert writes==[] and business_digest()==previous
+        comparison_document_expected.append({'body':body,'snapshot':p['content_snapshot'],'comparison':p['manual_lab_comparison'],'labs':p.get('manual_lab_reports',[]),'images':p.get('manual_imaging_reports',[])})
+    else:
+        row,source=rows[0],sources[0]
+        if scenario in {'correct','withdraw','mixed'}:
+            target=image_root if scenario=='mixed' else root
+            selected=image_row if scenario=='mixed' else row
+            data=deepcopy(comparison_fixture['reports'][0]);data['items'][0]['value']='1.500'
+            b={'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':'correct' if scenario=='correct' else 'withdraw','expected_case_token':call('GET',target,owner)['case_token'],'report_id':selected['id'],'expected_report_token':selected['token'],'data':data if scenario=='correct' else None,'reason':'合成文书并发核对'}
+            p=call('POST',target+'/preview',owner,json=b)
+            mutation=lambda:client.post(target+'/confirm',headers=owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+        elif scenario in {'source','source_metadata'}:
+            b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'withdraw' if scenario=='source' else 'update','expected_case_token':call('GET',files,owner)['case_token'],'metadata':{**metadata,'title':'合成文书来源更正'},'reason':'合成来源核对'}
+            p=call('POST',files+'/preview',owner,json=b)
+            mutation=lambda:client.post(files+'/confirm',headers=owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+        else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=owner,json={('owner_name' if scenario=='identity' else 'history'):'文书并发正文或身份更正'})
+        entered,release,attempted=Event(),Event(),Event()
+        module,method=(document_api,'_render_docx') if rendering else (comparison_documents,'read_selected')
+        normal=getattr(module,method)
+        def held(*args,**kwargs):entered.set();assert release.wait(10);return normal(*args,**kwargs)
+        def mutate():attempted.set();return mutation()
+        with ThreadPoolExecutor(max_workers=2) as pool,patch.object(module,method,side_effect=held):
+            reading=pool.submit(client.post,'/api/clinical-docs/'+('render' if rendering else 'render-preview'),headers=owner,json=request if rendering else body)
+            try:
+                assert entered.wait(10);changing=pool.submit(mutate);assert attempted.wait(10);assert not changing.done()
+            finally:release.set()
+            r=reading.result(15);assert r.status_code==200
+            if rendering:assert comparison_fixture['expected_deltas'][3] in document_text(r.content) and '文书并发正文或身份更正' not in document_text(r.content)
+            else:assert r.json()['content_snapshot']==preview['content_snapshot']
+            assert changing.result(15).status_code==200
+        call('POST','/api/clinical-docs/render',owner,json=request,expected=409)
+    record('cwb13_postgresql_'+scenario+('_render' if rendering else '_preview')+'_full_snapshot_consistency')
+
+
+comparison_document_pg('control',True)
+for document_scenario in ('correct','withdraw','source','source_metadata','identity','body','mixed'):
+    for rendering in (False,True):comparison_document_pg(document_scenario,rendering)
+(f.OUT/'cwb13-restart-expected.json').write_text(json.dumps(comparison_document_expected,ensure_ascii=False,indent=2))
 
 client.close(); f.db.engine.dispose()
