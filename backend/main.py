@@ -126,6 +126,8 @@ from clinical_lab_range_review_api import router as lab_range_review_router
 app.include_router(lab_range_review_router)
 from clinical_lab_comparison_api import router as lab_comparison_router
 app.include_router(lab_comparison_router)
+from clinical_followup_plans_api import router as followup_plan_router
+app.include_router(followup_plan_router)
 
 
 def _text_with_species(text: str, species: Optional[str] = None) -> str:

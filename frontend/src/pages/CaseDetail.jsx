@@ -10,6 +10,7 @@ const CaseImagingRecords = lazy(() => import("../components/CaseImagingRecords")
 const CaseVisitOverview = lazy(() => import("../components/CaseVisitOverview"));
 const CaseLabRangeReview = lazy(() => import("../components/CaseLabRangeReview"));
 const CaseLabComparison = lazy(() => import("../components/CaseLabComparison"));
+const CaseFollowupPlan = lazy(() => import("../components/CaseFollowupPlan"));
 
 export default function CaseDetail() {
   const { id } = useParams();
@@ -43,6 +44,7 @@ function CaseDetailContent({ requestToken }) {
   const savedRevision = sourceRevision + labRevision;
   const [showRangeReview, setShowRangeReview] = useState(false), [labTarget, setLabTarget] = useState(null);
   const [showLabComparison, setShowLabComparison] = useState(false);
+  const [showFollowupPlan, setShowFollowupPlan] = useState(false), [followupDirty, setFollowupDirty] = useState(false);
   const [showImaging, setShowImaging] = useState(false), [imagingDirty, setImagingDirty] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
@@ -966,6 +968,8 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     >
       <style>{css}</style>
       <div className="screen-only">
+        <button type="button" onClick={() => { if (!showFollowupPlan || !followupDirty || window.confirm("复查计划草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？")) setShowFollowupPlan(v => !v); }}>{showFollowupPlan ? "收起复查计划" : "打开复查计划"}</button>
+        {showFollowupPlan && <Suspense fallback={<p>正在打开复查计划…</p>}><CaseFollowupPlan caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} onDirtyChange={setFollowupDirty}/></Suspense>}
         <button type="button" onClick={() => setShowRangeReview(v => !v)}>{showRangeReview ? "收起检验结果区间核对" : "打开检验结果区间核对"}</button>
         {showRangeReview && <Suspense fallback={<p>正在读取检验区间组件…</p>}><CaseLabRangeReview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} onCompare={() => setShowLabComparison(true)} /></Suspense>}
         <button type="button" onClick={() => setShowLabComparison(v => !v)}>{showLabComparison ? "收起检验前后对照" : "打开检验前后对照"}</button>

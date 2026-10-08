@@ -7,6 +7,10 @@ except ModuleNotFoundError:
 
 
 from collections import Counter, defaultdict
+try:
+    from backend.clinical_followup_plans import legacy_only as followup_plan_legacy_only
+except ModuleNotFoundError:
+    from clinical_followup_plans import legacy_only as followup_plan_legacy_only
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -284,6 +288,7 @@ def _owned_followups(db: Session, user: Any, start_dt: datetime, end_dt: datetim
             Case.owner_id == getattr(user, "id", None),
             FollowUp.due_date >= start_dt,
             FollowUp.due_date < end_dt,
+            followup_plan_legacy_only(FollowUp.status, FollowUp.channel),
         )
         .all()
     )
