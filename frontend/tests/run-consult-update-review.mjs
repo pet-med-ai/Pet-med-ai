@@ -9,6 +9,7 @@ const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const temporary = await mkdtemp(join(root, ".consult-update-test-"));
 try {
   const names = ["consult-update-review", "consult-first-save", "consult-draft", "case-edit-review", "manual-case-create", "case-list-auth", "case-detail-documents", "deferred-pages", "diarrhea-intake", "chief-complaint-intake", "consult-evidence", "voice-draft", "audio-capture", "case-attachments", "manual-lab-results", "manual-lab-documents", "manual-imaging-records", "manual-imaging-documents", "visit-overview", "case-detail-overview", "lab-range-review", "case-detail-lab-range-review", "lab-comparison", "case-detail-lab-comparison", "lab-comparison-documents", "case-detail-lab-comparison-documents", "followup-plan", "case-detail-followup-plan"];
+  names.push('followup-plan-documents', 'case-detail-followup-plan-documents');
   const outputs = names.map(name => join(temporary, name + ".cjs"));
   for (let index = 0; index < names.length; index++) {
     await build({
@@ -17,7 +18,7 @@ try {
       define: { "import.meta.env": "{}", "import.meta.url": JSON.stringify(import.meta.url) }, logLevel: "warning",
     });
   }
-  const result = spawnSync(process.execPath, ["--test", ...outputs], { stdio: "inherit" });
+  const result = spawnSync(process.execPath, ["--test", "--test-concurrency=2", ...outputs], { stdio: "inherit" });
   process.exitCode = result.status ?? 1;
 } finally {
   await rm(temporary, { recursive: true, force: true });

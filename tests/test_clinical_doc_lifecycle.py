@@ -121,7 +121,8 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
             self.assertIn(saved['analysis'], ps)
             self.assertIn(saved['exam_findings'], ps)
             self.assertIn(saved['treatment'], ps)
-            self.assertIn('未单独记录复查安排，请医生补充确认', ps)
+            self.assertIn('本次文书未纳入复查计划，请医生确认复查安排' if template == 'outpatient_record_zh'
+                          else '未单独记录复查安排，请医生补充确认', ps)
             self.assertNotIn('最终诊断', ''.join(ps))
             self.assertNotIn('电子章', ''.join(ps))
             self.assertEqual(self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json(), saved)
