@@ -206,6 +206,26 @@ def followup_document_readback():
     record('cwb15_fresh_process_relogin_reselect_full_preview_exact_plan_and_mixed_sections')
 
 
+def owner_followup_document_readback():
+    f.enable_followup_plan_owner_documents(); auth=login('pg-owner')
+    for item in json.loads((f.OUT/'cwb16-restart-expected.json').read_text()):
+        p=call('POST','/api/clinical-docs/render-preview',auth,json=item['body'])
+        assert p['template_id']=='owner_visit_summary_zh' and 'manual_lab_comparison' not in p
+        assert p['content_snapshot']==item['snapshot'] and p['manual_followup_plan']==item['plan']
+        for key in ('manual_lab_reports','manual_imaging_reports','manual_lab_comparison'):
+            assert p.get(key)==item.get(key)
+        r=client.post('/api/clinical-docs/render',headers=auth,json={**item['body'],'expected_content_snapshot':p['content_snapshot']})
+        assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
+        assert r.headers['x-pmai-content-snapshot']==item['snapshot']
+        data=item['plan']['plan']['data'];content=followup_document_text(r.content)
+        assert '检验前后对照附节' not in content
+        assert r.headers['x-pmai-template-id']=='owner_visit_summary_zh'
+        for literal in (data['planned_date'],data['purpose'],*data['items'],data['return_conditions'],data['note']):
+            assert literal in content
+        (f.OUT/f"cwb16-restarted-{item['body']['case_id']}.docx").write_bytes(r.content)
+    record('cwb16_fresh_process_relogin_reselect_full_preview_exact_plan_and_mixed_sections')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -246,6 +266,7 @@ if '--readback' in sys.argv:
     comparison_document_readback()
     followup_plan_readback()
     followup_document_readback()
+    owner_followup_document_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -1590,6 +1611,103 @@ for scenario in ('source','source_metadata','lab','imaging'):
 followup_document_pg('control',True)
 followup_document_pg('control',True,True)
 (f.OUT/'cwb15-restart-expected.json').write_text(json.dumps(document_plan_expected,ensure_ascii=False,indent=2))
+
+# CW-B16 native PostgreSQL document locks, complete bytes and fresh-process proof.
+f.enable_followup_plan_owner_documents()
+import clinical_followup_plan_documents as plan_documents
+owner_document_plan_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_plan_owner_documents_cw_b16_cases.json').read_text())
+owner_document_plan_expected=[]
+
+
+def owner_followup_document_pg(scenario, rendering, mixed=False):
+    # Build fresh real sources for every mixed owner case; never mutate historical readback cases.
+    if mixed:
+        baseline=comparison_document_pg('control',True)
+        cid=baseline['case_id'];extra={k:v for k,v in baseline.items() if k in ('manual_lab_report_ids','manual_imaging_report_ids')}
+    else:
+        cid=call('POST','/api/cases',owner,expected=201,json=owner_document_plan_fixture['case'])['id'];extra={}
+    root=f'/api/cases/{cid}/followup-plan'
+    def plan_body(operation='create',row=None,data=None):
+        listed=call('GET',root,owner)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':listed['case_token'],'expected_state_token':listed['state_token'],'data':None if operation=='withdraw' else data or owner_document_plan_fixture['plan'],
+           'reason':'' if operation=='create' else 'CW-B16 合成并发核对'}
+        p=call('POST',root+'/preview',owner,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    existing=call('GET',root,owner)['plans']
+    active=next((p for p in existing if p['stored_state']=='planned'),None)
+    row=call('POST',root+'/confirm',owner,json=plan_body('correct' if active else 'create',active))['plan']
+    body={'case_id':cid,'template_id':'owner_visit_summary_zh','manual_followup_plan':{k:row[k] for k in ('id','version','token')},**extra}
+    before=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+    request={**body,'expected_content_snapshot':before['content_snapshot']}
+    if scenario=='control':
+        writes=[];original=business_digest()
+        with f.db.SessionLocal() as db:plan_before=[(r.id,r.note,r.status,r.updated_at) for r in db.query(f.models.FollowUp).filter_by(case_id=cid).order_by(f.models.FollowUp.id)]
+        def capture(_c,_cur,sql,*_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}:writes.append(sql)
+        event.listen(f.db.engine,'before_cursor_execute',capture)
+        try:
+            p=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+            r=client.post('/api/clinical-docs/render',headers=owner,json=request)
+            assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
+            assert p['manual_followup_plan']['plan']['data']==owner_document_plan_fixture['plan']
+            assert p['template_id']=='owner_visit_summary_zh' and 'manual_lab_comparison' not in p
+            assert '检验前后对照附节' not in followup_document_text(r.content)
+            assert r.headers['x-pmai-template-id']=='owner_visit_summary_zh'
+            for literal in [row['data']['purpose'],row['data']['planned_date'],row['token'],*row['data']['items']]:assert literal in followup_document_text(r.content)
+            (f.OUT/f'cwb16-pg-{cid}.docx').write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+        assert writes==[] and business_digest()==original
+        with f.db.SessionLocal() as db:assert [(r.id,r.note,r.status,r.updated_at) for r in db.query(f.models.FollowUp).filter_by(case_id=cid).order_by(f.models.FollowUp.id)]==plan_before
+        owner_document_plan_expected.append({'body':body,'snapshot':before['content_snapshot'],'plan':before['manual_followup_plan'],
+            **{k:before[k] for k in ('manual_lab_reports','manual_imaging_reports','manual_lab_comparison') if k in before}})
+    else:
+        if scenario in ('correct','withdraw','replace'):
+            b=plan_body('correct' if scenario=='correct' else 'withdraw',row,owner_document_plan_fixture['corrected_plan'])
+            def mutation():
+                r=client.post(root+'/confirm',headers=owner,json=b)
+                if scenario=='replace':call('POST',root+'/confirm',owner,json=plan_body(data=owner_document_plan_fixture['short_plan']))
+                return r
+        elif scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):
+            record_root=f'/api/cases/{cid}/'+('manual-imaging' if scenario.startswith('imaging') else 'manual-lab')
+            selected=next(r for r in call('GET',record_root,owner)['reports'] if r['id']==extra['manual_imaging_report_ids' if scenario.startswith('imaging') else 'manual_lab_report_ids'][0])
+            if scenario.startswith('source'):
+                target=f'/api/cases/{cid}/attachments';state=call('GET',target,owner);source=next(s for s in state['items'] if s['id']==selected['attachment_id'])
+                b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'withdraw' if scenario=='source' else 'update','expected_case_token':state['case_token'],'metadata':{**source['metadata'],'title':'CW-B16 来源更正'},'reason':'合成来源变更'}
+            else:
+                target=record_root; data=None; operation='withdraw'
+                if scenario.endswith('_correct'):
+                    operation='correct'; data=deepcopy(selected['data'])
+                    if scenario.startswith('lab'):
+                        import manual_lab_results
+                        data=manual_lab_results.input_data(data); data['items'][0]['value']='1.500'
+                    else:data['findings']+=' CW-B16 更正影像原文'
+                b={'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':operation,'expected_case_token':call('GET',target,owner)['case_token'],'report_id':selected['id'],'expected_report_token':selected['token'],'data':data,'reason':'CW-B16 合成更正或撤销'}
+            preview=call('POST',target+'/preview',owner,json=b)
+            mutation=lambda:client.post(target+'/confirm',headers=owner,json={**b,'preview_token':preview['preview_token'],'reviewed':True})
+        elif scenario=='delete':mutation=lambda:client.delete(f'/api/cases/{cid}',headers=owner)
+        else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=owner,json={'owner_name':'CW-B16 更正身份'} if scenario=='identity' else {'history':'CW-B16 并发正文更正'})
+        entered,release,attempted=Event(),Event(),Event();module,method=(document_api,'_render_docx') if rendering else (plan_documents,'read_selected');normal=getattr(module,method)
+        def held(*args,**kwargs):entered.set();assert release.wait(15);return normal(*args,**kwargs)
+        def mutate():attempted.set();return mutation()
+        with ThreadPoolExecutor(2) as pool,patch.object(module,method,side_effect=held):
+            reading=pool.submit(client.post,'/api/clinical-docs/'+('render' if rendering else 'render-preview'),headers=owner,json=request if rendering else body)
+            try:
+                assert entered.wait(10);changing=pool.submit(mutate);assert attempted.wait(10);assert not changing.done()
+            finally:release.set()
+            r=reading.result(20);assert r.status_code==200
+            if rendering:assert row['data']['purpose'] in followup_document_text(r.content) and 'CW-B16 并发正文更正' not in followup_document_text(r.content)
+            else:assert r.json()['content_snapshot']==before['content_snapshot']
+            assert changing.result(20).status_code==(204 if scenario=='delete' else 200)
+        call('POST','/api/clinical-docs/render',owner,json=request,expected=404 if scenario=='delete' else 409)
+    record('cwb16_postgresql_'+scenario+('_mixed' if mixed else '_plan_only')+('_render' if rendering else '_preview'))
+
+
+for mixed in (False,True):
+    actions=('correct','withdraw','replace','body','identity','delete')+(('source','source_metadata','lab','lab_correct','imaging','imaging_correct') if mixed else ())
+    for scenario in actions:
+        for rendering in (False,True):owner_followup_document_pg(scenario,rendering,mixed)
+    owner_followup_document_pg('control',True,mixed)
+(f.OUT/'cwb16-restart-expected.json').write_text(json.dumps(owner_document_plan_expected,ensure_ascii=False,indent=2))
 
 # Close only after every batch has finished using the shared authenticated client.
 client.close(); f.db.engine.dispose()

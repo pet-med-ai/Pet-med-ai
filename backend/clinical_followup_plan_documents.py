@@ -1,4 +1,4 @@
-"""CW-B15: exact saved plan in an unsigned, snapshot-bound outpatient draft."""
+"""CW-B15/B16: exact saved plans in unsigned, snapshot-bound visit drafts."""
 from contextlib import contextmanager, ExitStack
 import json
 import os
@@ -15,11 +15,15 @@ KEY = '__manual_followup_plan_document'
 PRIVATE_HEADERS = {'Cache-Control': 'private, no-store', 'X-PMAI-Writes-Database': 'false'}
 
 
-def ensure_enabled():
+def ensure_enabled(template_id='outpatient_record_zh'):
     plans.ensure_enabled()
     if (os.getenv('FOLLOWUP_PLAN_DOCUMENTS_ENABLED') != '1'
             or os.getenv('FOLLOWUP_PLAN_DOCUMENTS_SYNTHETIC_ONLY') != '1'):
         raise plans.PlanError('followup_plan_documents_disabled', 503)
+    if template_id == 'owner_visit_summary_zh' and (
+            os.getenv('FOLLOWUP_PLAN_OWNER_DOCUMENTS_ENABLED') != '1'
+            or os.getenv('FOLLOWUP_PLAN_OWNER_DOCUMENTS_SYNTHETIC_ONLY') != '1'):
+        raise plans.PlanError('followup_plan_owner_documents_disabled', 503)
 
 
 def validate_selection(value):
@@ -44,9 +48,14 @@ def read_selected(db, case, selection):
 
 
 @contextmanager
-def snapshot(uid, cid, selection, lab_ids, image_ids, comparison, has_comparison):
+def snapshot(uid, cid, selection, lab_ids, image_ids, comparison, has_comparison,
+             *, template_id='outpatient_record_zh'):
     validate_selection(selection)
-    ensure_enabled()
+    # The shared plan path must not bypass the clinician-only comparison gate.
+    if template_id not in ('outpatient_record_zh', 'owner_visit_summary_zh') or (
+            template_id == 'owner_visit_summary_zh' and has_comparison):
+        raise plans.PlanError('followup_document_unsupported_template_selection', 422)
+    ensure_enabled(template_id)
     # Reuse the original lock order and ONE session; never nest case transactions.
     # The caller creates all DOCX bytes before this context is released.
     with ExitStack() as stack:

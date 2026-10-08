@@ -1,0 +1,187 @@
+{
+  "case": {
+    "patient_name": "CW-B16 合成犬",
+    "species": "dog",
+    "sex": "male",
+    "age_info": "6岁",
+    "breed": "合成",
+    "weight": "6.4 kg",
+    "coat_color": "棕色",
+    "owner_name": "合成宠主",
+    "owner_phone": "",
+    "chief_complaint": "合成复查文书验证",
+    "history": "病史原文 {{不得替换}}\n 保留空白 ",
+    "exam_findings": "仅合成查体",
+    "analysis": "待医生核对",
+    "treatment": "合成诊疗记录",
+    "prognosis": "不可自动推断为复查安排"
+  },
+  "cat_case": {
+    "patient_name": "CW-B16 合成猫",
+    "species": "cat",
+    "sex": "male",
+    "age_info": "6岁",
+    "breed": "合成",
+    "weight": "6.4 kg",
+    "coat_color": "棕色",
+    "owner_name": "合成宠主",
+    "owner_phone": "",
+    "chief_complaint": "合成复查文书验证",
+    "history": "病史原文 {{不得替换}}\n 保留空白 ",
+    "exam_findings": "仅合成查体",
+    "analysis": "待医生核对",
+    "treatment": "合成诊疗记录",
+    "prognosis": "不可自动推断为复查安排"
+  },
+  "plan": {
+    "planned_date": "2028-02-29",
+    "purpose": "  核对复查目的 {{visit.pet_name}}\n第二行 café αβ  ",
+    "items": [
+      "  血常规 {{原文}}  ",
+      "影像复核\n按原顺序 2",
+      "数值 0.0001 mg/L，不作转换"
+    ],
+    "return_conditions": "  医生手填返回条件\n不生成建议  ",
+    "note": " 原文备注 🐾\t{} "
+  },
+  "corrected_plan": {
+    "planned_date": "2026-10-31",
+    "purpose": "医生更正后计划原文",
+    "items": [
+      "更正项目一",
+      "更正项目二"
+    ],
+    "return_conditions": "  医生手填返回条件\n不生成建议  ",
+    "note": " 原文备注 🐾\t{} "
+  },
+  "long_plan": {
+    "planned_date": "2028-02-29",
+    "purpose": "全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ",
+    "items": [
+      "项目1 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目2 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目3 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目4 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目5 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目6 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目7 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目8 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目9 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目10 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode ca"
+    ],
+    "return_conditions": "全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ",
+    "note": "全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ"
+  },
+  "short_plan": {
+    "planned_date": "2026-10-31",
+    "purpose": "复查",
+    "items": [
+      "复核"
+    ],
+    "return_conditions": "",
+    "note": ""
+  },
+  "date_cases": [
+    {
+      "date": "2000-02-29",
+      "utc": "2000-02-28T16:00:00"
+    },
+    {
+      "date": "2026-01-31",
+      "utc": "2026-01-30T16:00:00"
+    },
+    {
+      "date": "2026-12-31",
+      "utc": "2026-12-30T16:00:00"
+    },
+    {
+      "date": "2028-02-29",
+      "utc": "2028-02-28T16:00:00"
+    },
+    {
+      "date": "9999-12-31",
+      "utc": "9999-12-30T16:00:00"
+    }
+  ],
+  "listing": {
+    "schema": "clinical-followup-plans-cw-b14-v1",
+    "case_id": 1,
+    "case": {
+      "id": 1,
+      "owner_id": 1,
+      "patient_name": "CW-B16 合成犬",
+      "species": "dog",
+      "sex": "male",
+      "age_info": "6岁",
+      "breed": "合成",
+      "weight": "6.4 kg",
+      "coat_color": "棕色",
+      "owner_name": "合成宠主",
+      "owner_phone": "",
+      "chief_complaint": "合成复查文书验证",
+      "history": "病史原文 {{不得替换}}\n 保留空白 ",
+      "exam_findings": "仅合成查体",
+      "analysis": "待医生核对",
+      "treatment": "合成诊疗记录",
+      "prognosis": "不可自动推断为复查安排"
+    },
+    "as_of_date": "2026-10-08",
+    "timezone": "Asia/Shanghai",
+    "plans": [
+      {
+        "id": 1,
+        "root_id": 1,
+        "version": 1,
+        "state": "planned",
+        "stored_state": "planned",
+        "token": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "data": {
+          "planned_date": "2028-02-29",
+          "purpose": "  核对复查目的 {{visit.pet_name}}\n第二行 café αβ  ",
+          "items": [
+            "  血常规 {{原文}}  ",
+            "影像复核\n按原顺序 2",
+            "数值 0.0001 mg/L，不作转换"
+          ],
+          "return_conditions": "  医生手填返回条件\n不生成建议  ",
+          "note": " 原文备注 🐾\t{} "
+        },
+        "reviewed_by": "1",
+        "reviewed_at": "2026-10-08T10:00:00+00:00",
+        "reason": "",
+        "withdrawal": null,
+        "case_snapshot": {
+          "id": 1,
+          "owner_id": 1,
+          "patient_name": "CW-B16 合成犬",
+          "species": "dog",
+          "sex": "male",
+          "age_info": "6岁",
+          "breed": "合成",
+          "weight": "6.4 kg",
+          "coat_color": "棕色",
+          "owner_name": "合成宠主",
+          "owner_phone": "",
+          "chief_complaint": "合成复查文书验证",
+          "history": "病史原文 {{不得替换}}\n 保留空白 ",
+          "exam_findings": "仅合成查体",
+          "analysis": "待医生核对",
+          "treatment": "合成诊疗记录",
+          "prognosis": "不可自动推断为复查安排"
+        }
+      }
+    ],
+    "limits": {
+      "items": 10,
+      "versions": 50
+    },
+    "writes_database": false,
+    "case_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "state_token": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "expected_no_selection": "本次文书未纳入复查计划，请医生确认复查安排",
+  "owner_template": "owner_visit_summary_zh",
+  "doctor_template": "outpatient_record_zh",
+  "expected_forbidden_section": "检验前后对照附节",
+  "owner_document_title": "诊疗情况说明草稿"
+}

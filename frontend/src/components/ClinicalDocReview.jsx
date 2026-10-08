@@ -200,11 +200,13 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     {" "}<button type="button" disabled={busy} onClick={()=>{selectImaging([]);setImagingOpen(v=>!v);}}>{imagingOpen ? "不纳入影像报告" : "选择已核对影像报告"}</button>
     {imagingOpen && <Suspense fallback={<p>正在打开影像选择…</p>}><ClinicalDocImagingSelection caseId={caseId} requestToken={requestToken}
       selected={imagingIds} onChange={selectImaging} onInspect={()=>{leave();onInspectImaging?.();}}/></Suspense>}
-    {templateId === 'outpatient_record_zh' && <>
+    {['outpatient_record_zh', 'owner_visit_summary_zh'].includes(templateId) && <>
       {' '}<button type="button" disabled={busy} onClick={()=>{planSession.current=true;setPlanOpen(v=>!v);}}>{planOpen?'收起复查计划选择':'选择复查计划附节'}</button>
       {planChoice&&<p>已选择复查计划 #{planChoice.request.id} 版本 {planChoice.request.version}。<button type="button" onClick={()=>selectPlan(null)}>移除本次复查计划附节</button></p>}
-      {planOpen&&<Suspense fallback={<p>正在打开复查计划选择…</p>}><ClinicalDocFollowupPlanSelection caseId={caseId} requestToken={requestToken} readRevision={planReadRevision}
+      {planOpen&&<Suspense fallback={<p>正在打开复查计划选择…</p>}><ClinicalDocFollowupPlanSelection caseId={caseId} requestToken={requestToken} templateId={templateId} readRevision={planReadRevision}
         onSelect={selectPlan} onInspect={target=>{leave();onInspectFollowup?.(target);}}/></Suspense>}
+    </>}
+    {templateId === 'outpatient_record_zh' && <>
       {' '}<button type="button" disabled={busy} onClick={() => { comparisonSession.current=true; selectComparison(null); setComparisonOpen(v => !v); }}>{comparisonOpen ? '关闭对照选择并移除' : '选择检验前后对照附节'}</button>
       {comparisonChoice && <p>已明确选择一对项目；尚需重新读取完整草稿并确认。<button type="button" onClick={() => selectComparison(null)}>移除本次对照附节</button></p>}
       {comparisonOpen && <Suspense fallback={<p>正在打开对照选择…</p>}><ClinicalDocLabComparisonSelection caseId={caseId} requestToken={requestToken} sourceRevision={sourceRevision}

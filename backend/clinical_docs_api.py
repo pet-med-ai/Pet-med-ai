@@ -281,8 +281,7 @@ def _build_context(case: Case, *, data: ClinicalDocRenderIn, user, template_id: 
                 raise HTTPException(status_code=422, detail="病例文本含文书不支持的控制字符，请医生核对")
             context[key] = raw.replace("\r\n", "\n").replace("\r", "\n") if raw.strip() else "未填写"
         context.update({
-            "visit.follow_up": ("本次文书未纳入复查计划，请医生确认复查安排" if template_id == 'outpatient_record_zh'
-                                else "未单独记录复查安排，请医生补充确认"),
+            "visit.follow_up": "本次文书未纳入复查计划，请医生确认复查安排",
             # Account attribution is not a signature and cannot be supplied by the caller.
             "export.account_id": _text(getattr(user, "id", None), "未填写"),
             "timestamp": timestamp, "hash": "",
@@ -559,14 +558,17 @@ def _followup_documents():
 def _with_followup_document(data, user, operation, *, render=False):
     module = _followup_documents()
     try:
-        if data.template_id != 'outpatient_record_zh' or data.include_diagnostic_data:
-            raise HTTPException(422, '仅门诊病历草稿支持复查计划附节')
+        if data.template_id not in OUTPATIENT_TEMPLATES or data.include_diagnostic_data:
+            raise HTTPException(422, '仅门诊病历和宠主说明草稿支持复查计划附节')
+        if data.template_id == 'owner_visit_summary_zh' and _has_comparison(data):
+            raise HTTPException(422, '宠主说明草稿不支持检验前后对照附节')
         module.validate_selection(data.manual_followup_plan)
         if render and not data.expected_content_snapshot:
             raise HTTPException(409, 'followup_document_review_required')
         with module.snapshot(user.id, data.case_id, data.manual_followup_plan,
                              data.manual_lab_report_ids, data.manual_imaging_report_ids,
-                             data.manual_lab_comparison, _has_comparison(data)) as parts:
+                             data.manual_lab_comparison, _has_comparison(data),
+                             template_id=data.template_id) as parts:
             result = operation(*parts)
             if render:
                 result.headers.update(module.PRIVATE_HEADERS)
