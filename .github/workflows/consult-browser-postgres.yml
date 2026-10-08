@@ -143,6 +143,22 @@ permissions:
   contents: read
 
 jobs:
+  history-preservation:
+    name: Consult history preservation
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run unchanged isolated history tests and route wiring check
+        run: python -B tests/test_consult_history_merge.py
+
   synthetic-acceptance:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
@@ -288,7 +304,6 @@ jobs:
         run: python tests/test_diarrhea_intake.py
       - name: B1, B2 and B3 canonical intake and knowledge base validation
         run: |
-          python tests/test_consult_history_merge.py
           python tests/test_chief_complaint_intake.py
           python tools/validate_kb.py
       - name: B4 offline assertions and authenticated save/readback/document evidence
