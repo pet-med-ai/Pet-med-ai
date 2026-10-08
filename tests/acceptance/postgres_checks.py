@@ -178,6 +178,17 @@ def followup_plan_readback():
     record('cwb14_fresh_process_relogin_exact_literals_dates_version_history_and_audit_counts')
 
 
+def followup_document_text(raw):
+    # CW-B15 original fields include Word line breaks/tabs, not XML text alone.
+    import io, zipfile
+    from xml.etree import ElementTree as ET
+    w='{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        root=ET.fromstring(z.read('word/document.xml'))
+    return '\n'.join(''.join(node.text or '' if node.tag==w+'t' else '\n' if node.tag==w+'br' else '\t' if node.tag==w+'tab' else ''
+                             for node in paragraph.iter()) for paragraph in root.iter(w+'p'))
+
+
 def followup_document_readback():
     f.enable_followup_plan_documents(); f.enable_lab_comparison_documents(); auth=login('pg-owner')
     for item in json.loads((f.OUT/'cwb15-restart-expected.json').read_text()):
@@ -188,6 +199,9 @@ def followup_document_readback():
         r=client.post('/api/clinical-docs/render',headers=auth,json={**item['body'],'expected_content_snapshot':p['content_snapshot']})
         assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
         assert r.headers['x-pmai-content-snapshot']==item['snapshot']
+        data=item['plan']['plan']['data'];content=followup_document_text(r.content)
+        for literal in (data['planned_date'],data['purpose'],*data['items'],data['return_conditions'],data['note']):
+            assert literal in content
         (f.OUT/f"cwb15-restarted-{item['body']['case_id']}.docx").write_bytes(r.content)
     record('cwb15_fresh_process_relogin_reselect_full_preview_exact_plan_and_mixed_sections')
 
@@ -1525,7 +1539,7 @@ def followup_document_pg(scenario, rendering, mixed=False):
             r=client.post('/api/clinical-docs/render',headers=owner,json=request)
             assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
             assert p['manual_followup_plan']['plan']['data']==document_plan_fixture['plan']
-            for literal in [row['data']['purpose'],row['data']['planned_date'],row['token'],*row['data']['items']]:assert literal in document_text(r.content)
+            for literal in [row['data']['purpose'],row['data']['planned_date'],row['token'],*row['data']['items']]:assert literal in followup_document_text(r.content)
             (f.OUT/f'cwb15-pg-{cid}.docx').write_bytes(r.content)
         finally:event.remove(f.db.engine,'before_cursor_execute',capture)
         assert writes==[] and business_digest()==original
@@ -1560,7 +1574,7 @@ def followup_document_pg(scenario, rendering, mixed=False):
                 assert entered.wait(10);changing=pool.submit(mutate);assert attempted.wait(10);assert not changing.done()
             finally:release.set()
             r=reading.result(20);assert r.status_code==200
-            if rendering:assert row['data']['purpose'] in document_text(r.content) and 'CW-B15 并发正文更正' not in document_text(r.content)
+            if rendering:assert row['data']['purpose'] in followup_document_text(r.content) and 'CW-B15 并发正文更正' not in followup_document_text(r.content)
             else:assert r.json()['content_snapshot']==before['content_snapshot']
             assert changing.result(20).status_code==(204 if scenario=='delete' else 200)
         call('POST','/api/clinical-docs/render',owner,json=request,expected=404 if scenario=='delete' else 409)
