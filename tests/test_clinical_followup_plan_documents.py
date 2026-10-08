@@ -124,8 +124,13 @@ class PlanDocumentTests(PlanDocumentFixture):
             variants += [{**choice,key:v} for v in (True,False,1.0,'1',0,-1,2**53,None)]
         for value in variants:
             r=self.document(value);self.assertEqual(r.status_code,422,str(value));self.assertEqual(r.headers['cache-control'],'private, no-store')
-        for template in ('owner_visit_summary_zh','admission_hospitalization_record_bilingual','discharge_summary_bilingual'):
+        for template in ('admission_hospitalization_record_bilingual','discharge_summary_bilingual'):
             for value in (choice,None):self.assertEqual(self.document(value,template_id=template).status_code,422)
+        with patch.dict(os.environ, {'FOLLOWUP_PLAN_OWNER_DOCUMENTS_ENABLED':'0'}):
+            self.assertEqual(self.document(choice,template_id='owner_visit_summary_zh').status_code,503)
+            self.assertEqual(self.document(None,template_id='owner_visit_summary_zh').status_code,422)
+        with patch.dict(os.environ, {'FOLLOWUP_PLAN_OWNER_DOCUMENTS_ENABLED':'1','FOLLOWUP_PLAN_OWNER_DOCUMENTS_SYNTHETIC_ONLY':'1'}):
+            self.assertEqual(self.document(choice,template_id='owner_visit_summary_zh').status_code,200)
         self.assertEqual(self.document(choice,include_diagnostic_data=True).status_code,422)
         self.assertEqual(self.document(choice,'render').status_code,409)
         self.assertEqual(self.document(choice,'render','0'*64).status_code,409)

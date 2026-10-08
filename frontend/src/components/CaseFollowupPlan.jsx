@@ -116,7 +116,7 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
   }
   const locked=busy||Boolean(unknown),hasCurrent=list?.plans.some(p=>p.stored_state==='planned');
   return <section aria-label="人工复查计划" style={box}>
-    <h2>人工复查计划</h2><p>由医生填写并核对。计划不代表已复查，不会自动预约或发送消息。门诊病历草稿可明确选择当前有效计划，仍需重新核对整份文书。</p>
+    <h2>人工复查计划</h2><p>由医生填写并核对。计划不代表已复查，不会自动预约或发送消息。门诊病历和宠主说明草稿可明确选择当前有效计划，仍需重新核对整份文书。</p>
     {inspectNotice&&<p role="status">{inspectNotice}</p>}
     <p>未保存草稿仅留在本页；刷新、离开或切换病例和账号后清除。</p>
     <p role="status">{busy?'正在处理…':notice}</p>
