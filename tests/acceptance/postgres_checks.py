@@ -162,6 +162,22 @@ def comparison_document_readback():
     record('cwb13_fresh_process_relogin_exact_pair_provenance_mixed_sections_and_content_snapshot')
 
 
+def followup_plan_readback():
+    f.enable_followup_plans()
+    auth=login('pg-owner')
+    for saved in json.loads((f.OUT/'cwb14-restart-expected.json').read_text()):
+        root=f"/api/cases/{saved['case_id']}/followup-plan"
+        assert call('GET',root,auth)==saved['listing']
+        assert read(saved['case_id'],auth)==saved['case']
+        with f.db.SessionLocal() as db:
+            rows=db.query(f.models.AuditLog).filter_by(case_id=saved['case_id'],source='clinical-followup-plans-cw-b14').order_by(f.models.AuditLog.log_id).all()
+            assert [r.extra_data for r in rows]==saved['audits']
+        for request_id in saved['requests']:
+            result=call('GET',root+'/requests/'+request_id,auth)
+            assert result['state']=='committed' and result['writes_database'] is False
+    record('cwb14_fresh_process_relogin_exact_literals_dates_version_history_and_audit_counts')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -200,6 +216,7 @@ if '--readback' in sys.argv:
     range_readback()
     comparison_readback()
     comparison_document_readback()
+    followup_plan_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -1350,4 +1367,108 @@ for document_scenario in ('correct','withdraw','source','source_metadata','ident
     for rendering in (False,True):comparison_document_pg(document_scenario,rendering)
 (f.OUT/'cwb13-restart-expected.json').write_text(json.dumps(comparison_document_expected,ensure_ascii=False,indent=2))
 
+# CW-B14 native PostgreSQL: separate sessions, Case row locks, no SQLite imports.
+f.enable_followup_plans()
+import clinical_followup_plans as followup
+from threading import Event
+from sqlalchemy.exc import OperationalError
+followup_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_plans_cw_b14_cases.json').read_text())
+followup_expected=[]
+
+
+def followup_pg(scenario):
+    cid=call('POST','/api/cases',owner,expected=201,json={**followup_fixture['case'],'species':'cat' if scenario=='lifecycle' else 'dog'})['id']
+    root=f'/api/cases/{cid}/followup-plan'
+    original_case=read(cid,owner);request_ids=[]
+    def body(operation='create',row=None,data=None):
+        l=call('GET',root,owner)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':l['case_token'],'expected_state_token':l['state_token'],'data':None if operation=='withdraw' else data or followup_fixture['plan'],
+           'reason':'' if operation=='create' else followup_fixture['correction_reason']}
+        p=call('POST',root+'/preview',owner,json=b)
+        return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    def save(b,expected=200):
+        r=call('POST',root+'/confirm',owner,expected=expected,json=b)
+        if expected==200:request_ids.append(b['request_id'])
+        return r
+    def race(a,b):
+        barrier=Barrier(2)
+        def send(v):barrier.wait(10);return client.post(root+'/confirm',headers=owner,json=v)
+        with ThreadPoolExecutor(2) as pool:
+            jobs=[pool.submit(send,v) for v in (a,b)]
+            responses=[j.result(20) for j in jobs]
+        for b,r in zip((a,b),responses):
+            if r.status_code==200:request_ids.append(b['request_id'])
+        return responses
+    if scenario=='create-race':
+        responses=race(body(),body());assert sorted(r.status_code for r in responses)==[200,409]
+    elif scenario=='idempotent-race':
+        b=body();responses=race(b,b);assert [r.status_code for r in responses]==[200,200]
+        assert sorted(r.json()['writes_database'] for r in responses)==[False,True]
+    elif scenario=='correct-withdraw':
+        row=save(body())['plan'];responses=race(body('correct',row),body('withdraw',row))
+        assert sorted(r.status_code for r in responses)==[200,409]
+    elif scenario=='case-edit':
+        b=body();entered,release=Event(),Event()
+        with ThreadPoolExecutor(2) as pool:
+            def edit():
+                with followup.transaction(owner_id,cid) as (db,case):
+                    case.history='并发病例更正';db.flush();entered.set();assert release.wait(10);db.commit()
+            writer=pool.submit(edit);assert entered.wait(10)
+            future=pool.submit(lambda:client.post(root+'/confirm',headers=owner,json=b));assert not future.done()
+            release.set();writer.result(20);assert future.result(20).status_code==409
+        original_case=read(cid,owner)
+    elif scenario=='rollback':
+        for operation in ['create','correct','withdraw']:
+            row=save(body())['plan'] if operation=='correct' else (call('GET',root,owner)['plans'][-1] if operation=='withdraw' else None)
+            b=body(operation,row);before=call('GET',root,owner);append=followup.append_audit
+            def fail(*args):append(*args);args[0].flush();raise OperationalError('synthetic',{},Exception('rollback'))
+            with patch.object(followup,'append_audit',side_effect=fail):save(b,503)
+            assert call('GET',root,owner)==before
+            assert call('GET',root+'/requests/'+b['request_id'],owner)['state']=='not_committed'
+    elif scenario=='lost-reply':
+        b=body();entered,release=Event(),Event();append=followup.append_audit
+        def held(*args):append(*args);args[0].flush();entered.set();assert release.wait(10)
+        with patch.object(followup,'append_audit',side_effect=held),ThreadPoolExecutor(2) as pool:
+            write=pool.submit(lambda:client.post(root+'/confirm',headers=owner,json=b));assert entered.wait(10)
+            result=pool.submit(lambda:client.get(root+'/requests/'+b['request_id'],headers=owner));assert not result.done()
+            release.set();assert write.result(20).status_code==200;request_ids.append(b['request_id'])
+            receipt=result.result(20);assert receipt.status_code==200 and receipt.json()['state']=='committed'
+        assert save(b)['writes_database'] is False
+    else:
+        row=save(body())['plan'];row=save(body('correct',row,followup_fixture['corrected_plan']))['plan'];save(body('withdraw',row))
+        listed=call('GET',root,owner)['plans'];assert [p['data'] for p in listed]==[followup_fixture['plan'],followup_fixture['corrected_plan']]
+        assert [p['state'] for p in listed]==['superseded','withdrawn']
+        with f.db.SessionLocal() as db:
+            rows=db.query(f.models.FollowUp).filter_by(case_id=cid).order_by(f.models.FollowUp.id).all()
+            assert [r.due_date.isoformat() for r in rows]==[followup_fixture['expected_due_utc'],followup_fixture['corrected_due_utc']]
+    saved=call('GET',root,owner);assert sum(p['stored_state']=='planned' for p in saved['plans'])<=1
+    assert read(cid,owner)==original_case
+    call('GET',root,other,expected=404)
+    with f.db.SessionLocal() as db:
+        audits=db.query(f.models.AuditLog).filter_by(case_id=cid,source=followup.SOURCE).order_by(f.models.AuditLog.log_id).all()
+        assert len(audits)==len(set(request_ids))
+        followup_expected.append({'case_id':cid,'listing':saved,'case':original_case,'audits':[r.extra_data for r in audits],'requests':sorted(set(request_ids))})
+    record('cwb14_postgresql_'+scenario)
+
+
+for scenario in ['create-race','idempotent-race','correct-withdraw','case-edit','rollback','lost-reply','lifecycle']:followup_pg(scenario)
+# Independent legacy KPI sample; all CW-B14 source/status records remain excluded.
+from datetime import datetime
+cid=call('POST','/api/cases',owner,expected=201,json=followup_fixture['case'])['id']
+with f.db.SessionLocal() as db:
+    for i,done in enumerate([datetime(2024,2,29,12),datetime(2024,3,2),None]):
+        db.add(f.models.FollowUp(case_id=cid,due_date=datetime(2024,2,29),done_at=done,status='legacy-'+str(i),channel='phone',note='旧自由文本'))
+    db.commit()
+kpi_url='/api/kpi/followups?start=2024-02-01&end=2024-03-31'
+legacy=call('GET',kpi_url,owner)
+for key,value in followup_fixture['legacy_kpi'].items():assert legacy['metrics']['followup_compliance'][key]==value
+with f.db.SessionLocal() as db:
+    for state,channel in [('cw-b14-broken',''),('corrupt',followup.SOURCE)]:db.add(f.models.FollowUp(case_id=cid,due_date=datetime(2024,2,29),done_at=None,status=state,channel=channel,note='broken'))
+    db.commit()
+assert call('GET',kpi_url,owner)==legacy
+record('cwb14_postgresql_legacy_kpi_unchanged_with_broken_namespace')
+(f.OUT/'cwb14-restart-expected.json').write_text(json.dumps(followup_expected,ensure_ascii=False,indent=2))
+
+# Close only after every batch has finished using the shared authenticated client.
 client.close(); f.db.engine.dispose()
