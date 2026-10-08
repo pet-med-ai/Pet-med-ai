@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
-import { overviewDestinations, overviewMessage, overviewStates, overviewTargets, readOverview } from "../visitOverview";
+import { overviewDestinations, overviewMessage, overviewStates, readOverview } from "../visitOverview";
+import { states as planStates } from "../followupPlan";
 
 const box = { padding: 16, margin: "12px 0", border: "1px solid #ccd5d1", borderRadius: 8, overflowWrap: "anywhere" };
 const groups = { attachments: "原件", lab: "检验", imaging: "影像" };
@@ -37,8 +38,12 @@ function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
   useEffect(() => {
     // Invalidate even if the editor saves successfully but its subsequent list GET
     // fails before onChanged. Only observe the existing operation; never submit it.
-    const affects = config => config?.method?.toLowerCase() === "post" &&
-      ["attachments", "manual-lab", "manual-imaging"].some(kind => config.url === `/api/cases/${caseId}/${kind}/confirm`);
+    const affects = config => {
+      const method = config?.method?.toLowerCase(), url = config?.url;
+      return (method === "post" && (["attachments", "manual-lab", "manual-imaging", "followup-plan"].some(kind => url === `/api/cases/${caseId}/${kind}/confirm`) ||
+        ["edit-confirm", "confirm-edit", "analyze"].some(kind => url === `/api/cases/${caseId}/${kind}`))) ||
+        (["put", "patch", "delete"].includes(method) && url === `/api/cases/${caseId}`);
+    };
     const request = api.interceptors.request.use(config => {
       if (current() && affects(config)) {
         epoch.current++; controller.current?.abort(); setSaved(null); setBusy(false);
@@ -56,10 +61,10 @@ function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
     if (previousRevision.current !== sourceRevision) { previousRevision.current = sourceRevision; refresh.current(); }
   }, [sourceRevision]);
   const data = current() && saved?.revision === sourceRevision ? saved.result : null;
-  function destination(target, key) {
-    if (!overviewTargets.includes(target)) return null;
+  function destination(target, key, plan) {
+    if (!data?.navigation_targets.includes(target)) return null;
     if (target === "edit") return <Link key={key} to={`/cases/${caseId}/edit`} target="_blank" rel="noopener noreferrer" onClick={event => { if (!current()) event.preventDefault(); }}>{overviewDestinations[target]}</Link>;
-    return <button key={key} type="button" onClick={event => { if (current() && data) onNavigate?.(target, event); }}>{overviewDestinations[target]}</button>;
+    return <button key={key} type="button" onClick={event => { if (current() && data) onNavigate?.(target, event, plan && { id: plan.id, version: plan.version }); }}>{plan ? `回看计划 #${plan.id} 版本 ${plan.version}` : overviewDestinations[target]}</button>;
   }
   return <section aria-label="就诊资料总览" style={box}>
     <h2>就诊资料总览</h2>
@@ -99,6 +104,31 @@ function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
           </>}
         </section>;
       })}
+      {!data.groups.followup ? <p>本次总览未提供复查计划信息，请从复查计划入口核对。</p> :
+        <section aria-label="复查计划资料状态" style={box}>
+          <h3>复查计划</h3>
+          <p>仅显示本流程已保存的人工计划；计划不代表已复查、预约或联系宠主。</p>
+          {data.groups.followup.status === "disabled" ? <p>复查计划模块未启用，无法判断记录有无。</p> : <>
+            <p>{Object.entries(data.groups.followup.counts).map(([state, count]) => `${planStates[state]} ${count}`).join(" · ")}</p>
+            {!data.groups.followup.records.length && <p>暂无本流程复查计划记录；不代表无需复查。</p>}
+            {data.groups.followup.records.map(row => <article key={row.id} style={box} aria-label={`复查计划记录 ${row.id} 版本 ${row.version}`}>
+              <h4>计划 #{row.id} · 版本 {row.version} · {planStates[row.state]}</h4>
+              <p>计划复查日期（上海）：{row.data.planned_date} · 复查项目 {row.data.items.length} 项</p>
+              <details><summary>查看复查计划原文</summary><dl style={{whiteSpace: "pre-wrap"}}>
+                <dt>复查目的</dt><dd>{row.data.purpose}</dd>
+                <dt>复查项目</dt><dd><ol>{row.data.items.map((item, i) => <li key={i}>{item}</li>)}</ol></dd>
+                <dt>提前返回条件</dt><dd>{row.data.return_conditions || "未填写"}</dd>
+                <dt>备注</dt><dd>{row.data.note || "未填写"}</dd>
+              </dl></details>
+              <p>根记录 #{row.root_id} · 核对账号 {row.reviewed_by} · 核对时间 {row.reviewed_at}</p>
+              {row.reason && <p style={{whiteSpace: "pre-wrap"}}>更正原因：{row.reason}</p>}
+              {row.withdrawal && <p style={{whiteSpace: "pre-wrap"}}>撤销原因：{row.withdrawal.reason} · 账号 {row.withdrawal.by} · 时间 {row.withdrawal.at}</p>}
+              <details><summary>查看计划内容标识</summary><code>{row.token}</code></details>
+              {destination("followup", undefined, row)}
+            </article>)}
+          </>}
+          {destination("followup")}
+        </section>}
       <h3>返回文书核对</h3><p>报告默认不选择；请在原流程中核对完整草稿后再下载。</p>
       {destination("outpatient")}{destination("owner_summary")}
     </>}

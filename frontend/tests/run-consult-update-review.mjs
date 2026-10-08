@@ -11,6 +11,7 @@ try {
   const names = ["consult-update-review", "consult-first-save", "consult-draft", "case-edit-review", "manual-case-create", "case-list-auth", "case-detail-documents", "deferred-pages", "diarrhea-intake", "chief-complaint-intake", "consult-evidence", "voice-draft", "audio-capture", "case-attachments", "manual-lab-results", "manual-lab-documents", "manual-imaging-records", "manual-imaging-documents", "visit-overview", "case-detail-overview", "lab-range-review", "case-detail-lab-range-review", "lab-comparison", "case-detail-lab-comparison", "lab-comparison-documents", "case-detail-lab-comparison-documents", "followup-plan", "case-detail-followup-plan"];
   names.push('followup-plan-documents', 'case-detail-followup-plan-documents');
   names.push('followup-plan-owner-documents', 'case-detail-followup-plan-owner-documents');
+  names.push('followup-plan-overview', 'case-detail-followup-plan-overview');
   const outputs = names.map(name => join(temporary, name + ".cjs"));
   for (let index = 0; index < names.length; index++) {
     await build({

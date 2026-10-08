@@ -171,6 +171,15 @@ on:
       - 'tests/fixtures/clinical_followup_plan_owner_documents_cw_b16_cases.json'
       - 'scripts/validate_clinical_followup_plan_owner_documents_cw_b16.py'
       - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_OWNER_DOCUMENTS_CW_B16.md'
+      - 'backend/clinical_followup_plan_overview.py'
+      - 'frontend/tests/followup-plan-overview.test.jsx'
+      - 'frontend/tests/case-detail-followup-plan-overview.test.jsx'
+      - 'tests/test_clinical_followup_plan_overview.py'
+      - 'tests/test_clinical_followup_plan_overview_concurrency.py'
+      - 'tests/acceptance/clinical_followup_plan_overview_checks.cjs'
+      - 'tests/fixtures/clinical_followup_plan_overview_cw_b17_cases.json'
+      - 'scripts/validate_clinical_followup_plan_overview_cw_b17.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_OVERVIEW_CW_B17.md'
 
 permissions:
   contents: read
@@ -206,15 +215,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B15 and approved CW-B16 increment
+      - name: Bind frozen M7 through CW-B16 and approved CW-B17 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_followup_plan_owner_documents_cw_b16.py > "$RUNNER_TEMP/cwb16-scope.json"
+          python scripts/validate_clinical_followup_plan_overview_cw_b17.py > "$RUNNER_TEMP/cwb17-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb16-scope.json" acceptance-results/cwb16-scope.json
+          cp "$RUNNER_TEMP/cwb17-scope.json" acceptance-results/cwb17-scope.json
           python - <<'PY_SCOPE'
           import json
-          cwb15 = json.load(open('acceptance-results/cwb16-scope.json'))['frozen_cwb15']
+          cwb16 = json.load(open('acceptance-results/cwb17-scope.json'))['frozen_cwb16']
+          open('acceptance-results/cwb16-scope.json','w').write(json.dumps(cwb16,indent=2))
+          cwb15 = cwb16['frozen_cwb15']
           open('acceptance-results/cwb15-scope.json','w').write(json.dumps(cwb15,indent=2))
           cwb14 = cwb15['frozen_cwb14']
           open('acceptance-results/cwb14-scope.json','w').write(json.dumps(cwb14,indent=2))
@@ -411,6 +422,11 @@ jobs:
           set -euo pipefail
           PMAI_CWB16_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb16-doc-samples" python tests/test_clinical_followup_plan_owner_documents.py 2>&1 | tee acceptance-results/cwb16-document-tests.log
           python tests/test_clinical_followup_plan_owner_document_concurrency.py 2>&1 | tee acceptance-results/cwb16-concurrency-tests.log
+      - name: CW-B17 saved-plan inventory, compatibility and SQLite races
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_followup_plan_overview.py 2>&1 | tee acceptance-results/cwb17-route-tests.log
+          python tests/test_clinical_followup_plan_overview_concurrency.py 2>&1 | tee acceptance-results/cwb17-concurrency-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -550,6 +566,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_plan_owner_document_checks.cjs 2>&1 | tee acceptance-results/cwb16-browser.log
+      - name: CW-B17 real Chromium plan inventory, exact navigation and stale responses
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_plan_overview_checks.cjs 2>&1 | tee acceptance-results/cwb17-browser.log
       - name: Render CW-B13 synthetic DOCX samples to page evidence
         run: |
           sudo apt-get update -qq

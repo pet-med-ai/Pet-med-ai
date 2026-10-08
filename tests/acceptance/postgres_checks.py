@@ -226,6 +226,27 @@ def owner_followup_document_readback():
     record('cwb16_fresh_process_relogin_reselect_full_preview_exact_plan_and_mixed_sections')
 
 
+def followup_overview_business():
+    with f.db.engine.connect() as connection:
+        tables = {table.name: [list(map(str, row)) for row in connection.execute(table.select().order_by(*table.primary_key.columns))]
+                  for table in (f.models.Case.__table__, f.models.FollowUp.__table__, f.models.DiagnosticReport.__table__,
+                                f.models.Observation.__table__, f.models.ImagingStudy.__table__, f.models.AuditLog.__table__)}
+    files = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in attachment_directory.iterdir() if p.is_file() and p.name != '.cw-b6.lock'}
+    return tables, files
+
+
+def followup_overview_readback():
+    f.enable_followup_plan_overview(); auth = login('pg-owner')
+    before = followup_overview_business()
+    for item in json.loads((f.OUT/'cwb17-restart-expected.json').read_text()):
+        current = call('GET', f"/api/cases/{item['case_id']}/visit-overview", auth, params={'include_followup_plan': True})
+        current.pop('read_at'); assert current == item['overview']
+        assert current['groups']['followup']['records'] == item['plans']
+        assert read(item['case_id'], auth) == item['case']
+    assert before == followup_overview_business()
+    record('cwb17_fresh_process_relogin_exact_overview_plan_versions_and_readonly_business')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -267,6 +288,7 @@ if '--readback' in sys.argv:
     followup_plan_readback()
     followup_document_readback()
     owner_followup_document_readback()
+    followup_overview_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -1708,6 +1730,94 @@ for mixed in (False,True):
         for rendering in (False,True):owner_followup_document_pg(scenario,rendering,mixed)
     owner_followup_document_pg('control',True,mixed)
 (f.OUT/'cwb16-restart-expected.json').write_text(json.dumps(owner_document_plan_expected,ensure_ascii=False,indent=2))
+
+# CW-B17: native PostgreSQL inventory locks and independent saved-plan readback.
+f.enable_followup_plan_overview()
+import clinical_followup_plan_overview as plan_overview
+overview_plan_fixture = json.loads((f.ROOT/'tests/fixtures/clinical_followup_plan_overview_cw_b17_cases.json').read_text())
+overview_plan_expected = []
+
+
+def followup_overview_pg(scenario):
+    # A new synthetic mixed case per race; never mutate historical readback cases.
+    baseline = comparison_document_pg('control', True)
+    cid = baseline['case_id']; root = f'/api/cases/{cid}/followup-plan'; url = f'/api/cases/{cid}/visit-overview'
+    if scenario == 'control_cat': call('PUT', f'/api/cases/{cid}', owner, json={'species': 'cat'})
+    def plan_body(operation='create', row=None, data=None):
+        listing = call('GET', root, owner)
+        body = {'request_id': uuid4().hex, 'operation': operation, 'plan_id': row['id'] if row else None,
+                'expected_plan_token': row['token'] if row else '', 'expected_case_token': listing['case_token'],
+                'expected_state_token': listing['state_token'], 'reason': '' if operation == 'create' else 'CW-B17 合成并发更正',
+                'data': None if operation == 'withdraw' else data or overview_plan_fixture['plan']}
+        preview = call('POST', root+'/preview', owner, json=body)
+        return {**body, 'preview_token': preview['preview_token'], 'reviewed': True}
+    def inventory(): return call('GET', url, owner, params={'include_followup_plan': True})
+    row = None if scenario == 'create' else call('POST', root+'/confirm', owner, json=plan_body())['plan']
+    before = inventory()
+    if scenario.startswith('control_'):
+        previous = followup_overview_business(); writes = []
+        def capture(_c, _cur, sql, *_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}: writes.append(sql)
+        event.listen(f.db.engine, 'before_cursor_execute', capture)
+        try:
+            with (patch.object(plan_overview.plans, 'transaction', side_effect=AssertionError('No nested transaction')),
+                  patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('No GET cleanup'))):
+                saved = inventory(); assert saved['groups']['followup']['records'] == [row]
+                assert row['data'] == overview_plan_fixture['plan']
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture)
+        assert not writes and previous == followup_overview_business()
+        saved.pop('read_at')
+        overview_plan_expected.append({'case_id':cid, 'overview':saved, 'plans':[row], 'case':read(cid,owner)})
+    else:
+        if scenario in ('create','correct','withdraw','replace'):
+            body = plan_body('withdraw' if scenario == 'replace' else scenario, row, overview_plan_fixture['corrected_plan'])
+            def mutation():
+                result = client.post(root+'/confirm', headers=owner, json=body)
+                if scenario == 'replace': call('POST', root+'/confirm', owner, json=plan_body(data=overview_plan_fixture['short_plan']))
+                return result
+        elif scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):
+            target = f'/api/cases/{cid}/' + ('manual-imaging' if scenario.startswith('imaging') else 'manual-lab')
+            selected_id = baseline['manual_imaging_report_ids' if scenario.startswith('imaging') else 'manual_lab_report_ids'][0]
+            selected = next(r for r in call('GET', target, owner)['reports'] if r['id'] == selected_id)
+            if scenario.startswith('source'):
+                target = f'/api/cases/{cid}/attachments'; listing = call('GET', target, owner)
+                source = next(r for r in listing['items'] if r['id'] == selected['attachment_id'])
+                body = {'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'withdraw' if scenario=='source' else 'update',
+                        'expected_case_token':listing['case_token'],'metadata':{**source['metadata'],'title':'CW-B17 来源更正'},'reason':'合成更正'}
+            else:
+                data = None
+                if scenario.endswith('_correct'):
+                    data = deepcopy(selected['data'])
+                    if scenario.startswith('lab'):
+                        import manual_lab_results
+                        data = manual_lab_results.input_data(data); data['items'][0]['value'] = '1.500'
+                    else: data['findings'] += ' CW-B17 影像更正'
+                body = {'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':'correct' if data else 'withdraw',
+                        'expected_case_token':call('GET',target,owner)['case_token'],'report_id':selected['id'],
+                        'expected_report_token':selected['token'],'data':data,'reason':'CW-B17 合成更正'}
+            preview = call('POST', target+'/preview', owner, json=body)
+            mutation = lambda: client.post(target+'/confirm', headers=owner, json={**body,'preview_token':preview['preview_token'],'reviewed':True})
+        elif scenario == 'delete': mutation = lambda: client.delete(f'/api/cases/{cid}', headers=owner)
+        else: mutation = lambda: client.put(f'/api/cases/{cid}', headers=owner,
+                        json={'owner_name':'CW-B17 更正身份'} if scenario=='identity' else {'history':'CW-B17 并发正文更正'})
+        entered, release, attempted = Event(), Event(), Event(); normal = plan_overview.group
+        def held(*args): entered.set(); assert release.wait(15); return normal(*args)
+        def mutate(): attempted.set(); return mutation()
+        with ThreadPoolExecutor(2) as pool, patch.object(plan_overview, 'group', side_effect=held):
+            reading = pool.submit(inventory)
+            try:
+                assert entered.wait(10); writing = pool.submit(mutate); assert attempted.wait(10); assert not writing.done()
+            finally: release.set()
+            result = reading.result(20); assert result['snapshot'] == before['snapshot'] and result['groups'] == before['groups']
+            assert writing.result(20).status_code == (204 if scenario=='delete' else 200)
+        if scenario == 'delete': call('GET', url, owner, expected=404, params={'include_followup_plan':True})
+        else: assert inventory()['snapshot'] != before['snapshot']
+    record('cwb17_postgresql_'+scenario+'_consistent_readonly_inventory')
+
+
+for scenario in ('create','correct','withdraw','replace','body','identity','delete','source','source_metadata','lab','lab_correct','imaging','imaging_correct','control_dog','control_cat'):
+    followup_overview_pg(scenario)
+(f.OUT/'cwb17-restart-expected.json').write_text(json.dumps(overview_plan_expected, ensure_ascii=False, indent=2))
 
 # Close only after every batch has finished using the shared authenticated client.
 client.close(); f.db.engine.dispose()

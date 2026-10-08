@@ -120,7 +120,7 @@ async function main(){
  for(const scenario of ['case','account','focus']){
   await page.evaluate(t=>localStorage.setItem('token',t),auth.Authorization.slice(7));await page.goto(UI+'/cases/'+cid);
   let ready,release,finished,held=false;const seen=new Promise(r=>ready=r),gate=new Promise(r=>release=r),done=new Promise(r=>finished=r);
-  const pattern='**/cases/'+cid+'/visit-overview';
+  const pattern=url=>url.pathname===`/api/cases/${cid}/visit-overview`;
   await page.route(pattern,async route=>{
    if(held){await route.continue();return;}held=true;
    try{const response=await route.fetch();assert.equal(response.status(),200);ready();await gate;await route.fulfill({response}).catch(()=>{});}finally{finished();}
