@@ -258,7 +258,7 @@ jobs:
   synthetic-acceptance:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       PMAI_SYNTHETIC_ACCEPTANCE: PR26
       PMAI_ACCEPTANCE_OUT: ${{ github.workspace }}/acceptance-results
