@@ -56,6 +56,7 @@ test("anonymous home remains immediately available without loading a secondary p
 });
 
 for (const [path, title] of [
+  ["/followup-plans", "复查计划工作清单"],
   ["/kpi", "运维 KPI 仪表盘"],
   ["/ops", "Pet-Med-AI Ops Dashboard"],
   ["/webhooks/emr/inbox", "EMR Webhook Inbox"],

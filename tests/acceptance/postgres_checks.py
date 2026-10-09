@@ -247,6 +247,19 @@ def followup_overview_readback():
     record('cwb17_fresh_process_relogin_exact_overview_plan_versions_and_readonly_business')
 
 
+def followup_queue_readback():
+    f.enable_followup_plan_queue()
+    before=followup_overview_business()
+    for item in json.loads((f.OUT/'cwb18-restart-expected.json').read_text()):
+        auth=login(item['account'])
+        current=call('GET','/api/followup-plan-queue',auth,params={'range':'all','page_size':50})
+        current.pop('read_at');assert current==item['queue']
+        assert read(item['case_id'],auth)==item['case']
+        assert call('GET',f"/api/cases/{item['case_id']}/followup-plan",auth)==item['plans']
+    assert before==followup_overview_business()
+    record('cwb18_fresh_process_two_accounts_exact_queue_versions_and_readonly_business')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -289,6 +302,7 @@ if '--readback' in sys.argv:
     followup_document_readback()
     owner_followup_document_readback()
     followup_overview_readback()
+    followup_queue_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -1818,6 +1832,95 @@ def followup_overview_pg(scenario):
 for scenario in ('create','correct','withdraw','replace','body','identity','delete','source','source_metadata','lab','lab_correct','imaging','imaging_correct','control_dog','control_cat'):
     followup_overview_pg(scenario)
 (f.OUT/'cwb17-restart-expected.json').write_text(json.dumps(overview_plan_expected, ensure_ascii=False, indent=2))
+
+# CW-B18: fresh account scope, REPEATABLE READ, committed writers between two SELECTs.
+f.enable_followup_plan_queue()
+import clinical_followup_plan_queue as plan_queue
+queue_fixture = json.loads((f.ROOT/'tests/fixtures/clinical_followup_plan_queue_cw_b18_cases.json').read_text())
+for name in ('cwb18-owner','cwb18-other'):
+    call('POST','/auth/signup',json={'email':name+'@example.com','password':PASSWORD})
+queue_owner, queue_other = login('cwb18-owner'), login('cwb18-other')
+queue_url = '/api/followup-plan-queue'
+
+
+def queue_case(auth=queue_owner, species='dog'):
+    return call('POST','/api/cases',auth,json=queue_fixture['cat_case' if species=='cat' else 'case'])['id']
+
+
+def queue_save(cid, operation='create', row=None, auth=queue_owner, data=None):
+    root=f'/api/cases/{cid}/followup-plan'; listing=call('GET',root,auth)
+    body={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,
+          'expected_plan_token':row['token'] if row else '', 'expected_case_token':listing['case_token'],
+          'expected_state_token':listing['state_token'],'data':None if operation=='withdraw' else data or queue_fixture['plan'],
+          'reason':'' if operation=='create' else 'CW-B18 合成并发更正'}
+    preview=call('POST',root+'/preview',auth,json=body)
+    return call('POST',root+'/confirm',auth,json={**body,'preview_token':preview['preview_token'],'reviewed':True})['plan']
+
+
+def queue_read(auth=queue_owner, **params):
+    return call('GET',queue_url,auth,params={'range':'all',**params})
+
+
+def queue_race(scenario):
+    cid=queue_case(); other_cid=queue_case(species='cat')
+    row=None if scenario=='create' else queue_save(cid)
+    queue_save(other_cid)
+    if scenario=='restore':
+        with f.db.SessionLocal() as db:db.get(f.models.Case,cid).deleted_at=datetime.utcnow();db.commit()
+    before=queue_read(page_size=1)
+    def mutation():
+        if scenario in ('create','correct','withdraw','replace'):
+            queue_save(cid,'withdraw' if scenario=='replace' else scenario,row,data=queue_fixture['short_plan'])
+            if scenario=='replace':queue_save(cid)
+        elif scenario=='new_case_plan':queue_save(queue_case())
+        elif scenario=='delete':
+            assert client.delete(f'/api/cases/{cid}',headers=queue_owner).status_code==204
+        elif scenario=='restore':
+            with f.db.SessionLocal() as db:db.get(f.models.Case,cid).deleted_at=None;db.commit()
+        elif scenario=='cross_case':
+            with f.db.SessionLocal() as db:
+                for target in (cid,other_cid):db.get(f.models.Case,target).patient_name='CW-B18 合成跨病例更正'
+                db.commit()
+        else:call('PUT',f'/api/cases/{cid}',queue_owner,json={'owner_name':'合成身份更正'} if scenario=='identity' else {'history':'合成正文更正'})
+    entered, release = Event(), Event(); normal=plan_queue.prefetched_rows
+    def held(db,cases):
+        assert db.execute(text('SHOW transaction_isolation')).scalar_one()=='repeatable read'
+        assert db.execute(text('SHOW transaction_read_only')).scalar_one()=='on'
+        entered.set();assert release.wait(20);return normal(db,cases)
+    with ThreadPoolExecutor(2) as pool,patch.object(plan_queue,'prefetched_rows',side_effect=held):
+        reading=pool.submit(queue_read,page_size=1)
+        try:
+            assert entered.wait(10);pool.submit(mutation).result(15)
+        finally:release.set()
+        result=reading.result(15)
+    assert result['snapshot']==before['snapshot'] and result['items']==before['items'] and result['total']==before['total']
+    assert queue_read(page_size=1)['snapshot']!=before['snapshot']
+    call('GET',queue_url,queue_owner,expected=409,params={'range':'all','page_size':1,'page':2,'snapshot':before['snapshot']})
+    record('cwb18_postgresql_'+scenario+'_committed_writer_consistent_snapshot')
+
+
+for scenario in ('create','correct','withdraw','replace','body','identity','delete','restore','new_case_plan','cross_case'):
+    queue_race(scenario)
+queue_expected=[]
+for auth,name,species in [(queue_owner,'cwb18-owner','dog'),(queue_other,'cwb18-other','cat')]:
+    cid=queue_case(auth,species); row=queue_save(cid,auth=auth,data=queue_fixture['long_plan'])
+    before=followup_overview_business(); statements=[]
+    def capture(_c,_cur,sql,*_):statements.append(sql)
+    event.listen(f.db.engine,'before_cursor_execute',capture)
+    try:
+        with patch.object(attachment_store.Store,'cleanup',side_effect=AssertionError('No GET cleanup')):
+            saved=queue_read(auth,page_size=50)
+            call('GET',queue_url,auth,expected=422,params={'owner_id':'2'})
+    finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+    assert not any(s.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','ALTER','CREATE','DROP'} for s in statements)
+    assert sum(s.lstrip().upper().startswith('SELECT') for s in statements)==4 # 3 for queue, 1 auth for rejected parameters
+    assert before==followup_overview_business()
+    assert any(i['case']['id']==cid and i['plan']['data']==queue_fixture['long_plan'] for i in saved['items'])
+    if name=='cwb18-other':assert saved['total']==1
+    saved.pop('read_at')
+    queue_expected.append({'account':name,'queue':saved,'case':read(cid,auth),'plans':call('GET',f'/api/cases/{cid}/followup-plan',auth),'case_id':cid})
+    record('cwb18_postgresql_'+species+'_readonly_minimal_identity_fixed_queries')
+(f.OUT/'cwb18-restart-expected.json').write_text(json.dumps(queue_expected,ensure_ascii=False,indent=2))
 
 # Close only after every batch has finished using the shared authenticated client.
 client.close(); f.db.engine.dispose()

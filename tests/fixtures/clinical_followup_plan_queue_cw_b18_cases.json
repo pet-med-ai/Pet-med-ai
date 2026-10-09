@@ -1,0 +1,94 @@
+{
+  "schema": "clinical-followup-plan-queue-cw-b18-fixture-v1",
+  "today": "2028-02-29",
+  "case": {
+    "patient_name": "CW-B17 合成犬",
+    "species": "dog",
+    "sex": "male",
+    "age_info": "6岁",
+    "breed": "合成",
+    "weight": "6.4 kg",
+    "coat_color": "棕色",
+    "owner_name": "合成宠主",
+    "owner_phone": "",
+    "chief_complaint": "合成复查总览验证",
+    "history": "病史原文 {{不得替换}}\n 保留空白 ",
+    "exam_findings": "仅合成查体",
+    "analysis": "待医生核对",
+    "treatment": "合成诊疗记录",
+    "prognosis": "不可自动推断为复查安排"
+  },
+  "cat_case": {
+    "patient_name": "CW-B17 合成猫",
+    "species": "cat",
+    "sex": "male",
+    "age_info": "6岁",
+    "breed": "合成",
+    "weight": "6.4 kg",
+    "coat_color": "棕色",
+    "owner_name": "合成宠主",
+    "owner_phone": "",
+    "chief_complaint": "合成复查总览验证",
+    "history": "病史原文 {{不得替换}}\n 保留空白 ",
+    "exam_findings": "仅合成查体",
+    "analysis": "待医生核对",
+    "treatment": "合成诊疗记录",
+    "prognosis": "不可自动推断为复查安排"
+  },
+  "plan": {
+    "planned_date": "2028-02-29",
+    "purpose": "  复查总览原文 {{visit.pet_name}}\n第二行 café αβ 🐾  ",
+    "items": [
+      "  血常规 {{原文}}  ",
+      "影像复核\n按原顺序 2",
+      "数值 0.0001 mg/L，不作转换"
+    ],
+    "return_conditions": "  医生手填返回条件\n不生成建议  ",
+    "note": " 原文备注 🐾\t{} "
+  },
+  "short_plan": {
+    "planned_date": "2026-10-31",
+    "purpose": "复查",
+    "items": [
+      "复核"
+    ],
+    "return_conditions": "",
+    "note": ""
+  },
+  "long_plan": {
+    "planned_date": "2028-02-29",
+    "purpose": "全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ",
+    "items": [
+      "项目1 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目2 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目3 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目4 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目5 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目6 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目7 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目8 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目9 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode caf",
+      "项目10 全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode ca"
+    ],
+    "return_conditions": "全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ",
+    "note": "全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ {{literal}}  \n全角原文 Unicode café αβ"
+  },
+  "invalid_dates": [
+    "2027-02-29",
+    "2028-02-30",
+    "2026-13-01",
+    "2026-00-01",
+    "0000-01-01",
+    "10000-01-01",
+    "2026-1-01",
+    "2026-01-1",
+    "2026-01-01T00:00:00Z"
+  ],
+  "date_edges": [
+    "0001-01-02",
+    "2000-02-29",
+    "2026-01-31",
+    "2026-12-31",
+    "9999-12-31"
+  ]
+}

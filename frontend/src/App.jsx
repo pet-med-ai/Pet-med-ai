@@ -17,6 +17,8 @@ import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/Con
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
 
+const FollowupPlanQueue = lazy(() => import("./pages/FollowupPlanQueue"));
+
 // Secondary pages are loaded on navigation; keep consultation and case editing eager.
 const KpiDashboard = lazy(() => import("./pages/KpiDashboard"));
 const DiarrheaIntake = lazy(() => import("./components/DiarrheaIntake"));
@@ -1286,6 +1288,7 @@ export function Home() {
       <header className="workbench-header">
         <div><span className="workbench-brand">Pet-Med-AI · 医生工作台</span><h1>一次问诊，核对后保存</h1><p>整理病史，核对本次内容，再回看已保存病例。</p></div>
         <details><summary>其他工作入口</summary><div className="workbench-actions">
+          {isAuthed && <Link to="/followup-plans" style={btnSecondary}>复查计划工作清单</Link>}
           <Link to="/kpi" style={btnSecondary}>运维 KPI 仪表盘</Link>
           <Link to="/preventive-care/notification-queue" style={btnSecondary}>预防保健待联系队列</Link>
         </div></details>
@@ -2060,6 +2063,7 @@ export function AppRoutes() {
         <Route path="/cases/new/edit" element={<CaseEditorPage />} />
         <Route path="/cases/:id/edit" element={<CaseEditorPage />} />
         <Route path="/cases/:id" element={<CaseDetail />} />
+        <Route path="/followup-plans" element={<DeferredPage key="followup-plans"><FollowupPlanQueue /></DeferredPage>} />
         <Route path="/kpi" element={<DeferredPage key="kpi"><KpiDashboard /></DeferredPage>} />
         <Route path="/ops" element={<DeferredPage key="ops"><OpsDashboard /></DeferredPage>} />
         <Route path="/webhooks/emr/inbox" element={<DeferredPage key="webhooks"><WebhookInboxPage /></DeferredPage>} />

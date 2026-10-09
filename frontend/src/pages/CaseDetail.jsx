@@ -66,6 +66,22 @@ function CaseDetailContent({ requestToken }) {
 
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  const [queueTargetError, setQueueTargetError] = useState('');
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (!params.has('followup_plan') && !params.has('followup_version')) { setQueueTargetError(''); return; }
+    const rawId = params.get('followup_plan'), rawVersion = params.get('followup_version');
+    const planId = Number(rawId), version = Number(rawVersion);
+    if (params.getAll('followup_plan').length !== 1 || params.getAll('followup_version').length !== 1 ||
+        !/^[1-9][0-9]*$/.test(rawId || '') || !/^[1-9][0-9]*$/.test(rawVersion || '') ||
+        !Number.isSafeInteger(planId) || !Number.isSafeInteger(version) || version > 50) {
+      setQueueTargetError('计划定位信息无效，请返回清单重新打开。'); return;
+    }
+    setQueueTargetError('');
+    if (!data || Number(data.id) !== Number(id)) return;
+    setShowFollowupPlan(true); setFollowupTarget({ id: planId, version, request: {} }); setOverviewTarget('followup');
+  }, [location.search, location.key, data, id]);
+
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [preventiveCareReminders, setPreventiveCareReminders] = useState([]);
@@ -974,6 +990,8 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     >
       <style>{css}</style>
       <div className="screen-only">
+        {queueTargetError && <p role="alert">{queueTargetError}</p>}
+        {location.search.includes("followup_") && <p><Link to="/followup-plans">返回复查计划清单</Link></p>}
         <div ref={node => { overviewAnchors.current.followup = node; }} tabIndex={-1} />
         <button type="button" onClick={() => { if (!showFollowupPlan || !followupDirty || window.confirm("复查计划草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？")) setShowFollowupPlan(v => !v); }}>{showFollowupPlan ? "收起复查计划" : "打开复查计划"}</button>
         {showFollowupPlan && <Suspense fallback={<p>正在打开复查计划…</p>}><CaseFollowupPlan caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} inspectTarget={followupTarget} onDirtyChange={setFollowupDirty}/></Suspense>}
