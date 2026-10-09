@@ -261,6 +261,7 @@ def followup_queue_readback():
 
 
 def contact_overview_audits(cid):
+    from datetime import datetime  # Also available before the --readback early exit.
     def value(row, column):
         # Database column "metadata" maps to extra_data, not DeclarativeBase.metadata.
         data = getattr(row, row.__mapper__.get_property_by_column(column).key)
