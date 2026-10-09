@@ -19,7 +19,7 @@ function walk(key) {
 }
 walk(entry);
 const deferred = [
-  "KpiDashboard", "WebhookInboxPage", "EmrImportBatchPlanningPage", "OpsDashboard",
+  "FollowupPlanQueue", "KpiDashboard", "WebhookInboxPage", "EmrImportBatchPlanningPage", "OpsDashboard",
   "PreventiveCareNotificationQueuePage", "AutomatedReminderDeliveryManualApprovalPage",
 ].map(name => `src/pages/${name}.jsx`);
 for (const key of deferred) {

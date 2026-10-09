@@ -112,6 +112,11 @@ def timestamp(value):
 
 def records(db, case):
     rows = db.query(FollowUp).filter(FollowUp.case_id == case.id, namespace(FollowUp.status, FollowUp.channel)).order_by(FollowUp.id).limit(MAX_VERSIONS + 1).all()
+    return validated_records(rows, case)
+
+
+def validated_records(rows, case):
+    """Validate a complete, ID-ordered prefetched CW-B14 chain without I/O."""
     try:
         if len(rows) > MAX_VERSIONS: raise ValueError('Version limit')
         parsed, roots = [], {}

@@ -12,6 +12,7 @@ try {
   names.push('followup-plan-documents', 'case-detail-followup-plan-documents');
   names.push('followup-plan-owner-documents', 'case-detail-followup-plan-owner-documents');
   names.push('followup-plan-overview', 'case-detail-followup-plan-overview');
+  names.push('followup-plan-queue', 'case-detail-followup-plan-queue');
   const outputs = names.map(name => join(temporary, name + ".cjs"));
   for (let index = 0; index < names.length; index++) {
     await build({
