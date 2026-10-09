@@ -117,6 +117,12 @@ def enable_followup_contacts():
     os.environ.update(FOLLOWUP_CONTACTS_ENABLED='1', FOLLOWUP_CONTACTS_SYNTHETIC_ONLY='1')
 
 
+def enable_followup_contact_overview():
+    enable_followup_plan_overview()
+    enable_followup_contacts()
+    os.environ.update(FOLLOWUP_CONTACT_OVERVIEW_ENABLED='1', FOLLOWUP_CONTACT_OVERVIEW_SYNTHETIC_ONLY='1')
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(main.app, host='127.0.0.1', port=18026, loop='asyncio')

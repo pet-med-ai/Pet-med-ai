@@ -1,12 +1,14 @@
 import api from "./api";
 import { draftOwner } from "./consultDraft";
 import { validPlan, same } from "./followupPlan";
+import { validRecord, frozenSource } from "./followupContacts";
 
 export const overviewSchema = "clinical-case-overview-cw-b10-v1";
 export const followupOverviewSchema = "clinical-case-overview-cw-b17-v1";
+export const contactOverviewSchema = "clinical-case-overview-cw-b20-v1";
 export const overviewTargets = ["edit", "attachments", "lab", "imaging", "outpatient", "owner_summary"];
 export const overviewStates = { recorded: "已有记录", missing: "未填写", unknown: "结构无法确认", active: "原件可用", confirmed: "当前已核对", needs_review: "需重新核对", source_unavailable: "来源不可用", superseded: "旧版本", withdrawn: "已撤销" };
-export const overviewDestinations = { edit: "编辑已保存病例（新标签页）", attachments: "前往检查资料", lab: "前往检验项目", imaging: "前往影像记录", outpatient: "核对门诊病历草稿", owner_summary: "核对宠主说明草稿", followup: "前往复查计划" };
+export const overviewDestinations = { edit: "编辑已保存病例（新标签页）", attachments: "前往检查资料", lab: "前往检验项目", imaging: "前往影像记录", outpatient: "核对门诊病历草稿", owner_summary: "核对宠主说明草稿", followup: "前往复查计划", contacts: "前往人工随访记录" };
 const hex = value => typeof value === "string" && /^[a-f0-9]{64}$/.test(value);
 const object = value => value && typeof value === "object" && !Array.isArray(value);
 const positive = value => Number.isSafeInteger(value) && value > 0;
@@ -40,10 +42,36 @@ function validateFollowup(group, data, caseId) {
   for (const state of states) require(group.counts[state] === group.records.filter(r => r.state === state).length);
 }
 
+function validateContacts(group, data, caseId) {
+  require(object(group) && Object.keys(group).sort().join() === "case,counts,records,status,timezone" && group.timezone === "Asia/Shanghai");
+  require(["available", "disabled"].includes(group.status));
+  if (group.status === "disabled") {
+    require(group.records === null && group.counts === null && group.case === null);
+    return;
+  }
+  const plans = data.groups.followup;
+  require(plans?.status === "available" && same(group.case, plans.case));
+  require(Array.isArray(group.records) && group.records.length <= 50 && object(group.counts));
+  const states = ["recorded", "superseded", "withdrawn"], roots = new Map();
+  require(Object.keys(group.counts).sort().join() === [...states].sort().join());
+  group.records.forEach((row, index) => {
+    require(validRecord(row, caseId) && (!index || row.id > group.records[index - 1].id));
+    const source = plans.records.find(plan => plan.id === row.source.id);
+    require(source && same(row.source, frozenSource(source)) && row.source_state === source.state);
+    roots.set(row.root_id, [...(roots.get(row.root_id) || []), row]);
+  });
+  for (const [root, records] of roots) {
+    require(records[0].id === root && records.every((row, index) => row.version === index + 1 &&
+      same(row.source, records[0].source) && (index === records.length - 1 ? row.state !== "superseded" : row.state === "superseded")));
+  }
+  for (const state of states) require(group.counts[state] === group.records.filter(row => row.state === state).length);
+}
+
 export function validateOverview(data, caseId) {
-  require(object(data) && [overviewSchema, followupOverviewSchema].includes(data.schema) && data.case_id === caseId && positive(caseId));
-  const extended = data.schema === followupOverviewSchema;
-  const targets = extended ? [...overviewTargets, "followup"] : overviewTargets;
+  require(object(data) && [overviewSchema, followupOverviewSchema, contactOverviewSchema].includes(data.schema) && data.case_id === caseId && positive(caseId));
+  const contacts = data.schema === contactOverviewSchema;
+  const extended = contacts || data.schema === followupOverviewSchema;
+  const targets = extended ? [...overviewTargets, "followup", ...(contacts ? ["contacts"] : [])] : overviewTargets;
   require(data.read_only === true && data.writes_database === false && data.includes_unsaved_drafts === false);
   require(hex(data.snapshot) && typeof data.read_at === "string" && Number.isFinite(Date.parse(data.read_at)));
   require(Array.isArray(data.navigation_targets) && JSON.stringify(data.navigation_targets) === JSON.stringify(targets));
@@ -56,8 +84,9 @@ export function validateOverview(data, caseId) {
     require(field.state !== "recorded" || Boolean(field.value?.trim()));
     require(field.state !== "missing" || !field.value?.trim());
   });
-  require(object(data.groups) && Object.keys(data.groups).sort().join() === (extended ? "attachments,followup,imaging,lab" : "attachments,imaging,lab"));
+  require(object(data.groups) && Object.keys(data.groups).sort().join() === (contacts ? "attachments,contacts,followup,imaging,lab" : extended ? "attachments,followup,imaging,lab" : "attachments,imaging,lab"));
   for (const [key, group] of Object.entries(data.groups)) {
+    if (key === "contacts") { validateContacts(group, data, caseId); continue; }
     if (key === "followup") { validateFollowup(group, data, caseId); continue; }
     require(object(group) && ["available", "disabled"].includes(group.status));
     if (group.status === "disabled") {
@@ -92,7 +121,7 @@ export function validateOverview(data, caseId) {
 
 export async function readOverview(caseId, token, signal) {
   if (!positive(caseId) || !token || localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
-  const response = await api.get(`/api/cases/${caseId}/visit-overview`, { params: { include_followup_plan: true }, signal, timeout: 30000, expectedAuthOwner: draftOwner(token) });
+  const response = await api.get(`/api/cases/${caseId}/visit-overview`, { params: { include_followup_plan: true, include_followup_contacts: true }, signal, timeout: 30000, expectedAuthOwner: draftOwner(token) });
   if (localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
   return validateOverview(response.data, caseId);
 }

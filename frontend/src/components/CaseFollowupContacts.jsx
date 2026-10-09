@@ -7,7 +7,10 @@ const leaveMessage='人工随访草稿或保存结果尚未核对，离开不会
 export function ContactContent({data}){return <dl style={{whiteSpace:'pre-wrap'}}><dt>实际联系或尝试时间（上海）</dt><dd>{data.occurred_at}</dd><dt>联系方式</dt><dd>{methods[data.method]}</dd><dt>实际结果</dt><dd>{outcomes[data.outcome]}</dd><dt>记录原文</dt><dd>{data.note}</dd><dt>后续安排</dt><dd>{data.next_action||'未填写'}</dd></dl>;}
 function SourceContent({source,state}){return <div><p>来源计划 #{source.id} · 版本 {source.version} · {sourceStates[state]}</p><p>保存时病例 #{source.case_snapshot.id} · {source.case_snapshot.patient_name} · {source.case_snapshot.species}</p><PlanContent data={source.data}/></div>;}
 export default function CaseFollowupContacts(props){return <Panel key={JSON.stringify([props.caseId,props.requestToken])} {...props}/>;}
-function Panel({caseId,requestToken,onDirtyChange,caseRevision=0}){
+function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget}){
+  const targets=useRef(new Map()),targetRef=useRef(inspectTarget),readForTarget=useRef(null);
+  targetRef.current=inspectTarget;
+  const [inspectNotice,setInspectNotice]=useState('');
   const [list,setList]=useState(null),[draft,setDraft]=useState(null),[review,setReview]=useState(null),[checked,setChecked]=useState(false);
   const [busy,setBusy]=useState(false),[unknown,setUnknown]=useState(null),[notice,setNotice]=useState('');
   const active=useRef(false),epoch=useRef(0),flight=useRef(false),control=useRef(null),queued=useRef(false),dirty=useRef(false),pending=useRef(null);
@@ -18,10 +21,10 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0}){
   function invalidate(){epoch.current++;control.current?.abort();setReview(null);setChecked(false);}
   function clear(){setDraft(null);pending.current=null;setUnknown(null);invalidate();}
   async function refresh(){
-    const e=epoch.current;setList(null);
+    const e=epoch.current,target=targetRef.current;setList(null);
     const result=await client('get');if(!current(e))return;
     if(!validList(result,caseId))throw Error('未收到完整的人工随访记录，暂不能确认保存。');
-    setList(result);return result;
+    readForTarget.current={target,list:result};setList(result);return result;
   }
   async function run(fn){
     if(!owned()||flight.current)return;
@@ -36,13 +39,27 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0}){
       }
     }
   }
-  function reread(){if(!owned())return;invalidate();setList(null);if(flight.current)queued.current=true;else void run(refresh);}
+  function reread(){if(!owned())return;invalidate();setList(null);setInspectNotice(targetRef.current?'正在重新核对指定随访版本…':'');if(flight.current)queued.current=true;else void run(refresh);}
   useEffect(()=>{
     active.current=true;void run(refresh);
     return()=>{active.current=false;epoch.current++;control.current?.abort();callback.current?.(false);};
   },[caseId,requestToken]);
   useEffect(()=>{dirty.current=Boolean(draft||unknown);callback.current?.(dirty.current);},[draft,unknown]);
   const previousRevision=useRef(caseRevision);
+  useEffect(()=>{
+    setInspectNotice('');
+    if(!inspectTarget)return;
+    if(!Number.isSafeInteger(inspectTarget.id)||inspectTarget.id<1||!Number.isSafeInteger(inspectTarget.version)||inspectTarget.version<1||inspectTarget.version>50){
+      readForTarget.current=null;setInspectNotice('指定随访定位信息无效，请返回总览核对。');return;
+    }
+    reread();
+  },[inspectTarget]);
+  useEffect(()=>{
+    if(!inspectTarget||!list||readForTarget.current?.target!==inspectTarget||readForTarget.current?.list!==list)return;
+    const row=list.records.find(r=>r.id===inspectTarget.id&&r.version===inspectTarget.version);
+    setInspectNotice(row?`正在回看随访 #${row.id} 版本 ${row.version}，未改变编辑草稿。`:'指定随访版本当前无法读取，请刷新核对。');
+    if(row){const node=targets.current.get(row.id);node?.scrollIntoView?.({block:'nearest'});node?.focus?.();}
+  },[inspectTarget,list]);
   useEffect(()=>{if(previousRevision.current!==caseRevision){previousRevision.current=caseRevision;reread();}},[caseRevision]);
   useEffect(()=>{
     const focus=()=>reread(),visibility=()=>{if(!document.hidden)reread();},storage=e=>{if(e.key==='token'||e.key===null){clear();setList(null);}};
@@ -113,6 +130,7 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0}){
   const validSelection=selected&&(draft?.operation!=='create'||selected.state==='planned');
   return <section aria-label="人工随访记录" style={box}>
     <h2>人工随访记录</h2><p>登记已经发生的联系或尝试。联系不代表已复诊或完成检查，不会自动关闭计划或发送消息。</p>
+    {inspectNotice&&<p role="status">{inspectNotice}</p>}
     <p>未保存草稿仅留在本页；登记账号由系统记录，不代替实际联系医生或电子签名。</p>
     <p role="status">{busy?'正在处理…':notice}</p>
     <button type="button" disabled={busy} onClick={reread}>刷新人工随访记录</button>
@@ -145,10 +163,10 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0}){
       <label><input type="checkbox" aria-label="已核对人工随访" disabled={locked} checked={checked} onChange={e=>setChecked(e.target.checked)}/>已核对病例、来源计划版本、时间、完整原文及本次操作</label>
       <button disabled={locked||!checked} onClick={()=>run(confirm)}>确认保存人工随访</button>
     </section>}
-    {list&&<section aria-label="人工随访版本历史"><h3>已保存联系与版本历史</h3>{list.records.map(r=><article key={r.id} aria-label={`人工随访记录 ${r.id}`} style={box}>
+    {list&&<section aria-label="人工随访版本历史"><h3>已保存联系与版本历史</h3>{list.records.map(r=><article key={r.id} ref={node=>{if(node)targets.current.set(r.id,node);else targets.current.delete(r.id);}} tabIndex={-1} aria-label={`人工随访记录 ${r.id}`} style={box}>
       <strong>记录 #{r.id} · 版本 {r.version} · {states[r.state]}</strong><p>登记账号 {r.recorded_by} · 确认时间 {r.recorded_at}</p>
       <p style={{whiteSpace:'pre-wrap'}}>原因 {r.reason||'首次登记'} · {sourceStates[r.source_state]}</p>
-      <details><summary>查看随访记录 #{r.id} 版本 {r.version}</summary><ContactContent data={r.data}/><SourceContent source={r.source} state={r.source_state}/></details>
+      <details open={inspectTarget?.id===r.id&&inspectTarget?.version===r.version?true:undefined}><summary>查看随访记录 #{r.id} 版本 {r.version}</summary><ContactContent data={r.data}/><SourceContent source={r.source} state={r.source_state}/></details>
       {r.withdrawal&&<p style={{whiteSpace:'pre-wrap'}}>撤销原因 {r.withdrawal.reason} · 账号 {r.withdrawal.by} · 时间 {r.withdrawal.at}</p>}
       {r.state==='recorded'&&<><button disabled={locked||Boolean(draft)||list.records.length>=50} onClick={()=>edit(r,'correct')}>更正人工随访记录</button><button disabled={locked||Boolean(draft)} onClick={()=>edit(r,'withdraw')}>撤销人工随访记录</button></>}
     </article>)}</section>}
