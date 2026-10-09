@@ -208,6 +208,19 @@ on:
       - 'scripts/validate_clinical_followup_contacts_cw_b19.py'
       - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACTS_CW_B19.md'
       - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_QUEUE_CW_B18.md'
+      - 'backend/clinical_followup_contact_overview.py'
+      - 'backend/clinical_case_overview.py'
+      - 'backend/clinical_case_overview_api.py'
+      - 'frontend/src/components/CaseVisitOverview.jsx'
+      - 'frontend/tests/followup-contact-overview.test.jsx'
+      - 'frontend/tests/case-detail-followup-contact-overview.test.jsx'
+      - 'tests/test_clinical_followup_contact_overview.py'
+      - 'tests/test_clinical_followup_contact_overview_concurrency.py'
+      - 'tests/test_clinical_followup_contact_overview_isolation.py'
+      - 'tests/acceptance/clinical_followup_contact_overview_checks.cjs'
+      - 'tests/fixtures/clinical_followup_contact_overview_cw_b20_cases.json'
+      - 'scripts/validate_clinical_followup_contact_overview_cw_b20.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACT_OVERVIEW_CW_B20.md'
 
 permissions:
   contents: read
@@ -232,7 +245,7 @@ jobs:
   synthetic-acceptance:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     env:
       PMAI_SYNTHETIC_ACCEPTANCE: PR26
       PMAI_ACCEPTANCE_OUT: ${{ github.workspace }}/acceptance-results
@@ -243,15 +256,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B18 and approved CW-B19 increment
+      - name: Bind frozen M7 through CW-B19 and approved CW-B20 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_followup_contacts_cw_b19.py > "$RUNNER_TEMP/cwb19-scope.json"
+          python scripts/validate_clinical_followup_contact_overview_cw_b20.py > "$RUNNER_TEMP/cwb20-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb19-scope.json" acceptance-results/cwb19-scope.json
+          cp "$RUNNER_TEMP/cwb20-scope.json" acceptance-results/cwb20-scope.json
           python - <<'PY_SCOPE'
           import json
-          cwb18 = json.load(open('acceptance-results/cwb19-scope.json'))['frozen_cwb18']
+          cwb19 = json.load(open('acceptance-results/cwb20-scope.json'))['frozen_cwb19']
+          open('acceptance-results/cwb19-scope.json','w').write(json.dumps(cwb19,indent=2))
+          cwb18 = cwb19['frozen_cwb18']
           open('acceptance-results/cwb18-scope.json','w').write(json.dumps(cwb18,indent=2))
           cwb17 = cwb18['frozen_cwb17']
           open('acceptance-results/cwb17-scope.json','w').write(json.dumps(cwb17,indent=2))
@@ -470,6 +485,12 @@ jobs:
           python tests/test_clinical_followup_contacts.py 2>&1 | tee acceptance-results/cwb19-route-tests.log
           python tests/test_clinical_followup_contact_concurrency.py 2>&1 | tee acceptance-results/cwb19-concurrency-tests.log
           python tests/test_clinical_followup_contact_isolation.py 2>&1 | tee acceptance-results/cwb19-isolation-tests.log
+      - name: CW-B20 contact inventory, snapshot concurrency and historical isolation
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_followup_contact_overview.py 2>&1 | tee acceptance-results/cwb20-route-tests.log
+          python tests/test_clinical_followup_contact_overview_concurrency.py 2>&1 | tee acceptance-results/cwb20-concurrency-tests.log
+          python tests/test_clinical_followup_contact_overview_isolation.py 2>&1 | tee acceptance-results/cwb20-isolation-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -621,6 +642,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_checks.cjs 2>&1 | tee acceptance-results/cwb19-browser.log
+      - name: CW-B20 real Chromium exact contact navigation and draft preservation
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_overview_checks.cjs 2>&1 | tee acceptance-results/cwb20-browser.log
       - name: Render CW-B13 synthetic DOCX samples to page evidence
         run: |
           sudo apt-get update -qq

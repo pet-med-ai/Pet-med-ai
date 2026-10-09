@@ -260,6 +260,32 @@ def followup_queue_readback():
     record('cwb18_fresh_process_two_accounts_exact_queue_versions_and_readonly_business')
 
 
+def contact_overview_audits(cid):
+    from datetime import datetime  # Also available before the --readback early exit.
+    def value(row, column):
+        # Database column "metadata" maps to extra_data, not DeclarativeBase.metadata.
+        data = getattr(row, row.__mapper__.get_property_by_column(column).key)
+        return str(data) if isinstance(data, datetime) else data
+    with f.db.SessionLocal() as db:
+        return [{c.key: value(row, c) for c in row.__table__.columns}
+                for row in db.query(f.models.AuditLog).filter_by(case_id=cid).order_by(f.models.AuditLog.log_id).all()]
+
+
+def contact_overview_readback():
+    f.enable_followup_contact_overview()
+    before = followup_overview_business()
+    for item in json.loads((f.OUT/'cwb20-restart-expected.json').read_text()):
+        auth = login(item['account']); cid = item['case_id']
+        value = call('GET', f'/api/cases/{cid}/visit-overview', auth,
+                     params={'include_followup_plan': True, 'include_followup_contacts': True})
+        value.pop('read_at'); assert value == item['overview']
+        assert call('GET', f'/api/cases/{cid}/followup-contacts', auth) == item['contacts']
+        assert call('GET', f'/api/cases/{cid}/followup-plan', auth) == item['plans']
+        assert read(cid, auth) == item['case'] and contact_overview_audits(cid) == item['audits']
+    assert before == followup_overview_business()
+    record('cwb20_fresh_process_two_accounts_exact_inventory_contacts_sources_audits_readonly')
+
+
 def followup_contact_readback():
     f.enable_followup_contacts()
     import clinical_followup_contacts as contacts
@@ -321,6 +347,7 @@ if '--readback' in sys.argv:
     followup_overview_readback()
     followup_queue_readback()
     followup_contact_readback()
+    contact_overview_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -2052,6 +2079,165 @@ def contact_pg(scenario,auth=contact_owner,account='cwb19-owner'):
 for scenario in ('create-race','idempotent-race','correct-withdraw','body','identity','delete','owner','plan-correct','plan-withdraw','rollback','lost-reply','lifecycle'):contact_pg(scenario)
 contact_pg('lifecycle',contact_other,'cwb19-other')
 (f.OUT/'cwb19-restart-expected.json').write_text(json.dumps(contact_expected,ensure_ascii=False,indent=2))
+
+# CW-B20: one physical case lock spans the complete opt-in inventory.
+f.enable_followup_contact_overview()
+import clinical_followup_contact_overview as contact_inventory
+contact_inventory_fixture = json.loads((f.ROOT/'tests/fixtures/clinical_followup_contact_overview_cw_b20_cases.json').read_text())
+contact_inventory_expected = []
+
+
+def contact_inventory_pg(scenario):
+    auth, account = (contact_other, 'cwb19-other') if scenario == 'control_cat' else (owner, 'pg-owner')
+    if scenario == 'control_cat':
+        cid = call('POST', '/api/cases', auth, expected=201, json=contact_inventory_fixture['cat_case'])['id']
+        baseline = None
+    else:
+        baseline = comparison_document_pg('control', True)
+        cid = baseline['case_id']
+    root = f'/api/cases/{cid}/followup-contacts'; planroot = f'/api/cases/{cid}/followup-plan'; url = f'/api/cases/{cid}/visit-overview'
+    params = {'include_followup_plan': True, 'include_followup_contacts': True}
+
+    def plan_body(operation='create', row=None):
+        listing = call('GET', planroot, auth)
+        body = {'request_id': uuid4().hex, 'operation': operation, 'plan_id': row['id'] if row else None,
+                'expected_plan_token': row['token'] if row else '', 'expected_case_token': listing['case_token'],
+                'expected_state_token': listing['state_token'], 'reason': '' if operation == 'create' else 'CW-B20 合成计划更正',
+                'data': None if operation == 'withdraw' else contact_inventory_fixture['corrected_plan' if operation == 'correct' else 'plan']}
+        preview = call('POST', planroot+'/preview', auth, json=body)
+        return {**body, 'preview_token': preview['preview_token'], 'reviewed': True}
+
+    source = call('POST', planroot+'/confirm', auth, json=plan_body())['plan']
+
+    def contact_body(operation='create', row=None):
+        listing = call('GET', root, auth)
+        selected = next(p for p in listing['plans'] if p['id'] == (row['source']['id'] if row else source['id']))
+        body = {'request_id': uuid4().hex, 'operation': operation, 'contact_id': row['id'] if row else None,
+                'expected_contact_token': row['token'] if row else '', 'source_plan_id': selected['id'], 'source_plan_version': selected['version'],
+                'expected_source_token': selected['token'], 'expected_case_token': listing['case_token'], 'expected_state_token': listing['state_token'],
+                'data': None if operation == 'withdraw' else contact_inventory_fixture['corrected' if operation == 'correct' else 'contact'],
+                'reason': '' if operation == 'create' else contact_inventory_fixture['correction_reason']}
+        preview = call('POST', root+'/preview', auth, json=body)
+        return {**body, 'preview_token': preview['preview_token'], 'reviewed': True}
+
+    def contact_save(operation='create', row=None):
+        return call('POST', root+'/confirm', auth, json=contact_body(operation, row))['record']
+
+    def inventory(): return call('GET', url, auth, params=params)
+    row = contact_save(); before = inventory()
+    if scenario.startswith('control_'):
+        changed = contact_save('correct', row); contact_save('withdraw', changed); contact_save()
+        source = call('POST', planroot+'/confirm', auth, json=plan_body('correct', source))['plan']
+        contact_save(); call('POST', planroot+'/confirm', auth, json=plan_body('withdraw', source))
+        expected_contacts = call('GET', root, auth); expected_plans = call('GET', planroot, auth)
+        legacy10 = call('GET', url, auth); legacy10.pop('read_at')
+        legacy17 = call('GET', url, auth, params={'include_followup_plan': True}); legacy17.pop('read_at')
+        previous = followup_overview_business(); writes = []
+        def capture(_c, _cur, sql, *_):
+            if sql.lstrip().split()[0].upper() in {'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP'}: writes.append(sql)
+        event.listen(f.db.engine, 'before_cursor_execute', capture)
+        try:
+            with (patch.object(contacts.plans, 'transaction', side_effect=AssertionError('No nested session')),
+                  patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('No GET cleanup'))):
+                saved = inventory(); again = inventory()
+                assert saved['snapshot'] == again['snapshot']
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture)
+        assert not writes and previous == followup_overview_business()
+        assert saved['schema'] == contact_inventory.SCHEMA
+        group = saved['groups']['contacts']
+        assert group['records'] == expected_contacts['records']
+        assert group['counts'] == {'recorded': 2, 'superseded': 1, 'withdrawn': 1}
+        assert group['records'][0]['data'] == contact_inventory_fixture['contact']
+        assert group['records'][0]['source']['data'] == contact_inventory_fixture['plan']
+        assert group['records'][-1]['source_state'] == 'withdrawn'
+        old = call('GET', url, auth); old.pop('read_at'); assert old == legacy10
+        old = call('GET', url, auth, params={'include_followup_plan': True}); old.pop('read_at'); assert old == legacy17
+        call('GET', url, owner if auth == contact_other else contact_other, expected=404, params=params)
+        saved.pop('read_at')
+        contact_inventory_expected.append({'case_id': cid, 'account': account, 'overview': saved, 'contacts': expected_contacts,
+                                           'plans': expected_plans, 'case': read(cid, auth), 'audits': contact_overview_audits(cid)})
+    else:
+        if scenario.startswith('contact_'):
+            operation = scenario.removeprefix('contact_'); body = contact_body(operation, None if operation == 'create' else row)
+            mutation = lambda: client.post(root+'/confirm', headers=auth, json=body)
+        elif scenario.startswith('plan_'):
+            body = plan_body('withdraw' if scenario == 'plan_replace' else scenario.removeprefix('plan_'), source)
+            def mutation():
+                result = client.post(planroot+'/confirm', headers=auth, json=body)
+                if scenario == 'plan_replace': call('POST', planroot+'/confirm', auth, json=plan_body())
+                return result
+        elif scenario in ('source', 'source_metadata', 'lab', 'lab_correct', 'imaging', 'imaging_correct'):
+            target = f'/api/cases/{cid}/' + ('manual-imaging' if scenario.startswith('imaging') else 'manual-lab')
+            selected_id = baseline['manual_imaging_report_ids' if scenario.startswith('imaging') else 'manual_lab_report_ids'][0]
+            selected = next(r for r in call('GET', target, auth)['reports'] if r['id'] == selected_id)
+            if scenario.startswith('source'):
+                target = f'/api/cases/{cid}/attachments'; listing = call('GET', target, auth)
+                original = next(r for r in listing['items'] if r['id'] == selected['attachment_id'])
+                body = {'request_id': uuid4().hex, 'attachment_id': original['id'], 'operation': 'withdraw' if scenario == 'source' else 'update',
+                        'expected_case_token': listing['case_token'], 'metadata': {**original['metadata'], 'title': 'CW-B20 原件更正'}, 'reason': '合成更正'}
+            else:
+                data = None
+                if scenario.endswith('_correct'):
+                    data = deepcopy(selected['data'])
+                    if scenario.startswith('lab'):
+                        import manual_lab_results
+                        data = manual_lab_results.input_data(data); data['items'][0]['value'] = '1.500'
+                    else: data['findings'] += ' CW-B20 影像更正'
+                body = {'request_id': uuid4().hex, 'attachment_id': selected['attachment_id'], 'operation': 'correct' if data else 'withdraw',
+                        'expected_case_token': call('GET', target, auth)['case_token'], 'report_id': selected['id'],
+                        'expected_report_token': selected['token'], 'data': data, 'reason': 'CW-B20 合成更正'}
+            preview = call('POST', target+'/preview', auth, json=body)
+            mutation = lambda: client.post(target+'/confirm', headers=auth, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})
+        elif scenario == 'owner':
+            uid = before['groups']['contacts']['case']['owner_id']
+            def mutation():
+                with followup.transaction(uid, cid) as (db, case):
+                    case.owner_id = contact_other_id; db.commit()
+                from types import SimpleNamespace
+                return SimpleNamespace(status_code=200)
+        elif scenario == 'delete': mutation = lambda: client.delete(f'/api/cases/{cid}', headers=auth)
+        else: mutation = lambda: client.put(f'/api/cases/{cid}', headers=auth,
+                         json={'owner_name': 'CW-B20 并发身份'} if scenario == 'identity' else {'history': 'CW-B20 并发正文'})
+        entered, release, attempting_sql, attempting_store = Event(), Event(), Event(), Event()
+        normal = contact_inventory.group; normal_locked = attachment_store.Store.locked; pids = set()
+        store_serialized = scenario in {'source', 'source_metadata', 'lab', 'lab_correct', 'imaging', 'imaging_correct'}
+        from contextlib import contextmanager
+        @contextmanager
+        def observed_store(store):
+            if entered.is_set(): attempting_store.set()
+            with normal_locked(store): yield
+        def held(*args): entered.set(); assert release.wait(15); return normal(*args)
+        def lock_sql(connection, _cursor, sql, *_):
+            if 'FOR UPDATE' in sql.upper() or sql.lstrip().upper().startswith(('UPDATE CASES ', 'DELETE FROM CASES ')):
+                pids.add(connection.connection.driver_connection.get_backend_pid())
+                if entered.is_set(): attempting_sql.set()
+        event.listen(f.db.engine, 'before_cursor_execute', lock_sql)
+        try:
+            with (ThreadPoolExecutor(2) as pool, patch.object(contact_inventory, 'group', side_effect=held),
+                  patch.object(attachment_store.Store, 'locked', observed_store)):
+                reading = pool.submit(inventory)
+                try:
+                    assert entered.wait(10); writing = pool.submit(mutation)
+                    if store_serialized:
+                        # Original attachment/report routes first wait at Store.locked;
+                        # preserve that mutex instead of bypassing it to force a SQL race.
+                        assert attempting_store.wait(10) and not writing.done()
+                    else:
+                        assert attempting_sql.wait(10); assert len(pids) >= 2 and not writing.done()
+                finally: release.set()
+                result = reading.result(20)
+                assert result['snapshot'] == before['snapshot'] and result['groups'] == before['groups']
+                assert writing.result(20).status_code == (204 if scenario == 'delete' else 200)
+        finally: event.remove(f.db.engine, 'before_cursor_execute', lock_sql)
+        if scenario in ('owner', 'delete'): call('GET', url, auth, expected=404, params=params)
+        else: assert inventory()['snapshot'] != before['snapshot']
+    record('cwb20_postgresql_'+scenario+'_consistent_readonly_inventory')
+
+
+for scenario in ('control_dog', 'control_cat', 'contact_create', 'contact_correct', 'contact_withdraw', 'plan_correct', 'plan_withdraw',
+                 'plan_replace', 'body', 'identity', 'delete', 'owner', 'source', 'source_metadata', 'lab', 'lab_correct', 'imaging', 'imaging_correct'):
+    contact_inventory_pg(scenario)
+(f.OUT/'cwb20-restart-expected.json').write_text(json.dumps(contact_inventory_expected, ensure_ascii=False, indent=2))
 
 # Close only after every batch has finished using the shared authenticated client.
 client.close(); f.db.engine.dispose()

@@ -9,6 +9,7 @@ import case_attachment_service as attachments
 import manual_lab_results as lab
 import manual_imaging_records as imaging
 import clinical_followup_plan_overview as followup
+import clinical_followup_contact_overview as contact_overview
 
 SCHEMA = 'clinical-case-overview-cw-b10-v1'
 FIELDS = {'chief_complaint': '主诉', 'history': '病史', 'exam_findings': '查体记录',
@@ -166,8 +167,10 @@ def assemble(store, db, case):
             'read_only': True, 'writes_database': False, 'includes_unsaved_drafts': False}
 
 
-def overview(uid, cid, include_followup_plan=False):
+def overview(uid, cid, include_followup_plan=False, include_followup_contacts=False):
     ensure_enabled()
+    if include_followup_contacts and not include_followup_plan:
+        raise AttachmentError('visit_overview_invalid_parameters', 422)
     store = Store()
     with store.locked(), attachments.transaction(uid, cid) as (db, case):
         result = assemble(store, db, case)
@@ -175,6 +178,10 @@ def overview(uid, cid, include_followup_plan=False):
             result['schema'] = followup.SCHEMA
             result['navigation_targets'] = [*TARGETS, 'followup']
             result['groups']['followup'] = followup.group(db, case)
+            if include_followup_contacts and contact_overview.enabled():
+                result['schema'] = contact_overview.SCHEMA
+                result['navigation_targets'] = [*TARGETS, 'followup', 'contacts']
+                result['groups']['contacts'] = contact_overview.group(db, case, result['groups']['followup'])
         result['snapshot'] = digest(result)
         result['read_at'] = datetime.now(timezone.utc).isoformat()
         return result

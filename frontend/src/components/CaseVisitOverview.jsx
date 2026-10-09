@@ -3,9 +3,17 @@ import { Link } from "react-router-dom";
 import api from "../api";
 import { overviewDestinations, overviewMessage, overviewStates, readOverview } from "../visitOverview";
 import { states as planStates } from "../followupPlan";
+import { states as contactStates, sourceStates, methods, outcomes } from "../followupContacts";
 
 const box = { padding: 16, margin: "12px 0", border: "1px solid #ccd5d1", borderRadius: 8, overflowWrap: "anywhere" };
 const groups = { attachments: "原件", lab: "检验", imaging: "影像" };
+
+function SavedIdentity({ value }) {
+  return <p>病例 #{value.id} · {value.patient_name || "动物名未填写"} · {value.species || "物种未填写"} ·
+    宠主 {value.owner_name || "未填写"} · 联系方式 {value.owner_phone || "未填写"} ·
+    性别 {value.sex || "未填写"} · 品种 {value.breed || "未填写"} · 毛色 {value.coat_color || "未填写"} ·
+    年龄 {value.age_info || "未填写"} · 体重 {value.weight || "未填写"}</p>;
+}
 
 export default function CaseVisitOverview(props) {
   return <Overview key={JSON.stringify([props.caseId, props.requestToken])} {...props} />;
@@ -31,16 +39,18 @@ function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
   useEffect(() => {
     active.current = true; refresh.current();
     const focus = () => refresh.current();
+    const doc = globalThis.document, visibility = () => { if (!doc?.hidden) refresh.current(); };
     const storage = event => { if (event.key === "token" || event.key === null) refresh.current(); };
     window.addEventListener("focus", focus); window.addEventListener("storage", storage);
-    return () => { active.current = false; epoch.current++; controller.current?.abort(); window.removeEventListener("focus", focus); window.removeEventListener("storage", storage); };
+    doc?.addEventListener?.("visibilitychange", visibility);
+    return () => { active.current = false; epoch.current++; controller.current?.abort(); window.removeEventListener("focus", focus); window.removeEventListener("storage", storage); doc?.removeEventListener?.("visibilitychange", visibility); };
   }, [caseId, requestToken]);
   useEffect(() => {
     // Invalidate even if the editor saves successfully but its subsequent list GET
     // fails before onChanged. Only observe the existing operation; never submit it.
     const affects = config => {
       const method = config?.method?.toLowerCase(), url = config?.url;
-      return (method === "post" && (["attachments", "manual-lab", "manual-imaging", "followup-plan"].some(kind => url === `/api/cases/${caseId}/${kind}/confirm`) ||
+      return (method === "post" && (["attachments", "manual-lab", "manual-imaging", "followup-plan", "followup-contacts"].some(kind => url === `/api/cases/${caseId}/${kind}/confirm`) ||
         ["edit-confirm", "confirm-edit", "analyze"].some(kind => url === `/api/cases/${caseId}/${kind}`))) ||
         (["put", "patch", "delete"].includes(method) && url === `/api/cases/${caseId}`);
     };
@@ -64,7 +74,7 @@ function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
   function destination(target, key, plan) {
     if (!data?.navigation_targets.includes(target)) return null;
     if (target === "edit") return <Link key={key} to={`/cases/${caseId}/edit`} target="_blank" rel="noopener noreferrer" onClick={event => { if (!current()) event.preventDefault(); }}>{overviewDestinations[target]}</Link>;
-    return <button key={key} type="button" onClick={event => { if (current() && data) onNavigate?.(target, event, plan && { id: plan.id, version: plan.version }); }}>{plan ? `回看计划 #${plan.id} 版本 ${plan.version}` : overviewDestinations[target]}</button>;
+    return <button key={key} type="button" onClick={event => { if (current() && data) onNavigate?.(target, event, plan && { id: plan.id, version: plan.version }); }}>{plan ? `回看${target === "contacts" ? "随访" : "计划"} #${plan.id} 版本 ${plan.version}` : overviewDestinations[target]}</button>;
   }
   return <section aria-label="就诊资料总览" style={box}>
     <h2>就诊资料总览</h2>
@@ -128,6 +138,41 @@ function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
             </article>)}
           </>}
           {destination("followup")}
+        </section>}
+      {!data.groups.contacts ? <p>本次总览未提供人工随访记录信息，请从原入口核对。</p> :
+        <section aria-label="人工随访资料状态" style={box}>
+          <h3>人工随访记录</h3>
+          <p>联系或尝试不代表已复诊、完成检查或关闭计划。</p>
+          {data.groups.contacts.status === "disabled" ? <p>人工随访或复查计划模块未启用，无法判断记录有无。</p> : <>
+            <p>{Object.entries(data.groups.contacts.counts).map(([state, count]) => `${contactStates[state]} ${count}`).join(" · ")}</p>
+            <p>已核对保存和已撤销按联系记录根计数；旧版本是历史版本数，不重复算作实际联系。</p>
+            {!data.groups.contacts.records.length && <p>暂无本流程人工随访记录；不代表从未联系或无需复查。</p>}
+            {data.groups.contacts.records.map(row => <article key={row.id} style={box} aria-label={`随访总览记录 ${row.id} 版本 ${row.version}`}>
+              <h4>随访 #{row.id} · 版本 {row.version} · {contactStates[row.state]}</h4>
+              <p>实际联系或尝试时间（上海）：{row.data.occurred_at} · {methods[row.data.method]} · {outcomes[row.data.outcome]}</p>
+              <p>根记录 #{row.root_id} · 登记账号 {row.recorded_by} · 确认时间 {row.recorded_at}</p>
+              <details><summary>查看随访原文与冻结来源</summary>
+                <dl style={{whiteSpace: "pre-wrap"}}><dt>记录原文</dt><dd>{row.data.note}</dd><dt>后续安排</dt><dd>{row.data.next_action || "未填写"}</dd></dl>
+                <p>联系记录保存时的病例身份</p><SavedIdentity value={row.case_snapshot}/>
+                <p>来源计划 #{row.source.id} · 根 #{row.source.root_id} · 版本 {row.source.version} · {sourceStates[row.source_state]}</p>
+                <p>来源计划核对账号 {row.source.reviewed_by} · 核对时间 {row.source.reviewed_at}</p>
+                <p>来源计划保存时的病例身份</p><SavedIdentity value={row.source.case_snapshot}/>
+                <dl style={{whiteSpace: "pre-wrap"}}>
+                  <dt>计划复查日期（上海）</dt><dd>{row.source.data.planned_date}</dd>
+                  <dt>复查目的</dt><dd>{row.source.data.purpose}</dd>
+                  <dt>复查项目</dt><dd><ol>{row.source.data.items.map((item, index) => <li key={index}>{item}</li>)}</ol></dd>
+                  <dt>提前返回条件</dt><dd>{row.source.data.return_conditions || "未填写"}</dd>
+                  <dt>计划备注</dt><dd>{row.source.data.note || "未填写"}</dd>
+                </dl>
+                <p>联系内容标识 <code>{row.token}</code></p>
+              </details>
+              <p>来源计划 #{row.source.id} 版本 {row.source.version} · {sourceStates[row.source_state]}</p>
+              {row.reason && <p style={{whiteSpace: "pre-wrap"}}>更正原因：{row.reason}</p>}
+              {row.withdrawal && <p style={{whiteSpace: "pre-wrap"}}>撤销原因：{row.withdrawal.reason} · 账号 {row.withdrawal.by} · 时间 {row.withdrawal.at}</p>}
+              {destination("contacts", undefined, row)}{destination("followup", undefined, row.source)}
+            </article>)}
+          </>}
+          {destination("contacts")}
         </section>}
       <h3>返回文书核对</h3><p>报告默认不选择；请在原流程中核对完整草稿后再下载。</p>
       {destination("outpatient")}{destination("owner_summary")}

@@ -48,6 +48,7 @@ function CaseDetailContent({ requestToken }) {
   const [showFollowupPlan, setShowFollowupPlan] = useState(false), [followupDirty, setFollowupDirty] = useState(false);
   const [followupTarget,setFollowupTarget]=useState(null);
   const [showContacts,setShowContacts]=useState(false), [contactsDirty,setContactsDirty]=useState(false);
+  const [contactTarget,setContactTarget]=useState(null);
   const [showImaging, setShowImaging] = useState(false), [imagingDirty, setImagingDirty] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
@@ -950,6 +951,10 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       setShowFollowupPlan(true);
       setFollowupTarget(plan ? { ...plan, request: {} } : null);
     }
+    else if (target === "contacts") {
+      setShowContacts(true);
+      setContactTarget(plan ? { ...plan, request: {} } : null);
+    }
     else if (target === "attachments") setShowAttachments(true);
     else if (target === "lab") setShowLab(true);
     else if (target === "imaging") setShowImaging(true);
@@ -997,8 +1002,9 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         <div ref={node => { overviewAnchors.current.followup = node; }} tabIndex={-1} />
         <button type="button" onClick={() => { if (!showFollowupPlan || !followupDirty || window.confirm("复查计划草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？")) setShowFollowupPlan(v => !v); }}>{showFollowupPlan ? "收起复查计划" : "打开复查计划"}</button>
         {showFollowupPlan && <Suspense fallback={<p>正在打开复查计划…</p>}><CaseFollowupPlan caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} inspectTarget={followupTarget} onDirtyChange={setFollowupDirty}/></Suspense>}
+        <div ref={node => { overviewAnchors.current.contacts = node; }} tabIndex={-1} />
         <button type="button" onClick={()=>{if(!showContacts||!contactsDirty||window.confirm("人工随访草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？"))setShowContacts(v=>!v);}}>{showContacts?'收起人工随访记录':'打开人工随访记录'}</button>
-        {showContacts&&<Suspense fallback={<p>正在打开人工随访记录…</p>}><CaseFollowupContacts caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} onDirtyChange={setContactsDirty}/></Suspense>}
+        {showContacts&&<Suspense fallback={<p>正在打开人工随访记录…</p>}><CaseFollowupContacts caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} inspectTarget={contactTarget} onDirtyChange={setContactsDirty}/></Suspense>}
         <button type="button" onClick={() => setShowRangeReview(v => !v)}>{showRangeReview ? "收起检验结果区间核对" : "打开检验结果区间核对"}</button>
         {showRangeReview && <Suspense fallback={<p>正在读取检验区间组件…</p>}><CaseLabRangeReview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} onCompare={() => setShowLabComparison(true)} /></Suspense>}
         <button type="button" onClick={() => setShowLabComparison(v => !v)}>{showLabComparison ? "收起检验前后对照" : "打开检验前后对照"}</button>

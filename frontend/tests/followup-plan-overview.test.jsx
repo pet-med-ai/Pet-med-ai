@@ -29,7 +29,7 @@ afterEach(()=>{if(renderer)act(()=>renderer.unmount());renderer=null;});
 async function mount(){await act(async()=>{renderer=TestRenderer.create(tree());});}
 
 test('opt-in GET displays exact raw data, provenance, counts and internal version target',async()=>{
- await mount();assert.equal(requests.length,1);assert.deepEqual(requests[0].params,{include_followup_plan:true});
+ await mount();assert.equal(requests.length,1);assert.deepEqual(requests[0].params,{include_followup_plan:true,include_followup_contacts:true});
  const dataNodes=renderer.root.findAllByType('dd').map(n=>n.children[0]);
  for(const raw of [fixture.plan.purpose,fixture.plan.note,fixture.plan.return_conditions])assert(dataNodes.includes(raw));
  assert.match(text(),/2028-02-29/);assert.match(text(),/计划不代表已复查/);assert.match(text(),/版本/);
