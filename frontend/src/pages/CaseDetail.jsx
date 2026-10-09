@@ -860,7 +860,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     // Wait until the opener is enabled again before restoring keyboard focus.
     setTimeout(() => { if (isCurrent()) reviewOpener.current?.focus(); }, 0);
   };
-  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = [], imagingIds = [], comparison, signal, followup) => {
+  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = [], imagingIds = [], comparison, signal, followup, contact) => {
     if (reviewActive.current && !expectedSnapshot) return;
     if (!data?.id || !isCurrent()) {
       alert("病例尚未加载或登录已变化，请重新打开病例后导出。");
@@ -884,6 +884,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           ...(imagingIds.length ? { manual_imaging_report_ids: imagingIds } : {}),
           ...(comparison ? { manual_lab_comparison: comparison } : {}),
           ...(followup ? { manual_followup_plan: followup } : {}),
+          ...(contact ? { manual_followup_contact: contact } : {}),
         },
         {
           responseType: "blob", signal,
@@ -1068,8 +1069,9 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         onInspectLab={target=>{closeDocReview();setShowLab(true);if(target)setLabTarget({ ...target, request: {} });}}
         sourceRevision={savedRevision}
         onInspectImaging={()=>{closeDocReview();setShowImaging(true);}}
+        onInspectContact={target=>{closeDocReview();setShowContacts(true);setContactTarget({...target,request:{}});}}
         onInspectFollowup={target=>{closeDocReview();setShowFollowupPlan(true);setFollowupTarget({...target,request:{}});}}
-        onDownload={(snapshot, current, ids, imagingIds, comparison, signal, followup) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds, comparison, signal, followup)} /></Suspense>}
+        onDownload={(snapshot, current, ids, imagingIds, comparison, signal, followup, contact) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds, comparison, signal, followup, contact)} /></Suspense>}
 
       {exportStatus && (
         <div role="status" aria-live="polite" className="clinical-doc-export-status screen-only">

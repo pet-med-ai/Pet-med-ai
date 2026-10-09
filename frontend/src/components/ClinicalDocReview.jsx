@@ -7,6 +7,8 @@ import { validImagingReports } from "../manualImagingDocuments";
 import { validDocumentComparison } from "../labComparisonDocuments";
 import { readComparison } from "../labComparison";
 import { readDocumentPlans, validDocumentPlan } from "../followupPlanDocuments";
+import {readDocumentContacts, validDocumentContact} from "../followupContactDocuments";
+const ClinicalDocFollowupContactSelection = lazy(() => import("./ClinicalDocFollowupContactSelection"));
 const ClinicalDocFollowupPlanSelection = lazy(() => import("./ClinicalDocFollowupPlanSelection"));
 const ClinicalDocLabComparisonSelection = lazy(() => import("./ClinicalDocLabComparisonSelection"));
 const ClinicalDocImagingSelection = lazy(() => import("./ClinicalDocImagingSelection"));
@@ -21,7 +23,7 @@ const fields = [
   ["visit.follow_up", "复查安排状态"], ["export.account_id", "导出账号（非签名）"],
 ];
 
-export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose, onInspectLab, onInspectImaging, onInspectFollowup, sourceRevision = 0 }) {
+export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose, onInspectLab, onInspectImaging, onInspectFollowup, onInspectContact, sourceRevision = 0 }) {
   const reviewFields = templateId === "outpatient_record_zh" ? [
     ...fields.slice(0, 2), ["visit.owner_name", "宠主姓名"], ["visit.coat_color", "宠物毛色"],
     ...fields.slice(2),
@@ -39,6 +41,8 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
   const selectedComparison = useRef(null), comparisonSession = useRef(false), documentRequest = useRef(null), recheckRequest = useRef(null);
   const [planOpen,setPlanOpen]=useState(false),[planChoice,setPlanChoice]=useState(null),[planReadRevision,setPlanReadRevision]=useState(0);
   const selectedPlan=useRef(null),planSession=useRef(false),planRecheck=useRef(null);
+  const [contactOpen,setContactOpen]=useState(false),[contactChoice,setContactChoice]=useState(null),[contactRevision,setContactRevision]=useState(0),[contactReady,setContactReady]=useState(false);
+  const selectedContact=useRef(null),contactSession=useRef(false),contactRecheck=useRef(null);
   const active = useRef(false), pending = useRef(false), generation = useRef(0), heading = useRef(null);
   const callbacks = useRef({ onDownload, onClose });
   callbacks.current = { onDownload, onClose };
@@ -51,8 +55,8 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     const stamp = ++generation.current;
     documentRequest.current?.abort(); documentRequest.current = new AbortController();
     const ids = [...selected.current], imageIds = [...selectedImaging.current], choice = selectedComparison.current;
-    const plan = selectedPlan.current;
-    setBusy(true); setPreview(null); setConfirmed(false); setPlanPreviewReady(false); setMessage("正在读取已保存的草稿内容…");
+    const plan = selectedPlan.current, contact = selectedContact.current;
+    setBusy(true); setPreview(null); setConfirmed(false); setPlanPreviewReady(false); setContactReady(false); setMessage("正在读取已保存的草稿内容…");
     try {
       const { data } = await api.post("/api/clinical-docs/render-preview", {
         case_id: caseId, template_id: templateId, output: "docx",
@@ -60,6 +64,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
         ...(imageIds.length ? {manual_imaging_report_ids:imageIds} : {}),
         ...(choice ? {manual_lab_comparison:choice.request} : {}),
         ...(plan ? {manual_followup_plan:plan.request} : {}),
+        ...(contact ? {manual_followup_contact:contact.request} : {}),
       }, { signal: documentRequest.current.signal, timeout: 15000, expectedAuthOwner: draftOwner(requestToken) });
       if (!current(stamp)) return;
       if (data.case_id !== caseId || data.template_id !== templateId ||
@@ -72,7 +77,8 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
           (imageIds.length && !validImagingReports(data.manual_imaging_reports, imageIds)) ||
           (!imageIds.length && data.manual_imaging_reports?.length) ||
           !validDocumentComparison(data.manual_lab_comparison, choice, caseId) ||
-          !validDocumentPlan(data.manual_followup_plan, plan, caseId)) {
+          !validDocumentPlan(data.manual_followup_plan, plan, caseId) ||
+          !validDocumentContact(data.manual_followup_contact, contact, caseId)) {
         throw new Error("未收到可核对的完整草稿，当前服务可能尚未支持。请重新读取，暂不能确认下载。");
       }
       setPreview(data); setMessage("");
@@ -93,15 +99,46 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     selectedImaging.current=[]; setImagingIds([]); setImagingOpen(false);
     selectedComparison.current=null; setComparisonChoice(null); setComparisonOpen(false); comparisonSession.current=false;
     selectedPlan.current=null;setPlanChoice(null);setPlanOpen(false);planSession.current=false;
+    selectedContact.current=null;setContactChoice(null);setContactOpen(false);contactSession.current=false;
     heading.current?.focus();
     void load();
-    return () => { active.current = false; generation.current++; documentRequest.current?.abort(); recheckRequest.current?.abort(); planRecheck.current?.abort(); };
+    return () => { active.current = false; generation.current++; documentRequest.current?.abort(); recheckRequest.current?.abort(); planRecheck.current?.abort(); contactRecheck.current?.abort(); };
   }, [caseId, templateId, requestToken]);
 
   function invalidateDocument() {
     generation.current++; pending.current=false; documentRequest.current?.abort();
     setPreview(null); setConfirmed(false); setBusy(false);
   }
+  function selectContact(choice) {
+    invalidateDocument(); selectedContact.current=choice;setContactChoice(choice);setContactReady(false);
+    setMessage(choice ? '已选择人工随访，请重新读取完整草稿并核对。' : '随访选择或来源已变化，请重新选择并核对完整草稿。');
+  }
+  useEffect(()=>{
+    const reset=()=>{if(active.current&&contactSession.current)selectContact(null);};
+    const refresh=()=>{reset();if(contactSession.current)setContactRevision(v=>v+1);};
+    const visibility=()=>{if(globalThis.document?.hidden)reset();else refresh();};
+    const storage=e=>{if(e.key==='token'||e.key===null){reset();contactRecheck.current?.abort();setContactOpen(false);}};
+    const affects=c=>{
+      const method=c?.method?.toLowerCase(),url=c?.url;
+      return (method==='post'&&['followup-contacts','followup-plan','attachments','manual-lab','manual-imaging'].some(k=>url===`/api/cases/${caseId}/${k}/confirm`)) ||
+        (['put','patch','delete'].includes(method)&&url===`/api/cases/${caseId}`) ||
+        (method==='post'&&['edit-confirm','confirm-edit','analyze'].some(k=>url===`/api/cases/${caseId}/${k}`));
+    };
+    const request=api.interceptors.request.use(c=>{if(affects(c))reset();return c;});
+    const reread=c=>{
+      if(!affects(c)||!active.current||!contactSession.current)return;
+      refresh();contactRecheck.current?.abort();const abort=new AbortController();contactRecheck.current=abort;
+      const stamp=generation.current;
+      readDocumentContacts(caseId,requestToken,abort.signal).catch(()=>{
+        if(current(stamp)&&!abort.signal.aborted)setMessage('随访独立回读未完成，原文书核对已失效，请刷新后重新核对。');
+      });
+    };
+    const response=api.interceptors.response.use(r=>{reread(r.config);return r;},e=>{reread(e.config);return Promise.reject(e);});
+    window.addEventListener('focus',refresh);window.addEventListener('blur',reset);window.addEventListener('storage',storage);
+    globalThis.document?.addEventListener?.('visibilitychange',visibility);
+    return()=>{api.interceptors.request.eject(request);api.interceptors.response.eject(response);window.removeEventListener('focus',refresh);window.removeEventListener('blur',reset);window.removeEventListener('storage',storage);globalThis.document?.removeEventListener?.('visibilitychange',visibility);contactRecheck.current?.abort();};
+  },[caseId,templateId,requestToken]);
+
   function selectComparison(choice) {
     invalidateDocument(); selectedComparison.current=choice; setComparisonChoice(choice);
     setMessage(choice ? "已选择一对项目，请重新读取完整草稿并逐项核对。" : "对照选择或来源已变化，请重新选择并核对完整草稿。");
@@ -163,7 +200,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     setMessage("影像选择或来源状态已变化，请重新读取完整草稿并核对。");
   }
   useEffect(()=>{
-    if(previousSourceRevision.current!==sourceRevision){previousSourceRevision.current=sourceRevision;selectLabs([]);selectImaging([]);setLabOpen(false);setImagingOpen(false);selectComparison(null);setComparisonOpen(false);selectPlan(null);setPlanReadRevision(v=>v+1);}
+    if(previousSourceRevision.current!==sourceRevision){previousSourceRevision.current=sourceRevision;selectLabs([]);selectImaging([]);setLabOpen(false);setImagingOpen(false);selectComparison(null);setComparisonOpen(false);selectPlan(null);setPlanReadRevision(v=>v+1);selectContact(null);setContactRevision(v=>v+1);}
   },[sourceRevision]);
 
   function leave() {
@@ -172,11 +209,11 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
 
   async function download() {
     const stamp = generation.current;
-    if (pending.current || !current(stamp) || !preview || !confirmed || (preview.manual_followup_plan && !planPreviewReady)) return;
+    if (pending.current || !current(stamp) || !preview || !confirmed || (preview.manual_followup_plan && !planPreviewReady) || (preview.manual_followup_contact && !contactReady)) return;
     documentRequest.current?.abort(); documentRequest.current = new AbortController();
     pending.current = true; setBusy(true); setConfirmed(false); setMessage("正在生成已核对的草稿…");
     try {
-      const result = await callbacks.current.onDownload(preview.content_snapshot, () => current(stamp), [...selected.current], [...selectedImaging.current], selectedComparison.current?.request, documentRequest.current.signal, selectedPlan.current?.request);
+      const result = await callbacks.current.onDownload(preview.content_snapshot, () => current(stamp), [...selected.current], [...selectedImaging.current], selectedComparison.current?.request, documentRequest.current.signal, selectedPlan.current?.request, selectedContact.current?.request);
       if (!current(stamp)) return;
       setPreview(null);
       setMessage(result?.ok ? "已生成本次核对的草稿；仍未签署。再次下载请重新读取并核对。" :
@@ -212,6 +249,12 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
       {comparisonOpen && <Suspense fallback={<p>正在打开对照选择…</p>}><ClinicalDocLabComparisonSelection caseId={caseId} requestToken={requestToken} sourceRevision={sourceRevision}
         onSelect={selectComparison} onInvalidated={() => selectComparison(null)} onInspect={target => {leave();onInspectLab?.(target);}} /></Suspense>}
     </>}
+    {templateId === 'outpatient_record_zh' && <>
+      {' '}<button type="button" disabled={busy} onClick={()=>{contactSession.current=true;setContactOpen(v=>!v);}}>{contactOpen?'收起人工随访选择':'选择人工随访记录附节'}</button>
+      {contactChoice&&<p>已选择随访 #{contactChoice.request.id} 版本 {contactChoice.request.version}。<button type="button" onClick={()=>selectContact(null)}>移除本次人工随访附节</button></p>}
+      {contactOpen&&<Suspense fallback={<p>正在打开随访选择…</p>}><ClinicalDocFollowupContactSelection caseId={caseId} requestToken={requestToken} readRevision={contactRevision}
+        onSelect={selectContact} onInspect={target=>{leave();onInspectContact?.(target);}} onInspectPlan={target=>{leave();onInspectFollowup?.(target);}}/></Suspense>}
+    </>}
     {message && <p role="status" aria-live="polite">{message}</p>}
     {preview && <div>
       {reviewFields.map(([key, title]) => <section key={key} aria-label={title + "核对内容"}>
@@ -222,10 +265,11 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
       {!!preview.manual_imaging_reports?.length && <Suspense fallback={<p>正在显示影像附节…</p>}><ClinicalDocImagingSelection mode="preview" reports={preview.manual_imaging_reports}/></Suspense>}
       {preview.manual_lab_comparison && <Suspense fallback={<p>正在显示对照附节…</p>}><ClinicalDocLabComparisonSelection mode="preview" payload={preview.manual_lab_comparison}/></Suspense>}
       {preview.manual_followup_plan && <Suspense fallback={<p>正在显示复查计划附节…</p>}><ClinicalDocFollowupPlanSelection mode="preview" payload={preview.manual_followup_plan} onReady={()=>setPlanPreviewReady(true)}/></Suspense>}
+      {preview.manual_followup_contact && <Suspense fallback={<p>正在显示随访附节…</p>}><ClinicalDocFollowupContactSelection mode="preview" payload={preview.manual_followup_contact} onReady={()=>setContactReady(true)}/></Suspense>}
       <p>导出账号：{preview.context['export.account_id']} · 生成时间：{preview.context.timestamp} · 文书内容校验标识：{preview.document_hash}</p>
-      <label><input type="checkbox" checked={confirmed} disabled={busy || Boolean(preview.manual_followup_plan && !planPreviewReady)}
+      <label><input type="checkbox" checked={confirmed} disabled={busy || Boolean(preview.manual_followup_plan && !planPreviewReady) || Boolean(preview.manual_followup_contact && !contactReady)}
         onChange={event => setConfirmed(event.target.checked)} /> 已核对本次草稿内容（仍未签署）</label>{" "}
-      <button type="button" disabled={busy || !confirmed || Boolean(preview.manual_followup_plan && !planPreviewReady)} onClick={download}>确认并下载草稿 DOCX</button>
+      <button type="button" disabled={busy || !confirmed || Boolean(preview.manual_followup_plan && !planPreviewReady) || Boolean(preview.manual_followup_contact && !contactReady)} onClick={download}>确认并下载草稿 DOCX</button>
     </div>}
   </section>;
 }

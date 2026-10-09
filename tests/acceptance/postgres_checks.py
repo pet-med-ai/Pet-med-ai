@@ -303,6 +303,25 @@ def followup_contact_readback():
     record('cwb19_fresh_process_two_accounts_exact_contacts_sources_audits_readonly')
 
 
+def contact_document_readback():
+    # All imports required by this entry point occur before --readback exits.
+    f.enable_followup_contact_documents()
+    before=followup_overview_business()
+    for item in json.loads((f.OUT/'cwb21-restart-expected.json').read_text()):
+        auth=login(item['account']);body=item['body'];cid=body['case_id']
+        assert call('GET',f'/api/cases/{cid}/followup-contacts',auth)==item['contacts']
+        assert read(cid,auth)==item['case'] and contact_overview_audits(cid)==item['audits']
+        p=call('POST','/api/clinical-docs/render-preview',auth,json=body)
+        assert p['content_snapshot']==item['snapshot']
+        assert {k:v for k,v in p.items() if k.startswith('manual_')}==item['sections']
+        r=client.post('/api/clinical-docs/render',headers=auth,json={**body,'expected_content_snapshot':p['content_snapshot']})
+        assert r.status_code==200 and r.headers['x-pmai-content-snapshot']==p['content_snapshot']
+        for value in (item['sections']['manual_followup_contact']['record']['data']['note'],item['sections']['manual_followup_contact']['record']['token']):
+            assert value in followup_document_text(r.content)
+    assert before==followup_overview_business()
+    record('cwb21_fresh_process_two_accounts_exact_contact_documents_sources_audits_readonly')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -348,6 +367,7 @@ if '--readback' in sys.argv:
     followup_queue_readback()
     followup_contact_readback()
     contact_overview_readback()
+    contact_document_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -2238,6 +2258,128 @@ for scenario in ('control_dog', 'control_cat', 'contact_create', 'contact_correc
                  'plan_replace', 'body', 'identity', 'delete', 'owner', 'source', 'source_metadata', 'lab', 'lab_correct', 'imaging', 'imaging_correct'):
     contact_inventory_pg(scenario)
 (f.OUT/'cwb20-restart-expected.json').write_text(json.dumps(contact_inventory_expected, ensure_ascii=False, indent=2))
+
+# CW-B21: contact facts, every selected appendix and native physical locks.
+f.enable_followup_contact_documents()
+import clinical_followup_contact_documents as contact_documents
+contact_document_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_contact_documents_cw_b21_cases.json').read_text())
+contact_document_expected=[]
+
+
+def contact_document_pg(scenario, rendering=True):
+    auth,account=(contact_other,'cwb19-other') if scenario=='control_cat' else (owner,'pg-owner')
+    mixed=scenario in ('control_dog','source','source_metadata','lab','lab_correct','imaging','imaging_correct','mixed_plan')
+    if mixed:
+        baseline=comparison_document_pg('control',True);cid=baseline['case_id'];extra={k:v for k,v in baseline.items() if k.startswith('manual_')}
+    else:
+        cid=call('POST','/api/cases',auth,expected=201,json=contact_document_fixture['cat_case' if scenario=='control_cat' else 'case'])['id'];extra={}
+    root=f'/api/cases/{cid}/followup-contacts';planroot=f'/api/cases/{cid}/followup-plan'
+    def plan_body(operation='create',row=None):
+        listing=call('GET',planroot,auth)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':listing['case_token'],'expected_state_token':listing['state_token'],'data':None if operation=='withdraw' else contact_document_fixture['corrected_plan' if operation=='correct' else 'plan'],
+           'reason':'' if operation=='create' else 'CW21 合成来源变化'}
+        p=call('POST',planroot+'/preview',auth,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    source=call('POST',planroot+'/confirm',auth,json=plan_body())['plan']
+    def contact_body(operation='create',row=None):
+        listing=call('GET',root,auth);p=next(p for p in listing['plans'] if p['id']==source['id'])
+        b={'request_id':uuid4().hex,'operation':operation,'contact_id':row['id'] if row else None,'expected_contact_token':row['token'] if row else '',
+           'source_plan_id':p['id'],'source_plan_version':p['version'],'expected_source_token':p['token'],'expected_case_token':listing['case_token'],'expected_state_token':listing['state_token'],
+           'data':None if operation=='withdraw' else contact_document_fixture['corrected' if operation=='correct' else 'contact'],'reason':'' if operation=='create' else 'CW21 合成联系变化'}
+        p=call('POST',root+'/preview',auth,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    row=call('POST',root+'/confirm',auth,json=contact_body())['record']
+    if scenario=='control_cat':
+        # Historical contact remains exportable with an explicitly withdrawn source.
+        call('POST',planroot+'/confirm',auth,json=plan_body('withdraw',source))
+    listing=call('GET',root,auth);current_source=next(p for p in listing['plans'] if p['id']==source['id'])
+    selection={**{k:row[k] for k in ('id','version','token')},'source_token':current_source['token'],'case_token':listing['case_token']}
+    if scenario=='control_dog':extra['manual_followup_plan']={k:source[k] for k in ('id','version','token')}
+    body={'case_id':cid,'template_id':'outpatient_record_zh','manual_followup_contact':selection,**extra}
+    before=call('POST','/api/clinical-docs/render-preview',auth,json=body);request={**body,'expected_content_snapshot':before['content_snapshot']}
+    if scenario.startswith('control_'):
+        original=followup_overview_business();writes=[]
+        def capture(_c,_cur,sql,*_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}:writes.append(sql)
+        event.listen(f.db.engine,'before_cursor_execute',capture)
+        try:
+            p=call('POST','/api/clinical-docs/render-preview',auth,json=body)
+            r=client.post('/api/clinical-docs/render',headers=auth,json=request);assert r.status_code==200,r.text
+            assert r.headers['x-pmai-content-snapshot']==before['content_snapshot'] and r.headers['cache-control']=='private, no-store'
+            for value in (row['data']['note'],row['data']['next_action'],row['source']['data']['purpose'],row['token']):assert value in followup_document_text(r.content)
+            assert p['manual_followup_contact']['record']['source']==row['source']
+            (f.OUT/f'cwb21-pg-{account}.docx').write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+        assert not writes and original==followup_overview_business()
+        call('POST','/api/clinical-docs/render-preview',owner if auth==contact_other else contact_other,expected=404,json=body)
+        contact_document_expected.append({'account':account,'body':body,'snapshot':before['content_snapshot'],'sections':{k:v for k,v in before.items() if k.startswith('manual_')},
+            'contacts':listing,'case':read(cid,auth),'audits':contact_overview_audits(cid)})
+    elif scenario=='template':
+        original=document_api.Path.read_bytes
+        def changed(path):
+            raw=original(path);return raw+b'CW21 changed template' if str(path).endswith('outpatient_record_zh.docx') else raw
+        with patch.object(document_api.Path,'read_bytes',changed):call('POST','/api/clinical-docs/render',auth,json=request,expected=409)
+    else:
+        if scenario in ('correct','withdraw'):
+            b=contact_body(scenario,row);mutation=lambda:client.post(root+'/confirm',headers=auth,json=b)
+        elif scenario in ('plan_correct','plan_withdraw','mixed_plan'):
+            b=plan_body('withdraw' if scenario=='plan_withdraw' else 'correct',source);mutation=lambda:client.post(planroot+'/confirm',headers=auth,json=b)
+        elif scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):
+            target=f'/api/cases/{cid}/'+('manual-imaging' if scenario.startswith('imaging') else 'manual-lab')
+            selected=next(r for r in call('GET',target,auth)['reports'] if r['id']==extra['manual_imaging_report_ids' if scenario.startswith('imaging') else 'manual_lab_report_ids'][0])
+            if scenario.startswith('source'):
+                target=f'/api/cases/{cid}/attachments';state=call('GET',target,auth);original=next(s for s in state['items'] if s['id']==selected['attachment_id'])
+                b={'request_id':uuid4().hex,'attachment_id':original['id'],'operation':'withdraw' if scenario=='source' else 'update','expected_case_token':state['case_token'],'metadata':{**original['metadata'],'title':'CW21 原件更正'},'reason':'合成更正'}
+            else:
+                data=None
+                if scenario.endswith('_correct'):
+                    data=deepcopy(selected['data'])
+                    if scenario.startswith('lab'):
+                        import manual_lab_results
+                        data=manual_lab_results.input_data(data);data['items'][0]['value']='1.500'
+                    else:data['findings']+=' CW21 影像更正'
+                b={'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':'correct' if data else 'withdraw','expected_case_token':call('GET',target,auth)['case_token'],
+                   'report_id':selected['id'],'expected_report_token':selected['token'],'data':data,'reason':'CW21 合成更正'}
+            preview=call('POST',target+'/preview',auth,json=b);mutation=lambda:client.post(target+'/confirm',headers=auth,json={**b,'preview_token':preview['preview_token'],'reviewed':True})
+        elif scenario=='owner':
+            def mutation():
+                with followup.transaction(listing['case']['owner_id'],cid) as (db,case):case.owner_id=contact_other_id;db.commit()
+                from types import SimpleNamespace
+                return SimpleNamespace(status_code=200)
+        elif scenario=='delete':mutation=lambda:client.delete(f'/api/cases/{cid}',headers=auth)
+        else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=auth,json={'owner_name':'CW21 并发身份'} if scenario=='identity' else {'history':'CW21 并发正文'})
+        entered,release,attempting_sql,attempting_store=Event(),Event(),Event(),Event();pids=set()
+        module,method=(document_api,'_render_docx') if rendering else (contact_documents,'read_selected');normal=getattr(module,method);normal_locked=attachment_store.Store.locked
+        from contextlib import contextmanager
+        @contextmanager
+        def observed_store(store):
+            if entered.is_set():attempting_store.set()
+            with normal_locked(store):yield
+        def held(*args,**kwargs):entered.set();assert release.wait(15);return normal(*args,**kwargs)
+        def locks(connection,_cursor,sql,*_):
+            if 'FOR UPDATE' in sql.upper() or sql.lstrip().upper().startswith(('UPDATE CASES ','DELETE FROM CASES ')):
+                pids.add(connection.connection.driver_connection.get_backend_pid())
+                if entered.is_set():attempting_sql.set()
+        event.listen(f.db.engine,'before_cursor_execute',locks)
+        try:
+            with ThreadPoolExecutor(2) as pool,patch.object(module,method,side_effect=held),patch.object(attachment_store.Store,'locked',observed_store):
+                reading=pool.submit(client.post,'/api/clinical-docs/'+('render' if rendering else 'render-preview'),headers=auth,json=request if rendering else body)
+                try:
+                    assert entered.wait(10);writing=pool.submit(mutation)
+                    if scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):assert attempting_store.wait(10) and not writing.done()
+                    else:assert attempting_sql.wait(10) and len(pids)>=2 and not writing.done()
+                finally:release.set()
+                r=reading.result(20);assert r.status_code==200,r.text if r.status_code!=200 else ''
+                if rendering:assert row['data']['note'] in followup_document_text(r.content) and 'CW21 并发正文' not in followup_document_text(r.content)
+                else:assert r.json()['content_snapshot']==before['content_snapshot']
+                assert writing.result(20).status_code==(204 if scenario=='delete' else 200)
+        finally:event.remove(f.db.engine,'before_cursor_execute',locks)
+        call('POST','/api/clinical-docs/render',auth,json=request,expected=404 if scenario in ('owner','delete') else 409)
+    record('cwb21_postgresql_'+scenario+('_render' if rendering else '_preview'))
+
+for scenario in ('correct','withdraw','plan_correct','plan_withdraw','body','identity','owner','delete','source','source_metadata','lab','lab_correct','imaging','imaging_correct','mixed_plan'):
+    for rendering in (False,True):contact_document_pg(scenario,rendering)
+for scenario in ('control_dog','control_cat','template'):contact_document_pg(scenario)
+(f.OUT/'cwb21-restart-expected.json').write_text(json.dumps(contact_document_expected,ensure_ascii=False,indent=2))
 
 # Close only after every batch has finished using the shared authenticated client.
 client.close(); f.db.engine.dispose()
