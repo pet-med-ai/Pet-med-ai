@@ -261,9 +261,12 @@ def followup_queue_readback():
 
 
 def contact_overview_audits(cid):
+    def value(row, column):
+        # Database column "metadata" maps to extra_data, not DeclarativeBase.metadata.
+        data = getattr(row, row.__mapper__.get_property_by_column(column).key)
+        return str(data) if isinstance(data, datetime) else data
     with f.db.SessionLocal() as db:
-        return [{c.key: str(getattr(row, c.key)) if isinstance(getattr(row, c.key), datetime) else getattr(row, c.key)
-                 for c in row.__table__.columns}
+        return [{c.key: value(row, c) for c in row.__table__.columns}
                 for row in db.query(f.models.AuditLog).filter_by(case_id=cid).order_by(f.models.AuditLog.log_id).all()]
 
 
