@@ -72,6 +72,21 @@ function CaseDetailContent({ requestToken }) {
   const [queueTargetError, setQueueTargetError] = useState('');
   useEffect(() => {
     const params = new URLSearchParams(location.search);
+    const contactPresent = params.has('followup_contact') || params.has('followup_contact_version');
+    if (contactPresent) {
+      const rawId = params.get('followup_contact'), rawVersion = params.get('followup_contact_version');
+      const contactId = Number(rawId), version = Number(rawVersion);
+      if (params.has('followup_plan') || params.has('followup_version') ||
+          params.getAll('followup_contact').length !== 1 || params.getAll('followup_contact_version').length !== 1 ||
+          !/^[1-9][0-9]*$/.test(rawId || '') || !/^[1-9][0-9]*$/.test(rawVersion || '') ||
+          !Number.isSafeInteger(contactId) || !Number.isSafeInteger(version) || version > 50) {
+        setContactTarget(null); setFollowupTarget(null);
+        setQueueTargetError('随访定位信息无效，请返回清单重新打开。'); return;
+      }
+      setQueueTargetError('');
+      if (!data || Number(data.id) !== Number(id)) return;
+      setShowContacts(true); setContactTarget({ id: contactId, version, request: {} }); setOverviewTarget('contacts'); return;
+    }
     if (!params.has('followup_plan') && !params.has('followup_version')) { setQueueTargetError(''); return; }
     const rawId = params.get('followup_plan'), rawVersion = params.get('followup_version');
     const planId = Number(rawId), version = Number(rawVersion);

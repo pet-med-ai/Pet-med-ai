@@ -244,6 +244,18 @@ on:
       - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACT_OWNER_DOCUMENTS_CW_B22.md'
       - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACT_DOCUMENTS_CW_B21.md'
 
+      - 'backend/clinical_followup_contact_queue.py'
+      - 'frontend/src/followupContactQueue.js'
+      - 'frontend/src/components/FollowupContactQueueSummary.jsx'
+      - 'frontend/tests/followup-contact-queue.test.jsx'
+      - 'frontend/tests/case-detail-followup-contact-queue.test.jsx'
+      - 'tests/test_clinical_followup_contact_queue.py'
+      - 'tests/test_clinical_followup_contact_queue_concurrency.py'
+      - 'tests/test_clinical_followup_contact_queue_isolation.py'
+      - 'tests/acceptance/clinical_followup_contact_queue_checks.cjs'
+      - 'tests/fixtures/clinical_followup_contact_queue_cw_b23_cases.json'
+      - 'scripts/validate_clinical_followup_contact_queue_cw_b23.py'
+
 permissions:
   contents: read
 
@@ -278,15 +290,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B21 and approved CW-B22 increment
+      - name: Bind frozen M7 through CW-B22 and approved CW-B23 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_followup_contact_owner_documents_cw_b22.py > "$RUNNER_TEMP/cwb22-scope.json"
+          python scripts/validate_clinical_followup_contact_queue_cw_b23.py > "$RUNNER_TEMP/cwb23-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb22-scope.json" acceptance-results/cwb22-scope.json
+          cp "$RUNNER_TEMP/cwb23-scope.json" acceptance-results/cwb23-scope.json
           python - <<'PY_SCOPE'
           import json
-          cwb21 = json.load(open('acceptance-results/cwb22-scope.json'))['frozen_cwb21']
+          cwb22 = json.load(open('acceptance-results/cwb23-scope.json'))['frozen_cwb22']
+          open('acceptance-results/cwb22-scope.json','w').write(json.dumps(cwb22,indent=2))
+          cwb21 = cwb22['frozen_cwb21']
           open('acceptance-results/cwb21-scope.json','w').write(json.dumps(cwb21,indent=2))
           cwb20 = cwb21['frozen_cwb20']
           open('acceptance-results/cwb20-scope.json','w').write(json.dumps(cwb20,indent=2))
@@ -529,6 +543,12 @@ jobs:
           PMAI_CWB22_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb22-doc-samples" python tests/test_clinical_followup_contact_owner_documents.py 2>&1 | tee acceptance-results/cwb22-document-tests.log
           python tests/test_clinical_followup_contact_owner_document_concurrency.py 2>&1 | tee acceptance-results/cwb22-concurrency-tests.log
           python tests/test_clinical_followup_contact_owner_document_isolation.py 2>&1 | tee acceptance-results/cwb22-isolation-tests.log
+      - name: CW-B23 bounded contact queue, SQLite snapshots and frozen validator isolation
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_followup_contact_queue.py 2>&1 | tee acceptance-results/cwb23-route-tests.log
+          python tests/test_clinical_followup_contact_queue_concurrency.py 2>&1 | tee acceptance-results/cwb23-concurrency-tests.log
+          python tests/test_clinical_followup_contact_queue_isolation.py 2>&1 | tee acceptance-results/cwb23-isolation-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -692,6 +712,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_owner_document_checks.cjs 2>&1 | tee acceptance-results/cwb22-browser.log
+      - name: CW-B23 real Chromium contact queue, exact versions and lost write replies
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_queue_checks.cjs 2>&1 | tee acceptance-results/cwb23-browser.log
       - name: Render CW-B13 synthetic DOCX samples to page evidence
         run: |
           sudo apt-get update -qq
