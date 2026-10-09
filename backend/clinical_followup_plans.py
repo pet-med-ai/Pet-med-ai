@@ -49,7 +49,8 @@ def namespace(status, channel):
 
 
 def legacy_only(status, channel):
-    return ~namespace(status, channel)
+    return ~or_(namespace(status, channel), func.coalesce(status, '').startswith('cw-b19-'),
+                func.coalesce(channel, '') == 'clinical-followup-contacts-cw-b19')
 
 
 def today():

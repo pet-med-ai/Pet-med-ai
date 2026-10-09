@@ -260,6 +260,23 @@ def followup_queue_readback():
     record('cwb18_fresh_process_two_accounts_exact_queue_versions_and_readonly_business')
 
 
+def followup_contact_readback():
+    f.enable_followup_contacts()
+    import clinical_followup_contacts as contacts
+    before=followup_overview_business()
+    for item in json.loads((f.OUT/'cwb19-restart-expected.json').read_text()):
+        auth=login(item['account']);root=f"/api/cases/{item['case_id']}/followup-contacts"
+        assert call('GET',root,auth)==item['listing']
+        assert read(item['case_id'],auth)==item['case']
+        assert call('GET',f"/api/cases/{item['case_id']}/followup-plan",auth)==item['plans']
+        for rid in item['requests']:assert call('GET',root+'/requests/'+rid,auth)['state']=='committed'
+        with f.db.SessionLocal() as db:
+            audits=db.query(f.models.AuditLog).filter_by(case_id=item['case_id'],source=contacts.SOURCE).order_by(f.models.AuditLog.log_id).all()
+            assert [r.extra_data for r in audits]==item['audits']
+    assert before==followup_overview_business()
+    record('cwb19_fresh_process_two_accounts_exact_contacts_sources_audits_readonly')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -303,6 +320,7 @@ if '--readback' in sys.argv:
     owner_followup_document_readback()
     followup_overview_readback()
     followup_queue_readback()
+    followup_contact_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -1921,6 +1939,119 @@ for auth,name,species in [(queue_owner,'cwb18-owner','dog'),(queue_other,'cwb18-
     queue_expected.append({'account':name,'queue':saved,'case':read(cid,auth),'plans':call('GET',f'/api/cases/{cid}/followup-plan',auth),'case_id':cid})
     record('cwb18_postgresql_'+species+'_readonly_minimal_identity_fixed_queries')
 (f.OUT/'cwb18-restart-expected.json').write_text(json.dumps(queue_expected,ensure_ascii=False,indent=2))
+
+# CW-B19 native PostgreSQL contacts: distinct synthetic accounts and physical Case locks.
+f.enable_followup_contacts()
+import clinical_followup_contacts as contacts
+contact_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_contacts_cw_b19_cases.json').read_text())
+for name in ('cwb19-owner','cwb19-other'):
+    call('POST','/auth/signup',json={'email':name+'@example.com','password':PASSWORD})
+contact_owner,contact_other=login('cwb19-owner'),login('cwb19-other')
+with f.db.SessionLocal() as db:
+    contact_owner_id=db.query(f.models.User).filter_by(email='cwb19-owner@example.com').one().id
+    contact_other_id=db.query(f.models.User).filter_by(email='cwb19-other@example.com').one().id
+contact_expected=[]
+
+
+def contact_pg(scenario,auth=contact_owner,account='cwb19-owner'):
+    cid=call('POST','/api/cases',auth,expected=201,json=contact_fixture['cat' if account=='cwb19-other' else 'case'])['id']
+    root=f'/api/cases/{cid}/followup-contacts'; planroot=f'/api/cases/{cid}/followup-plan'
+    requests=[]
+    def plan_save(operation='create',row=None):
+        l=call('GET',planroot,auth)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':l['case_token'],'expected_state_token':l['state_token'],'data':None if operation=='withdraw' else contact_fixture['plan'],'reason':'' if operation=='create' else '合成计划变化'}
+        p=call('POST',planroot+'/preview',auth,json=b)
+        return call('POST',planroot+'/confirm',auth,json={**b,'preview_token':p['preview_token'],'reviewed':True})['plan']
+    source=plan_save()
+    def body(operation='create',row=None):
+        l=call('GET',root,auth);p=next(p for p in l['plans'] if p['id']==source['id'])
+        b={'request_id':uuid4().hex,'operation':operation,'contact_id':row['id'] if row else None,'expected_contact_token':row['token'] if row else '',
+           'source_plan_id':p['id'],'source_plan_version':p['version'],'expected_source_token':p['token'],
+           'expected_case_token':l['case_token'],'expected_state_token':l['state_token'],'data':None if operation=='withdraw' else contact_fixture['corrected' if operation=='correct' else 'contact'],
+           'reason':'' if operation=='create' else contact_fixture['correction_reason']}
+        p=call('POST',root+'/preview',auth,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    def save(b,expected=200):
+        result=call('POST',root+'/confirm',auth,expected=expected,json=b)
+        if expected==200:requests.append(b['request_id'])
+        return result
+    def race(a,b):
+        gate=Barrier(2)
+        def send(v):gate.wait(10);return client.post(root+'/confirm',headers=auth,json=v)
+        with ThreadPoolExecutor(2) as pool:responses=list(pool.map(send,[a,b]))
+        for b,r in zip((a,b),responses):
+            if r.status_code==200:requests.append(b['request_id'])
+        return responses
+    original=read(cid,auth);plans_before=call('GET',planroot,auth)
+    kpi=call('GET',kpi_url,auth)
+    if scenario in {'create-race','idempotent-race'}:
+        a=body();responses=race(a,a if scenario=='idempotent-race' else body())
+        assert sorted(r.status_code for r in responses)==([200,200] if scenario=='idempotent-race' else [200,409])
+        if scenario=='idempotent-race':assert sorted(r.json()['writes_database'] for r in responses)==[False,True]
+    elif scenario=='correct-withdraw':
+        row=save(body())['record'];responses=race(body('correct',row),body('withdraw',row));assert sorted(r.status_code for r in responses)==[200,409]
+    elif scenario in {'body','identity','delete','owner','plan-correct','plan-withdraw'}:
+        b=body();entered,release=Event(),Event();uid=contact_owner_id
+        if scenario.startswith('plan-'):
+            append=followup.append_audit
+            def held(*args):append(*args);args[0].flush();entered.set();assert release.wait(10)
+            with patch.object(followup,'append_audit',side_effect=held),ThreadPoolExecutor(2) as pool:
+                write=pool.submit(plan_save,scenario.removeprefix('plan-'),source);assert entered.wait(10)
+                check=pool.submit(lambda:client.post(root+'/confirm',headers=auth,json=b));assert not check.done();release.set();write.result(20);assert check.result(20).status_code==409
+        else:
+            def edit():
+                with followup.transaction(uid,cid) as (db,case):
+                    if scenario=='body':case.history='合成并发正文'
+                    elif scenario=='identity':case.patient_name='合成身份更正'
+                    elif scenario=='delete':case.deleted_at=datetime.utcnow()
+                    else:case.owner_id=contact_other_id
+                    db.flush();entered.set();assert release.wait(10);db.commit()
+            with ThreadPoolExecutor(2) as pool:
+                write=pool.submit(edit);assert entered.wait(10)
+                check=pool.submit(lambda:client.post(root+'/confirm',headers=auth,json=b));assert not check.done();release.set();write.result(20);assert check.result(20).status_code==(404 if scenario in {'delete','owner'} else 409)
+            if scenario in {'delete','owner'}:
+                with f.db.SessionLocal() as db:
+                    case=db.get(f.models.Case,cid);case.deleted_at=None;case.owner_id=uid;db.commit()
+        original=read(cid,auth);plans_before=call('GET',planroot,auth)
+        assert call('GET',root+'/requests/'+b['request_id'],auth)['state']=='not_committed'
+    elif scenario=='rollback':
+        for operation in ('create','correct','withdraw'):
+            row=save(body())['record'] if operation=='correct' else (call('GET',root,auth)['records'][-1] if operation=='withdraw' else None)
+            for stage in ('audit','commit'):
+                b=body(operation,row);before=call('GET',root,auth)
+                def fail(*args,**kwargs):raise OperationalError('synthetic',{},Exception('rollback'))
+                append=contacts.append_audit
+                def flush_fail(*args):append(*args);args[0].flush();fail()
+                from sqlalchemy.orm import Session
+                with (patch.object(contacts,'append_audit',side_effect=flush_fail) if stage=='audit' else patch.object(Session,'commit',side_effect=fail)):
+                    save(b,503)
+                assert call('GET',root,auth)==before and call('GET',root+'/requests/'+b['request_id'],auth)['state']=='not_committed'
+    elif scenario=='lost-reply':
+        b=body();entered,release=Event(),Event();append=contacts.append_audit
+        def held(*args):append(*args);args[0].flush();entered.set();assert release.wait(10)
+        with patch.object(contacts,'append_audit',side_effect=held),ThreadPoolExecutor(2) as pool:
+            write=pool.submit(lambda:client.post(root+'/confirm',headers=auth,json=b));assert entered.wait(10)
+            result=pool.submit(lambda:client.get(root+'/requests/'+b['request_id'],headers=auth));assert not result.done();release.set();assert write.result(20).status_code==200;requests.append(b['request_id'])
+            assert result.result(20).json()['state']=='committed'
+        assert save(b)['writes_database'] is False
+    else:
+        row=save(body())['record'];row=save(body('correct',row))['record'];save(body('withdraw',row));save(body())
+        records=call('GET',root,auth)['records'];assert [r['state'] for r in records]==['superseded','withdrawn','recorded']
+        assert [r['data'] for r in records]==[contact_fixture['contact'],contact_fixture['corrected'],contact_fixture['contact']]
+    saved=call('GET',root,auth)
+    assert read(cid,auth)==original and call('GET',planroot,auth)==plans_before and call('GET',kpi_url,auth)==kpi
+    denied=contact_other if auth==contact_owner else contact_owner;call('GET',root,denied,expected=404)
+    with f.db.SessionLocal() as db:
+        rows=db.query(f.models.FollowUp).filter_by(case_id=cid,channel=contacts.SOURCE).all()
+        assert all(r.done_at is None and r.due_date==followup.due_date(contact_fixture['plan']['planned_date']) for r in rows)
+        audits=db.query(f.models.AuditLog).filter_by(case_id=cid,source=contacts.SOURCE).order_by(f.models.AuditLog.log_id).all();assert len(audits)==len(set(requests))
+        contact_expected.append({'case_id':cid,'account':account,'listing':saved,'case':original,'plans':plans_before,'audits':[r.extra_data for r in audits],'requests':sorted(set(requests))})
+    record('cwb19_postgresql_'+scenario+'_'+account)
+
+
+for scenario in ('create-race','idempotent-race','correct-withdraw','body','identity','delete','owner','plan-correct','plan-withdraw','rollback','lost-reply','lifecycle'):contact_pg(scenario)
+contact_pg('lifecycle',contact_other,'cwb19-other')
+(f.OUT/'cwb19-restart-expected.json').write_text(json.dumps(contact_expected,ensure_ascii=False,indent=2))
 
 # Close only after every batch has finished using the shared authenticated client.
 client.close(); f.db.engine.dispose()
