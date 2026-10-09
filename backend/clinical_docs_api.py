@@ -135,6 +135,7 @@ class ClinicalDocRenderIn(BaseModel):
     expected_content_snapshot: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     manual_lab_comparison: Any = None
     manual_followup_plan: Any = None
+    manual_followup_contact: Any = None
     manual_lab_report_ids: list[StrictInt] = Field(default_factory=list, max_length=5)
     manual_imaging_report_ids: list[StrictInt] = Field(default_factory=list, max_length=5)
 
@@ -454,6 +455,8 @@ def _content_snapshot(meta: Dict[str, Any], context: Dict[str, str], template_by
         payload['manual_lab_comparison'] = context['__manual_lab_comparison_document']
     if '__manual_followup_plan_document' in context:
         payload['manual_followup_plan'] = context['__manual_followup_plan_document']
+    if '__manual_followup_contact_document' in context:
+        payload['manual_followup_contact'] = context['__manual_followup_contact_document']
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
@@ -475,6 +478,8 @@ def _render_docx(template_path: Path, context: Dict[str, str], *, preserve_text_
                     raw = _comparison_documents().append_section(raw, context)
                 if item.filename == 'word/document.xml' and context.get('__manual_followup_plan_document'):
                     raw = _followup_documents().append_section(raw, context)
+                if item.filename == 'word/document.xml' and context.get('__manual_followup_contact_document'):
+                    raw = _contact_documents().append_section(raw, context)
                 zout.writestr(item, raw)
     return out.getvalue()
 
@@ -545,6 +550,42 @@ def _comparison_documents():
 def _has_comparison(data):
     # Explicit null is a supplied malformed selection, never silently omitted.
     return 'manual_lab_comparison' in data.model_fields_set
+
+
+def _contact_documents():
+    try:
+        from backend import clinical_followup_contact_documents
+    except ModuleNotFoundError:
+        import clinical_followup_contact_documents
+    return clinical_followup_contact_documents
+
+
+def _with_contact_document(data, user, operation, *, render=False):
+    module = _contact_documents()
+    try:
+        if data.template_id != 'outpatient_record_zh' or data.include_diagnostic_data:
+            raise HTTPException(422, '仅门诊病历草稿支持人工随访记录附节')
+        module.validate_selection(data.manual_followup_contact)
+        if render and not data.expected_content_snapshot:
+            raise HTTPException(409, 'contact_document_review_required')
+        with module.snapshot(user.id, data.case_id, data.manual_followup_contact,
+                             data.manual_lab_report_ids, data.manual_imaging_report_ids,
+                             data.manual_lab_comparison, _has_comparison(data),
+                             data.manual_followup_plan, 'manual_followup_plan' in data.model_fields_set) as parts:
+            result = operation(*parts)
+            if render:
+                result.headers.update(module.PRIVATE_HEADERS)
+                return result
+            return JSONResponse(result, headers=module.PRIVATE_HEADERS)
+    except (module.plans.PlanError, module.labs.AttachmentError) as error:
+        raise HTTPException(error.status, error.code, headers=module.PRIVATE_HEADERS) from error
+    except HTTPException as error:
+        error.headers = {**(error.headers or {}), **module.PRIVATE_HEADERS}
+        raise
+    except (OSError, SQLAlchemyError):
+        raise HTTPException(503, 'contact_document_unavailable', headers=module.PRIVATE_HEADERS) from None
+    except (KeyError, TypeError, ValueError, AttributeError, ArithmeticError, ET.ParseError, zipfile.BadZipFile):
+        raise HTTPException(409, 'contact_document_invalid_saved_data', headers=module.PRIVATE_HEADERS) from None
 
 
 def _followup_documents():
@@ -648,6 +689,8 @@ def manual_lab_document_options(case_id: int, user=Depends(get_current_user)):
 
 @router.post("/render-preview", response_model=dict)
 def preview_clinical_doc_context(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if 'manual_followup_contact' in data.model_fields_set:
+        return _with_contact_document(data, user, lambda *parts: _preview_clinical_doc(data, *parts[:1], user, *parts[1:]))
     if 'manual_followup_plan' in data.model_fields_set:
         return _with_followup_document(data, user, lambda *parts: _preview_clinical_doc(data, *parts[:1], user, *parts[1:]))
     if _has_comparison(data):
@@ -657,7 +700,7 @@ def preview_clinical_doc_context(data: ClinicalDocRenderIn, db: Session = Depend
     return _preview_clinical_doc(data, db, user)
 
 
-def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None, comparison=None, followup=None):
+def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None, comparison=None, followup=None, contact=None):
     meta = _template_meta(data.template_id)
     case = _case_or_404(db, data.case_id, user)
     context = _build_context(case, data=data, user=user, template_id=str(meta["template_id"]))
@@ -676,7 +719,9 @@ def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=N
         context = _comparison_documents().add_context(context, comparison)
     if followup:
         context = _followup_documents().add_context(context, followup)
-    if manual_reports or imaging_reports or comparison or followup:
+    if contact:
+        context = _contact_documents().add_context(context, contact)
+    if manual_reports or imaging_reports or comparison or followup or contact:
         context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [
@@ -698,6 +743,7 @@ def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=N
         **({'manual_imaging_reports': imaging_reports} if imaging_reports else {}),
         **({'manual_lab_comparison': comparison} if comparison else {}),
         **({'manual_followup_plan': followup} if followup else {}),
+        **({'manual_followup_contact': contact} if contact else {}),
         "diagnostic_data_merge": diagnostic_data_merge,
         "writes_database": False,
         "creates_case": False,
@@ -709,6 +755,8 @@ def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=N
 
 @router.post("/render", response_class=StreamingResponse)
 def render_clinical_doc(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if 'manual_followup_contact' in data.model_fields_set:
+        return _with_contact_document(data, user, lambda *parts: _render_clinical_doc(data, *parts[:1], user, *parts[1:]), render=True)
     if 'manual_followup_plan' in data.model_fields_set:
         return _with_followup_document(data, user, lambda *parts: _render_clinical_doc(data, *parts[:1], user, *parts[1:]), render=True)
     if _has_comparison(data):
@@ -720,7 +768,7 @@ def render_clinical_doc(data: ClinicalDocRenderIn, db: Session = Depends(get_db)
     return _render_clinical_doc(data, db, user)
 
 
-def _render_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None, comparison=None, followup=None):
+def _render_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None, comparison=None, followup=None, contact=None):
     if data.output.lower() != "docx":
         raise HTTPException(status_code=422, detail="Clinical Docs Export API V1 supports output=docx only")
 
@@ -742,7 +790,9 @@ def _render_clinical_doc(data, db, user, manual_reports=None, imaging_reports=No
         context = _comparison_documents().add_context(context, comparison)
     if followup:
         context = _followup_documents().add_context(context, followup)
-    if manual_reports or imaging_reports or comparison or followup:
+    if contact:
+        context = _contact_documents().add_context(context, contact)
+    if manual_reports or imaging_reports or comparison or followup or contact:
         context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [
