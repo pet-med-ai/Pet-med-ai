@@ -1844,7 +1844,7 @@ queue_url = '/api/followup-plan-queue'
 
 
 def queue_case(auth=queue_owner, species='dog'):
-    return call('POST','/api/cases',auth,json=queue_fixture['cat_case' if species=='cat' else 'case'])['id']
+    return call('POST','/api/cases',auth,expected=201,json=queue_fixture['cat_case' if species=='cat' else 'case'])['id']
 
 
 def queue_save(cid, operation='create', row=None, auth=queue_owner, data=None):
