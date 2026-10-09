@@ -233,6 +233,15 @@ on:
       - 'tests/acceptance/clinical_followup_contact_document_checks.cjs'
       - 'tests/fixtures/clinical_followup_contact_documents_cw_b21_cases.json'
       - 'scripts/validate_clinical_followup_contact_documents_cw_b21.py'
+      - 'frontend/tests/followup-contact-owner-documents.test.jsx'
+      - 'frontend/tests/case-detail-followup-contact-owner-documents.test.jsx'
+      - 'tests/test_clinical_followup_contact_owner_documents.py'
+      - 'tests/test_clinical_followup_contact_owner_document_concurrency.py'
+      - 'tests/test_clinical_followup_contact_owner_document_isolation.py'
+      - 'tests/acceptance/clinical_followup_contact_owner_document_checks.cjs'
+      - 'tests/fixtures/clinical_followup_contact_owner_documents_cw_b22_cases.json'
+      - 'scripts/validate_clinical_followup_contact_owner_documents_cw_b22.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACT_OWNER_DOCUMENTS_CW_B22.md'
       - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACT_DOCUMENTS_CW_B21.md'
 
 permissions:
@@ -269,15 +278,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B20 and approved CW-B21 increment
+      - name: Bind frozen M7 through CW-B21 and approved CW-B22 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_followup_contact_documents_cw_b21.py > "$RUNNER_TEMP/cwb21-scope.json"
+          python scripts/validate_clinical_followup_contact_owner_documents_cw_b22.py > "$RUNNER_TEMP/cwb22-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb21-scope.json" acceptance-results/cwb21-scope.json
+          cp "$RUNNER_TEMP/cwb22-scope.json" acceptance-results/cwb22-scope.json
           python - <<'PY_SCOPE'
           import json
-          cwb20 = json.load(open('acceptance-results/cwb21-scope.json'))['frozen_cwb20']
+          cwb21 = json.load(open('acceptance-results/cwb22-scope.json'))['frozen_cwb21']
+          open('acceptance-results/cwb21-scope.json','w').write(json.dumps(cwb21,indent=2))
+          cwb20 = cwb21['frozen_cwb20']
           open('acceptance-results/cwb20-scope.json','w').write(json.dumps(cwb20,indent=2))
           cwb19 = cwb20['frozen_cwb19']
           open('acceptance-results/cwb19-scope.json','w').write(json.dumps(cwb19,indent=2))
@@ -512,6 +523,12 @@ jobs:
           PMAI_CWB21_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb21-doc-samples" python tests/test_clinical_followup_contact_documents.py 2>&1 | tee acceptance-results/cwb21-document-tests.log
           python tests/test_clinical_followup_contact_document_concurrency.py 2>&1 | tee acceptance-results/cwb21-concurrency-tests.log
           python tests/test_clinical_followup_contact_document_isolation.py 2>&1 | tee acceptance-results/cwb21-isolation-tests.log
+      - name: CW-B22 literal contact documents, SQLite races and old request isolation
+        run: |
+          set -euo pipefail
+          PMAI_CWB22_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb22-doc-samples" python tests/test_clinical_followup_contact_owner_documents.py 2>&1 | tee acceptance-results/cwb22-document-tests.log
+          python tests/test_clinical_followup_contact_owner_document_concurrency.py 2>&1 | tee acceptance-results/cwb22-concurrency-tests.log
+          python tests/test_clinical_followup_contact_owner_document_isolation.py 2>&1 | tee acceptance-results/cwb22-isolation-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -671,6 +688,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_document_checks.cjs 2>&1 | tee acceptance-results/cwb21-browser.log
+      - name: CW-B22 real Chromium contact documents, history and lost write replies
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_owner_document_checks.cjs 2>&1 | tee acceptance-results/cwb22-browser.log
       - name: Render CW-B13 synthetic DOCX samples to page evidence
         run: |
           sudo apt-get update -qq
@@ -754,6 +775,26 @@ jobs:
               result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
           (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
           PY_DOC21
+      - name: Render every CW-B22 document sample page
+        run: |
+          python - <<'PY_DOC22'
+          import json, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results/cwb22-doc-samples')
+          files=sorted(root.glob('*.docx'))
+          assert len(files)==4
+          result=[]
+          for file in files:
+              target=root/file.stem
+              target.mkdir()
+              subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb22-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],check=True,timeout=90)
+              pdf=target/(file.stem+'.pdf')
+              assert pdf.is_file() and pdf.stat().st_size>0
+              subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+              pages=list(target.glob('page-*.png'));assert pages
+              result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
+          (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
+          PY_DOC22
       - name: Audit locked frontend dependencies
         run: |
           set -o pipefail

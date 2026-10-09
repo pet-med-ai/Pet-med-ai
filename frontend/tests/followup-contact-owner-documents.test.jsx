@@ -6,14 +6,14 @@ import assert from 'node:assert/strict';
 import ClinicalDocReview from '../src/components/ClinicalDocReview';
 import {documentContactSelection,validDocumentContact} from '../src/followupContactDocuments';
 import api from '../src/api';
-import fixture from '../../tests/fixtures/clinical_followup_contact_documents_cw_b21_cases.json';
+import fixture from '../../tests/fixtures/clinical_followup_contact_owner_documents_cw_b22_cases.json';
 let renderer,props,token,requests,adapter,listeners,downloads,listing;
 const hash='a'.repeat(64),reply=(c,data)=>({config:c,status:200,data});
 const button=s=>renderer.root.findAllByType('button').find(n=>n.children.join('')===s);
 const click=async s=>act(async()=>{assert(button(s),s);await button(s).props.onClick();});
 const text=()=>JSON.stringify(renderer.toJSON());
 const row=()=>listing.records.find(r=>r.state==='recorded');
-const payload=()=>({...documentContactSelection(listing,row()).expected,audit_token:hash});
+const payload=()=>({...documentContactSelection(listing,row(),'owner_visit_summary_zh').expected,audit_token:hash});
 const confirm=async()=>act(async()=>{const b=renderer.root.findAllByType('input').find(n=>n.props.type==='checkbox'&&!n.props['aria-label']);assert(b&&!b.props.disabled);b.props.onChange({target:{checked:true}});});
 const fire=async(name,e={})=>act(async()=>{for(const fn of [...(listeners[name]||[])])fn(e);});
 const deferred=()=>{let resolve,reject;const promise=new Promise((r,j)=>{resolve=r;reject=j;});return{promise,resolve,reject};};
@@ -24,7 +24,7 @@ beforeEach(async()=>{
  global.localStorage={getItem:()=>token,setItem(){throw Error('No persistence');}};global.sessionStorage={setItem(){throw Error('No persistence');}};
  global.window={addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};
  global.document={hidden:false,addEventListener:window.addEventListener,removeEventListener:window.removeEventListener};
- props={caseId:1,templateId:'outpatient_record_zh',label:'门诊病历',requestToken:token,onClose(){},onDownload:async(snapshot,current,labs,images,comparison,signal,plan,contact)=>{downloads.push({snapshot,current:current(),labs,images,comparison,signal,plan,contact});return{ok:true};}};
+ props={caseId:1,templateId:'owner_visit_summary_zh',label:'宠主说明',requestToken:token,onClose(){},onDownload:async(snapshot,current,labs,images,comparison,signal,plan,contact)=>{downloads.push({snapshot,current:current(),labs,images,comparison,signal,plan,contact});return{ok:true};}};
  adapter=async c=>c.url.endsWith('/followup-contacts')?reply(c,structuredClone(listing)):preview(c);
  api.defaults.adapter=async c=>{requests.push(c);return adapter(c);};await act(async()=>renderer=TestRenderer.create(view()));
 });
@@ -35,17 +35,17 @@ test('explicit current contact selection, original history, full review and sing
  assert.equal(requests.length,1);assert.equal(JSON.parse(requests[0].data).manual_followup_contact,undefined);
  await selected();assert(button('确认并下载草稿 DOCX').props.disabled);for(const value of [row().data.note,row().data.next_action,row().source.data.purpose,row().token])assert(text().includes(JSON.stringify(value).slice(1,-1)));
  await confirm();await act(async()=>Promise.all([button('确认并下载草稿 DOCX').props.onClick(),button('确认并下载草稿 DOCX').props.onClick()]));
- assert.equal(downloads.length,1);assert.deepEqual(downloads[0].contact,documentContactSelection(listing,row()).request);assert.equal(downloads[0].plan,undefined);
+ assert.equal(downloads.length,1);assert.deepEqual(downloads[0].contact,documentContactSelection(listing,row(),'owner_visit_summary_zh').request);assert.equal(downloads[0].plan,undefined);
 });
 test('strict full response rejects altered source, case, record, audit and extra fields',()=>{
- const choice=documentContactSelection(listing,row());assert(validDocumentContact(payload(),choice,1));assert(!validDocumentContact(payload(),null,1));assert(validDocumentContact(undefined,null,1));
- for(const key of ['case','record','selection','timezone','schema','audit_token']){const p=payload();p[key]={};assert(!validDocumentContact(p,choice,1));}
- assert(!validDocumentContact({...payload(),extra:true},choice,1));assert(!validDocumentContact(payload(),choice,2));
+ const choice=documentContactSelection(listing,row(),'owner_visit_summary_zh');assert(validDocumentContact(payload(),choice,1,'owner_visit_summary_zh'));assert(!validDocumentContact(payload(),null,1));assert(validDocumentContact(undefined,null,1));
+ for(const key of ['case','record','selection','timezone','schema','audit_token']){const p=payload();p[key]={};assert(!validDocumentContact(p,choice,1,'owner_visit_summary_zh'));}
+ assert(!validDocumentContact({...payload(),extra:true},choice,1,'owner_visit_summary_zh'));assert(!validDocumentContact(payload(),choice,2,'owner_visit_summary_zh'));
  assert.throws(()=>documentContactSelection(listing,{...row(),state:'withdrawn'}));
 });
 for(const action of ['clear','refresh','focus','blur','hidden','revision','template','account'])test(`invalidates full confirmation on ${action}`,async()=>{
  await selected();await confirm();
- if(action==='clear')await click('移除本次人工随访附节');else if(action==='refresh')await click('刷新可选人工随访');else if(['focus','blur'].includes(action))await fire(action);else if(action==='hidden'){document.hidden=true;await fire('visibilitychange');}else await act(async()=>{if(action==='revision')props={...props,sourceRevision:1};if(action==='template')props={...props,templateId:'owner_visit_summary_zh'};if(action==='account'){token='other';props={...props,requestToken:token};}renderer.update(view());});
+ if(action==='clear')await click('移除本次人工随访附节');else if(action==='refresh')await click('刷新可选人工随访');else if(['focus','blur'].includes(action))await fire(action);else if(action==='hidden'){document.hidden=true;await fire('visibilitychange');}else await act(async()=>{if(action==='revision')props={...props,sourceRevision:1};if(action==='template')props={...props,templateId:'outpatient_record_zh'};if(action==='account'){token='other';props={...props,requestToken:token};}renderer.update(view());});
  assert(!button('确认并下载草稿 DOCX')||button('确认并下载草稿 DOCX').props.disabled);assert.doesNotMatch(text(),/文书人工随访附节/);assert.equal(downloads.length,0);
 });
 for(const action of ['followup-contacts','followup-plan','attachments','manual-lab','manual-imaging','body'])for(const failed of [false,true])test(`${action} ${failed?'lost reply':'success'} resets at request start and independently rereads with closed selector`,async()=>{
@@ -69,4 +69,24 @@ test('unknown list and forged original stay failures, not empty or confirmable',
  adapter=async c=>{const r=await normal(c);if(c.url.endsWith('render-preview'))r.data.manual_followup_contact.record.data.note='forged';return r;};
  await click('重新读取草稿');assert(!button('确认并下载草稿 DOCX'));assert.match(text(),/完整草稿/);
 });
-test('owner entry defaults to no contact read, selection or confirmation',async()=>{props={...props,templateId:'owner_visit_summary_zh'};await act(async()=>renderer.update(view()));assert(button('选择人工随访记录附节'));assert(!requests.some(c=>c.url.endsWith('/followup-contacts')));assert.doesNotMatch(text(),/文书人工随访附节/);assert(!button('确认并下载草稿 DOCX')||button('确认并下载草稿 DOCX').props.disabled);});
+test('owner defaults to no contact read and warns before literal history selection',async()=>{
+ assert(button('选择人工随访记录附节'));assert(!requests.some(c=>c.url.endsWith('/followup-contacts')));
+ assert.equal(JSON.parse(requests[0].data).manual_followup_contact,undefined);assert(button('确认并下载草稿 DOCX').props.disabled);
+ await selected();assert.match(text(),/内部备注或旧身份/);assert.match(text(),/可取消纳入/);assert.match(text(),/不会自动发送/);assert.match(text(),/是否适合出示给宠主/);
+ assert(!button('选择人工检验前后对照附节'));
+});
+test('owner rejects clinical schema and any wrong or missing template binding',()=>{
+ const choice=documentContactSelection(listing,row(),'owner_visit_summary_zh');
+ const clinical=documentContactSelection(listing,row());
+ assert(!validDocumentContact({...clinical.expected,audit_token:hash},choice,1,'owner_visit_summary_zh'));
+ assert(!validDocumentContact(payload(),choice,1,'outpatient_record_zh'));
+ for(const template_id of [undefined,null,'outpatient_record_zh'])assert(!validDocumentContact({...payload(),template_id},choice,1,'owner_visit_summary_zh'));
+ assert.throws(()=>documentContactSelection(listing,row(),'discharge_summary_bilingual'));
+});
+test('late owner preview cannot restore confirmation after switching template',async()=>{
+ await select();const gate=deferred(),normal=adapter;let pending;
+ adapter=async c=>{const r=await normal(c);if(c.url.endsWith('render-preview'))await gate.promise;return r;};
+ await act(async()=>{pending=button('重新读取草稿').props.onClick();});
+ await act(async()=>{props={...props,templateId:'outpatient_record_zh'};renderer.update(view());});
+ await act(async()=>{gate.resolve();await pending;});assert.doesNotMatch(text(),/文书人工随访附节/);assert.equal(downloads.length,0);
+});

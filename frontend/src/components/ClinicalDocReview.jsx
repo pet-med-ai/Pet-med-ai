@@ -78,7 +78,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
           (!imageIds.length && data.manual_imaging_reports?.length) ||
           !validDocumentComparison(data.manual_lab_comparison, choice, caseId) ||
           !validDocumentPlan(data.manual_followup_plan, plan, caseId) ||
-          !validDocumentContact(data.manual_followup_contact, contact, caseId)) {
+          !validDocumentContact(data.manual_followup_contact, contact, caseId, templateId)) {
         throw new Error("未收到可核对的完整草稿，当前服务可能尚未支持。请重新读取，暂不能确认下载。");
       }
       setPreview(data); setMessage("");
@@ -249,10 +249,10 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
       {comparisonOpen && <Suspense fallback={<p>正在打开对照选择…</p>}><ClinicalDocLabComparisonSelection caseId={caseId} requestToken={requestToken} sourceRevision={sourceRevision}
         onSelect={selectComparison} onInvalidated={() => selectComparison(null)} onInspect={target => {leave();onInspectLab?.(target);}} /></Suspense>}
     </>}
-    {templateId === 'outpatient_record_zh' && <>
+    {['outpatient_record_zh','owner_visit_summary_zh'].includes(templateId) && <>
       {' '}<button type="button" disabled={busy} onClick={()=>{contactSession.current=true;setContactOpen(v=>!v);}}>{contactOpen?'收起人工随访选择':'选择人工随访记录附节'}</button>
       {contactChoice&&<p>已选择随访 #{contactChoice.request.id} 版本 {contactChoice.request.version}。<button type="button" onClick={()=>selectContact(null)}>移除本次人工随访附节</button></p>}
-      {contactOpen&&<Suspense fallback={<p>正在打开随访选择…</p>}><ClinicalDocFollowupContactSelection caseId={caseId} requestToken={requestToken} readRevision={contactRevision}
+      {contactOpen&&<Suspense fallback={<p>正在打开随访选择…</p>}><ClinicalDocFollowupContactSelection caseId={caseId} requestToken={requestToken} templateId={templateId} readRevision={contactRevision}
         onSelect={selectContact} onInspect={target=>{leave();onInspectContact?.(target);}} onInspectPlan={target=>{leave();onInspectFollowup?.(target);}}/></Suspense>}
     </>}
     {message && <p role="status" aria-live="polite">{message}</p>}

@@ -563,15 +563,18 @@ def _contact_documents():
 def _with_contact_document(data, user, operation, *, render=False):
     module = _contact_documents()
     try:
-        if data.template_id != 'outpatient_record_zh' or data.include_diagnostic_data:
-            raise HTTPException(422, '仅门诊病历草稿支持人工随访记录附节')
+        if data.template_id not in OUTPATIENT_TEMPLATES or data.include_diagnostic_data:
+            raise HTTPException(422, '仅门诊病历和宠主说明草稿支持人工随访记录附节')
+        if data.template_id == 'owner_visit_summary_zh' and _has_comparison(data):
+            raise HTTPException(422, '宠主说明草稿不支持检验前后对照附节')
         module.validate_selection(data.manual_followup_contact)
         if render and not data.expected_content_snapshot:
             raise HTTPException(409, 'contact_document_review_required')
         with module.snapshot(user.id, data.case_id, data.manual_followup_contact,
                              data.manual_lab_report_ids, data.manual_imaging_report_ids,
                              data.manual_lab_comparison, _has_comparison(data),
-                             data.manual_followup_plan, 'manual_followup_plan' in data.model_fields_set) as parts:
+                             data.manual_followup_plan, 'manual_followup_plan' in data.model_fields_set,
+                             template_id=data.template_id) as parts:
             result = operation(*parts)
             if render:
                 result.headers.update(module.PRIVATE_HEADERS)
