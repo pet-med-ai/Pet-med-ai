@@ -81,6 +81,11 @@ def records(db, case, sources):
     """Validate all bounded records and their audit receipts; no silent filtering/repair."""
     rows = db.query(FollowUp).filter(FollowUp.case_id == case.id, namespace(FollowUp.status, FollowUp.channel)).order_by(FollowUp.id).limit(MAX_VERSIONS + 1).all()
     audits = db.query(AuditLog).filter_by(case_id=case.id, source=SOURCE).order_by(AuditLog.log_id).limit(MAX_VERSIONS * 2 + 1).all()
+    return validated_records(rows, audits, case, sources)
+
+
+def validated_records(rows, audits, case, sources):
+    """The same bounded chain/receipt rules for case reads and prefetched queue rows."""
     try:
         if len(rows) > MAX_VERSIONS or len(audits) > MAX_VERSIONS * 2: raise ValueError('Limit')
         parsed, roots, by_id = [], {}, {}
@@ -114,6 +119,7 @@ def records(db, case, sources):
                 if (row.status == SUPERSEDED) != (i < len(versions) - 1): raise ValueError('Chain lifecycle')
         events = {}
         for audit in audits:
+            if audit.case_id != case.id or audit.source != SOURCE: raise ValueError('Audit case/source')
             info = audit.extra_data
             if not isinstance(info, dict) or set(info) != {'schema', 'fingerprint', 'record_id', 'version', 'operation', 'content_hash'}: raise ValueError('Audit')
             if info['schema'] != SCHEMA or not isinstance(info['fingerprint'], str) or not plans.HASH.fullmatch(info['fingerprint']): raise ValueError('Fingerprint')

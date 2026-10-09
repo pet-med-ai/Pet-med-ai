@@ -1,0 +1,606 @@
+{
+  "case": {
+    "patient_name": "CW-B23 合成犬",
+    "species": "dog",
+    "sex": "male",
+    "age_info": "6岁",
+    "breed": "合成",
+    "weight": "6.4 kg",
+    "coat_color": "棕色",
+    "owner_name": "合成宠主",
+    "owner_phone": "",
+    "chief_complaint": "合成复查总览验证",
+    "history": "病史原文 {{不得替换}}\n 保留空白 ",
+    "exam_findings": "仅合成查体",
+    "analysis": "待医生核对",
+    "treatment": "合成诊疗记录",
+    "prognosis": "不可自动推断为复查安排"
+  },
+  "cat_case": {
+    "patient_name": "CW-B23 合成猫",
+    "species": "cat",
+    "sex": "male",
+    "age_info": "6岁",
+    "breed": "合成",
+    "weight": "6.4 kg",
+    "coat_color": "棕色",
+    "owner_name": "合成宠主",
+    "owner_phone": "",
+    "chief_complaint": "合成复查总览验证",
+    "history": "病史原文 {{不得替换}}\n 保留空白 ",
+    "exam_findings": "仅合成查体",
+    "analysis": "待医生核对",
+    "treatment": "合成诊疗记录",
+    "prognosis": "不可自动推断为复查安排"
+  },
+  "plan": {
+    "planned_date": "2028-02-29",
+    "purpose": "  复查总览原文 {{visit.pet_name}}\n第二行 café αβ 🐾  ",
+    "items": [
+      "  血常规 {{原文}}  ",
+      "影像复核\n按原顺序 2",
+      "数值 0.0001 mg/L，不作转换"
+    ],
+    "return_conditions": "  医生手填返回条件\n不生成建议  ",
+    "note": " 原文备注 🐾\t{} "
+  },
+  "corrected_plan": {
+    "planned_date": "2026-10-31",
+    "purpose": "医生更正后计划原文",
+    "items": [
+      "更正项目一",
+      "更正项目二"
+    ],
+    "return_conditions": "  医生手填返回条件\n不生成建议  ",
+    "note": " 原文备注 🐾\t{} "
+  },
+  "short_plan": {
+    "planned_date": "2026-10-31",
+    "purpose": "复查",
+    "items": [
+      "复核"
+    ],
+    "return_conditions": "",
+    "note": ""
+  },
+  "contact": {
+    "occurred_at": "2024-02-29T16:35+08:00",
+    "method": "phone",
+    "outcome": "not_reached",
+    "note": "合成联系尝试\n原文 {{不要代写}} 🐾 é",
+    "next_action": "医生另行安排；无自动发送"
+  },
+  "corrected": {
+    "occurred_at": "2024-03-01T00:15+08:00",
+    "method": "wechat",
+    "outcome": "reached",
+    "note": "合成更正原文\n对方陈述仅作记录",
+    "next_action": "待医生核对后续安排"
+  },
+  "correction_reason": "合成：核对原始记录后更正",
+  "withdrawal_reason": "合成：撤销误录，不删除历史",
+  "long_contact": {
+    "occurred_at": "2024-02-29T16:35+08:00",
+    "method": "phone",
+    "outcome": "not_reached",
+    "note": "🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾🐾",
+    "next_action": "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+  },
+  "plan_listing": {
+    "schema": "clinical-followup-plans-cw-b14-v1",
+    "case_id": 1,
+    "case": {
+      "id": 1,
+      "owner_id": 1,
+      "patient_name": "CW-B20 合成犬",
+      "species": "dog",
+      "sex": "male",
+      "age_info": "6岁",
+      "breed": "合成",
+      "weight": "6.4 kg",
+      "coat_color": "棕色",
+      "owner_name": "合成宠主",
+      "owner_phone": "",
+      "chief_complaint": "合成复查总览验证",
+      "history": "病史原文 {{不得替换}}\n 保留空白 ",
+      "exam_findings": "仅合成查体",
+      "analysis": "待医生核对",
+      "treatment": "合成诊疗记录",
+      "prognosis": "不可自动推断为复查安排"
+    },
+    "as_of_date": "2026-10-09",
+    "timezone": "Asia/Shanghai",
+    "plans": [
+      {
+        "id": 1,
+        "root_id": 1,
+        "version": 1,
+        "state": "planned",
+        "stored_state": "planned",
+        "token": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "data": {
+          "planned_date": "2028-02-29",
+          "purpose": "  复查总览原文 {{visit.pet_name}}\n第二行 café αβ 🐾  ",
+          "items": [
+            "  血常规 {{原文}}  ",
+            "影像复核\n按原顺序 2",
+            "数值 0.0001 mg/L，不作转换"
+          ],
+          "return_conditions": "  医生手填返回条件\n不生成建议  ",
+          "note": " 原文备注 🐾\t{} "
+        },
+        "reviewed_by": "1",
+        "reviewed_at": "2026-10-08T10:00:00+00:00",
+        "reason": "",
+        "withdrawal": null,
+        "case_snapshot": {
+          "id": 1,
+          "owner_id": 1,
+          "patient_name": "CW-B20 合成犬",
+          "species": "dog",
+          "sex": "male",
+          "age_info": "6岁",
+          "breed": "合成",
+          "weight": "6.4 kg",
+          "coat_color": "棕色",
+          "owner_name": "合成宠主",
+          "owner_phone": "",
+          "chief_complaint": "合成复查总览验证",
+          "history": "病史原文 {{不得替换}}\n 保留空白 ",
+          "exam_findings": "仅合成查体",
+          "analysis": "待医生核对",
+          "treatment": "合成诊疗记录",
+          "prognosis": "不可自动推断为复查安排"
+        }
+      }
+    ],
+    "limits": {
+      "items": 10,
+      "versions": 50
+    },
+    "writes_database": false,
+    "case_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "state_token": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+  },
+  "contact_listing": {
+    "schema": "clinical-followup-contacts-cw-b19-v1",
+    "case_id": 1,
+    "case": {
+      "id": 1,
+      "owner_id": 1,
+      "patient_name": "CW-B20 合成犬",
+      "species": "dog",
+      "sex": "male",
+      "age_info": "6岁",
+      "breed": "合成",
+      "weight": "6.4 kg",
+      "coat_color": "棕色",
+      "owner_name": "合成宠主",
+      "owner_phone": "",
+      "chief_complaint": "合成复查总览验证",
+      "history": "病史原文 {{不得替换}}\n 保留空白 ",
+      "exam_findings": "仅合成查体",
+      "analysis": "待医生核对",
+      "treatment": "合成诊疗记录",
+      "prognosis": "不可自动推断为复查安排"
+    },
+    "as_of_date": "2026-10-09",
+    "timezone": "Asia/Shanghai",
+    "plans": [
+      {
+        "id": 1,
+        "root_id": 1,
+        "version": 1,
+        "state": "planned",
+        "stored_state": "planned",
+        "token": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+        "data": {
+          "planned_date": "2028-02-29",
+          "purpose": "  复查总览原文 {{visit.pet_name}}\n第二行 café αβ 🐾  ",
+          "items": [
+            "  血常规 {{原文}}  ",
+            "影像复核\n按原顺序 2",
+            "数值 0.0001 mg/L，不作转换"
+          ],
+          "return_conditions": "  医生手填返回条件\n不生成建议  ",
+          "note": " 原文备注 🐾\t{} "
+        },
+        "reviewed_by": "1",
+        "reviewed_at": "2026-10-08T10:00:00+00:00",
+        "reason": "",
+        "withdrawal": null,
+        "case_snapshot": {
+          "id": 1,
+          "owner_id": 1,
+          "patient_name": "CW-B20 合成犬",
+          "species": "dog",
+          "sex": "male",
+          "age_info": "6岁",
+          "breed": "合成",
+          "weight": "6.4 kg",
+          "coat_color": "棕色",
+          "owner_name": "合成宠主",
+          "owner_phone": "",
+          "chief_complaint": "合成复查总览验证",
+          "history": "病史原文 {{不得替换}}\n 保留空白 ",
+          "exam_findings": "仅合成查体",
+          "analysis": "待医生核对",
+          "treatment": "合成诊疗记录",
+          "prognosis": "不可自动推断为复查安排"
+        }
+      }
+    ],
+    "limits": {
+      "versions": 50
+    },
+    "writes_database": false,
+    "case_token": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "state_token": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "records": [
+      {
+        "id": 2,
+        "root_id": 2,
+        "version": 1,
+        "state": "recorded",
+        "token": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "source": {
+          "id": 1,
+          "root_id": 1,
+          "version": 1,
+          "data": {
+            "planned_date": "2028-02-29",
+            "purpose": "  复查总览原文 {{visit.pet_name}}\n第二行 café αβ 🐾  ",
+            "items": [
+              "  血常规 {{原文}}  ",
+              "影像复核\n按原顺序 2",
+              "数值 0.0001 mg/L，不作转换"
+            ],
+            "return_conditions": "  医生手填返回条件\n不生成建议  ",
+            "note": " 原文备注 🐾\t{} "
+          },
+          "case_snapshot": {
+            "id": 1,
+            "owner_id": 1,
+            "patient_name": "CW-B20 合成犬",
+            "species": "dog",
+            "sex": "male",
+            "age_info": "6岁",
+            "breed": "合成",
+            "weight": "6.4 kg",
+            "coat_color": "棕色",
+            "owner_name": "合成宠主",
+            "owner_phone": "",
+            "chief_complaint": "合成复查总览验证",
+            "history": "病史原文 {{不得替换}}\n 保留空白 ",
+            "exam_findings": "仅合成查体",
+            "analysis": "待医生核对",
+            "treatment": "合成诊疗记录",
+            "prognosis": "不可自动推断为复查安排"
+          },
+          "reviewed_by": "1",
+          "reviewed_at": "2026-10-08T10:00:00+00:00"
+        },
+        "source_state": "planned",
+        "data": {
+          "occurred_at": "2024-02-29T16:35+08:00",
+          "method": "phone",
+          "outcome": "not_reached",
+          "note": "合成联系尝试\n原文 {{不要代写}} 🐾 é",
+          "next_action": "医生另行安排；无自动发送"
+        },
+        "case_snapshot": {
+          "id": 1,
+          "owner_id": 1,
+          "patient_name": "CW-B20 合成犬",
+          "species": "dog",
+          "sex": "male",
+          "age_info": "6岁",
+          "breed": "合成",
+          "weight": "6.4 kg",
+          "coat_color": "棕色",
+          "owner_name": "合成宠主",
+          "owner_phone": "",
+          "chief_complaint": "合成复查总览验证",
+          "history": "病史原文 {{不得替换}}\n 保留空白 ",
+          "exam_findings": "仅合成查体",
+          "analysis": "待医生核对",
+          "treatment": "合成诊疗记录",
+          "prognosis": "不可自动推断为复查安排"
+        },
+        "recorded_by": "1",
+        "recorded_at": "2026-10-09T03:00:00+00:00",
+        "reason": "",
+        "withdrawal": null
+      }
+    ]
+  },
+  "overview": {
+    "schema": "clinical-case-overview-cw-b20-v1",
+    "case_id": 1,
+    "identity": {
+      "patient_name": "CW-B20 合成犬",
+      "species": "dog",
+      "sex": "male",
+      "breed": "合成",
+      "coat_color": "棕色",
+      "owner_name": "合成宠主",
+      "owner_phone": "",
+      "age_info": "6岁",
+      "weight": "6.4 kg"
+    },
+    "fields": [
+      {
+        "key": "chief_complaint",
+        "label": "主诉",
+        "state": "recorded",
+        "value": "合成复查总览验证",
+        "target": "edit"
+      },
+      {
+        "key": "history",
+        "label": "病史",
+        "state": "recorded",
+        "value": "病史原文 {{不得替换}}\n 保留空白 ",
+        "target": "edit"
+      },
+      {
+        "key": "exam_findings",
+        "label": "查体记录",
+        "state": "recorded",
+        "value": "仅合成查体",
+        "target": "edit"
+      },
+      {
+        "key": "analysis",
+        "label": "评估内容",
+        "state": "recorded",
+        "value": "待医生核对",
+        "target": "edit"
+      },
+      {
+        "key": "treatment",
+        "label": "诊疗计划",
+        "state": "recorded",
+        "value": "合成诊疗记录",
+        "target": "edit"
+      },
+      {
+        "key": "prognosis",
+        "label": "预后与补充说明",
+        "state": "recorded",
+        "value": "不可自动推断为复查安排",
+        "target": "edit"
+      }
+    ],
+    "groups": {
+      "attachments": {
+        "status": "available",
+        "records": [],
+        "legacy_count": 0,
+        "counts": {
+          "active": 0,
+          "source_unavailable": 0,
+          "withdrawn": 0
+        }
+      },
+      "lab": {
+        "status": "available",
+        "records": [],
+        "legacy_count": 0,
+        "counts": {
+          "confirmed": 0,
+          "needs_review": 0,
+          "source_unavailable": 0,
+          "superseded": 0,
+          "withdrawn": 0
+        }
+      },
+      "imaging": {
+        "status": "available",
+        "records": [],
+        "legacy_count": 0,
+        "counts": {
+          "confirmed": 0,
+          "needs_review": 0,
+          "source_unavailable": 0,
+          "superseded": 0,
+          "withdrawn": 0
+        }
+      },
+      "followup": {
+        "status": "available",
+        "case": {
+          "id": 1,
+          "owner_id": 1,
+          "patient_name": "CW-B20 合成犬",
+          "species": "dog",
+          "sex": "male",
+          "age_info": "6岁",
+          "breed": "合成",
+          "weight": "6.4 kg",
+          "coat_color": "棕色",
+          "owner_name": "合成宠主",
+          "owner_phone": "",
+          "chief_complaint": "合成复查总览验证",
+          "history": "病史原文 {{不得替换}}\n 保留空白 ",
+          "exam_findings": "仅合成查体",
+          "analysis": "待医生核对",
+          "treatment": "合成诊疗记录",
+          "prognosis": "不可自动推断为复查安排"
+        },
+        "timezone": "Asia/Shanghai",
+        "records": [
+          {
+            "id": 1,
+            "root_id": 1,
+            "version": 1,
+            "state": "planned",
+            "stored_state": "planned",
+            "token": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "data": {
+              "planned_date": "2028-02-29",
+              "purpose": "  复查总览原文 {{visit.pet_name}}\n第二行 café αβ 🐾  ",
+              "items": [
+                "  血常规 {{原文}}  ",
+                "影像复核\n按原顺序 2",
+                "数值 0.0001 mg/L，不作转换"
+              ],
+              "return_conditions": "  医生手填返回条件\n不生成建议  ",
+              "note": " 原文备注 🐾\t{} "
+            },
+            "reviewed_by": "1",
+            "reviewed_at": "2026-10-08T10:00:00+00:00",
+            "reason": "",
+            "withdrawal": null,
+            "case_snapshot": {
+              "id": 1,
+              "owner_id": 1,
+              "patient_name": "CW-B20 合成犬",
+              "species": "dog",
+              "sex": "male",
+              "age_info": "6岁",
+              "breed": "合成",
+              "weight": "6.4 kg",
+              "coat_color": "棕色",
+              "owner_name": "合成宠主",
+              "owner_phone": "",
+              "chief_complaint": "合成复查总览验证",
+              "history": "病史原文 {{不得替换}}\n 保留空白 ",
+              "exam_findings": "仅合成查体",
+              "analysis": "待医生核对",
+              "treatment": "合成诊疗记录",
+              "prognosis": "不可自动推断为复查安排"
+            }
+          }
+        ],
+        "counts": {
+          "planned": 1,
+          "needs_review": 0,
+          "superseded": 0,
+          "withdrawn": 0
+        }
+      },
+      "contacts": {
+        "status": "available",
+        "records": [
+          {
+            "id": 2,
+            "root_id": 2,
+            "version": 1,
+            "state": "recorded",
+            "token": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "source": {
+              "id": 1,
+              "root_id": 1,
+              "version": 1,
+              "data": {
+                "planned_date": "2028-02-29",
+                "purpose": "  复查总览原文 {{visit.pet_name}}\n第二行 café αβ 🐾  ",
+                "items": [
+                  "  血常规 {{原文}}  ",
+                  "影像复核\n按原顺序 2",
+                  "数值 0.0001 mg/L，不作转换"
+                ],
+                "return_conditions": "  医生手填返回条件\n不生成建议  ",
+                "note": " 原文备注 🐾\t{} "
+              },
+              "case_snapshot": {
+                "id": 1,
+                "owner_id": 1,
+                "patient_name": "CW-B20 合成犬",
+                "species": "dog",
+                "sex": "male",
+                "age_info": "6岁",
+                "breed": "合成",
+                "weight": "6.4 kg",
+                "coat_color": "棕色",
+                "owner_name": "合成宠主",
+                "owner_phone": "",
+                "chief_complaint": "合成复查总览验证",
+                "history": "病史原文 {{不得替换}}\n 保留空白 ",
+                "exam_findings": "仅合成查体",
+                "analysis": "待医生核对",
+                "treatment": "合成诊疗记录",
+                "prognosis": "不可自动推断为复查安排"
+              },
+              "reviewed_by": "1",
+              "reviewed_at": "2026-10-08T10:00:00+00:00"
+            },
+            "source_state": "planned",
+            "data": {
+              "occurred_at": "2024-02-29T16:35+08:00",
+              "method": "phone",
+              "outcome": "not_reached",
+              "note": "合成联系尝试\n原文 {{不要代写}} 🐾 é",
+              "next_action": "医生另行安排；无自动发送"
+            },
+            "case_snapshot": {
+              "id": 1,
+              "owner_id": 1,
+              "patient_name": "CW-B20 合成犬",
+              "species": "dog",
+              "sex": "male",
+              "age_info": "6岁",
+              "breed": "合成",
+              "weight": "6.4 kg",
+              "coat_color": "棕色",
+              "owner_name": "合成宠主",
+              "owner_phone": "",
+              "chief_complaint": "合成复查总览验证",
+              "history": "病史原文 {{不得替换}}\n 保留空白 ",
+              "exam_findings": "仅合成查体",
+              "analysis": "待医生核对",
+              "treatment": "合成诊疗记录",
+              "prognosis": "不可自动推断为复查安排"
+            },
+            "recorded_by": "1",
+            "recorded_at": "2026-10-09T03:00:00+00:00",
+            "reason": "",
+            "withdrawal": null
+          }
+        ],
+        "counts": {
+          "recorded": 1,
+          "superseded": 0,
+          "withdrawn": 0
+        },
+        "case": {
+          "id": 1,
+          "owner_id": 1,
+          "patient_name": "CW-B20 合成犬",
+          "species": "dog",
+          "sex": "male",
+          "age_info": "6岁",
+          "breed": "合成",
+          "weight": "6.4 kg",
+          "coat_color": "棕色",
+          "owner_name": "合成宠主",
+          "owner_phone": "",
+          "chief_complaint": "合成复查总览验证",
+          "history": "病史原文 {{不得替换}}\n 保留空白 ",
+          "exam_findings": "仅合成查体",
+          "analysis": "待医生核对",
+          "treatment": "合成诊疗记录",
+          "prognosis": "不可自动推断为复查安排"
+        },
+        "timezone": "Asia/Shanghai"
+      }
+    },
+    "notices": [],
+    "navigation_targets": [
+      "edit",
+      "attachments",
+      "lab",
+      "imaging",
+      "outpatient",
+      "owner_summary",
+      "followup",
+      "contacts"
+    ],
+    "read_only": true,
+    "writes_database": false,
+    "includes_unsaved_drafts": false,
+    "snapshot": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "read_at": "2026-10-07T05:00:00+00:00"
+  }
+}

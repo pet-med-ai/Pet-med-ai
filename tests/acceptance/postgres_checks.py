@@ -341,6 +341,20 @@ def contact_owner_document_readback():
     record('cwb22_fresh_process_two_accounts_exact_contact_documents_sources_audits_readonly')
 
 
+def contact_queue_readback():
+    f.enable_followup_contact_queue()
+    before=followup_overview_business()
+    for item in json.loads((f.OUT/'cwb23-restart-expected.json').read_text()):
+        auth=login(item['account'])
+        current=call('GET','/api/followup-plan-queue',auth,params={'range':'all','page_size':50,'include_followup_contacts':'true'})
+        current.pop('read_at');assert current==item['queue']
+        assert read(item['case_id'],auth)==item['case']
+        assert call('GET',f"/api/cases/{item['case_id']}/followup-contacts",auth)==item['contacts']
+        assert contact_overview_audits(item['case_id'])==item['audits']
+    assert before==followup_overview_business()
+    record('cwb23_fresh_process_two_accounts_exact_queue_contacts_sources_audits_readonly')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
@@ -388,6 +402,7 @@ if '--readback' in sys.argv:
     contact_overview_readback()
     contact_document_readback()
     contact_owner_document_readback()
+    contact_queue_readback()
     client.close(); f.db.engine.dispose()
     sys.exit(0)
 
@@ -2523,6 +2538,116 @@ for scenario in ('correct','withdraw','plan_correct','plan_withdraw','body','ide
     for rendering in (False,True):contact_owner_document_pg(scenario,rendering)
 for scenario in ('control_dog','control_cat','template'):contact_owner_document_pg(scenario)
 (f.OUT/'cwb22-restart-expected.json').write_text(json.dumps(contact_owner_document_expected,ensure_ascii=False,indent=2))
+
+# CW-B23 explicit contact queue, native PostgreSQL read-only bulk snapshot.
+f.enable_followup_contact_queue()
+import clinical_followup_contact_queue as contact_queue
+contact_queue_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_contact_queue_cw_b23_cases.json').read_text())
+for name in ('cwb23-owner','cwb23-other'):
+    call('POST','/auth/signup',json={'email':name+'@example.com','password':PASSWORD})
+cq_owner,cq_other=login('cwb23-owner'),login('cwb23-other')
+cq_expected=[]
+
+
+def cq_read(auth=cq_owner,expected=200,**params):
+    return call('GET','/api/followup-plan-queue',auth,expected=expected,
+                params={'range':'all','include_followup_contacts':'true',**params})
+
+
+def cq_save(cid,source,auth=cq_owner,operation='create',row=None):
+    root=f'/api/cases/{cid}/followup-contacts';value=call('GET',root,auth)
+    source=next(p for p in value['plans'] if p['id']==source['id'])
+    body={'request_id':uuid4().hex,'operation':operation,'contact_id':row['id'] if row else None,
+          'expected_contact_token':row['token'] if row else '', 'source_plan_id':source['id'],'source_plan_version':source['version'],
+          'expected_source_token':source['token'],'expected_case_token':value['case_token'],'expected_state_token':value['state_token'],
+          'data':None if operation=='withdraw' else contact_queue_fixture['corrected' if operation=='correct' else 'long_contact'],
+          'reason':'' if operation=='create' else 'CW23 合成更正'}
+    preview=call('POST',root+'/preview',auth,json=body)
+    return call('POST',root+'/confirm',auth,json={**body,'preview_token':preview['preview_token'],'reviewed':True})['record']
+
+
+def cq_race(scenario,stage):
+    cid=queue_case(cq_owner);source=queue_save(cid,auth=cq_owner);row=cq_save(cid,source)
+    before=cq_read(page_size=1);audit_backup=None
+    def mutation():
+        nonlocal audit_backup
+        if scenario in ('create','correct','withdraw'):cq_save(cid,source,operation=scenario,row=None if scenario=='create' else row)
+        elif scenario.startswith('plan_'):queue_save(cid,scenario.removeprefix('plan_'),source,auth=cq_owner)
+        elif scenario in ('body','identity'):call('PUT',f'/api/cases/{cid}',cq_owner,json={'history':'CW23 并发正文'} if scenario=='body' else {'patient_name':'CW23 并发身份'})
+        elif scenario=='delete':assert client.delete(f'/api/cases/{cid}',headers=cq_owner).status_code==204
+        else:
+            with f.db.SessionLocal() as db:
+                if scenario=='owner':db.get(f.models.Case,cid).owner_id=db.query(f.models.User).filter_by(email='cwb23-other@example.com').one().id
+                else:
+                    a=db.query(f.models.AuditLog).filter_by(case_id=cid,source=contacts.SOURCE).one()
+                    audit_backup={p.key:getattr(a,p.key) for p in f.models.AuditLog.__mapper__.column_attrs}
+                    if scenario=='audit':a.model_version='CW23 审计元数据'
+                    elif scenario=='bad_audit':a.extra_data={**a.extra_data,'content_hash':'b'*64}
+                    else:db.delete(a)
+                db.commit()
+    module=plan_queue if stage=='prefetched_rows' else contact_queue
+    entered,release=Event(),Event();normal=getattr(module,stage)
+    def held(db,cases):
+        assert db.execute(text('SHOW transaction_isolation')).scalar_one()=='repeatable read'
+        assert db.execute(text('SHOW transaction_read_only')).scalar_one()=='on'
+        entered.set();assert release.wait(20);return normal(db,cases)
+    with ThreadPoolExecutor(2) as pool,patch.object(module,stage,side_effect=held):
+        reading=pool.submit(cq_read,page_size=1)
+        try:assert entered.wait(10);pool.submit(mutation).result(15)
+        finally:release.set()
+        result=reading.result(15)
+    assert all(result[k]==before[k] for k in ('snapshot','items','total'))
+    if scenario in ('bad_audit','missing_audit'):cq_read(expected=409)
+    else:assert cq_read(page_size=1)['snapshot']!=before['snapshot']
+    cq_read(expected=409,page_size=1,page=2,snapshot=before['snapshot'])
+    if scenario in ('bad_audit','missing_audit'):
+        with f.db.SessionLocal() as db:
+            current=db.get(f.models.AuditLog,audit_backup['log_id'])
+            if current:
+                for key,value in audit_backup.items():setattr(current,key,value)
+            else:db.add(f.models.AuditLog(**audit_backup))
+            db.commit()
+    record('cwb23_postgresql_'+scenario+'_'+stage+'_committed_writer_one_snapshot')
+
+
+for index,scenario in enumerate(('create','correct','withdraw','plan_correct','plan_withdraw','body','identity','owner','delete','audit','bad_audit','missing_audit')):
+    cq_race(scenario,('prefetched_rows','prefetched_contacts','prefetched_audits')[index%3])
+
+# Prove PostgreSQL rejects actual DML, not just a declared response flag.
+from sqlalchemy.exc import DBAPIError
+with plan_queue.read_transaction() as readonly:
+    rejected=False
+    try:
+        with readonly.begin_nested():readonly.execute(text('UPDATE cases SET patient_name=patient_name WHERE false'))
+    except DBAPIError:rejected=True
+    assert rejected and readonly.execute(text('SHOW transaction_read_only')).scalar_one()=='on'
+record('cwb23_postgresql_readonly_rejects_dml')
+
+for auth,name,species in ((cq_owner,'cwb23-owner','dog'),(cq_other,'cwb23-other','cat')):
+    cid=queue_case(auth,species);source=queue_save(cid,auth=auth);historical=cq_save(cid,source,auth)
+    source=queue_save(cid,'correct',source,auth=auth);current=cq_save(cid,source,auth)
+    before=followup_overview_business();statements=[]
+    def capture(_c,_cur,sql,*_):statements.append(sql)
+    event.listen(f.db.engine,'before_cursor_execute',capture)
+    try:saved=cq_read(auth,page_size=50)
+    finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+    assert sum(s.lstrip().upper().startswith('SELECT') for s in statements)==5
+    assert not any(s.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','ALTER','CREATE','DROP'} for s in statements)
+    assert before==followup_overview_business()
+    item=next(i for i in saved['items'] if i['case']['id']==cid)
+    assert item['contacts']['counts']=={'current':1,'historical':1}
+    assert item['contacts']['latest']['current']['data']==current['data'] and item['contacts']['latest']['historical']['data']==historical['data']
+    assert item['contacts']['latest']['historical']['source']['state']=='superseded'
+    for mode in ('current','historical_only','none'):
+        filtered=cq_read(auth,contact_state=mode,page_size=50)
+        assert all((i['contacts']['counts']['current']>0 if mode=='current' else i['contacts']['counts']['current']==0 and (i['contacts']['counts']['historical']>0 if mode=='historical_only' else i['contacts']['counts']['historical']==0)) for i in filtered['items'])
+    with patch.object(contact_queue,'prefetched_contacts',side_effect=AssertionError('default must not read contacts')):
+        assert call('GET','/api/followup-plan-queue',auth,params={'range':'all'})['schema']==plan_queue.SCHEMA
+    saved.pop('read_at')
+    cq_expected.append({'account':name,'case_id':cid,'queue':saved,'case':read(cid,auth),'contacts':call('GET',f'/api/cases/{cid}/followup-contacts',auth),'audits':contact_overview_audits(cid)})
+    record('cwb23_postgresql_'+species+'_literal_groups_fixed_selects_no_writes_default_isolation')
+(f.OUT/'cwb23-restart-expected.json').write_text(json.dumps(cq_expected,ensure_ascii=False,indent=2))
+
 
 # Close only after every batch has finished using the shared authenticated client.
 client.close(); f.db.engine.dispose()

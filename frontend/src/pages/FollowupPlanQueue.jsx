@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { initialFilter, shanghaiDate, dateBounds, query, validQueue, readQueue, planLocation, message } from '../followupPlanQueue';
+import * as contacts from '../followupContactQueue';
+import FollowupContactQueueSummary from '../components/FollowupContactQueueSummary';
 
 export default function FollowupPlanQueue() {
   const [token, setToken] = useState(() => localStorage.getItem('token') || '');
@@ -25,6 +27,7 @@ export default function FollowupPlanQueue() {
 }
 
 function Queue({ token, revision, active }) {
+  const [includeContacts, setIncludeContacts] = useState(false), [contactState, setContactState] = useState('all');
   const [filter, setFilter] = useState(initialFilter), [custom, setCustom] = useState({ start: '', end: '' });
   const [cursor, setCursor] = useState({ page: 1, snapshot: null });
   const [size, setSize] = useState(20), [attempt, setAttempt] = useState(0);
@@ -38,21 +41,29 @@ function Queue({ token, revision, active }) {
     if (!active || !valid) return () => abort.abort();
     setBusy(true);
     const currentRequest = () => epoch.current === current && !abort.signal.aborted && localStorage.getItem('token') === token;
-    readQueue(token, query(filter, cursor.page, size, cursor.snapshot), abort.signal).then(value => {
+    const read = includeContacts ? contacts.readQueue : readQueue;
+    const params = includeContacts ? contacts.query(filter, contactState, cursor.page, size, cursor.snapshot) : query(filter, cursor.page, size, cursor.snapshot);
+    read(token, params, abort.signal).then(value => {
       if (!currentRequest()) return;
       if (day !== shanghaiDate()) { setCursor({ page: 1, snapshot: null }); return; }
-      if (!validQueue(value, filter, cursor.page, size, cursor.snapshot) || value.as_of_date !== day) throw Error('Invalid queue response');
+      const validResponse = includeContacts ? contacts.validQueue(value, filter, contactState, cursor.page, size, cursor.snapshot) : validQueue(value, filter, cursor.page, size, cursor.snapshot);
+      if (!validResponse || value.as_of_date !== day) throw Error('Invalid queue response');
       setList(value);
     }).catch(err => {
       if (!currentRequest()) return;
       if (err?.response?.data?.detail === 'followup_queue_snapshot_changed') { setNotice(message(err)); setCursor({ page: 1, snapshot: null }); }
-      else setError(message(err));
+      else setError(includeContacts ? contacts.message(err) : message(err));
     }).finally(() => { if (currentRequest()) setBusy(false); });
     return () => { abort.abort(); ++epoch.current; };
-  }, [token, revision, active, filter, cursor, size, attempt, valid]);
+  }, [token, revision, active, filter, cursor, size, attempt, valid, includeContacts, contactState]);
   const apply = next => { setNotice(''); setFilter(next); setCursor({ page: 1, snapshot: null }); };
+  const visibleList = active && list && list.as_of_date === shanghaiDate() && (includeContacts ? contacts.validQueue(list, filter, contactState, cursor.page, size, cursor.snapshot) : validQueue(list, filter, cursor.page, size, cursor.snapshot));
   const refresh = () => { setNotice(''); setCursor({ page: 1, snapshot: null }); setAttempt(n => n + 1); };
   return <>
+    <label><input type='checkbox' aria-label='显示人工随访记录' checked={includeContacts} onChange={e => { setIncludeContacts(e.target.checked); setContactState('all'); setNotice(''); setCursor({ page: 1, snapshot: null }); }}/>显示人工随访记录</label>
+    {includeContacts && <label style={{ display: 'block' }}>登记情况 <select aria-label='随访登记情况' value={contactState} onChange={e => { setContactState(e.target.value); setNotice(''); setCursor({ page: 1, snapshot: null }); }}>
+      {Object.entries(contacts.contactStates).map(([key, label]) => <option key={key} value={key}>{label}</option>)}
+    </select></label>}
     <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'end' }}>
       <label>日期范围 <select aria-label='计划日期范围' value={filter.range} onChange={e => apply({ ...filter, ...custom, range: e.target.value })}>
         <option value='today'>今天</option><option value='next7'>未来 7 天（含今天）</option><option value='past'>早于今天</option><option value='custom'>自定义日期</option><option value='all'>全部日期</option>
@@ -74,7 +85,7 @@ function Queue({ token, revision, active }) {
     {!active && <p role='status'>清单已失效，返回窗口后重新读取。</p>}
     {busy && <p role='status'>正在读取复查计划清单…</p>}
     {error && <p role='alert'>{error} <button type='button' onClick={refresh}>重试读取清单</button></p>}
-    {list && <>
+    {visibleList && <>
       <p>上海日期 {list.as_of_date} · 共 {list.total} 个病例计划 · 第 {list.page} 页</p>
       {list.total === 0 && <p>当前筛选下没有计划记录；空清单不等于无需复查。</p>}
       <ol style={{ paddingLeft: 24 }} start={(list.page - 1) * size + 1}>
@@ -91,6 +102,7 @@ function Queue({ token, revision, active }) {
             <p>保存账号 {item.plan.reviewed_by} · {item.plan.reviewed_at} · 计划 #{item.plan.id} / 根 #{item.plan.root_id}</p>
           </details>
           <Link to={planLocation(item)}>打开病例 #{item.case.id} 的计划 #{item.plan.id} 版本 {item.plan.version}</Link>
+          {includeContacts && <FollowupContactQueueSummary item={item}/>}
         </li>)}
       </ol>
       <nav aria-label='清单分页' style={{ display: 'flex', gap: 12 }}>

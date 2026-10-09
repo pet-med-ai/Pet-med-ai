@@ -5,6 +5,7 @@ from fastapi.routing import APIRoute
 from sqlalchemy.exc import SQLAlchemyError
 from auth_jwt import get_current_user
 import clinical_followup_plan_queue as service
+import clinical_followup_contact_queue as contact_service
 from clinical_followup_plans import PlanError
 
 PRIVATE = {'Cache-Control': 'private, no-store'}
@@ -32,7 +33,9 @@ def listing(request: Request, user=Depends(get_current_user)):
     try:
         pairs = request.query_params.multi_items()
         if len(pairs) != len(dict(pairs)): raise PlanError('followup_queue_invalid_parameters', 422)
-        return JSONResponse(service.listing(user.id, dict(pairs)), headers=PRIVATE)
+        params = dict(pairs)
+        target = contact_service if 'include_followup_contacts' in params else service
+        return JSONResponse(target.listing(user.id, params), headers=PRIVATE)
     except PlanError as error:
         raise HTTPException(error.status, error.code, headers=PRIVATE) from None
     except (SQLAlchemyError, OSError):
