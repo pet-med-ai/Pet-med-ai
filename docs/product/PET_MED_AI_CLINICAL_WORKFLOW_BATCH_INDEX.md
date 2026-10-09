@@ -123,3 +123,12 @@ CW-B20 已按草稿 PR＋CI 完成：[PR #65](https://github.com/pet-med-ai/Pet-
 2026-10-09 15:30:34（Asia/Shanghai）用户批准 CW-B21「人工随访记录纳入门诊病历草稿」[20 文件方案](https://chatgpt.com/space/page_39f4e98736c08191ab1d4da44a5c9c84)，连续做到草稿 PR 与 CI。承接 CW-B20 精确 HEAD，独立预算：初始 1、修正≤3、完整本地回归≤2、候选 CI≤3、分支/草稿 PR 各 1、业务外部调用 0、新采购 0 元。详见 [CW-B21 实现约定](../clinical_docs/CLINICAL_FOLLOWUP_CONTACT_DOCUMENTS_CW_B21.md)。
 
 本批草稿候选＝实施中；CI 通过＝待精确候选结果；已合并＝否；已上线＝否；医生验收＝未验收。仅显式选择一条当前有效联系用于未签署门诊草稿，历史来源和当前安排分列。最终实耗、HEAD 和证据追加 PR，不为状态文字新增收尾提交或重跑成功 CI。不合并、不部署、不迁移、不操作生产数据；每次提交前只读确认自动部署、触发器与预览关闭，保留 `[skip render]`。医生、原五份 Mac Word、CW-B5 独立 100 次/1 元真实语音待补；异宠 B5＝Snake Depth V2。
+
+
+## CW-B21 收尾与 CW-B22 接续
+
+CW-B21 已按草稿 PR＋CI 完成：[PR #66](https://github.com/pet-med-ai/Pet-med-ai/pull/66)，HEAD `7793ec36df0b79b1c82a770a8b5276d7739c3303`，树 `d83122335230f8b767053de4fca0e837dfc39514`；3 条适用工作流、6 个 job 全通过（Gate `37905271045`、更新预览 `37905270824`、综合验收 `37905270817`）。实耗 20/20 文件、初始 1/1、修正 3/3、完整本地回归 1/2、候选 CI 2/3、业务调用 0、新采购 0 元。649 份证据、7 包经 CI 重组核验；本地索引 HTTP 403，未本地重组。未合并、未上线、医生未验收；最终 PR 记录优先于冻结文字。
+
+2026-10-09 18:48:52（Asia/Shanghai）用户批准 CW-B22「人工随访记录纳入宠主说明草稿」[22 文件方案](https://chatgpt.com/space/page_c18f00bd8df08191a7ed4bf567b55d12)，连续做到草稿 PR 与 CI。承接 CW-B21 精确 HEAD，独立预算：初始 1、修正≤3、完整本地回归≤2、候选 CI≤3、分支/草稿 PR 各 1、外部业务调用 0、新采购 0 元。详见 [CW-B22 实现约定](../clinical_docs/CLINICAL_FOLLOWUP_CONTACT_OWNER_DOCUMENTS_CW_B22.md)。
+
+本批草稿候选＝实施中；CI 通过＝待精确 HEAD；未合并、未上线、医生未验收。仅明确选择一条有效联系纳入未签署宠主说明，原文与历史身份需医生核对；不自动发送。最终预算和证据更新 PR，不为状态文字新增收尾提交或重跑成功 CI。不合并、不部署、不迁移、不操作生产数据；每次提交前只读确认自动部署、触发器、预览关闭，保留 `[skip render]`。医生、原五份 Mac Word、CW-B5 独立 100 次/1 元真实语音待补；异宠 B5＝Snake Depth V2。

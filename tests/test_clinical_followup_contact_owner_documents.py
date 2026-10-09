@@ -1,4 +1,4 @@
-"""CW-B21 real auth, literal historical facts and complete unsigned DOCX."""
+"""CW-B22 real auth, literal historical facts and complete unsigned DOCX."""
 import copy
 import json
 import os
@@ -7,22 +7,22 @@ import unittest
 from unittest.mock import patch
 from sqlalchemy import event
 from sqlalchemy.exc import OperationalError
-SAMPLES_OUT=os.getenv('PMAI_CWB21_DOC_SAMPLES')
+SAMPLES_OUT=os.getenv('PMAI_CWB22_DOC_SAMPLES')
 from test_clinical_followup_plan_documents import PlanDocumentFixture, f, storage, doc_text, api
 from test_clinical_followup_contacts import ContactFixture, contacts
 import clinical_followup_contact_documents as documents
 
-FIXTURE=json.loads((Path(__file__).parent/'fixtures/clinical_followup_contact_documents_cw_b21_cases.json').read_text())
-FLAGS={k:'1' for k in ('FOLLOWUP_CONTACTS_ENABLED','FOLLOWUP_CONTACTS_SYNTHETIC_ONLY','FOLLOWUP_CONTACT_DOCUMENTS_ENABLED','FOLLOWUP_CONTACT_DOCUMENTS_SYNTHETIC_ONLY')}
+FIXTURE=json.loads((Path(__file__).parent/'fixtures/clinical_followup_contact_owner_documents_cw_b22_cases.json').read_text())
+FLAGS={k:'1' for k in ('FOLLOWUP_CONTACTS_ENABLED','FOLLOWUP_CONTACTS_SYNTHETIC_ONLY','FOLLOWUP_CONTACT_DOCUMENTS_ENABLED','FOLLOWUP_CONTACT_DOCUMENTS_SYNTHETIC_ONLY','FOLLOWUP_CONTACT_OWNER_DOCUMENTS_ENABLED','FOLLOWUP_CONTACT_OWNER_DOCUMENTS_SYNTHETIC_ONLY')}
 
-class ContactDocumentFixture(PlanDocumentFixture):
+class ContactOwnerDocumentFixture(PlanDocumentFixture):
     contact=ContactFixture.contact
     contact_body=ContactFixture.contact_body
     contact_review=ContactFixture.contact_review
     contact_save=ContactFixture.contact_save
     def setUp(self):
         super().setUp()
-        flags=patch.dict(os.environ,FLAGS);flags.start();self.addCleanup(flags.stop)
+        flags=patch.dict(os.environ,{**FLAGS,'FOLLOWUP_PLAN_OWNER_DOCUMENTS_ENABLED':'1','FOLLOWUP_PLAN_OWNER_DOCUMENTS_SYNTHETIC_ONLY':'1'});flags.start();self.addCleanup(flags.stop)
         self.change_case(**FIXTURE['case']);self.source=self.save_plan(data=FIXTURE['plan'])
         self.contact_root=f'/api/cases/{self.cid}/followup-contacts'
     def choice(self,row):
@@ -30,14 +30,14 @@ class ContactDocumentFixture(PlanDocumentFixture):
         return {**{k:row[k] for k in ('id','version','token')},'source_token':source['token'],'case_token':value['case_token']}
     def document(self,choice,endpoint='render-preview',snapshot=None,headers=None,**extra):
         return self.client.post('/api/clinical-docs/'+endpoint,headers=self.owner_headers if headers is None else headers,
-            json={'case_id':self.cid,'template_id':'outpatient_record_zh','manual_followup_contact':choice,
+            json={'case_id':self.cid,'template_id':'owner_visit_summary_zh','manual_followup_contact':choice,
                   **({'expected_content_snapshot':snapshot} if snapshot else {}),**extra})
     def all_business(self):
         with f.db.SessionLocal() as db:
             audits=[{c.name:str(getattr(r,'extra_data' if c.name=='metadata' else c.key)) for c in f.models.AuditLog.__table__.columns} for r in db.query(f.models.AuditLog).order_by(f.models.AuditLog.log_id)]
         return super().all_business(),audits
 
-class ContactDocumentTests(ContactDocumentFixture):
+class ContactOwnerDocumentTests(ContactOwnerDocumentFixture):
     def test_exact_fact_source_and_audit_digest_export_without_writes_or_cleanup(self):
         row=self.contact_save(data=FIXTURE['contact']);choice=self.choice(row);before=self.all_business();writes=[]
         def capture(_c,_cur,sql,*_):
@@ -51,7 +51,7 @@ class ContactDocumentTests(ContactDocumentFixture):
         self.assertEqual(preview['manual_followup_contact']['record'],row)
         self.assertRegex(preview['manual_followup_contact']['audit_token'],r'^[a-f0-9]{64}$')
         text=doc_text(raw)
-        for value in [row['data']['occurred_at'],row['data']['note'],row['data']['next_action'],'电话','未取得联系',*row['source']['data']['items'],row['source']['data']['purpose'],row['token'],row['recorded_at'],documents.SCHEMA]:
+        for value in [row['data']['occurred_at'],row['data']['note'],row['data']['next_action'],'电话','未取得联系',*row['source']['data']['items'],row['source']['data']['purpose'],row['token'],row['recorded_at'],documents.OWNER_SCHEMA]:
             self.assertIn(value,text)
         self.assertIn('历史原文',text);self.assertIn('不自动作为本次文书的当前复查安排',text)
         self.assertEqual(preview['context']['visit.follow_up'],FIXTURE['expected_no_selection'])
@@ -82,8 +82,6 @@ class ContactDocumentTests(ContactDocumentFixture):
         variants.append({**choice,'version':51})
         for value in variants:
             with self.subTest(value=value):self.assertEqual(self.document(value).status_code,422)
-        self.assertEqual(self.document(choice,template_id='owner_visit_summary_zh').status_code,503)
-        self.assertEqual(self.document(None,template_id='owner_visit_summary_zh').status_code,422)
         for template in ('admission_hospitalization_record_bilingual','discharge_summary_bilingual'):
             for value in (choice,None):self.assertEqual(self.document(value,template_id=template).status_code,422)
         self.assertEqual(self.document(choice,include_diagnostic_data=True).status_code,422)
@@ -102,10 +100,10 @@ class ContactDocumentTests(ContactDocumentFixture):
 
     def test_history_survives_plan_correction_withdrawal_and_case_change_explicitly(self):
         row=self.contact_save(data=FIXTURE['contact']);old=self.choice(row);p=self.checked(old)
-        self.change_case(owner_name='CW21 当前更正宠主',history='CW21 当前病史')
+        self.change_case(owner_name='CW22 当前更正宠主',history='CW22 当前病史')
         self.assertEqual(self.document(old).status_code,409)
         preview,raw=self.rendered(self.choice(row));self.assertEqual(preview['manual_followup_contact']['record']['source_state'],'needs_review')
-        self.assertIn('CW21 当前更正宠主',doc_text(raw));self.assertIn(row['case_snapshot']['owner_name'],doc_text(raw))
+        self.assertIn('CW22 当前更正宠主',doc_text(raw));self.assertIn(row['case_snapshot']['owner_name'],doc_text(raw))
         self.save_plan('correct',self.source,FIXTURE['corrected_plan'])
         self.assertEqual(self.document(self.choice(row),'render',p['content_snapshot']).status_code,409)
         preview,raw=self.rendered(self.choice(row));self.assertEqual(preview['manual_followup_contact']['record']['source_state'],'superseded')
@@ -118,7 +116,7 @@ class ContactDocumentTests(ContactDocumentFixture):
         self.assertEqual(self.document(choice,'render',p['content_snapshot'],manual_lab_report_ids=[rows[0]['id']]).status_code,409)
         original=api.Path.read_bytes
         def changed(path):
-            raw=original(path);return raw+b'changed' if str(path).endswith('outpatient_record_zh.docx') else raw
+            raw=original(path);return raw+b'changed' if str(path).endswith('owner_visit_summary_zh.docx') else raw
         with patch.object(api.Path,'read_bytes',changed):self.assertEqual(self.document(choice,'render',p['content_snapshot']).status_code,409)
         with f.db.SessionLocal() as db:
             audit=db.query(f.models.AuditLog).filter_by(case_id=self.cid,source=contacts.SOURCE).first();audit.extra_data={**audit.extra_data,'fingerprint':'0'*64};db.commit()
@@ -152,7 +150,7 @@ class ContactDocumentTests(ContactDocumentFixture):
         self.source=self.save_plan('correct',self.source,FIXTURE['short_plan']);row=self.contact_save(data={**FIXTURE['contact'],'occurred_at':'2000-02-29T00:01+08:00'})
         self.save_plan('withdraw',self.source);samples['historical-source-date']=self.rendered(self.choice(row))[1]
         self.source=self.save_plan(data=FIXTURE['short_plan']);sources,rows=self.save_pair();self.meta={**self.meta,'kind':'dr'};_,_,image=self.save_image()
-        row=self.contact_save();extra={'manual_lab_report_ids':[rows[0]['id']],'manual_imaging_report_ids':[image['id']],'manual_lab_comparison':self.request_body(index=3),'manual_followup_plan':PlanDocumentFixture.choice(self.source)}
+        row=self.contact_save();extra={'manual_lab_report_ids':[rows[0]['id']],'manual_imaging_report_ids':[image['id']],'manual_followup_plan':PlanDocumentFixture.choice(self.source)}
         choice=self.choice(row)
         with patch.object(documents.plans,'transaction',side_effect=AssertionError('No nested case session')):
             samples['complete-mixed']=self.rendered(choice,**extra)[1]
@@ -166,4 +164,37 @@ class ContactDocumentTests(ContactDocumentFixture):
             Path(out).mkdir(parents=True,exist_ok=True)
             for name,raw in samples.items():(Path(out)/(name+'.docx')).write_bytes(raw)
 
+    def test_owner_schema_binding_and_no_cross_template_snapshot(self):
+        row=self.contact_save();choice=self.choice(row);owner=self.checked(choice)
+        p=owner['manual_followup_contact']
+        self.assertEqual(p['schema'],documents.OWNER_SCHEMA)
+        self.assertEqual(p['template_id'],'owner_visit_summary_zh')
+        clinical=self.document(choice,template_id='outpatient_record_zh').json()
+        self.assertEqual(clinical['manual_followup_contact']['schema'],documents.SCHEMA)
+        self.assertNotIn('template_id',clinical['manual_followup_contact'])
+        self.assertNotEqual(owner['content_snapshot'],clinical['content_snapshot'])
+        self.assertEqual(self.document(choice,'render',clinical['content_snapshot']).status_code,409)
+        self.assertEqual(self.document(choice,'render',owner['content_snapshot'],template_id='outpatient_record_zh').status_code,409)
+        for flag in ('FOLLOWUP_CONTACT_OWNER_DOCUMENTS_ENABLED','FOLLOWUP_CONTACT_OWNER_DOCUMENTS_SYNTHETIC_ONLY'):
+            with patch.dict(os.environ,{flag:'0'}):
+                self.assertEqual(self.document(choice).status_code,503)
+                self.assertEqual(self.document(choice,template_id='outpatient_record_zh').status_code,200)
+
+    def test_owner_rejects_comparison_even_null_and_requires_owner_plan_gates(self):
+        self.save_pair()
+        row=self.contact_save();choice=self.choice(row);extra={'manual_followup_plan':PlanDocumentFixture.choice(self.source)}
+        snap=self.checked(choice,**extra)['content_snapshot']
+        for endpoint in ('render-preview','render'):
+            for value in (None,{},self.request_body(index=3)):
+                self.assertEqual(self.document(choice,endpoint,snap,manual_lab_comparison=value).status_code,422)
+            self.assertEqual(self.document(choice,endpoint,snap,include_diagnostic_data=True).status_code,422)
+            for flag in ('FOLLOWUP_PLAN_OWNER_DOCUMENTS_ENABLED','FOLLOWUP_PLAN_OWNER_DOCUMENTS_SYNTHETIC_ONLY'):
+                with patch.dict(os.environ,{flag:'0'}):
+                    self.assertEqual(self.document(choice,endpoint,snap,**extra).status_code,503)
+                    self.assertEqual(self.document(choice).status_code,200)
+        preview,raw=self.rendered(choice,**extra)
+        self.assertEqual(preview['manual_followup_plan']['plan'],self.source)
+        self.assertIn('请医生核对是否适合出示给宠主',doc_text(raw))
+
 if __name__=='__main__':unittest.main(verbosity=2)
+

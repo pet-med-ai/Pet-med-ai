@@ -16,6 +16,7 @@ try {
   names.push('followup-contacts', 'case-detail-followup-contacts');
   names.push('followup-contact-overview', 'case-detail-followup-contact-overview');
   names.push('followup-contact-documents', 'case-detail-followup-contact-documents');
+  names.push('followup-contact-owner-documents', 'case-detail-followup-contact-owner-documents');
   const outputs = names.map(name => join(temporary, name + ".cjs"));
   for (let index = 0; index < names.length; index++) {
     await build({

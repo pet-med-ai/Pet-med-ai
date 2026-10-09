@@ -1,4 +1,4 @@
-"""CW-B21: explicitly selected historical contact facts in unsigned visit drafts."""
+"""CW-B21/B22: explicitly selected contact facts in unsigned visit/owner drafts."""
 from contextlib import contextmanager, ExitStack
 from datetime import datetime
 import json
@@ -11,6 +11,8 @@ from models import Case, AuditLog
 
 plans, labs, images, comparisons = plan_docs.plans, plan_docs.labs, plan_docs.images, plan_docs.comparisons
 SCHEMA = 'clinical-followup-contact-documents-cw-b21-v1'
+OWNER_SCHEMA = 'clinical-followup-contact-owner-documents-cw-b22-v1'
+OWNER_TEMPLATE = 'owner_visit_summary_zh'
 KEY = '__manual_followup_contact_document'
 PRIVATE_HEADERS = plan_docs.PRIVATE_HEADERS
 METHODS = {'phone': '电话', 'wechat': '微信', 'in_person': '当面', 'other': '其他'}
@@ -19,11 +21,15 @@ SOURCE_STATES = {'planned': '当前已核对计划', 'needs_review': '病例已�
                  'superseded': '来源计划已更正', 'withdrawn': '来源计划已撤销'}
 
 
-def ensure_enabled():
+def ensure_enabled(template_id='outpatient_record_zh'):
     contacts.ensure_enabled()
     if (os.getenv('FOLLOWUP_CONTACT_DOCUMENTS_ENABLED') != '1'
             or os.getenv('FOLLOWUP_CONTACT_DOCUMENTS_SYNTHETIC_ONLY') != '1'):
         raise contacts.Error('contact_documents_disabled', 503)
+    if template_id == OWNER_TEMPLATE and (
+            os.getenv('FOLLOWUP_CONTACT_OWNER_DOCUMENTS_ENABLED') != '1'
+            or os.getenv('FOLLOWUP_CONTACT_OWNER_DOCUMENTS_SYNTHETIC_ONLY') != '1'):
+        raise contacts.Error('contact_owner_documents_disabled', 503)
 
 
 def validate_selection(value):
@@ -46,7 +52,7 @@ def audit_token(db, case):
     return plans.digest([{c.name: value(row, c) for c in AuditLog.__table__.columns} for row in rows])
 
 
-def read_selected(db, case, selection):
+def read_selected(db, case, selection, *, template_id='outpatient_record_zh'):
     listing = contacts.listing_data(db, case)  # validates ALL chains and audits
     record = next((r for r in listing['records'] if r['id'] == selection['id']), None)
     if record is None:
@@ -56,20 +62,27 @@ def read_selected(db, case, selection):
             or record['token'] != selection['token'] or source['token'] != selection['source_token']
             or listing['case_token'] != selection['case_token']):
         raise contacts.Error('contact_document_changed_review_again')
-    return {'schema': SCHEMA, 'case_id': case.id, 'timezone': 'Asia/Shanghai',
+    return {'schema': OWNER_SCHEMA if template_id == OWNER_TEMPLATE else SCHEMA,
+            **({'template_id': OWNER_TEMPLATE} if template_id == OWNER_TEMPLATE else {}),
+            'case_id': case.id, 'timezone': 'Asia/Shanghai',
             'selection': selection, 'case': listing['case'], 'record': record,
             'audit_token': audit_token(db, case)}
 
 
 @contextmanager
-def snapshot(uid, cid, selection, lab_ids, image_ids, comparison, has_comparison, followup, has_followup):
+def snapshot(uid, cid, selection, lab_ids, image_ids, comparison, has_comparison, followup, has_followup,
+             *, template_id='outpatient_record_zh'):
     validate_selection(selection)
-    ensure_enabled()
+    if template_id not in ('outpatient_record_zh', OWNER_TEMPLATE) or (
+            template_id == OWNER_TEMPLATE and has_comparison):
+        raise contacts.Error('contact_document_unsupported_template_selection', 422)
+    ensure_enabled(template_id)
     with ExitStack() as stack:
         reports, imaging, compared, plan = [], [], None, None
         if has_followup:
             db, reports, imaging, compared, plan = stack.enter_context(plan_docs.snapshot(
-                uid, cid, followup, lab_ids, image_ids, comparison, has_comparison))
+                uid, cid, followup, lab_ids, image_ids, comparison, has_comparison,
+                template_id=template_id))
             case = db.get(Case, cid)
         elif has_comparison:
             db, reports, imaging, compared = stack.enter_context(comparisons.snapshot(uid, cid, comparison, lab_ids, image_ids))
@@ -81,7 +94,7 @@ def snapshot(uid, cid, selection, lab_ids, image_ids, comparison, has_comparison
             db, case, reports = stack.enter_context(labs.snapshot(uid, cid, lab_ids))
         else:
             db, case = stack.enter_context(plans.transaction(uid, cid))
-        payload = read_selected(db, case, selection)
+        payload = read_selected(db, case, selection, template_id=template_id)
         # The caller builds the entire document before releasing existing locks.
         yield db, reports, imaging, compared, plan, payload
 
@@ -102,7 +115,8 @@ def append_section(xml, context):
     if body is None:
         raise contacts.Error('contact_document_invalid_template')
     para = labs.paragraph
-    nodes = [para('人工随访记录附节 · 医生本次明确选择', bold=True, keep=True, page=True),
+    owner = p['schema'] == OWNER_SCHEMA
+    nodes = [para('人工随访记录附节 · ' + ('宠主说明 · ' if owner else '') + '医生本次明确选择', bold=True, keep=True, page=True),
              para('草稿 · 待医生核对 · 尚未签署。联系或尝试记录不代表已复诊、完成检查、改善或关闭计划。'),
              para(identity('当前病例身份', p['case'])), para(identity('联系登记时身份', r['case_snapshot'])),
              para('实际联系或尝试时间（上海）：'+d['occurred_at']),
@@ -122,8 +136,10 @@ def append_section(xml, context):
              para('来源备注：'+(data['note'] or '未填写')),
              para('来源核对账号：'+s['reviewed_by']+'；核对时间：'+s['reviewed_at']),
              para('来源当前内容标识：'+p['selection']['source_token']),
-             para('审计校验标识：'+p['audit_token']), para('附节版本：'+SCHEMA),
+             para('审计校验标识：'+p['audit_token']), para('附节版本：'+p['schema']),
              para('导出账号：'+context['export.account_id']+'；生成时间：'+context['timestamp']+'；文书内容校验标识：'+context['hash'])]
+    if owner:
+        nodes.insert(2, para('本附节保留历史沟通及来源原文，请医生核对是否适合出示给宠主。'))
     at = list(body).index(body.find(labs.W+'sectPr')) if body.find(labs.W+'sectPr') is not None else len(body)
     for node in nodes:
         body.insert(at, node); at += 1

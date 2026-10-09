@@ -132,3 +132,9 @@ def enable_followup_contact_documents():
     enable_followup_contacts()
     enable_followup_plan_documents()
     os.environ.update(FOLLOWUP_CONTACT_DOCUMENTS_ENABLED='1', FOLLOWUP_CONTACT_DOCUMENTS_SYNTHETIC_ONLY='1')
+
+
+def enable_followup_contact_owner_documents():
+    enable_followup_contact_documents()
+    enable_followup_plan_owner_documents()
+    os.environ.update(FOLLOWUP_CONTACT_OWNER_DOCUMENTS_ENABLED='1', FOLLOWUP_CONTACT_OWNER_DOCUMENTS_SYNTHETIC_ONLY='1')
