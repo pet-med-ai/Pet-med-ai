@@ -1,0 +1,56 @@
+{
+  "case": {
+    "patient_name": "CW-B19 合成犬",
+    "species": "dog",
+    "sex": "male",
+    "owner_name": "合成宠主",
+    "owner_phone": "",
+    "history": "合成历史，仅用于隔离验证",
+    "chief_complaint": "合成随访核对"
+  },
+  "cat": {
+    "patient_name": "CW-B19 合成猫",
+    "species": "cat",
+    "sex": "female",
+    "owner_name": "合成宠主乙",
+    "owner_phone": "",
+    "history": "合成猫病史",
+    "chief_complaint": "合成猫随访核对"
+  },
+  "plan": {
+    "planned_date": "2024-02-29",
+    "purpose": "合成计划 {{原文}} 🐾",
+    "items": [
+      "核对医生已填记录",
+      "原项目 é"
+    ],
+    "return_conditions": "由医生填写；此为合成文本",
+    "note": "不自动联系"
+  },
+  "contact": {
+    "occurred_at": "2024-02-29T16:35+08:00",
+    "method": "phone",
+    "outcome": "not_reached",
+    "note": "合成联系尝试\n原文 {{不要代写}} 🐾 é",
+    "next_action": "医生另行安排；无自动发送"
+  },
+  "corrected": {
+    "occurred_at": "2024-03-01T00:15+08:00",
+    "method": "wechat",
+    "outcome": "reached",
+    "note": "合成更正原文\n对方陈述仅作记录",
+    "next_action": "待医生核对后续安排"
+  },
+  "expected_utc": "2024-02-29T08:35:00",
+  "invalid_times": [
+    "2023-02-29T12:00+08:00",
+    "2024-02-30T12:00+08:00",
+    "2024-02-29T24:00+08:00",
+    "2024-02-29T16:35Z",
+    "2024-02-29T16:35",
+    "2024-02-29T16:35:00+08:00",
+    "0000-01-01T00:00+08:00"
+  ],
+  "correction_reason": "合成：核对原始记录后更正",
+  "withdrawal_reason": "合成：撤销误录，不删除历史"
+}

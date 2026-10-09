@@ -130,6 +130,8 @@ from clinical_followup_plans_api import router as followup_plan_router
 app.include_router(followup_plan_router)
 from clinical_followup_plan_queue_api import router as followup_plan_queue_router
 app.include_router(followup_plan_queue_router)
+from clinical_followup_contacts_api import router as followup_contacts_router
+app.include_router(followup_contacts_router)
 
 
 def _text_with_species(text: str, species: Optional[str] = None) -> str:

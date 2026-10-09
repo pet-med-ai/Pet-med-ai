@@ -112,6 +112,11 @@ def enable_followup_plan_queue():
     os.environ.update(FOLLOWUP_PLAN_QUEUE_ENABLED='1', FOLLOWUP_PLAN_QUEUE_SYNTHETIC_ONLY='1')
 
 
+def enable_followup_contacts():
+    enable_followup_plans()
+    os.environ.update(FOLLOWUP_CONTACTS_ENABLED='1', FOLLOWUP_CONTACTS_SYNTHETIC_ONLY='1')
+
+
 if __name__ == '__main__':
     import uvicorn
     uvicorn.run(main.app, host='127.0.0.1', port=18026, loop='asyncio')
