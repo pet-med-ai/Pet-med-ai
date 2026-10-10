@@ -861,7 +861,8 @@ jobs:
                   pdf=target/(file.stem+'.pdf');assert pdf.is_file() and pdf.stat().st_size>0
                   subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
                   pages=sorted(target.glob('page-*.png'));assert pages
-                  text=subprocess.check_output(['pdftotext',str(pdf),'-'],text=True)
+                  # Keep emoji beside its source line; default reading order can move it after the next line.
+                  text=subprocess.check_output(['pdftotext','-layout',str(pdf),'-'],text=True)
                   required=[case['saved_case'][key] for key in ('patient_name','history','treatment')]
                   required += [fixture['corrected_lab_value'],fixture['imaging']['findings'],fixture['contact']['note'],fixture['contact']['next_action'],
                                '复查目的：'+fixture['plan']['purpose'],'来源复查目的：'+fixture['plan']['purpose']]
