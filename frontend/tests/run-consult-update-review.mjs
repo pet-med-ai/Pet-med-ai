@@ -18,6 +18,7 @@ try {
   names.push('followup-contact-documents', 'case-detail-followup-contact-documents');
   names.push('followup-contact-owner-documents', 'case-detail-followup-contact-owner-documents');
   names.push('followup-contact-queue', 'case-detail-followup-contact-queue');
+  names.push('clinical-doctor-trial');
   const outputs = names.map(name => join(temporary, name + ".cjs"));
   for (let index = 0; index < names.length; index++) {
     await build({

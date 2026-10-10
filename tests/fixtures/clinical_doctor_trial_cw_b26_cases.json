@@ -1,0 +1,18 @@
+{
+  "schema": "clinical-doctor-trial-cw-b26-v1",
+  "source_fixture": "tests/fixtures/clinical_visit_journey_cw_b24_cases.json",
+  "patient_names": ["CW26 合成犬", "CW26 合成猫"],
+  "steps": [
+    "用启动终端给出的本次账号登录，选择合成犬或合成猫。",
+    "打开检查资料，上传下方合成 PNG 或 PDF，核对后关联。",
+    "按操作样例手工录入检验和影像；把检验 0.0100 更正为 0.0300，检查旧版仍保留。",
+    "手工保存复查计划与随访记录，从复查工作清单回看准确版本。",
+    "分别核对门诊病历和宠主说明草稿，主动下载 DOCX；刷新、退出登录再登录，回读本轮记录。",
+    "按 Ctrl+C 结束练习。本轮临时数据清理，主动下载的文件自行保留；不录入真实资料。"
+  ],
+  "sample_files": [
+    {"name": "合成检验原件 PNG", "path": "/trial-samples/synthetic.png"},
+    {"name": "合成影像原件 PDF", "path": "/trial-samples/synthetic.pdf"},
+    {"name": "操作样例 JSON", "path": "/trial-samples/practice.json"}
+  ]
+}
