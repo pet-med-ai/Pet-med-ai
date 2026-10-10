@@ -1,11 +1,12 @@
 // Real Chromium + real authenticated app and bytes. No service or route mock.
 const {chromium,expect}=require('@playwright/test');
+const {trackBrowser}=require('./clinical_visit_journey_harness.cjs');
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {createHash,randomUUID}=require('node:crypto'),{spawn,spawnSync}=require('node:child_process');
 const UI='http://127.0.0.1:5173',API='http://127.0.0.1:18026',out=process.env.PMAI_ACCEPTANCE_OUT;
 assert(out&&process.env.PMAI_SYNTHETIC_ACCEPTANCE==='PR26');
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'cwb10-browser-')),passed=[],errors=[],external=[];
-let browser,page,server;
+let browser,page,server,requestTracker;
 const python=process.env.PMAI_PYTHON||'python';
 const generated=spawnSync(python,['-B','tests/fixtures/build_attachment_cw_b6_fixtures.py',temp],{encoding:'utf8'});
 assert.equal(generated.status,0,generated.stderr);
@@ -43,7 +44,7 @@ async function main(){
  const log=fs.openSync(path.join(out,'cwb10-backend.log'),'w');server=spawn(python,['-B','-c',boot],{stdio:['ignore',log,log],env:process.env});
  for(let i=0;i<70;i++){if(server.exitCode!==null)throw Error('Document backend exited');try{if((await fetch(API+'/healthz')).ok)break;}catch{}if(i===69)throw Error('Document backend unavailable');await new Promise(r=>setTimeout(r,200));}
  browser=await chromium.launch({headless:true});const context=await browser.newContext({serviceWorkers:'block',viewport:{width:1400,height:1080},acceptDownloads:true});
- await context.route('**/*',r=>[UI,API].includes(new URL(r.request().url()).origin)?r.continue():(external.push(r.request().url()),r.abort()));
+ requestTracker=await trackBrowser(context,{origins:[UI,API],errors,external});
  page=await context.newPage();page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
  async function login(){await page.goto(UI);await page.getByPlaceholder('邮箱',{exact:true}).fill('browser-owner@example.com');await page.getByPlaceholder('密码',{exact:true}).fill('Synthetic-PR26-only-20260916');await page.getByRole('button',{name:'登录',exact:true}).click();await expect(page.getByRole('button',{name:'退出',exact:true})).toBeVisible();}
  await login();const auth={Authorization:'Bearer '+await page.evaluate(()=>localStorage.getItem('token'))};
@@ -95,7 +96,9 @@ async function main(){
   const link=view.getByRole('link',{name:'编辑已保存病例（新标签页）',exact:true}).first();
   assert.equal(await link.getAttribute('target'),'_blank');
   const popupPromise=context.waitForEvent('page');await link.click();const popup=await popupPromise;
-  await popup.waitForURL(UI+'/cases/'+cid+'/edit');await popup.close();
+  await popup.waitForURL(UI+'/cases/'+cid+'/edit');
+  await popup.getByRole('region',{name:'病例修改核对',exact:true}).waitFor({state:'visible'});
+  await requestTracker.closePage(popup);
   await expect(lab.getByLabel('报告标题',{exact:true})).toHaveValue('保留未保存检验草稿');
   passed.push(species+'_existing_lab_correction_refresh_dedup_and_draft_preservation');
   const images=page.getByRole('region',{name:'影像报告人工录入',exact:true});
@@ -138,6 +141,8 @@ async function main(){
  fs.writeFileSync(path.join(out,'cwb10-browser-saved.json'),JSON.stringify({results,external_calls:0,downloads},null,2));
 }
 main().catch(async e=>{process.exitCode=1;errors.push(String(e));console.error(e);if(page&&!page.isClosed())await page.screenshot({path:path.join(out,'cwb10-failure.png'),fullPage:true}).catch(()=>{});}).finally(async()=>{
+ if(requestTracker)await requestTracker.close().catch(e=>{errors.push(String(e));process.exitCode=1;});
+ if(errors.length||external.length)process.exitCode=1;
  if(browser)await browser.close();if(server&&server.exitCode===null){server.kill('SIGTERM');await new Promise(resolve=>{const timer=setTimeout(()=>{server.kill('SIGKILL');resolve();},5000);server.once('exit',()=>{clearTimeout(timer);resolve();});});}
  fs.rmSync(temp,{recursive:true,force:true});fs.writeFileSync(path.join(out,'cwb10-overview-checks.json'),JSON.stringify({passed,errors,external,external_calls:0,backend:process.argv.includes('--local-sqlite')?'SQLite':'PostgreSQL'},null,2));
 });

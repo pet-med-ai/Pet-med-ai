@@ -290,15 +290,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B22 and approved CW-B23 increment
+      - name: Bind frozen M7 through CW-B23 and approved CW-B24 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_followup_contact_queue_cw_b23.py > "$RUNNER_TEMP/cwb23-scope.json"
+          python scripts/validate_clinical_visit_journey_cw_b24.py > "$RUNNER_TEMP/cwb24-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb23-scope.json" acceptance-results/cwb23-scope.json
+          cp "$RUNNER_TEMP/cwb24-scope.json" acceptance-results/cwb24-scope.json
           python - <<'PY_SCOPE'
           import json
-          cwb22 = json.load(open('acceptance-results/cwb23-scope.json'))['frozen_cwb22']
+          cwb23 = json.load(open('acceptance-results/cwb24-scope.json'))['frozen_cwb23']
+          open('acceptance-results/cwb23-scope.json','w').write(json.dumps(cwb23,indent=2))
+          cwb22 = cwb23['frozen_cwb22']
           open('acceptance-results/cwb22-scope.json','w').write(json.dumps(cwb22,indent=2))
           cwb21 = cwb22['frozen_cwb21']
           open('acceptance-results/cwb21-scope.json','w').write(json.dumps(cwb21,indent=2))
@@ -549,6 +551,10 @@ jobs:
           python tests/test_clinical_followup_contact_queue.py 2>&1 | tee acceptance-results/cwb23-route-tests.log
           python tests/test_clinical_followup_contact_queue_concurrency.py 2>&1 | tee acceptance-results/cwb23-concurrency-tests.log
           python tests/test_clinical_followup_contact_queue_isolation.py 2>&1 | tee acceptance-results/cwb23-isolation-tests.log
+      - name: CW-B24 reject incomplete and falsely signed acceptance evidence
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_visit_journey_evidence.py 2>&1 | tee acceptance-results/cwb24-evidence-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -716,6 +722,11 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_queue_checks.cjs 2>&1 | tee acceptance-results/cwb23-browser.log
+      - name: CW-B24 real Chromium complete visits and independent PostgreSQL readback
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_visit_journey_checks.cjs 2>&1 | tee acceptance-results/cwb24-browser.log
+          test -s acceptance-results/cwb24-independent-readback.json
       - name: Render CW-B13 synthetic DOCX samples to page evidence
         run: |
           sudo apt-get update -qq
@@ -819,6 +830,49 @@ jobs:
               result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
           (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
           PY_DOC22
+      - name: Render every CW-B24 complete-visit document page
+        run: |
+          python - <<'PY_DOC24'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results')
+          evidence=json.loads((root/'cwb24-journey.json').read_text())
+          fixture=json.loads(Path('tests/fixtures/clinical_visit_journey_cw_b24_cases.json').read_text())
+          assert evidence['status']=='PASS' and len(evidence['cases'])==2
+          # Deterministic substitutions using already installed fonts; never alter the DOCX.
+          fontconfig=root/'cwb24-render-fontconfig.xml'
+          fontconfig.write_text('''<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+          <fontconfig><include>/etc/fonts/fonts.conf</include>
+          <alias binding="strong"><family>SimSun</family><prefer><family>Noto Sans CJK SC</family></prefer></alias>
+          <alias binding="strong"><family>Arial</family><prefer><family>Noto Sans CJK SC</family></prefer></alias>
+          </fontconfig>''')
+          render_env=dict(os.environ,FONTCONFIG_FILE=str(fontconfig.resolve()))
+          for requested in ('SimSun','Arial'):
+              expected='Noto Sans CJK SC'
+              actual=subprocess.check_output(['fc-match','-f','%{family}',requested],env=render_env,text=True)
+              assert expected in actual, (requested,actual)
+              print('CW-B24 render font:',requested,'->',actual)
+          result=[]
+          for case in evidence['cases']:
+              for item in case['documents']:
+                  file=root/item['file'];assert hashlib.sha256(file.read_bytes()).hexdigest()==item['sha256']
+                  target=root/'cwb24-pages'/file.stem;target.mkdir(parents=True)
+                  subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb24-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],env=render_env,check=True,timeout=90)
+                  pdf=target/(file.stem+'.pdf');assert pdf.is_file() and pdf.stat().st_size>0
+                  subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+                  pages=sorted(target.glob('page-*.png'));assert pages
+                  # Keep emoji beside its source line; default reading order can move it after the next line.
+                  text=subprocess.check_output(['pdftotext','-layout',str(pdf),'-'],text=True)
+                  required=[case['saved_case'][key] for key in ('patient_name','history','treatment')]
+                  required += [fixture['corrected_lab_value'],fixture['imaging']['findings'],fixture['contact']['note'],fixture['contact']['next_action'],
+                               '复查目的：'+fixture['plan']['purpose'],'来源复查目的：'+fixture['plan']['purpose']]
+                  for literal in required:
+                      assert ''.join(literal.split()) in ''.join(text.split()), (file.name,'PDF lost literal',literal)
+                  (target/'rendered-text.txt').write_text(text)
+                  result.append({'sample':file.name,'source_sha256':item['sha256'],'pages':len(pages),'pdf_literals_verified':True,'mac_word_checked':False,'doctor_accepted':False})
+          assert len(result)==4
+          (root/'cwb24-render-manifest.json').write_text(json.dumps({'head':evidence['head'],'fontconfig_sha256':hashlib.sha256(fontconfig.read_bytes()).hexdigest(),'documents':result},indent=2))
+          PY_DOC24
       - name: Audit locked frontend dependencies
         run: |
           set -o pipefail
