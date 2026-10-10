@@ -833,23 +833,44 @@ jobs:
       - name: Render every CW-B24 complete-visit document page
         run: |
           python - <<'PY_DOC24'
-          import hashlib, json, subprocess
+          import hashlib, json, os, subprocess
           from pathlib import Path
           root=Path('acceptance-results')
           evidence=json.loads((root/'cwb24-journey.json').read_text())
+          fixture=json.loads(Path('tests/fixtures/clinical_visit_journey_cw_b24_cases.json').read_text())
           assert evidence['status']=='PASS' and len(evidence['cases'])==2
+          # Deterministic substitutions using already installed fonts; never alter the DOCX.
+          fontconfig=root/'cwb24-render-fontconfig.xml'
+          fontconfig.write_text('''<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+          <fontconfig><include>/etc/fonts/fonts.conf</include>
+          <alias binding="strong"><family>SimSun</family><prefer><family>Noto Sans CJK SC</family></prefer></alias>
+          <alias binding="strong"><family>Arial</family><prefer><family>Noto Sans CJK SC</family></prefer></alias>
+          </fontconfig>''')
+          render_env=dict(os.environ,FONTCONFIG_FILE=str(fontconfig.resolve()))
+          for requested in ('SimSun','Arial'):
+              expected='Noto Sans CJK SC'
+              actual=subprocess.check_output(['fc-match','-f','%{family}',requested],env=render_env,text=True)
+              assert expected in actual, (requested,actual)
+              print('CW-B24 render font:',requested,'->',actual)
           result=[]
           for case in evidence['cases']:
               for item in case['documents']:
                   file=root/item['file'];assert hashlib.sha256(file.read_bytes()).hexdigest()==item['sha256']
                   target=root/'cwb24-pages'/file.stem;target.mkdir(parents=True)
-                  subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb24-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],check=True,timeout=90)
+                  subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb24-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],env=render_env,check=True,timeout=90)
                   pdf=target/(file.stem+'.pdf');assert pdf.is_file() and pdf.stat().st_size>0
                   subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
                   pages=sorted(target.glob('page-*.png'));assert pages
-                  result.append({'sample':file.name,'source_sha256':item['sha256'],'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
+                  text=subprocess.check_output(['pdftotext',str(pdf),'-'],text=True)
+                  required=[case['saved_case'][key] for key in ('patient_name','history','treatment')]
+                  required += [fixture['corrected_lab_value'],fixture['imaging']['findings'],fixture['contact']['note'],fixture['contact']['next_action'],
+                               '复查目的：'+fixture['plan']['purpose'],'来源复查目的：'+fixture['plan']['purpose']]
+                  for literal in required:
+                      assert ''.join(literal.split()) in ''.join(text.split()), (file.name,'PDF lost literal',literal)
+                  (target/'rendered-text.txt').write_text(text)
+                  result.append({'sample':file.name,'source_sha256':item['sha256'],'pages':len(pages),'pdf_literals_verified':True,'mac_word_checked':False,'doctor_accepted':False})
           assert len(result)==4
-          (root/'cwb24-render-manifest.json').write_text(json.dumps({'head':evidence['head'],'documents':result},indent=2))
+          (root/'cwb24-render-manifest.json').write_text(json.dumps({'head':evidence['head'],'fontconfig_sha256':hashlib.sha256(fontconfig.read_bytes()).hexdigest(),'documents':result},indent=2))
           PY_DOC24
       - name: Audit locked frontend dependencies
         run: |
