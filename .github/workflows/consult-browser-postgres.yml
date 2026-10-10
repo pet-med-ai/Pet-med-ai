@@ -290,15 +290,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B23 and approved CW-B24 increment
+      - name: Bind frozen M7 through CW-B24 and approved CW-B25 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_visit_journey_cw_b24.py > "$RUNNER_TEMP/cwb24-scope.json"
+          python scripts/validate_clinical_lab_readability_cw_b25.py > "$RUNNER_TEMP/cwb25-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb24-scope.json" acceptance-results/cwb24-scope.json
+          cp "$RUNNER_TEMP/cwb25-scope.json" acceptance-results/cwb25-scope.json
           python - <<'PY_SCOPE'
           import json
-          cwb23 = json.load(open('acceptance-results/cwb24-scope.json'))['frozen_cwb23']
+          cwb24 = json.load(open('acceptance-results/cwb25-scope.json'))['frozen_cwb24']
+          open('acceptance-results/cwb24-scope.json','w').write(json.dumps(cwb24,indent=2))
+          cwb23 = cwb24['frozen_cwb23']
           open('acceptance-results/cwb23-scope.json','w').write(json.dumps(cwb23,indent=2))
           cwb22 = cwb23['frozen_cwb22']
           open('acceptance-results/cwb22-scope.json','w').write(json.dumps(cwb22,indent=2))
@@ -726,6 +728,10 @@ jobs:
         run: |
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_visit_journey_checks.cjs 2>&1 | tee acceptance-results/cwb24-browser.log
+      - name: CW-B25 real Chromium lab literals and responsive table geometry
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_lab_readability_checks.cjs 2>&1 | tee acceptance-results/cwb25-browser.log
           test -s acceptance-results/cwb24-independent-readback.json
       - name: Render CW-B13 synthetic DOCX samples to page evidence
         run: |

@@ -1,0 +1,62 @@
+.clinical-lab-table-region {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.clinical-lab-table-region:focus-visible {
+  outline: 2px solid #0f766e;
+  outline-offset: 2px;
+}
+
+/* The report editor remains beside its preview at narrow widths. */
+.clinical-lab-panel fieldset {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.clinical-lab-panel input,
+.clinical-lab-panel select,
+.clinical-lab-panel textarea {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.clinical-lab-table {
+  width: max-content;
+  min-width: 100%;
+  table-layout: auto;
+  border-collapse: collapse;
+  font: inherit;
+}
+
+.clinical-lab-table th,
+.clinical-lab-table td {
+  padding: 8px;
+  border: 1px solid #ccd5d1;
+  text-align: left;
+  vertical-align: top;
+}
+
+.clinical-lab-table th {
+  white-space: nowrap;
+}
+
+/* Keep clinical literals intact, including their original spaces and newlines. */
+.clinical-lab-table .clinical-lab-table__literal {
+  white-space: pre;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.clinical-lab-table .clinical-lab-table__text {
+  min-width: 8rem;
+  max-width: 24rem;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}

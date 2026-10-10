@@ -1,0 +1,140 @@
+{
+  "schema": "clinical_lab_readability_cw_b25_v1",
+  "viewport_widths": [
+    320,
+    390,
+    768,
+    1440
+  ],
+  "case": {
+    "patient_name": "CW-B25 合成阅读样例",
+    "species": "dog",
+    "owner_name": "合成宠主 < & {{literal}}",
+    "coat_color": "黑白（合成）",
+    "chief_complaint": "合成检验表阅读核对",
+    "history": "  未见呕吐；不能排除间歇症状。\r\n保留否定词 <tag> & {{visit.history}} 🐾\t  ",
+    "exam_findings": "未填写体温不代表体温正常",
+    "analysis": "评估记录，尚不能确认病因",
+    "treatment": "需医生核对原计划",
+    "prognosis": ""
+  },
+  "data": {
+    "report": {
+      "title": "CW-B25 合成检验表",
+      "panel": "mixed",
+      "specimen": "合成样本",
+      "collected_at": "2026-10-10T09:00:00+08:00",
+      "reported_at": "",
+      "laboratory": "合成实验室",
+      "device": "合成设备",
+      "note": "这些数值仅用于版式验收，不作为临床参考范围。"
+    },
+    "items": [
+      {
+        "name": "负值与尾随零",
+        "result_type": "number",
+        "value": "-0.0100",
+        "unit": "mmol/L",
+        "reference": "  -1.0000 – 1.0000 mmol/L  ",
+        "reference_low": "-1.0000",
+        "reference_high": "1.0000",
+        "reference_unit": "mmol/L",
+        "flag": "",
+        "position": "合成第 1 页 · 负值与尾随零",
+        "checked": true
+      },
+      {
+        "name": "长小数",
+        "result_type": "number",
+        "value": "0.10000000000000000000000000001",
+        "unit": "mmol/L",
+        "reference": "  -1.0000 – 1.0000 mmol/L  ",
+        "reference_low": "-1.0000",
+        "reference_high": "1.0000",
+        "reference_unit": "mmol/L",
+        "flag": "",
+        "position": "合成第 1 页 · 长小数",
+        "checked": true
+      },
+      {
+        "name": "科学记数",
+        "result_type": "number",
+        "value": "2.001e-8",
+        "unit": "10^9/L",
+        "reference": "1e-8 – 2e-8 10^9/L",
+        "reference_low": "1e-8",
+        "reference_high": "2e-8",
+        "reference_unit": "10^9/L",
+        "flag": "",
+        "position": "合成第 1 页 · 科学记数",
+        "checked": true
+      },
+      {
+        "name": "比较符",
+        "result_type": "comparison",
+        "value": "<0.0010",
+        "unit": "µmol/L",
+        "reference": "  <0.0100 µmol/L  ",
+        "reference_low": "",
+        "reference_high": "",
+        "reference_unit": "",
+        "flag": "",
+        "position": "合成第 1 页 · 比较符",
+        "checked": true
+      },
+      {
+        "name": "零值",
+        "result_type": "number",
+        "value": "0",
+        "unit": "mg/(kg·h)",
+        "reference": "  -1.0000 – 1.0000 mmol/L  ",
+        "reference_low": "-1.0000",
+        "reference_high": "1.0000",
+        "reference_unit": "mg/(kg·h)",
+        "flag": "",
+        "position": "合成第 1 页 · 零值",
+        "checked": true
+      },
+      {
+        "name": "长中文与显式换行",
+        "result_type": "text",
+        "value": "  所见原文 café 🐾\n保留换行  人工记录待核对。人工记录待核对。人工记录待核对。人工记录待核对。人工记录待核对。人工记录待核对。人工记录待核对。人工记录待核对。人工记录待核对。人工记录待核对。",
+        "unit": "",
+        "reference": "原报告第一行\n原报告第二行 café 🐾",
+        "reference_low": "",
+        "reference_high": "",
+        "reference_unit": "",
+        "flag": "",
+        "position": "合成第 1 页 · 长中文与显式换行",
+        "checked": true
+      },
+      {
+        "name": "未测",
+        "result_type": "not_tested",
+        "value": "",
+        "unit": "",
+        "reference": "",
+        "reference_low": "",
+        "reference_high": "",
+        "reference_unit": "",
+        "flag": "",
+        "position": "合成第 1 页 · 未测",
+        "checked": true
+      },
+      {
+        "name": "未提供",
+        "result_type": "not_provided",
+        "value": "",
+        "unit": "",
+        "reference": "",
+        "reference_low": "",
+        "reference_high": "",
+        "reference_unit": "",
+        "flag": "",
+        "position": "合成第 1 页 · 未提供",
+        "checked": true
+      }
+    ]
+  },
+  "correction_value": "-0.0200"
+}

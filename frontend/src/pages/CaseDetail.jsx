@@ -3627,6 +3627,33 @@ const css = `
   .attach-list { padding-left: 18px; margin: 6px 0; }
   .attach-name { font-weight: 600; margin-right: 6px; }
 
+  /* Keep the existing review forms within narrow case-detail cards. */
+  .signed-review-state-panel,
+  .signed-review-state-persistence-panel,
+  .signed-review-state-migration-panel,
+  .signed-review-state-form,
+  .signed-review-state-persistence-form,
+  .signed-review-state-migration-form {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .signed-review-state-label,
+  .signed-review-state-persistence-label,
+  .signed-review-state-migration-label,
+  .signed-review-state-boundary,
+  .signed-review-state-persistence-boundary,
+  .signed-review-state-migration-boundary {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .signed-review-state-input,
+  .signed-review-state-persistence-input,
+  .signed-review-state-migration-input {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   @media (max-width: 720px) {
     .case-hero { flex-direction: column; }
     .info-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }

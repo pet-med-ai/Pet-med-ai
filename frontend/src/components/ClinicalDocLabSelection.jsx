@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import api from "../api";
 import { draftOwner } from "../consultDraft";
 import { documentResult, manualLabDocumentMessage, validDocumentReports } from "../manualLabDocuments";
+import "./ClinicalLabTable.css";
 
 function Report({ row }) {
   const r = row.data.report;
@@ -10,9 +11,10 @@ function Report({ row }) {
     <p>样本：{r.specimen || "未提供"}；采样：{r.collected_at || "未提供"}；报告：{r.reported_at || "未提供"}</p>
     <p>实验室：{r.laboratory || "未提供"}；仪器：{r.device || "未提供"}；核对账号：{row.reviewed_by}；核对时间：{row.reviewed_at}</p>
     <p style={{overflowWrap:"anywhere"}}>报告编号：{row.root_id}；原件：{row.source.name}；SHA-256：{row.source.sha256}</p>
-    <div style={{overflowX:"auto"}}><table style={{borderCollapse:"collapse",width:"100%"}}>
+    <p>表格可横向滚动查看全部字段；键盘可聚焦表格后使用左右方向键。</p>
+    <div className="clinical-lab-table-region" role="region" aria-label="文书检验表，可横向滚动" tabIndex={0}><table className="clinical-lab-table">
       <thead><tr>{["项目","结果原文","单位","参考区间原文","原报告标记","原报告位置"].map(s=><th key={s} scope="col">{s}</th>)}</tr></thead>
-      <tbody>{row.data.items.map((i,n)=><tr key={n}>{[i.name,documentResult(i),i.unit || "未提供",i.reference || "未提供",i.flag || "未提供",i.position].map((v,k)=><td key={k} style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere",border:"1px solid #aaa",padding:6}}>{v}</td>)}</tr>)}</tbody>
+      <tbody>{row.data.items.map((i,n)=><tr key={n}>{[i.name,documentResult(i),i.unit || "未提供",i.reference || "未提供",i.flag || "未提供",i.position].map((v,k)=><td key={k} className={([2,3].includes(k) || (k === 1 && ["number", "comparison"].includes(i.result_type))) ? "clinical-lab-table__literal" : "clinical-lab-table__text"}>{v}</td>)}</tr>)}</tbody>
     </table></div>
     {r.note && <p style={{whiteSpace:"pre-wrap"}}>报告备注原文：{r.note}</p>}
   </section>;
