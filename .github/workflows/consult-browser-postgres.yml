@@ -256,6 +256,13 @@ on:
       - 'tests/fixtures/clinical_followup_contact_queue_cw_b23_cases.json'
       - 'scripts/validate_clinical_followup_contact_queue_cw_b23.py'
 
+      - 'scripts/run_clinical_doctor_trial_cw_b26.py'
+      - 'scripts/validate_clinical_doctor_trial_cw_b26.py'
+      - 'tests/test_clinical_doctor_trial.py'
+      - 'tests/fixtures/clinical_doctor_trial_cw_b26_cases.json'
+      - 'frontend/tests/clinical-doctor-trial.test.jsx'
+      - 'docs/clinical_docs/CLINICAL_DOCTOR_TRIAL_CW_B26.md'
+
 permissions:
   contents: read
 
@@ -290,15 +297,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B24 and approved CW-B25 increment
+      - name: Bind frozen M7 through CW-B25 and approved CW-B26 increment
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_lab_readability_cw_b25.py > "$RUNNER_TEMP/cwb25-scope.json"
+          python scripts/validate_clinical_doctor_trial_cw_b26.py > "$RUNNER_TEMP/cwb26-scope.json"
           mkdir -p acceptance-results
-          cp "$RUNNER_TEMP/cwb25-scope.json" acceptance-results/cwb25-scope.json
+          cp "$RUNNER_TEMP/cwb26-scope.json" acceptance-results/cwb26-scope.json
           python - <<'PY_SCOPE'
           import json
-          cwb24 = json.load(open('acceptance-results/cwb25-scope.json'))['frozen_cwb24']
+          cwb25 = json.load(open('acceptance-results/cwb26-scope.json'))['frozen_cwb25']
+          open('acceptance-results/cwb25-scope.json','w').write(json.dumps(cwb25,indent=2))
+          cwb24 = cwb25['frozen_cwb24']
           open('acceptance-results/cwb24-scope.json','w').write(json.dumps(cwb24,indent=2))
           cwb23 = cwb24['frozen_cwb23']
           open('acceptance-results/cwb23-scope.json','w').write(json.dumps(cwb23,indent=2))
@@ -557,6 +566,10 @@ jobs:
         run: |
           set -euo pipefail
           python tests/test_clinical_visit_journey_evidence.py 2>&1 | tee acceptance-results/cwb24-evidence-tests.log
+      - name: CW-B26 local trial startup boundaries and cleanup
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_doctor_trial.py 2>&1 | tee acceptance-results/cwb26-runtime-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -733,6 +746,10 @@ jobs:
           set -euo pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_lab_readability_checks.cjs 2>&1 | tee acceptance-results/cwb25-browser.log
           test -s acceptance-results/cwb24-independent-readback.json
+      - name: CW-B26 real launcher, persistent doctor flows and fresh restart
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_doctor_trial_checks.cjs 2>&1 | tee acceptance-results/cwb26-browser.log
       - name: Render CW-B13 synthetic DOCX samples to page evidence
         run: |
           sudo apt-get update -qq

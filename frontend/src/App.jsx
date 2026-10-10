@@ -17,6 +17,10 @@ import { WorkbenchSteps, SavedCasePanel, workbenchSteps } from "./components/Con
 import CaseDetail from "./pages/CaseDetail";
 import CaseEditorPage from "./pages/CaseEditorLite";
 
+// The normal build removes this branch and makes no trial identity requests.
+const ClinicalDoctorTrialGate = import.meta.env.VITE_DOCTOR_TRIAL === "1"
+  ? lazy(() => import("./components/ClinicalDoctorTrialGate")) : null;
+
 const FollowupPlanQueue = lazy(() => import("./pages/FollowupPlanQueue"));
 
 // Secondary pages are loaded on navigation; keep consultation and case editing eager.
@@ -2077,11 +2081,16 @@ export function AppRoutes() {
 }
 
 export default function App() {
-  return (
+  const application = (
     <Router>
       <AppRoutes />
     </Router>
   );
+  return ClinicalDoctorTrialGate
+    ? <Suspense fallback={<p role="status">正在核对本机合成环境……</p>}>
+        <ClinicalDoctorTrialGate>{application}</ClinicalDoctorTrialGate>
+      </Suspense>
+    : application;
 }
 
 /* ----------------- 小组件 & 样式 ----------------- */
