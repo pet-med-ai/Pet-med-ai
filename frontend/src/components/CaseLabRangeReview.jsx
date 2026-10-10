@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import "./ClinicalLabTable.css";
 import api from "../api";
 import { flagStates, rangeMessage, rangeStates, readRangeReview, unableStates } from "../labRangeReview";
 import { labStates, labTypes } from "../manualLabResults";
@@ -60,9 +61,9 @@ function RangeReview({ caseId, requestToken, sourceRevision = 0, onInspect, onCo
       {data.reports.map(row => <article key={row.id} aria-label={`区间报告 ${row.id}`} style={box}>
         <h3>{row.title} · 版本 {row.version}</h3>{source(row)}
         <p>本报告显示 {row.items.filter(shown).length} / {row.items.length} 项</p>
-        <p>表格可横向滚动查看全部字段。</p>
-        <div style={{ overflowX: "auto" }}><table style={{ minWidth: 1780, width: "100%", tableLayout: "fixed", borderCollapse: "collapse" }}><colgroup>{[180,90,200,100,200,110,110,100,140,210,240].map((width, i) => <col key={i} style={{ width }} />)}</colgroup><thead><tr>{["项目与位置", "类型", "结果原文", "单位", "参考范围原文", "下限", "上限", "参考单位", "原始标记", "区间位置", "标记核对"].map(label => <th key={label} style={{ padding: 8, textAlign: "left" }}>{label}</th>)}</tr></thead><tbody>
-          {row.items.filter(shown).map(item => <tr key={item.index}>{[`${item.index}. ${item.name}\n${item.position}`, labTypes[item.result_type], literal(item.value), literal(item.unit), literal(item.reference), literal(item.reference_low), literal(item.reference_high), literal(item.reference_unit), literal(item.flag), rangeStates[item.comparison.state], flagStates[item.comparison.flag_state]].map((v, i) => <td key={i} style={{ padding: 8, whiteSpace: "pre-wrap", verticalAlign: "top" }}>{v}</td>)}</tr>)}
+        <p>表格可横向滚动查看全部字段；键盘可聚焦表格后使用左右方向键。</p>
+        <div className="clinical-lab-table-region" role="region" aria-label="区间核对表，可横向滚动" tabIndex={0}><table className="clinical-lab-table"><thead><tr>{["项目与位置", "类型", "结果原文", "单位", "参考范围原文", "下限", "上限", "参考单位", "原始标记", "区间位置", "标记核对"].map(label => <th key={label} scope="col">{label}</th>)}</tr></thead><tbody>
+          {row.items.filter(shown).map(item => <tr key={item.index}>{[`${item.index}. ${item.name}\n${item.position}`, labTypes[item.result_type], literal(item.value), literal(item.unit), literal(item.reference), literal(item.reference_low), literal(item.reference_high), literal(item.reference_unit), literal(item.flag), rangeStates[item.comparison.state], flagStates[item.comparison.flag_state]].map((v, i) => <td key={i} className={([3,4,5,6,7].includes(i) || (i === 2 && ["number", "comparison"].includes(item.result_type))) ? "clinical-lab-table__literal" : "clinical-lab-table__text"}>{v}</td>)}</tr>)}
         </tbody></table></div>
       </article>)}
       <h3>未纳入当前比较的记录</h3><p>旧版本按原记录列出，不重复计入当前报告与项目数量。</p>

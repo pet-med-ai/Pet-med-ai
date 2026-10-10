@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { editableLabData, labMessage, labStates, labTypes, manualLabClient, newLabData, newLabRow } from "../manualLabResults";
 import { attachmentClient, newAttachmentRequest, verifyAttachmentBytes } from "../caseAttachments";
+import "./ClinicalLabTable.css";
 
 const box = { padding: 16, margin: "12px 0", border: "1px solid #ccd5d1", borderRadius: 8 };
 const panels = { cbc: "血常规", chemistry: "生化", urine: "尿检", mixed: "组合报告", other: "其他" };
@@ -8,8 +9,9 @@ const fields = { name: "项目名称", value: "结果原文", unit: "结果单�
 const prompt = "检验录入尚未保存，离开会丢失本页草稿。是否继续？";
 
 function Results({ data }) {
-  return <div style={{ overflowX: "auto" }}><table><thead><tr>{["项目", "结果类型", "结果原文", "单位", "参考范围原文", "下限", "上限", "参考单位", "报告标记", "原件位置"].map(s => <th key={s}>{s}</th>)}</tr></thead>
-    <tbody>{data.items.map((r, i) => <tr key={i}>{[r.name, labTypes[r.result_type], r.value || "未填写", r.unit || "未提供", r.reference || "未提供", r.reference_low || "未提供", r.reference_high || "未提供", r.reference_unit || "未提供", r.flag || "未提供", r.position].map((v, j) => <td key={j} style={{ padding: 6, whiteSpace: "pre-wrap" }}>{v}</td>)}</tr>)}</tbody></table></div>;
+  return <><p>表格可横向滚动查看全部字段；键盘可聚焦表格后使用左右方向键。</p>
+    <div className="clinical-lab-table-region" role="region" aria-label="人工检验表，可横向滚动" tabIndex={0}><table className="clinical-lab-table"><thead><tr>{["项目", "结果类型", "结果原文", "单位", "参考范围原文", "下限", "上限", "参考单位", "报告标记", "原件位置"].map(s => <th key={s} scope="col">{s}</th>)}</tr></thead>
+    <tbody>{data.items.map((r, i) => <tr key={i}>{[r.name, labTypes[r.result_type], r.value || "未填写", r.unit || "未提供", r.reference || "未提供", r.reference_low || "未提供", r.reference_high || "未提供", r.reference_unit || "未提供", r.flag || "未提供", r.position].map((v, j) => <td key={j} className={([3,4,5,6,7].includes(j) || (j === 2 && ["number", "comparison"].includes(r.result_type))) ? "clinical-lab-table__literal" : "clinical-lab-table__text"}>{v}</td>)}</tr>)}</tbody></table></div></>;
 }
 
 export default function CaseLabResults(props) { return <LabPanel key={JSON.stringify([props.caseId, props.requestToken])} {...props} />; }
@@ -101,7 +103,7 @@ function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onC
     link.href = url; link.download = source.name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   const locked = busy || Boolean(unknown);
-  return <section aria-label="检验项目人工录入" style={box}>
+  return <section className="clinical-lab-panel" aria-label="检验项目人工录入" style={box}>
     <h2>检验项目人工录入</h2><p>按原报告逐项填写并核对。保留原始数值、单位、范围和标记；未提供的内容请留空。</p>
     <p>未保存草稿仅留在本页，刷新或切换病例、账号后清除。</p>
     <p role="status">{busy ? "正在处理…" : message}</p>
