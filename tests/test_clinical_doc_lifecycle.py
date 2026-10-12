@@ -60,6 +60,28 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
             self.assertNotIn('{{', text)
             self.assertEqual(self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json(), case)
 
+    @patch.object(docs, "_utc_timestamp", return_value="2026-10-06T10:00:00Z")
+    def test_manual_lab_states_do_not_enter_existing_documents_or_snapshot(self, _clock):
+        case = self.create()
+        for model in (models.DiagnosticReport, models.Observation, models.ImagingStudy): model.__table__.create(db.engine, checkfirst=True)
+        def document(template, endpoint='render-preview'):
+            return self.client.post('/api/clinical-docs/'+endpoint,headers=self.owner,json={
+                'case_id':case['id'],'template_id':template,'include_diagnostic_data':template in LEGACY})
+        before = {t:document(t).json() for t in ALL_TEMPLATES}
+        with db.SessionLocal() as session:
+            for state in ('confirmed','needs_review','superseded','withdrawn'):
+                report=models.DiagnosticReport(case_id=case['id'],title='CW-B7 ONLY secret synthetic',report_type='cbc',source_type='manual-lab-cw-b7',status=state,ai_summary='never ingest')
+                session.add(report);session.flush()
+                session.add(models.Observation(case_id=case['id'],diagnostic_report_id=report.id,display_name='CW-B7 ONLY',value_text='0.0100',source_type='manual-lab-cw-b7',review_status=state))
+            session.commit()
+        for template in ALL_TEMPLATES:
+            after=document(template).json()
+            self.assertEqual(after['context'],before[template]['context'])
+            self.assertEqual(after.get('content_snapshot'),before[template].get('content_snapshot'))
+            rendered=document(template,'render')
+            self.assertEqual(rendered.status_code,200)
+            self.assertNotIn('CW-B7 ONLY',''.join(paragraphs(rendered.content)))
+
     def test_deleted_case_refuses_both_preview_and_download(self):
         case = self.create()
         self.assertEqual(self.client.delete(f"/api/cases/{case['id']}", headers=self.owner).status_code, 204)
@@ -99,7 +121,7 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
             self.assertIn(saved['analysis'], ps)
             self.assertIn(saved['exam_findings'], ps)
             self.assertIn(saved['treatment'], ps)
-            self.assertIn('未单独记录复查安排，请医生补充确认', ps)
+            self.assertIn('本次文书未纳入复查计划，请医生确认复查安排', ps)
             self.assertNotIn('最终诊断', ''.join(ps))
             self.assertNotIn('电子章', ''.join(ps))
             self.assertEqual(self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json(), saved)
@@ -121,6 +143,58 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
             text = ''.join(paragraphs(r.content))
             self.assertGreaterEqual(text.count('未填写'), 5)
             self.assertNotIn('无异常', text)
+
+    def test_outpatient_identity_is_literal_reviewed_and_read_only(self):
+        case = self.create()
+        values = {'owner_name': '  合成宠主 < & {{visit.plan}}  ', 'coat_color': '黑白\n局部棕色（合成）'}
+        with db.SessionLocal() as session:
+            row = session.get(models.Case, case['id'])
+            for key, value in values.items():
+                setattr(row, key, value)
+            session.commit()
+        saved = self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json()
+        template = 'outpatient_record_zh'
+        preview = self.render(case['id'], template, 'render-preview').json()
+        self.assertEqual(preview['missing_required_keys'], [])
+        for key, value in values.items():
+            self.assertEqual(preview['context']['visit.' + key], value)
+        result = self.checked_render(case['id'], template, preview['content_snapshot'])
+        self.assertEqual(result.status_code, 200)
+        self.assertEqual(result.headers['X-PMAI-Writes-Database'], 'false')
+        text = '\n'.join(paragraphs(result.content))
+        self.assertIn('宠主姓名：' + values['owner_name'], text)
+        self.assertIn('宠物毛色：' + values['coat_color'], text)
+        self.assertEqual(self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json(), saved)
+        # Each field participates in the same confirmation contract as the medical text.
+        for key in values:
+            previous = self.render(case['id'], template, 'render-preview').json()['content_snapshot']
+            with db.SessionLocal() as session:
+                setattr(session.get(models.Case, case['id']), key, '已更正（合成）')
+                session.commit()
+            self.assertEqual(self.checked_render(case['id'], template, previous).status_code, 409)
+            latest = self.render(case['id'], template, 'render-preview').json()
+            self.assertEqual(latest['context']['visit.' + key], '已更正（合成）')
+            self.assertEqual(self.checked_render(case['id'], template, latest['content_snapshot']).status_code, 200)
+        summary = self.render(case['id'], 'owner_visit_summary_zh', 'render-preview').json()
+        self.assertNotIn('visit.owner_name', summary['context'])
+        self.assertNotIn('visit.coat_color', summary['context'])
+
+    def test_outpatient_missing_identity_is_explicit(self):
+        cid = self.create()['id']
+        for value in [None, '', ' \t\n']:
+            with self.subTest(value=value):
+                with db.SessionLocal() as session:
+                    row = session.get(models.Case, cid)
+                    row.owner_name = value; row.coat_color = value
+                    session.commit()
+                preview = self.render(cid, 'outpatient_record_zh', 'render-preview').json()
+                for key in ['visit.owner_name', 'visit.coat_color']:
+                    self.assertEqual(preview['context'][key], '未填写')
+                result = self.checked_render(cid, 'outpatient_record_zh', preview['content_snapshot'])
+                self.assertEqual(result.status_code, 200)
+                text = '\n'.join(paragraphs(result.content))
+                self.assertIn('宠主姓名：未填写', text)
+                self.assertIn('宠物毛色：未填写', text)
 
     def test_new_account_is_authenticated_and_follow_up_is_not_inferred(self):
         case = self.create()
@@ -283,6 +357,31 @@ class ClinicalDocLifecycleTests(unittest.TestCase):
                 self.assertEqual(r.status_code, 200)
                 self.assertIn(preview['context']['visit.history'], paragraphs(r.content))
 
+
+    def test_m7_both_species_questionnaire_preview_docx_literal_text_and_stale_export(self):
+        from diarrhea_intake import get_template, build_snapshot
+        raw = '  未见黑便🐾\n换行 <5 & >2 {{literal}}\t保留尾部  '
+        for species in ('dog', 'cat'):
+            t = get_template(species)
+            snapshot = build_snapshot({'version': t['version'], 'fingerprint': t['fingerprint'], 'species': species,
+                'answers': {'notes': {'state': 'observed', 'text': raw}, 'blood': {'state': 'unobservable', 'text': '主人无法观察'}}})
+            history = '原医生病史\n\n' + main._structured_snapshot_text(snapshot)
+            r = self.client.post('/api/cases', headers=self.owner, json={'patient_name': 'M7合成'+species, 'species': species,
+                'chief_complaint': '腹泻合成记录', 'history': history})
+            self.assertEqual(r.status_code, 201, r.text); case = r.json()
+            for template in DRAFTS:
+                preview = self.render(case['id'], template, 'render-preview').json()
+                self.assertEqual(preview['context']['visit.history'], history)
+                self.assertIn('医生采集', history); self.assertIn('无法观察', history)
+                download = self.client.post('/api/clinical-docs/render', headers=self.owner, json={'case_id': case['id'],
+                    'template_id': template, 'output': 'docx', 'expected_content_snapshot': preview['content_snapshot']})
+                self.assertEqual(download.status_code, 200, download.text if download.status_code != 200 else '')
+                self.assertIn(history, paragraphs(download.content))
+                self.assertEqual(self.client.get(f"/api/cases/{case['id']}", headers=self.owner).json(), case)
+            stale = self.render(case['id'], DRAFTS[0], 'render-preview').json()
+            self.assertEqual(self.client.put(f"/api/cases/{case['id']}", headers=self.owner, json={'history': history+'\n医生核对更正'}).status_code, 200)
+            self.assertEqual(self.client.post('/api/clinical-docs/render', headers=self.owner, json={'case_id': case['id'],
+                'template_id': DRAFTS[0], 'output': 'docx', 'expected_content_snapshot': stale['content_snapshot']}).status_code, 409)
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

@@ -1,0 +1,99 @@
+{
+  "key": "fever_lethargy",
+  "version": "fever_lethargy-intake-v1",
+  "label": "犬猫发热／精神沉郁问诊",
+  "review_status": "clinical_draft",
+  "species": [
+    "dog",
+    "cat"
+  ],
+  "source": "医生采集",
+  "questions": [
+    {
+      "key": "onset",
+      "label": "本次就诊原因、表现起始时间与变化经过",
+      "kind": "text"
+    },
+    {
+      "key": "temperature",
+      "label": "实测体温原值与单位；未测量请注明，不以触感代替数值",
+      "kind": "text"
+    },
+    {
+      "key": "temperature_time",
+      "label": "各次体温测量的日期、时间及记录顺序",
+      "kind": "text"
+    },
+    {
+      "key": "temperature_method",
+      "label": "体温测量部位、方式、设备及测量限制",
+      "kind": "text"
+    },
+    {
+      "key": "temperature_source",
+      "label": "体温记录者与资料来源；转述或估测请注明",
+      "kind": "text"
+    },
+    {
+      "key": "mental_change",
+      "label": "是否观察到精神或反应状态变化",
+      "kind": "presence"
+    },
+    {
+      "key": "mental_detail",
+      "label": "精神或反应状态的具体表现、发生时段及观察者",
+      "kind": "text",
+      "when": "mental_change"
+    },
+    {
+      "key": "activity",
+      "label": "活动、站立、行走及休息时的实际表现",
+      "kind": "text"
+    },
+    {
+      "key": "appetite",
+      "label": "进食情况及观察时段",
+      "kind": "text"
+    },
+    {
+      "key": "water",
+      "label": "饮水情况及观察时段",
+      "kind": "text"
+    },
+    {
+      "key": "accompanying",
+      "label": "同期其他表现、排泄情况及医生观察",
+      "kind": "text"
+    },
+    {
+      "key": "exposure",
+      "label": "近期环境、外出、接触和事件；未知请注明",
+      "kind": "text"
+    },
+    {
+      "key": "treatment",
+      "label": "已进行的处理或用药、剂量原文及实施时间",
+      "kind": "text"
+    },
+    {
+      "key": "response",
+      "label": "处理前后观察到的变化和观察时段",
+      "kind": "text"
+    },
+    {
+      "key": "history",
+      "label": "既往类似表现、疾病及检查记录",
+      "kind": "text"
+    },
+    {
+      "key": "observer",
+      "label": "观察者、记录或其他资料及观察限制",
+      "kind": "text"
+    },
+    {
+      "key": "notes",
+      "label": "医生补充与资料来源",
+      "kind": "text"
+    }
+  ]
+}

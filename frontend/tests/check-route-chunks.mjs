@@ -19,7 +19,7 @@ function walk(key) {
 }
 walk(entry);
 const deferred = [
-  "KpiDashboard", "WebhookInboxPage", "EmrImportBatchPlanningPage", "OpsDashboard",
+  "FollowupPlanQueue", "KpiDashboard", "WebhookInboxPage", "EmrImportBatchPlanningPage", "OpsDashboard",
   "PreventiveCareNotificationQueuePage", "AutomatedReminderDeliveryManualApprovalPage",
 ].map(name => `src/pages/${name}.jsx`);
 for (const key of deferred) {
@@ -29,6 +29,9 @@ for (const key of deferred) {
   assert((await stat(resolve(dist, manifest[key].file))).size > 0, `Missing route asset: ${key}`);
 }
 const chunks = Object.values(manifest).filter(item => item.file.endsWith(".js"));
+const contactPanel = 'src/components/CaseFollowupContacts.jsx';
+assert(manifest[contactPanel]?.isDynamicEntry, 'Contact panel must remain on demand');
+assert(!eager.has(contactPanel), 'Contact panel must not enter initial JS');
 const files = [...new Set(chunks.map(item => item.file))];
 for (const file of files) {
   const size = (await stat(resolve(dist, file))).size;

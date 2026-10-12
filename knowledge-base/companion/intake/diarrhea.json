@@ -1,0 +1,32 @@
+{
+  "key": "diarrhea",
+  "version": "diarrhea-intake-v1",
+  "label": "犬猫腹泻问诊",
+  "review_status": "clinical_draft",
+  "species": ["dog", "cat"],
+  "source": "医生采集",
+  "references": [
+    "https://www.merckvetmanual.com/digestive-system/digestive-system-introduction/the-digestive-system-in-animals",
+    "https://www.merckvetmanual.com/digestive-system/diseases-of-the-large-intestine-in-small-animals/colitis-in-small-animals"
+  ],
+  "questions": [
+    {"key": "onset", "label": "起病时间与症状变化", "kind": "text"},
+    {"key": "frequency", "label": "排便次数、频率与每次量", "kind": "text"},
+    {"key": "stool", "label": "粪便性状、颜色与黏液", "kind": "text"},
+    {"key": "blood", "label": "是否观察到便血或黑便", "kind": "presence"},
+    {"key": "blood_detail", "label": "出血外观、量与时间的补充", "kind": "text", "when": "blood"},
+    {"key": "straining", "label": "是否排便急迫、费力或疼痛", "kind": "presence"},
+    {"key": "vomiting", "label": "是否观察到呕吐", "kind": "presence"},
+    {"key": "vomiting_detail", "label": "呕吐次数、外观与时间的补充", "kind": "text", "when": "vomiting"},
+    {"key": "appetite", "label": "食欲与精神状态的实际观察", "kind": "text"},
+    {"key": "water", "label": "饮水、排尿与医生体检观察", "kind": "text"},
+    {"key": "weight", "label": "当前体重、测量日期与近期变化", "kind": "text"},
+    {"key": "diet_change", "label": "近期是否换粮、吃零食或其他食物", "kind": "presence"},
+    {"key": "diet_detail", "label": "平时饮食及近期食物变化的补充", "kind": "text"},
+    {"key": "prevention", "label": "疫苗与驱虫的实际记录", "kind": "text"},
+    {"key": "history", "label": "既往腹泻、慢病或其他病史", "kind": "text"},
+    {"key": "medication", "label": "当前与近期用药、补充剂及处理", "kind": "text"},
+    {"key": "exposure", "label": "接触其他动物、寄养、旅行或误食的记录", "kind": "text"},
+    {"key": "notes", "label": "医生补充与资料来源", "kind": "text"}
+  ]
+}

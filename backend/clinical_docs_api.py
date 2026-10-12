@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+try:
+    from backend.manual_imaging_records import legacy_only as manual_imaging_legacy_only, is_manual as is_manual_imaging
+except ModuleNotFoundError:
+    from manual_imaging_records import legacy_only as manual_imaging_legacy_only, is_manual as is_manual_imaging
+
+
+try:
+    from backend.manual_lab_results import legacy_only as manual_lab_legacy_only, is_manual as is_manual_lab
+except ModuleNotFoundError:
+    from manual_lab_results import legacy_only as manual_lab_legacy_only, is_manual as is_manual_lab
+
 
 from datetime import datetime, timezone
 import hashlib
@@ -13,8 +24,9 @@ import zipfile
 from xml.etree import ElementTree as ET
 
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, Field
+from fastapi.responses import StreamingResponse, JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
+from pydantic import BaseModel, Field, StrictInt
 from sqlalchemy.orm import Session
 
 try:
@@ -90,15 +102,22 @@ OUTPATIENT_CASE_FIELDS = {
     "visit.history": "history", "visit.exam": "exam_findings",
     "visit.assessment": "analysis", "visit.plan": "treatment", "visit.notes": "prognosis",
 }
+OUTPATIENT_RECORD_IDENTITY_FIELDS = {
+    "visit.owner_name": "owner_name", "visit.coat_color": "coat_color",
+}
 OUTPATIENT_TEMPLATES = {
     "outpatient_record_zh": ("门诊病历草稿（待医生核对）", "petmed-outpatient-draft"),
     "owner_visit_summary_zh": ("宠主说明草稿（待医生核对）", "petmed-owner-summary-draft"),
 }
 for _template_id, (_label, _prefix) in OUTPATIENT_TEMPLATES.items():
+    _case_fields = {**OUTPATIENT_CASE_FIELDS, **(
+        OUTPATIENT_RECORD_IDENTITY_FIELDS if _template_id == "outpatient_record_zh" else {}
+    )}
     TEMPLATES[_template_id] = {
         "file": _template_id + ".docx", "label": _label,
         "output_filename_prefix": _prefix,
-        "required_keys": list(OUTPATIENT_CASE_FIELDS) + [
+        "case_fields": _case_fields,
+        "required_keys": list(_case_fields) + [
             "visit.follow_up", "export.account_id", "timestamp", "hash",
         ],
     }
@@ -114,6 +133,11 @@ class ClinicalDocRenderIn(BaseModel):
     include_preview_context: bool = Field(default=False)
     include_diagnostic_data: bool = Field(default=False)
     expected_content_snapshot: Optional[str] = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    manual_lab_comparison: Any = None
+    manual_followup_plan: Any = None
+    manual_followup_contact: Any = None
+    manual_lab_report_ids: list[StrictInt] = Field(default_factory=list, max_length=5)
+    manual_imaging_report_ids: list[StrictInt] = Field(default_factory=list, max_length=5)
 
 
 def _text(value: Any, fallback: str = "") -> str:
@@ -204,21 +228,21 @@ def _clinical_docs_diagnostic_data_merge_for_case(db: Session, case: Case, *, in
         }
 
     reports = (
-        db.query(DiagnosticReport)
+        db.query(DiagnosticReport).filter(manual_lab_legacy_only(DiagnosticReport.source_type))
         .filter(DiagnosticReport.case_id == int(getattr(case, "id")))
         .order_by(DiagnosticReport.created_at.desc(), DiagnosticReport.id.desc())
         .limit(20)
         .all()
     )
     observations = (
-        db.query(Observation)
+        db.query(Observation).filter(manual_lab_legacy_only(Observation.source_type))
         .filter(Observation.case_id == int(getattr(case, "id")))
         .order_by(Observation.created_at.desc(), Observation.id.desc())
         .limit(50)
         .all()
     )
     imaging_studies = (
-        db.query(ImagingStudy)
+        db.query(ImagingStudy).filter(manual_imaging_legacy_only(ImagingStudy.source_type))
         .filter(ImagingStudy.case_id == int(getattr(case, "id")))
         .order_by(ImagingStudy.created_at.desc(), ImagingStudy.id.desc())
         .limit(20)
@@ -251,14 +275,14 @@ def _build_context(case: Case, *, data: ClinicalDocRenderIn, user, template_id: 
         if data.include_diagnostic_data:
             raise HTTPException(status_code=422, detail="门诊文书草稿仅使用已保存病例，不支持附加诊断数据合并")
         context = {}
-        for key, attribute in OUTPATIENT_CASE_FIELDS.items():
+        for key, attribute in TEMPLATES[template_id]["case_fields"].items():
             value = getattr(case, attribute, None)
             raw = str(value) if value is not None else ""
             if any(not (ch in "\t\r\n" or "\x20" <= ch <= "\ud7ff" or "\ue000" <= ch <= "\ufffd" or "\U00010000" <= ch <= "\U0010ffff") for ch in raw):
                 raise HTTPException(status_code=422, detail="病例文本含文书不支持的控制字符，请医生核对")
             context[key] = raw.replace("\r\n", "\n").replace("\r", "\n") if raw.strip() else "未填写"
         context.update({
-            "visit.follow_up": "未单独记录复查安排，请医生补充确认",
+            "visit.follow_up": "本次文书未纳入复查计划，请医生确认复查安排",
             # Account attribution is not a signature and cannot be supplied by the caller.
             "export.account_id": _text(getattr(user, "id", None), "未填写"),
             "timestamp": timestamp, "hash": "",
@@ -423,6 +447,16 @@ def _content_snapshot(meta: Dict[str, Any], context: Dict[str, str], template_by
         "asset_sha256": hashlib.sha256(template_bytes).hexdigest(),
         "fields": {key: context[key] for key in meta["required_keys"] if key not in {"timestamp", "hash"}},
     }
+    if '__manual_lab_documents' in context:
+        payload['manual_lab_documents'] = context['__manual_lab_documents']
+    if '__manual_imaging_documents' in context:
+        payload['manual_imaging_documents'] = context['__manual_imaging_documents']
+    if '__manual_lab_comparison_document' in context:
+        payload['manual_lab_comparison'] = context['__manual_lab_comparison_document']
+    if '__manual_followup_plan_document' in context:
+        payload['manual_followup_plan'] = context['__manual_followup_plan_document']
+    if '__manual_followup_contact_document' in context:
+        payload['manual_followup_contact'] = context['__manual_followup_contact_document']
     return hashlib.sha256(json.dumps(payload, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode("utf-8")).hexdigest()
 
 
@@ -436,6 +470,16 @@ def _render_docx(template_path: Path, context: Dict[str, str], *, preserve_text_
                     raw = _append_diagnostic_data_section_to_document_xml(raw, context)
                 if item.filename.startswith("word/") and item.filename.endswith(".xml"):
                     raw = _replace_placeholders_in_xml(raw, context, preserve_text_layout=preserve_text_layout)
+                if item.filename == "word/document.xml" and context.get('__manual_lab_documents'):
+                    raw = _lab_documents().append_section(raw, context)
+                if item.filename == 'word/document.xml' and context.get('__manual_imaging_documents'):
+                    raw = _imaging_documents().append_section(raw, context)
+                if item.filename == 'word/document.xml' and context.get('__manual_lab_comparison_document'):
+                    raw = _comparison_documents().append_section(raw, context)
+                if item.filename == 'word/document.xml' and context.get('__manual_followup_plan_document'):
+                    raw = _followup_documents().append_section(raw, context)
+                if item.filename == 'word/document.xml' and context.get('__manual_followup_contact_document'):
+                    raw = _contact_documents().append_section(raw, context)
                 zout.writestr(item, raw)
     return out.getvalue()
 
@@ -479,12 +523,187 @@ def list_clinical_doc_templates():
     }
 
 
+def _lab_documents():
+    try:
+        from backend import manual_lab_documents
+    except ModuleNotFoundError:
+        import manual_lab_documents
+    return manual_lab_documents
+
+
+def _imaging_documents():
+    try:
+        from backend import manual_imaging_documents
+    except ModuleNotFoundError:
+        import manual_imaging_documents
+    return manual_imaging_documents
+
+
+def _comparison_documents():
+    try:
+        from backend import clinical_lab_comparison_documents
+    except ModuleNotFoundError:
+        import clinical_lab_comparison_documents
+    return clinical_lab_comparison_documents
+
+
+def _has_comparison(data):
+    # Explicit null is a supplied malformed selection, never silently omitted.
+    return 'manual_lab_comparison' in data.model_fields_set
+
+
+def _contact_documents():
+    try:
+        from backend import clinical_followup_contact_documents
+    except ModuleNotFoundError:
+        import clinical_followup_contact_documents
+    return clinical_followup_contact_documents
+
+
+def _with_contact_document(data, user, operation, *, render=False):
+    module = _contact_documents()
+    try:
+        if data.template_id not in OUTPATIENT_TEMPLATES or data.include_diagnostic_data:
+            raise HTTPException(422, '仅门诊病历和宠主说明草稿支持人工随访记录附节')
+        if data.template_id == 'owner_visit_summary_zh' and _has_comparison(data):
+            raise HTTPException(422, '宠主说明草稿不支持检验前后对照附节')
+        module.validate_selection(data.manual_followup_contact)
+        if render and not data.expected_content_snapshot:
+            raise HTTPException(409, 'contact_document_review_required')
+        with module.snapshot(user.id, data.case_id, data.manual_followup_contact,
+                             data.manual_lab_report_ids, data.manual_imaging_report_ids,
+                             data.manual_lab_comparison, _has_comparison(data),
+                             data.manual_followup_plan, 'manual_followup_plan' in data.model_fields_set,
+                             template_id=data.template_id) as parts:
+            result = operation(*parts)
+            if render:
+                result.headers.update(module.PRIVATE_HEADERS)
+                return result
+            return JSONResponse(result, headers=module.PRIVATE_HEADERS)
+    except (module.plans.PlanError, module.labs.AttachmentError) as error:
+        raise HTTPException(error.status, error.code, headers=module.PRIVATE_HEADERS) from error
+    except HTTPException as error:
+        error.headers = {**(error.headers or {}), **module.PRIVATE_HEADERS}
+        raise
+    except (OSError, SQLAlchemyError):
+        raise HTTPException(503, 'contact_document_unavailable', headers=module.PRIVATE_HEADERS) from None
+    except (KeyError, TypeError, ValueError, AttributeError, ArithmeticError, ET.ParseError, zipfile.BadZipFile):
+        raise HTTPException(409, 'contact_document_invalid_saved_data', headers=module.PRIVATE_HEADERS) from None
+
+
+def _followup_documents():
+    try:
+        from backend import clinical_followup_plan_documents
+    except ModuleNotFoundError:
+        import clinical_followup_plan_documents
+    return clinical_followup_plan_documents
+
+
+def _with_followup_document(data, user, operation, *, render=False):
+    module = _followup_documents()
+    try:
+        if data.template_id not in OUTPATIENT_TEMPLATES or data.include_diagnostic_data:
+            raise HTTPException(422, '仅门诊病历和宠主说明草稿支持复查计划附节')
+        if data.template_id == 'owner_visit_summary_zh' and _has_comparison(data):
+            raise HTTPException(422, '宠主说明草稿不支持检验前后对照附节')
+        module.validate_selection(data.manual_followup_plan)
+        if render and not data.expected_content_snapshot:
+            raise HTTPException(409, 'followup_document_review_required')
+        with module.snapshot(user.id, data.case_id, data.manual_followup_plan,
+                             data.manual_lab_report_ids, data.manual_imaging_report_ids,
+                             data.manual_lab_comparison, _has_comparison(data),
+                             template_id=data.template_id) as parts:
+            result = operation(*parts)
+            if render:
+                result.headers.update(module.PRIVATE_HEADERS)
+                return result
+            return JSONResponse(result, headers=module.PRIVATE_HEADERS)
+    except (module.plans.PlanError, module.labs.AttachmentError) as error:
+        raise HTTPException(error.status, error.code, headers=module.PRIVATE_HEADERS) from error
+    except HTTPException as error:
+        error.headers = {**(error.headers or {}), **module.PRIVATE_HEADERS}
+        raise
+    except (OSError, SQLAlchemyError):
+        raise HTTPException(503, 'followup_document_unavailable', headers=module.PRIVATE_HEADERS) from None
+    except (KeyError, TypeError, ValueError, AttributeError, ArithmeticError, ET.ParseError, zipfile.BadZipFile):
+        raise HTTPException(409, 'followup_document_invalid_saved_data', headers=module.PRIVATE_HEADERS) from None
+
+
+def _with_comparison_document(data, user, operation, *, render=False):
+    module = _comparison_documents()
+    try:
+        if data.template_id != 'outpatient_record_zh' or data.include_diagnostic_data:
+            raise HTTPException(422, '仅门诊病历草稿支持检验前后对照附节')
+        if render and not data.expected_content_snapshot:
+            raise HTTPException(409, 'lab_comparison_document_review_required')
+        with module.snapshot(user.id, data.case_id, data.manual_lab_comparison,
+                             data.manual_lab_report_ids, data.manual_imaging_report_ids) as (locked, labs, images, payload):
+            result = operation(locked, labs, images, payload)
+            if render:
+                result.headers.update(module.PRIVATE_HEADERS)
+                return result
+            return JSONResponse(result, headers=module.PRIVATE_HEADERS)
+    except module.AttachmentError as error:
+        raise HTTPException(error.status, error.code, headers=module.PRIVATE_HEADERS) from error
+    except HTTPException as error:
+        error.headers = {**(error.headers or {}), **module.PRIVATE_HEADERS}
+        raise
+    except (OSError, SQLAlchemyError):
+        raise HTTPException(503, 'lab_comparison_document_unavailable', headers=module.PRIVATE_HEADERS) from None
+    except (KeyError, TypeError, ValueError, AttributeError, ArithmeticError):
+        raise HTTPException(409, 'lab_comparison_document_invalid_saved_data', headers=module.PRIVATE_HEADERS) from None
+
+
+def _with_manual_documents(data, user, operation):
+    module = _lab_documents()
+    if data.template_id not in OUTPATIENT_TEMPLATES or data.include_diagnostic_data:
+        raise HTTPException(422, '仅两类门诊草稿支持选择已核对检查记录')
+    try:
+        if data.manual_imaging_report_ids:
+            with _imaging_documents().snapshot(user.id, data.case_id, data.manual_imaging_report_ids, data.manual_lab_report_ids) as (locked_db, labs, images):
+                return operation(locked_db, labs, images)
+        with module.snapshot(user.id, data.case_id, data.manual_lab_report_ids) as (locked_db, _case, reports):
+            return operation(locked_db, reports, None)
+    except module.AttachmentError as error:
+        raise HTTPException(error.status, error.code) from error
+    except (OSError, KeyError, TypeError, ValueError):
+        raise HTTPException(409, 'manual_document_unavailable') from None
+
+
+@router.get('/cases/{case_id}/manual-imaging-options')
+def manual_imaging_document_options(case_id: int, user=Depends(get_current_user)):
+    module = _imaging_documents()
+    try: return module.options(user.id, case_id)
+    except module.AttachmentError as error: raise HTTPException(error.status, error.code) from error
+    except (OSError, KeyError, TypeError, ValueError):
+        raise HTTPException(409, 'manual_imaging_document_unavailable') from None
+
+
+@router.get('/cases/{case_id}/manual-lab-options')
+def manual_lab_document_options(case_id: int, user=Depends(get_current_user)):
+    module = _lab_documents()
+    try:
+        return module.options(user.id, case_id)
+    except module.AttachmentError as error:
+        raise HTTPException(error.status, error.code) from error
+    except (OSError, KeyError, TypeError, ValueError):
+        raise HTTPException(409, 'manual_lab_document_unavailable') from None
+
+
 @router.post("/render-preview", response_model=dict)
-def preview_clinical_doc_context(
-    data: ClinicalDocRenderIn,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
+def preview_clinical_doc_context(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if 'manual_followup_contact' in data.model_fields_set:
+        return _with_contact_document(data, user, lambda *parts: _preview_clinical_doc(data, *parts[:1], user, *parts[1:]))
+    if 'manual_followup_plan' in data.model_fields_set:
+        return _with_followup_document(data, user, lambda *parts: _preview_clinical_doc(data, *parts[:1], user, *parts[1:]))
+    if _has_comparison(data):
+        return _with_comparison_document(data, user, lambda locked, rows, images, comparison: _preview_clinical_doc(data, locked, user, rows, images, comparison), render=False)
+    if data.manual_lab_report_ids or data.manual_imaging_report_ids:
+        return _with_manual_documents(data, user, lambda locked, rows, images: _preview_clinical_doc(data, locked, user, rows, images))
+    return _preview_clinical_doc(data, db, user)
+
+
+def _preview_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None, comparison=None, followup=None, contact=None):
     meta = _template_meta(data.template_id)
     case = _case_or_404(db, data.case_id, user)
     context = _build_context(case, data=data, user=user, template_id=str(meta["template_id"]))
@@ -494,6 +713,19 @@ def preview_clinical_doc_context(
         include=bool(data.include_diagnostic_data),
     )
     context = _apply_diagnostic_data_context_to_clinical_doc_context(context, diagnostic_data_merge)
+
+    if manual_reports:
+        context = _lab_documents().add_context(context, manual_reports)
+    if imaging_reports:
+        context = _imaging_documents().add_context(context, imaging_reports)
+    if comparison:
+        context = _comparison_documents().add_context(context, comparison)
+    if followup:
+        context = _followup_documents().add_context(context, followup)
+    if contact:
+        context = _contact_documents().add_context(context, contact)
+    if manual_reports or imaging_reports or comparison or followup or contact:
+        context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [
         key for key in meta["required_keys"]
@@ -510,6 +742,11 @@ def preview_clinical_doc_context(
            if meta["template_id"] in OUTPATIENT_TEMPLATES else {}),
         "missing_required_keys": missing_required,
         "context": context,
+        **({'manual_lab_reports': manual_reports} if manual_reports else {}),
+        **({'manual_imaging_reports': imaging_reports} if imaging_reports else {}),
+        **({'manual_lab_comparison': comparison} if comparison else {}),
+        **({'manual_followup_plan': followup} if followup else {}),
+        **({'manual_followup_contact': contact} if contact else {}),
         "diagnostic_data_merge": diagnostic_data_merge,
         "writes_database": False,
         "creates_case": False,
@@ -520,11 +757,21 @@ def preview_clinical_doc_context(
 
 
 @router.post("/render", response_class=StreamingResponse)
-def render_clinical_doc(
-    data: ClinicalDocRenderIn,
-    db: Session = Depends(get_db),
-    user=Depends(get_current_user),
-):
+def render_clinical_doc(data: ClinicalDocRenderIn, db: Session = Depends(get_db), user=Depends(get_current_user)):
+    if 'manual_followup_contact' in data.model_fields_set:
+        return _with_contact_document(data, user, lambda *parts: _render_clinical_doc(data, *parts[:1], user, *parts[1:]), render=True)
+    if 'manual_followup_plan' in data.model_fields_set:
+        return _with_followup_document(data, user, lambda *parts: _render_clinical_doc(data, *parts[:1], user, *parts[1:]), render=True)
+    if _has_comparison(data):
+        return _with_comparison_document(data, user, lambda locked, rows, images, comparison: _render_clinical_doc(data, locked, user, rows, images, comparison), render=True)
+    if data.manual_lab_report_ids or data.manual_imaging_report_ids:
+        if not data.expected_content_snapshot:
+            raise HTTPException(409, 'manual_lab_document_review_required')
+        return _with_manual_documents(data, user, lambda locked, rows, images: _render_clinical_doc(data, locked, user, rows, images))
+    return _render_clinical_doc(data, db, user)
+
+
+def _render_clinical_doc(data, db, user, manual_reports=None, imaging_reports=None, comparison=None, followup=None, contact=None):
     if data.output.lower() != "docx":
         raise HTTPException(status_code=422, detail="Clinical Docs Export API V1 supports output=docx only")
 
@@ -537,6 +784,19 @@ def render_clinical_doc(
         include=bool(data.include_diagnostic_data),
     )
     context = _apply_diagnostic_data_context_to_clinical_doc_context(context, diagnostic_data_merge)
+
+    if manual_reports:
+        context = _lab_documents().add_context(context, manual_reports)
+    if imaging_reports:
+        context = _imaging_documents().add_context(context, imaging_reports)
+    if comparison:
+        context = _comparison_documents().add_context(context, comparison)
+    if followup:
+        context = _followup_documents().add_context(context, followup)
+    if contact:
+        context = _contact_documents().add_context(context, contact)
+    if manual_reports or imaging_reports or comparison or followup or contact:
+        context['hash'] = _canonical_hash({**context, 'template_id': data.template_id})
 
     missing_required = [
         key for key in meta["required_keys"]

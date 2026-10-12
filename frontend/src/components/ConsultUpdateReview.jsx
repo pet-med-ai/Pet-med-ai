@@ -12,10 +12,10 @@ const matches = (record, preview) => record?.id === preview.case_id &&
   fields.every(([name]) => record[name] === preview.proposed[name]);
 
 // Mounted per bound session/case. Late responses cannot replace a newer preview.
-export default function ConsultUpdateReview({ sessionId, caseId, revision, allowed, blocked, hasPendingAnswers, onUpdated, onReturnToEdit, onWorkingChange, contentRevision, historyAddendum = "" }) {
+export default function ConsultUpdateReview({ sessionId, caseId, revision, allowed, blocked, hasPendingAnswers, onUpdated, onReturnToEdit, onWorkingChange, contentRevision, historyAddendum = "", voiceConfirmations }) {
   const [syncNote, setSyncNote] = useState(null);
   const updateMode = historyAddendum.trim() && syncNote !== historyAddendum ? "history_only" : "consult_sync";
-  const inputRevision = JSON.stringify([revision, historyAddendum, updateMode]);
+  const inputRevision = JSON.stringify([revision, historyAddendum, updateMode, voiceConfirmations]);
   const [preview, setPreview] = useState(null);
   const [confirmed, setConfirmed] = useState(false);
   const [phase, setPhase] = useState("idle");
@@ -46,7 +46,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
     const requestedRevision = latest.current;
     setPhase("previewing"); setMessage(""); setConfirmed(false); setPreview(null); setReadback(null);
     try {
-      const { data } = await api.post(`/api/ai/consult/session/${encodeURIComponent(sessionId)}/preview-update-case`, { history_addendum: historyAddendum, update_mode: updateMode }, { timeout: 15000 });
+      const { data } = await api.post(`/api/ai/consult/session/${encodeURIComponent(sessionId)}/preview-update-case`, { history_addendum: historyAddendum, update_mode: updateMode, ...(voiceConfirmations?.length ? { voice_confirmations: voiceConfirmations } : {}) }, { timeout: 15000 });
       if (!mounted.current) return;
       if (requestedRevision !== latest.current) {
         setPhase("idle"); setMessage("内容已修改，请重新核对保存内容。"); return;
@@ -87,6 +87,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
     try {
       await api.post(`/api/ai/consult/session/${encodeURIComponent(sessionId)}/update-case`, {
         expected_preview_token: snapshot.preview_token,
+        ...(snapshot.voice_confirmations?.length ? { voice_confirmations: snapshot.voice_confirmations } : {}),
         update_mode: snapshot.update_mode,
         ...(snapshot.history_addendum ? { history_addendum: snapshot.history_addendum } : {}),
       }, { timeout: 30000 });
@@ -139,6 +140,7 @@ export default function ConsultUpdateReview({ sessionId, caseId, revision, allow
           <p><strong>{preview.patient_name || "未命名病例"}</strong> · 病例 #{preview.case_id}</p>
           <p role="status">{preview.update_mode === "history_only" ? "本次只追加医生病史补记，其他五项内容保持不变。" : "本次同步已提交问诊的摘要、AI 分析、建议处理及风险提示；已保存主诉和体检保持不变。"}</p>
           {preview.history_addendum?.trim() && <section aria-label="本次医生病史补记"><strong>本次医生病史补记</strong><pre style={textBlock}>{preview.history_addendum}</pre></section>}
+          {!!preview.voice_confirmations?.length && <p>本次语音原文与医生修订将和病史补记一同保存到审计。</p>}
           {fields.map(([name, label]) => (
             <details key={name} open={name === "history"} style={{ borderTop: "1px solid #dbeafe", padding: "10px 0" }}>
               <summary style={{ cursor: "pointer", fontWeight: 600 }}>{label} · {preview.before[name] === preview.proposed[name] ? "无变化" : "有更新"}</summary>

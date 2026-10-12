@@ -1,9 +1,17 @@
 // src/pages/CaseDetail.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
 import api from "../api";
-import ClinicalDocReview from "../components/ClinicalDocReview";
+const ClinicalDocReview = lazy(() => import("../components/ClinicalDocReview"));
 import { draftOwner } from "../consultDraft";
+const CaseAttachments = lazy(() => import("../components/CaseAttachments"));
+const CaseLabResults = lazy(() => import("../components/CaseLabResults"));
+const CaseImagingRecords = lazy(() => import("../components/CaseImagingRecords"));
+const CaseVisitOverview = lazy(() => import("../components/CaseVisitOverview"));
+const CaseLabRangeReview = lazy(() => import("../components/CaseLabRangeReview"));
+const CaseLabComparison = lazy(() => import("../components/CaseLabComparison"));
+const CaseFollowupPlan = lazy(() => import("../components/CaseFollowupPlan"));
+const CaseFollowupContacts = lazy(() => import("../components/CaseFollowupContacts"));
 
 export default function CaseDetail() {
   const { id } = useParams();
@@ -21,6 +29,27 @@ export default function CaseDetail() {
 }
 
 function CaseDetailContent({ requestToken }) {
+  const [showAttachments, setShowAttachments] = useState(false);
+  const [showOverview, setShowOverview] = useState(false);
+  const overviewAnchors = useRef({});
+  const [overviewTarget, setOverviewTarget] = useState(null);
+  useEffect(() => {
+    if (!overviewTarget) return;
+    overviewAnchors.current[overviewTarget]?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    overviewAnchors.current[overviewTarget]?.focus?.();
+    setOverviewTarget(null);
+  }, [overviewTarget]);
+  const [showLab, setShowLab] = useState(false), [labDirty, setLabDirty] = useState(false), [sourceRevision, setSourceRevision] = useState(0);
+  // A lab save already refreshes its own list; notify the overview/document without clearing its outcome.
+  const [labRevision, setLabRevision] = useState(0);
+  const savedRevision = sourceRevision + labRevision;
+  const [showRangeReview, setShowRangeReview] = useState(false), [labTarget, setLabTarget] = useState(null);
+  const [showLabComparison, setShowLabComparison] = useState(false);
+  const [showFollowupPlan, setShowFollowupPlan] = useState(false), [followupDirty, setFollowupDirty] = useState(false);
+  const [followupTarget,setFollowupTarget]=useState(null);
+  const [showContacts,setShowContacts]=useState(false), [contactsDirty,setContactsDirty]=useState(false);
+  const [contactTarget,setContactTarget]=useState(null);
+  const [showImaging, setShowImaging] = useState(false), [imagingDirty, setImagingDirty] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -40,6 +69,38 @@ function CaseDetailContent({ requestToken }) {
 
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [queueTargetError, setQueueTargetError] = useState('');
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const contactPresent = params.has('followup_contact') || params.has('followup_contact_version');
+    if (contactPresent) {
+      const rawId = params.get('followup_contact'), rawVersion = params.get('followup_contact_version');
+      const contactId = Number(rawId), version = Number(rawVersion);
+      if (params.has('followup_plan') || params.has('followup_version') ||
+          params.getAll('followup_contact').length !== 1 || params.getAll('followup_contact_version').length !== 1 ||
+          !/^[1-9][0-9]*$/.test(rawId || '') || !/^[1-9][0-9]*$/.test(rawVersion || '') ||
+          !Number.isSafeInteger(contactId) || !Number.isSafeInteger(version) || version > 50) {
+        setContactTarget(null); setFollowupTarget(null);
+        setQueueTargetError('随访定位信息无效，请返回清单重新打开。'); return;
+      }
+      setQueueTargetError('');
+      if (!data || Number(data.id) !== Number(id)) return;
+      setShowContacts(true); setContactTarget({ id: contactId, version, request: {} }); setOverviewTarget('contacts'); return;
+    }
+    if (!params.has('followup_plan') && !params.has('followup_version')) { setQueueTargetError(''); return; }
+    const rawId = params.get('followup_plan'), rawVersion = params.get('followup_version');
+    const planId = Number(rawId), version = Number(rawVersion);
+    if (params.getAll('followup_plan').length !== 1 || params.getAll('followup_version').length !== 1 ||
+        !/^[1-9][0-9]*$/.test(rawId || '') || !/^[1-9][0-9]*$/.test(rawVersion || '') ||
+        !Number.isSafeInteger(planId) || !Number.isSafeInteger(version) || version > 50) {
+      setQueueTargetError('计划定位信息无效，请返回清单重新打开。'); return;
+    }
+    setQueueTargetError('');
+    if (!data || Number(data.id) !== Number(id)) return;
+    setShowFollowupPlan(true); setFollowupTarget({ id: planId, version, request: {} }); setOverviewTarget('followup');
+  }, [location.search, location.key, data, id]);
+
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [preventiveCareReminders, setPreventiveCareReminders] = useState([]);
@@ -49,6 +110,11 @@ function CaseDetailContent({ requestToken }) {
   const [preventiveCareStatus, setPreventiveCareStatus] = useState("");
   const [exportingDoc, setExportingDoc] = useState("");
   const [exportStatus, setExportStatus] = useState("");
+  const markSessionExpired = () => {
+    if (!active.current || localStorage.getItem("token")) return false;
+    setSessionExpired(true);
+    return true;
+  };
   const [diagnosticDataSummary, setDiagnosticDataSummary] = useState(null);
   const [diagnosticDataLoading, setDiagnosticDataLoading] = useState(false);
   const [diagnosticDataStatus, setDiagnosticDataStatus] = useState("");
@@ -111,7 +177,13 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
       } catch (e) {
         if (!stop && isCurrent()) setErr(String(e));
       } finally {
-        if (!stop && isCurrent()) setLoading(false);
+        if (!stop) {
+          if (isCurrent()) setLoading(false);
+          else if (markSessionExpired()) {
+            setErr("登录状态已失效，请重新登录后查看病例。");
+            setLoading(false);
+          }
+        }
       }
     })();
     return () => { stop = true; };
@@ -815,7 +887,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     // Wait until the opener is enabled again before restoring keyboard focus.
     setTimeout(() => { if (isCurrent()) reviewOpener.current?.focus(); }, 0);
   };
-  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true) => {
+  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = [], imagingIds = [], comparison, signal, followup, contact) => {
     if (reviewActive.current && !expectedSnapshot) return;
     if (!data?.id || !isCurrent()) {
       alert("病例尚未加载或登录已变化，请重新打开病例后导出。");
@@ -835,9 +907,14 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           template_id: templateId,
           output: "docx",
           ...(expectedSnapshot ? { expected_content_snapshot: expectedSnapshot } : {}),
+          ...(labIds.length ? { manual_lab_report_ids: labIds } : {}),
+          ...(imagingIds.length ? { manual_imaging_report_ids: imagingIds } : {}),
+          ...(comparison ? { manual_lab_comparison: comparison } : {}),
+          ...(followup ? { manual_followup_plan: followup } : {}),
+          ...(contact ? { manual_followup_contact: contact } : {}),
         },
         {
-          responseType: "blob",
+          responseType: "blob", signal,
           expectedAuthOwner: draftOwner(requestToken),
         }
       );
@@ -889,7 +966,32 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     } finally {
       exportPending.current = false;
       if (isCurrent()) setExportingDoc("");
+      else if (markSessionExpired()) {
+        setExportingDoc("");
+        setExportStatus("登录状态已失效，本次导出未完成。");
+      }
     }
+  };
+
+  const navigateOverview = (target, event, plan) => {
+    if (!isCurrent()) return;
+    if (target === "outpatient" || target === "owner_summary") {
+      openDocReview(target === "outpatient" ? "outpatient_record_zh" : "owner_visit_summary_zh", target === "outpatient" ? "门诊病历草稿" : "宠主说明草稿", event);
+      return;
+    }
+    if (target === "followup") {
+      setShowFollowupPlan(true);
+      setFollowupTarget(plan ? { ...plan, request: {} } : null);
+    }
+    else if (target === "contacts") {
+      setShowContacts(true);
+      setContactTarget(plan ? { ...plan, request: {} } : null);
+    }
+    else if (target === "attachments") setShowAttachments(true);
+    else if (target === "lab") setShowLab(true);
+    else if (target === "imaging") setShowImaging(true);
+    else return;
+    setOverviewTarget(target);
   };
 
   const derived = useMemo(() => {
@@ -913,8 +1015,8 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   if (loading) return <div style={{ padding: 24 }}>加载中…</div>;
   if (err) return <div role="alert" style={{ padding: 24, color: "crimson" }}>
     加载失败：{err}
-    {requestToken && <button type="button" onClick={() => setLoadAttempt(value => value + 1)}>重试读取病例</button>}
-    <Link to="/">返回首页</Link>
+    {isCurrent() && <button type="button" onClick={() => setLoadAttempt(value => value + 1)}>重试读取病例</button>}
+    <Link to="/">{sessionExpired ? "返回首页重新登录" : "返回首页"}</Link>
   </div>;
   if (!data) return <div style={{ padding: 24 }}>未找到病例</div>;
 
@@ -926,6 +1028,35 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       style={{ padding: 24, maxWidth: 980, margin: "0 auto", fontFamily: "system-ui,-apple-system,Arial" }}
     >
       <style>{css}</style>
+      {sessionExpired && <div role="alert" className="screen-only">
+        登录状态已失效。请先保留尚未保存的原文，再重新登录；文书需要重新读取并核对。
+        <Link to="/">返回首页重新登录</Link>
+      </div>}
+      <div className="screen-only">
+        {queueTargetError && <p role="alert">{queueTargetError}</p>}
+        {location.search.includes("followup_") && <p><Link to="/followup-plans">返回复查计划清单</Link></p>}
+        <div ref={node => { overviewAnchors.current.followup = node; }} tabIndex={-1} />
+        <button type="button" onClick={() => { if (!showFollowupPlan || !followupDirty || window.confirm("复查计划草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？")) setShowFollowupPlan(v => !v); }}>{showFollowupPlan ? "收起复查计划" : "打开复查计划"}</button>
+        {showFollowupPlan && <Suspense fallback={<p>正在打开复查计划…</p>}><CaseFollowupPlan caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} inspectTarget={followupTarget} onDirtyChange={setFollowupDirty}/></Suspense>}
+        <div ref={node => { overviewAnchors.current.contacts = node; }} tabIndex={-1} />
+        <button type="button" onClick={()=>{if(!showContacts||!contactsDirty||window.confirm("人工随访草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？"))setShowContacts(v=>!v);}}>{showContacts?'收起人工随访记录':'打开人工随访记录'}</button>
+        {showContacts&&<Suspense fallback={<p>正在打开人工随访记录…</p>}><CaseFollowupContacts caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} inspectTarget={contactTarget} onDirtyChange={setContactsDirty}/></Suspense>}
+        <button type="button" onClick={() => setShowRangeReview(v => !v)}>{showRangeReview ? "收起检验结果区间核对" : "打开检验结果区间核对"}</button>
+        {showRangeReview && <Suspense fallback={<p>正在读取检验区间组件…</p>}><CaseLabRangeReview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} onCompare={() => setShowLabComparison(true)} /></Suspense>}
+        <button type="button" onClick={() => setShowLabComparison(v => !v)}>{showLabComparison ? "收起检验前后对照" : "打开检验前后对照"}</button>
+        {showLabComparison && <Suspense fallback={<p>正在读取检验对照组件…</p>}><CaseLabComparison caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} /></Suspense>}
+        <button type="button" onClick={() => setShowOverview(value => !value)}>{showOverview ? "收起就诊资料总览" : "打开就诊资料总览"}</button>
+        {showOverview && <Suspense fallback={<p>正在读取总览组件…</p>}><CaseVisitOverview caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onNavigate={navigateOverview} /></Suspense>}
+        <div ref={node => { overviewAnchors.current.attachments = node; }} tabIndex={-1} />
+        <button type="button" onClick={() => setShowAttachments(value => !value)}>{showAttachments ? "收起检查资料" : "打开检查资料"}</button>
+        {showAttachments && <Suspense fallback={<p>正在读取检查资料…</p>}><CaseAttachments key={JSON.stringify([data.id, requestToken])} caseId={Number(data.id)} requestToken={requestToken} onChanged={() => setSourceRevision(v => v + 1)} /></Suspense>}
+        <div ref={node => { overviewAnchors.current.lab = node; }} tabIndex={-1} />
+        <button type="button" onClick={() => { if (!showLab || !labDirty || window.confirm("检验草稿尚未保存，收起会丢失。是否继续？")) setShowLab(v => !v); }}>{showLab ? "收起检验项目" : "打开检验项目"}</button>
+        {showLab && <Suspense fallback={<p>正在读取检验项目…</p>}><CaseLabResults caseId={Number(data.id)} requestToken={requestToken} inspectTarget={labTarget} sourceRevision={sourceRevision} onDirtyChange={setLabDirty} onChanged={() => setLabRevision(v => v + 1)} /></Suspense>}
+        <div ref={node => { overviewAnchors.current.imaging = node; }} tabIndex={-1} />
+        <button type="button" onClick={()=>{if(!showImaging || !imagingDirty || window.confirm("影像草稿尚未保存，收起会丢失。是否继续？"))setShowImaging(v=>!v);}}>{showImaging?"收起影像记录":"打开影像记录"}</button>
+        {showImaging && <Suspense fallback={<p>正在读取影像记录…</p>}><CaseImagingRecords caseId={Number(data.id)} requestToken={requestToken} sourceRevision={sourceRevision} onDirtyChange={setImagingDirty} onChanged={()=>setSourceRevision(v=>v+1)}/></Suspense>}
+      </div>
 
       <div className="screen-toolbar" style={toolbar}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -935,7 +1066,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           <button
             type="button"
             onClick={() => exportClinicalDoc("admission_hospitalization_record_bilingual", "入院/住院记录")}
-            disabled={Boolean(exportingDoc) || Boolean(docReview)}
+            disabled={sessionExpired || Boolean(exportingDoc) || Boolean(docReview)}
             style={btnDoc}
           >
             {exportingDoc === "admission_hospitalization_record_bilingual" ? "生成中…" : "导出入院/住院记录 DOCX"}
@@ -943,7 +1074,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           <button
             type="button"
             onClick={() => exportClinicalDoc("discharge_summary_bilingual", "出院小结")}
-            disabled={Boolean(exportingDoc) || Boolean(docReview)}
+            disabled={sessionExpired || Boolean(exportingDoc) || Boolean(docReview)}
             style={btnDoc}
           >
             {exportingDoc === "discharge_summary_bilingual" ? "生成中…" : "导出出院小结 DOCX"}
@@ -954,7 +1085,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           ].map(([templateId, label]) => (
             <button key={templateId} type="button" style={btnDoc}
               onClick={event => openDocReview(templateId, label, event)}
-              disabled={Boolean(exportingDoc) || Boolean(docReview)}>
+              disabled={sessionExpired || Boolean(exportingDoc) || Boolean(docReview)}>
               {exportingDoc === templateId ? "生成中…" : `导出${label} DOCX`}
             </button>
           ))}
@@ -967,10 +1098,16 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         </div>
       </div>
 
-      {docReview && <ClinicalDocReview key={docReview.templateId} caseId={Number(data.id)}
+      {docReview && <Suspense fallback={<p>正在打开文书核对…</p>}><ClinicalDocReview key={docReview.templateId} caseId={Number(data.id)}
         templateId={docReview.templateId} label={docReview.label} requestToken={requestToken}
+        onSessionExpired={markSessionExpired}
         onClose={closeDocReview}
-        onDownload={(snapshot, current) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current)} />}
+        onInspectLab={target=>{closeDocReview();setShowLab(true);if(target)setLabTarget({ ...target, request: {} });}}
+        sourceRevision={savedRevision}
+        onInspectImaging={()=>{closeDocReview();setShowImaging(true);}}
+        onInspectContact={target=>{closeDocReview();setShowContacts(true);setContactTarget({...target,request:{}});}}
+        onInspectFollowup={target=>{closeDocReview();setShowFollowupPlan(true);setFollowupTarget({...target,request:{}});}}
+        onDownload={(snapshot, current, ids, imagingIds, comparison, signal, followup, contact) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds, comparison, signal, followup, contact)} /></Suspense>}
 
       {exportStatus && (
         <div role="status" aria-live="polite" className="clinical-doc-export-status screen-only">
@@ -1157,10 +1294,10 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         <TextCard>{data.prognosis}</TextCard>
       </Section>
 
-      {Array.isArray(data.attachments) && data.attachments.length > 0 && (
+      {Array.isArray(data.attachments) && data.attachments.some(a => a?.schema !== "case-attachment-cw-b6-v1") && (
         <Section title="八、附件">
           <ul className="attach-list">
-            {data.attachments.map((a) => (
+            {data.attachments.filter(a => a?.schema !== "case-attachment-cw-b6-v1").map((a) => (
               <li key={a.id}>
                 <span className="attach-name">{a.name}</span>
                 {a.url && (
@@ -3510,6 +3647,33 @@ const css = `
 
   .attach-list { padding-left: 18px; margin: 6px 0; }
   .attach-name { font-weight: 600; margin-right: 6px; }
+
+  /* Keep the existing review forms within narrow case-detail cards. */
+  .signed-review-state-panel,
+  .signed-review-state-persistence-panel,
+  .signed-review-state-migration-panel,
+  .signed-review-state-form,
+  .signed-review-state-persistence-form,
+  .signed-review-state-migration-form {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .signed-review-state-label,
+  .signed-review-state-persistence-label,
+  .signed-review-state-migration-label,
+  .signed-review-state-boundary,
+  .signed-review-state-persistence-boundary,
+  .signed-review-state-migration-boundary {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .signed-review-state-input,
+  .signed-review-state-persistence-input,
+  .signed-review-state-migration-input {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
 
   @media (max-width: 720px) {
     .case-hero { flex-direction: column; }

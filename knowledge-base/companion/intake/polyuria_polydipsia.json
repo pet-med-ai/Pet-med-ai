@@ -1,0 +1,100 @@
+{
+  "key": "polyuria_polydipsia",
+  "version": "polyuria_polydipsia-intake-v1",
+  "label": "犬猫多饮多尿问诊",
+  "review_status": "clinical_draft",
+  "species": [
+    "dog",
+    "cat"
+  ],
+  "source": "医生采集",
+  "questions": [
+    {
+      "key": "onset",
+      "label": "饮水与排尿变化各自的起始时间、先后及变化趋势",
+      "kind": "text"
+    },
+    {
+      "key": "water_amount",
+      "label": "饮水量、单位、记录时段与测量方式；未测请注明",
+      "kind": "text"
+    },
+    {
+      "key": "urine_frequency",
+      "label": "排尿次数、频率与昼夜分布",
+      "kind": "text"
+    },
+    {
+      "key": "urine_volume",
+      "label": "每次及总体尿量、单位、观察时段与测量方式；未测请注明",
+      "kind": "text"
+    },
+    {
+      "key": "accidents",
+      "label": "是否出现原排尿习惯之外的排尿意外",
+      "kind": "presence"
+    },
+    {
+      "key": "accident_detail",
+      "label": "排尿意外的时间、次数与情境",
+      "kind": "text",
+      "when": "accidents"
+    },
+    {
+      "key": "straining",
+      "label": "是否观察到排尿费力或不适",
+      "kind": "presence"
+    },
+    {
+      "key": "straining_detail",
+      "label": "排尿费力或不适的实际表现",
+      "kind": "text",
+      "when": "straining"
+    },
+    {
+      "key": "appearance",
+      "label": "尿液外观、颜色与医生观察",
+      "kind": "text"
+    },
+    {
+      "key": "weight",
+      "label": "当前与既往体重、测量日期及单位",
+      "kind": "text"
+    },
+    {
+      "key": "appetite",
+      "label": "食欲、进食量与近期变化",
+      "kind": "text"
+    },
+    {
+      "key": "activity",
+      "label": "精神、活动与行为变化",
+      "kind": "text"
+    },
+    {
+      "key": "diet",
+      "label": "食物、含水量与饮水来源的实际记录",
+      "kind": "text"
+    },
+    {
+      "key": "environment",
+      "label": "环境温度、运动与近期生活变化",
+      "kind": "text"
+    },
+    {
+      "key": "history",
+      "label": "既往疾病、排尿问题及近期检查记录",
+      "kind": "text"
+    },
+    {
+      "key": "medication",
+      "label": "当前与近期用药、补充剂及处理",
+      "kind": "text"
+    },
+    {
+      "key": "notes",
+      "label": "医生补充与资料来源",
+      "kind": "text"
+    }
+  ]
+}

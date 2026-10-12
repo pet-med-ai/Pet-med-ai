@@ -23,6 +23,7 @@ from jose import jwt, JWTError
 
 from db import SessionLocal, Base, engine
 from models import Case, ConsultSession, User
+from speech_transcription_api import router as speech_router, VoiceConfirmation, validate_confirmations, append_confirmation_audits, bind_confirmation_preview
 from auth_jwt import router as auth_router, get_current_user
 import auth_jwt as auth_jwt_mod
 try:
@@ -110,6 +111,27 @@ elif _is_production():
 
 # 统一挂载 Auth 路由（保持你原来逻辑，路径保持不变，如 /auth/login 等）
 app.include_router(auth_router)
+app.include_router(speech_router)
+from case_attachments_api import router as case_attachments_router
+app.include_router(case_attachments_router)
+from manual_lab_results_api import router as manual_lab_router
+from manual_lab_results import invalidate_identity as invalidate_lab_identity
+app.include_router(manual_lab_router)
+from manual_imaging_records_api import router as manual_imaging_router
+from manual_imaging_records import invalidate_identity as invalidate_imaging_identity
+app.include_router(manual_imaging_router)
+from clinical_case_overview_api import router as visit_overview_router
+app.include_router(visit_overview_router)
+from clinical_lab_range_review_api import router as lab_range_review_router
+app.include_router(lab_range_review_router)
+from clinical_lab_comparison_api import router as lab_comparison_router
+app.include_router(lab_comparison_router)
+from clinical_followup_plans_api import router as followup_plan_router
+app.include_router(followup_plan_router)
+from clinical_followup_plan_queue_api import router as followup_plan_queue_router
+app.include_router(followup_plan_queue_router)
+from clinical_followup_contacts_api import router as followup_contacts_router
+app.include_router(followup_contacts_router)
 
 
 def _text_with_species(text: str, species: Optional[str] = None) -> str:
@@ -308,6 +330,7 @@ class AIConsultDynamicIn(BaseModel):
 class AIConsultSessionCreateIn(BaseModel):
     text: str
     species: Optional[str] = None
+    structured_intake_answers: Optional[Dict[str, Any]] = None
 
 class AIConsultSessionAnswerIn(BaseModel):
     answer: str
@@ -342,6 +365,7 @@ class AIConsultSessionListOut(BaseModel):
     page_size: int = 20
 
 class AIConsultSessionSaveCaseIn(BaseModel):
+    voice_confirmations: List[VoiceConfirmation] = Field(default_factory=list, max_length=20)
     chief_complaint: Optional[str] = None
     history: Optional[str] = None
     expected_preview_token: Optional[str] = Field(default=None, min_length=64, max_length=64, pattern=r"^[0-9a-f]{64}$")
@@ -363,6 +387,7 @@ class AIConsultSessionSaveCaseOut(BaseModel):
     message: str = "saved"
 
 class AIConsultSessionUpdatePreviewIn(BaseModel):
+    voice_confirmations: List[VoiceConfirmation] = Field(default_factory=list, max_length=20)
     history_addendum: str = Field(default="", max_length=20000, strict=True)
     update_mode: Literal["consult_sync", "history_only"] = "consult_sync"
 
@@ -445,6 +470,12 @@ def get_owned_case_or_404(
     include_deleted: bool = False,
     for_update: bool = False,
 ) -> Case:
+    # SQLite needs a write reservation before the first read, matching PostgreSQL
+    # case-row serialization when identity changes invalidate manual lab review.
+    if for_update and db.get_bind().dialect.name == "sqlite":
+        from sqlalchemy import text as sql_text
+        if not db.connection().connection.driver_connection.in_transaction:
+            db.execute(sql_text("BEGIN IMMEDIATE"))
     # 病例权限收口：当前用户只能访问自己的病例；无权限统一返回 404。
     query = db.query(Case).filter(Case.id == case_id, Case.owner_id == user.id)
     if supports_soft_delete() and not include_deleted:
@@ -635,6 +666,8 @@ def confirm_case_edit(case_id: int, data: CaseEditConfirmIn,
     preview = _case_edit_snapshot(obj, data)
     if not hmac.compare_digest(data.expected_preview_token, preview["preview_token"]):
         raise HTTPException(status_code=409, detail="本次修改与核对内容不一致，请重新预览。")
+    invalidate_lab_identity(db, obj, preview["changes"])
+    invalidate_imaging_identity(db, obj, preview["changes"])
     for key, value in preview["changes"].items():
         setattr(obj, key, value)
     obj.updated_at = datetime.utcnow()
@@ -649,8 +682,10 @@ def update_case(
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
-    obj = get_owned_case_or_404(db, case_id, user)
+    obj = get_owned_case_or_404(db, case_id, user, for_update=True)
     updates = {k: v for k, v in data.model_dump(exclude_unset=True).items()}
+    invalidate_lab_identity(db, obj, updates)
+    invalidate_imaging_identity(db, obj, updates)
     for k, v in updates.items():
         setattr(obj, k, v)
     db.add(obj); db.commit(); db.refresh(obj)
@@ -697,7 +732,9 @@ def reanalyze_case(
     db: Session = Depends(get_db),
     user = Depends(get_current_user),
 ):
-    obj = get_owned_case_or_404(db, case_id, user)
+    obj = get_owned_case_or_404(db, case_id, user, for_update=True)
+    invalidate_lab_identity(db, obj, {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None})
+    invalidate_imaging_identity(db, obj, {k: v for k, v in payload.model_dump(exclude_unset=True).items() if v is not None})
 
     if payload.chief_complaint is not None:
         obj.chief_complaint = payload.chief_complaint
@@ -788,7 +825,61 @@ def _first_session_question(result: Optional[Dict[str, Any]]) -> str:
 STRUCTURED_SNAPSHOT_KEY = "structured_intake_snapshot"
 
 
-def _clean_structured_snapshot(raw):
+def _diarrhea_module():
+    try:
+        from backend import diarrhea_intake
+    except ModuleNotFoundError:
+        import diarrhea_intake
+    return diarrhea_intake
+
+
+def _diarrhea_call(operation, *args):
+    module = _diarrhea_module()
+    try:
+        return getattr(module, operation)(*args)
+    except module.DiarrheaIntakeError as error:
+        raise HTTPException(status_code=error.status, detail=str(error)) from error
+
+
+@app.get("/api/ai/consult/intake/diarrhea", tags=["ai"])
+def diarrhea_intake_template(species: str, user=Depends(get_current_user)):
+    return _diarrhea_call("get_template", species)
+
+
+@app.post("/api/ai/consult/intake/diarrhea/preview", tags=["ai"])
+def diarrhea_intake_preview(data: Dict[str, Any], user=Depends(get_current_user)):
+    snapshot = _diarrhea_call("build_snapshot", data)
+    return {"snapshot": snapshot, "history_block": _structured_snapshot_text(snapshot)}
+
+
+def _intake_module():
+    try:
+        from backend import chief_complaint_intake
+    except ModuleNotFoundError:
+        import chief_complaint_intake
+    return chief_complaint_intake
+
+
+def _intake_call(operation, *args):
+    module = _intake_module()
+    try:
+        return getattr(module, operation)(*args)
+    except module.IntakeError as error:
+        raise HTTPException(status_code=error.status, detail=str(error)) from error
+
+
+@app.get("/api/ai/consult/intake/{intake_key}", tags=["ai"])
+def chief_intake_template(intake_key: str, species: str, user=Depends(get_current_user)):
+    return _intake_call("get_template", intake_key, species)
+
+
+@app.post("/api/ai/consult/intake/{intake_key}/preview", tags=["ai"])
+def chief_intake_preview(intake_key: str, data: Dict[str, Any], user=Depends(get_current_user)):
+    snapshot = _intake_call("build_snapshot", intake_key, data)
+    return {"snapshot": snapshot, "history_block": _structured_snapshot_text(snapshot)}
+
+
+def _clean_structured_snapshot(raw, *, current=True):
     if raw is None:
         return None
     def invalid():
@@ -830,6 +921,8 @@ def _clean_structured_snapshot(raw):
         clean["sections"].append(group)
     if len(json.dumps(clean, ensure_ascii=False)) > 250000:
         invalid()
+    if current and _intake_module().is_intake(raw):
+        return _intake_call("validate_snapshot", clean)
     return clean if any(s["answers"] for s in clean["sections"]) else None
 
 
@@ -840,7 +933,7 @@ def _stored_structured_snapshot(item):
     try:
         if not isinstance(raw, str) or len(raw) > 250000:
             raise ValueError("Invalid stored snapshot")
-        return _clean_structured_snapshot(json.loads(raw))
+        return _clean_structured_snapshot(json.loads(raw), current=False)
     except (ValueError, TypeError, HTTPException):
         raise HTTPException(status_code=409, detail="已提交结构化记录无法核对，请停止保存并检查原问诊。")
 
@@ -941,6 +1034,14 @@ def _format_structured_intake_history(raw: Optional[Dict[str, Any]]) -> str:
 
     return f"【{title}】\n{formatted}"
 
+def _snapshot_evidence(snapshot, source="问卷"):
+    try:
+        from backend.clinical_evidence import snapshot_rows
+    except ModuleNotFoundError:
+        from clinical_evidence import snapshot_rows
+    return snapshot_rows(snapshot, source)
+
+
 def _answers_with_structured_intake_context(
     answers: List[Dict[str, str]],
     structured_intake_answers: Optional[Dict[str, Any]],
@@ -950,10 +1051,18 @@ def _answers_with_structured_intake_context(
         items.append({key: answer.get(key, "") for key in ("question", "answer")})
         snapshot = _stored_structured_snapshot(answer)
         if snapshot:
-            items.append({"question": f"【已提交结构化问诊 · 第 {index} 轮】", "answer": _structured_snapshot_text(snapshot, f"第 {index} 轮")})
+            context = (_intake_module().ai_context(snapshot) if _intake_module().is_intake(snapshot)
+                       else _structured_snapshot_text(snapshot, f"第 {index} 轮"))
+            if context or snapshot:
+                items.append({"question": f"【已提交结构化问诊 · 第 {index} 轮】", "answer": context,
+                              "_clinical_rows": _snapshot_evidence(snapshot, f"问卷第{index}轮")})
     current = _clean_structured_snapshot(structured_intake_answers)
     if current:
-        items.append({"question": "【本轮结构化问诊】", "answer": _structured_snapshot_text(current)})
+        context = (_intake_module().ai_context(current) if _intake_module().is_intake(current)
+                   else _structured_snapshot_text(current))
+        if context or current:
+            items.append({"question": "【本轮结构化问诊】", "answer": context,
+                          "_clinical_rows": _snapshot_evidence(current, "本轮问卷")})
     return items
 
 
@@ -1165,7 +1274,7 @@ def _consult_session_to_case_fields(session: ConsultSession) -> Dict[str, str]:
             if not isinstance(item, dict):
                 continue
             question = str(item.get("question") or "").strip()
-            answer = str(item.get("answer") or "").strip()
+            answer = str(item.get("answer") or "")
             history_lines.append(f"{idx}. 问：{question or '未记录'}")
             history_lines.append(f"   答：{answer or '未记录'}")
     else:
@@ -1236,6 +1345,9 @@ def _consult_save_snapshot(session: ConsultSession, data: AIConsultSessionSaveCa
 
     structured = _clean_structured_snapshot(data.structured_intake_answers)
     retained = [_stored_structured_snapshot(item) for item in (session.answers or [])]
+    if any(_intake_module().is_intake(item) and item.get("template_key") != data.species
+           for item in [structured, *retained] if item):
+        raise HTTPException(status_code=409, detail="主诉问卷与当前病例物种不一致，请核对原问诊，未保存。")
     latest = next((item for item in reversed(retained) if item), None)
     # Old clients resend the latest snapshot; do not append that same receipt twice.
     same_latest = structured and latest and all(structured[key] == latest[key] for key in structured if key != "category")
@@ -1307,7 +1419,9 @@ def ai_consult_session_preview_case(
     if not session:
         raise HTTPException(status_code=404, detail="Consult session not found")
     assert_consult_session_access(session, user, allow_unowned=True)
-    return _consult_save_snapshot(session, data)
+    snapshot = _consult_save_snapshot(session, data)
+    validate_confirmations(db, data.voice_confirmations, session, user, snapshot["patient_name"], snapshot["species"], snapshot["history"])
+    return snapshot
 
 
 @app.post("/api/ai/consult/session/{session_id}/save-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
@@ -1324,10 +1438,13 @@ def ai_consult_session_save_case(
     if session.case_id:
         return {"case_id": session.case_id, "session_id": session.session_uid, "message": "already_saved"}
 
+    if data.voice_confirmations and data.expected_preview_token is None:
+        raise HTTPException(status_code=409, detail="语音病史须先预览核对再保存。")
     snapshot = _consult_save_snapshot(session, data)
     if data.expected_preview_token is not None and not hmac.compare_digest(data.expected_preview_token, snapshot["preview_token"]):
         raise HTTPException(status_code=409, detail="问诊或保存内容已改变，请重新预览并核对。")
 
+    verified_voice = validate_confirmations(db, data.voice_confirmations, session, user, snapshot["patient_name"], snapshot["species"], snapshot["history"])
     obj = Case(owner_id=user.id, **{name: snapshot[name] for name in CONSULT_SAVE_FIELDS})
     session_row_id, session_uid = session.id, session.session_uid
     db.add(obj)
@@ -1350,6 +1467,7 @@ def ai_consult_session_save_case(
         if not current.case_id:
             raise HTTPException(status_code=409, detail="问诊已改变，请重新核对。")
         return {"case_id": current.case_id, "session_id": session_uid, "message": "already_saved"}
+    append_confirmation_audits(db, verified_voice, user, obj.id, session_uid)
     db.commit()
     db.refresh(obj)
     return {"case_id": obj.id, "session_id": session_uid, "message": "saved"}
@@ -1410,7 +1528,11 @@ def ai_consult_session_preview_update_case(
 
     obj = get_owned_case_or_404(db, session.case_id, user)
 
-    return _consult_update_snapshot(session, obj, _consult_session_to_case_fields(session), data.history_addendum if data else "", data.update_mode if data else "consult_sync")
+    voice = data.voice_confirmations if data else []
+    snapshot = _consult_update_snapshot(session, obj, _consult_session_to_case_fields(session), data.history_addendum if data else "", data.update_mode if data else "consult_sync")
+    snapshot = bind_confirmation_preview(snapshot, voice)
+    validate_confirmations(db, voice, session, user, obj.patient_name, obj.species, data.history_addendum if data else "", obj)
+    return snapshot
 
 
 @app.post("/api/ai/consult/session/{session_id}/update-case", response_model=AIConsultSessionSaveCaseOut, tags=["ai"])
@@ -1434,9 +1556,11 @@ def ai_consult_session_update_case(
     history_addendum = data.history_addendum if data else ""
     update_mode = data.update_mode if data else "consult_sync"
     snapshot = _consult_update_snapshot(session, obj, case_fields, history_addendum, update_mode)
+    snapshot = bind_confirmation_preview(snapshot, data.voice_confirmations if data else [])
     if data is not None and not hmac.compare_digest(data.expected_preview_token, snapshot["preview_token"]):
         raise HTTPException(status_code=409, detail="病例或问诊内容已改变，请重新预览并核对。")
     proposed = snapshot["proposed"]
+    verified_voice = validate_confirmations(db, data.voice_confirmations if data else [], session, user, obj.patient_name, obj.species, history_addendum, obj)
 
     obj.chief_complaint = proposed["chief_complaint"]
     obj.history = proposed["history"]
@@ -1450,6 +1574,7 @@ def ai_consult_session_update_case(
 
     db.add(obj)
     db.add(session)
+    append_confirmation_audits(db, verified_voice, user, obj.id, session.session_uid)
     db.commit()
     db.refresh(obj)
 
@@ -1472,7 +1597,15 @@ async def ai_consult_session_create(
         raise HTTPException(status_code=400, detail="text is required")
 
     text = _text_with_species(text, data.species)
-    result = run_agent(text)
+    structured = _clean_structured_snapshot(data.structured_intake_answers)
+    if structured and not user:
+        raise HTTPException(status_code=401, detail="请登录后提交医生采集的问卷。")
+    if _intake_module().is_intake(structured) and data.species != structured["template_key"]:
+        raise HTTPException(status_code=409, detail="主诉问卷与本次物种不一致，请重新核对。")
+    observations = (_intake_module().ai_context(structured) if _intake_module().is_intake(structured)
+                    else _structured_snapshot_text(structured))
+    ai_text = text + ("\n\n" + observations if observations else "")
+    result = run_agent(ai_text, evidence_observations=[{"source": "主诉", "text": text}] + _snapshot_evidence(structured))
     if not isinstance(result, dict):
         result = {
             "risk_level": "中",
@@ -1489,15 +1622,20 @@ async def ai_consult_session_create(
     except ModuleNotFoundError:
         from dynamic_consult import clean_consult_result
 
-    result = clean_consult_result(result, text, [])
+    result = clean_consult_result(result, ai_text, [])
     session_id = uuid4().hex
-    result = _stamp_session_dynamic(result, session_id, 0)
+    answers = []
+    if structured:
+        answers.append({"question": "医生核对的结构化病史采集", "answer": "医生已核对；问题、状态和原文保留在本轮结构化快照中。",
+                        STRUCTURED_SNAPSHOT_KEY: json.dumps(structured, ensure_ascii=False, sort_keys=True, separators=(",", ":"))})
+    result = _stamp_session_dynamic(result, session_id, len(answers))
+    result = _mark_structured_intake_context(result, bool(structured))
 
     session = ConsultSession(
         session_uid=session_id,
         owner_id=getattr(user, "id", None) if user else None,
         text=text,
-        answers=[],
+        answers=answers,
         result=result,
     )
     db.add(session)
@@ -1535,8 +1673,8 @@ def ai_consult_session_answer(
         raise HTTPException(status_code=404, detail="Consult session not found")
     assert_consult_session_access(session, user, allow_unowned=True)
 
-    answer = (data.answer or "").strip()
-    if not answer:
+    answer = data.answer or ""
+    if not answer.strip():
         raise HTTPException(status_code=400, detail="answer is required")
 
     question = (data.question or "").strip() or _first_session_question(session.result)
@@ -1547,6 +1685,8 @@ def ai_consult_session_answer(
     if data.expected_answers_token is not None and not hmac.compare_digest(data.expected_answers_token, _answers_token(session.answers)):
         raise HTTPException(status_code=409, detail="问诊已变化，请先重新读取并核对，未重复提交。")
     structured = _clean_structured_snapshot(data.structured_intake_answers)
+    if _intake_module().is_intake(structured) and not user:
+        raise HTTPException(status_code=401, detail="请登录后提交医生采集的问卷。")
     answers = list(session.answers or [])
     answers.append({
         "question": question,

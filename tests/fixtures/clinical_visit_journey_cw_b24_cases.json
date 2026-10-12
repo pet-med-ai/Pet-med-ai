@@ -1,0 +1,122 @@
+{
+  "schema": "clinical-visit-journey-cw-b24-v1",
+  "cases": [
+    {
+      "sex": "M",
+      "age_info": "6y",
+      "breed": "合成品种",
+      "weight": "6.4kg",
+      "coat_color": "黑白",
+      "owner_name": "CW24虚构宠主",
+      "owner_phone": "synthetic-only",
+      "chief_complaint": "仅用于软件验收的合成主诉",
+      "history": "  原始病史 café 🐾\n未见呕吐。保留空白  ",
+      "exam_findings": "仅合成查体，不构成诊疗建议",
+      "analysis": "医生手工记录，待核对",
+      "treatment": "合成诊疗原文 {{literal}}\n不生成医嘱",
+      "prognosis": "随访由医生另行确认",
+      "patient_name": "CW24 合成犬",
+      "species": "dog"
+    },
+    {
+      "sex": "F",
+      "age_info": "6y",
+      "breed": "合成品种",
+      "weight": "4.2kg",
+      "coat_color": "黑白",
+      "owner_name": "CW24虚构宠主",
+      "owner_phone": "synthetic-only",
+      "chief_complaint": "仅用于软件验收的合成主诉",
+      "history": "  原始病史 café 🐾\n未见呕吐。保留空白  ",
+      "exam_findings": "仅合成查体，不构成诊疗建议",
+      "analysis": "医生手工记录，待核对",
+      "treatment": "合成诊疗原文 {{literal}}\n不生成医嘱",
+      "prognosis": "随访由医生另行确认",
+      "patient_name": "CW24 合成猫",
+      "species": "cat"
+    }
+  ],
+  "lab": {
+    "report": {
+      "title": "CW24 合成检验报告",
+      "panel": "chemistry",
+      "specimen": "合成样本",
+      "collected_at": "2026-10-08T10:00+08:00",
+      "reported_at": "2026-10-08T11:00+08:00",
+      "laboratory": "合成实验室",
+      "device": "合成仪器",
+      "note": "报告原文 {{literal}} café"
+    },
+    "items": [
+      {
+        "name": "合成检验项目",
+        "result_type": "number",
+        "value": "0.0100",
+        "unit": "mg/L",
+        "reference": "0.0010–0.0200",
+        "reference_low": "0.0010",
+        "reference_high": "0.0200",
+        "reference_unit": "mg/L",
+        "flag": "原报告标记",
+        "position": "第 1 页",
+        "checked": true
+      }
+    ]
+  },
+  "corrected_lab_value": "0.0300",
+  "imaging": {
+    "title": "CW24 合成影像报告",
+    "modality": "dr",
+    "body_part": "合成部位",
+    "taken_at": "2026-10-08T09:00+08:00",
+    "institution": "合成机构",
+    "findings": "  所见原文 café 🐾\n保留换行  ",
+    "impression": "合成结论，未开展真实影像诊断",
+    "limitations": "软件验收样例",
+    "note": "原文 {{不替换}}",
+    "position": "第 1 页",
+    "checked_findings": true,
+    "checked_impression": true
+  },
+  "plan": {
+    "planned_date": "2026-10-15",
+    "purpose": "  医生手填复查目的 🐾\n保留原文  ",
+    "items": [
+      "合成项目一",
+      "合成项目二 café"
+    ],
+    "return_conditions": "仅合成返回条件，不构成临床建议",
+    "note": "复查备注 {{literal}}"
+  },
+  "contact": {
+    "occurred_at": "2026-10-09T10:30+08:00",
+    "method": "phone",
+    "outcome": "reached",
+    "note": "  合成联系原文 café 🐾\n未作自动判断  ",
+    "next_action": "医生手填后续安排 {{literal}}"
+  },
+  "corrected_contact_note": "更正后的合成联系原文 🐾\n旧版必须保留",
+  "correction_reason": "CW24 合成抄录更正",
+  "steps": [
+    "case_ui_saved",
+    "case_readback",
+    "attachments_ui_saved",
+    "lab_ui_saved",
+    "imaging_ui_saved",
+    "lab_ui_corrected",
+    "plan_ui_saved",
+    "contact_ui_saved",
+    "queue_exact_contact",
+    "queue_exact_source",
+    "documents_reviewed_downloaded",
+    "refresh_relogin_readback"
+  ],
+  "scenarios": [
+    "dog_complete_visit",
+    "cat_complete_visit",
+    "lost_write_response",
+    "stale_document_source",
+    "late_case_account_response",
+    "failed_cancelled_download"
+  ]
+}
