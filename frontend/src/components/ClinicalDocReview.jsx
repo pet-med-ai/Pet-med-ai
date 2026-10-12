@@ -23,7 +23,7 @@ const fields = [
   ["visit.follow_up", "复查安排状态"], ["export.account_id", "导出账号（非签名）"],
 ];
 
-export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose, onInspectLab, onInspectImaging, onInspectFollowup, onInspectContact, sourceRevision = 0 }) {
+export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose, onSessionExpired, onInspectLab, onInspectImaging, onInspectFollowup, onInspectContact, sourceRevision = 0 }) {
   const reviewFields = templateId === "outpatient_record_zh" ? [
     ...fields.slice(0, 2), ["visit.owner_name", "宠主姓名"], ["visit.coat_color", "宠物毛色"],
     ...fields.slice(2),
@@ -33,6 +33,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
   const [planPreviewReady,setPlanPreviewReady]=useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [labOpen, setLabOpen] = useState(false), [labIds, setLabIds] = useState([]);
   const selected = useRef([]);
   const [imagingOpen, setImagingOpen] = useState(false), [imagingIds, setImagingIds] = useState([]);
@@ -44,13 +45,27 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
   const [contactOpen,setContactOpen]=useState(false),[contactChoice,setContactChoice]=useState(null),[contactRevision,setContactRevision]=useState(0),[contactReady,setContactReady]=useState(false);
   const selectedContact=useRef(null),contactSession=useRef(false),contactRecheck=useRef(null);
   const active = useRef(false), pending = useRef(false), generation = useRef(0), heading = useRef(null);
-  const callbacks = useRef({ onDownload, onClose });
-  callbacks.current = { onDownload, onClose };
+  const callbacks = useRef({ onDownload, onClose, onSessionExpired });
+  callbacks.current = { onDownload, onClose, onSessionExpired };
   const current = stamp => active.current && generation.current === stamp &&
     Boolean(requestToken) && localStorage.getItem("token") === requestToken;
 
+  function finishRequest(stamp) {
+    if (!active.current || generation.current !== stamp) return;
+    // A current 401 removes the token before this component settles. End the
+    // busy state without accepting old data or affecting a newer login.
+    if (!localStorage.getItem("token")) {
+      invalidateDocument();
+      setSessionExpired(true);
+      callbacks.current.onSessionExpired?.();
+    } else if (current(stamp)) {
+      pending.current = false; setBusy(false);
+    }
+  }
+
   async function load() {
-    if (pending.current || !active.current || localStorage.getItem("token") !== requestToken) return;
+    if (pending.current || !active.current) return;
+    if (localStorage.getItem("token") !== requestToken) { finishRequest(generation.current); return; }
     pending.current = true;
     const stamp = ++generation.current;
     documentRequest.current?.abort(); documentRequest.current = new AbortController();
@@ -88,13 +103,14 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
         setMessage(typeof detail === "string" ? detail : error.message || "读取草稿失败，请重试。");
       }
     } finally {
-      if (current(stamp)) { pending.current = false; setBusy(false); }
+      finishRequest(stamp);
     }
   }
 
   useEffect(() => {
     active.current = true;
     pending.current = false;
+    setSessionExpired(false);
     selected.current=[]; setLabIds([]); setLabOpen(false);
     selectedImaging.current=[]; setImagingIds([]); setImagingOpen(false);
     selectedComparison.current=null; setComparisonChoice(null); setComparisonOpen(false); comparisonSession.current=false;
@@ -209,7 +225,8 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
 
   async function download() {
     const stamp = generation.current;
-    if (pending.current || !current(stamp) || !preview || !confirmed || (preview.manual_followup_plan && !planPreviewReady) || (preview.manual_followup_contact && !contactReady)) return;
+    if (!current(stamp)) { finishRequest(stamp); return; }
+    if (pending.current || !preview || !confirmed || (preview.manual_followup_plan && !planPreviewReady) || (preview.manual_followup_contact && !contactReady)) return;
     documentRequest.current?.abort(); documentRequest.current = new AbortController();
     pending.current = true; setBusy(true); setConfirmed(false); setMessage("正在生成已核对的草稿…");
     try {
@@ -220,9 +237,16 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
         result?.status === 409 ? "病例或模板内容已变化，原确认已失效。请重新读取并核对草稿。" :
           `${result?.message || "下载未完成"}；请重新读取并核对草稿后重试。`);
     } finally {
-      if (current(stamp)) { pending.current = false; setBusy(false); }
+      finishRequest(stamp);
     }
   }
+
+  if (sessionExpired) return <section aria-label="文书草稿内容核对" className="screen-only">
+    <h2>核对{label}</h2>
+    <p role="alert">登录状态已失效，本次操作已停止。请先保留尚未保存的原文，再重新登录、读取草稿并核对。</p>
+    <button type="button" onClick={() => { leave(); callbacks.current.onClose(); }}>关闭草稿核对</button>{" "}
+    <Link to="/">返回首页重新登录</Link>
+  </section>;
 
   return <section aria-label="文书草稿内容核对" className="screen-only"
     style={{ margin: "20px 0", padding: 18, border: "2px solid #93c5fd", borderRadius: 10 }}>

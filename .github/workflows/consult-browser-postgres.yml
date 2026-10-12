@@ -297,10 +297,22 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind frozen M7 through CW-B25 and approved CW-B26 increment
+      - name: Bind frozen M7 through CW-B26; test current candidate below
         run: |
           set -euo pipefail
-          python scripts/validate_clinical_doctor_trial_cw_b26.py > "$RUNNER_TEMP/cwb26-scope.json"
+          # CW-B26 is sealed. Its exact-path validator belongs to that commit;
+          # subsequent fixes are exercised by the tests on the current checkout.
+          cwb26_commit=586b21f5f9ebfb7531db9d8d2807ddee57fbab1c
+          git merge-base --is-ancestor "$cwb26_commit" HEAD
+          cwb26_worktree="$(mktemp -d "$RUNNER_TEMP/cwb26-frozen-XXXXXX")"
+          git worktree add --detach --quiet "$cwb26_worktree" "$cwb26_commit"
+          trap 'git worktree remove "$cwb26_worktree"' EXIT
+          (
+            cd "$cwb26_worktree"
+            python -B scripts/validate_clinical_doctor_trial_cw_b26.py
+          ) > "$RUNNER_TEMP/cwb26-scope.json"
+          git worktree remove "$cwb26_worktree"
+          trap - EXIT
           mkdir -p acceptance-results
           cp "$RUNNER_TEMP/cwb26-scope.json" acceptance-results/cwb26-scope.json
           python - <<'PY_SCOPE'

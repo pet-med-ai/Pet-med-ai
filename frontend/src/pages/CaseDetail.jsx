@@ -69,6 +69,7 @@ function CaseDetailContent({ requestToken }) {
 
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [queueTargetError, setQueueTargetError] = useState('');
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -109,6 +110,11 @@ function CaseDetailContent({ requestToken }) {
   const [preventiveCareStatus, setPreventiveCareStatus] = useState("");
   const [exportingDoc, setExportingDoc] = useState("");
   const [exportStatus, setExportStatus] = useState("");
+  const markSessionExpired = () => {
+    if (!active.current || localStorage.getItem("token")) return false;
+    setSessionExpired(true);
+    return true;
+  };
   const [diagnosticDataSummary, setDiagnosticDataSummary] = useState(null);
   const [diagnosticDataLoading, setDiagnosticDataLoading] = useState(false);
   const [diagnosticDataStatus, setDiagnosticDataStatus] = useState("");
@@ -171,7 +177,13 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
       } catch (e) {
         if (!stop && isCurrent()) setErr(String(e));
       } finally {
-        if (!stop && isCurrent()) setLoading(false);
+        if (!stop) {
+          if (isCurrent()) setLoading(false);
+          else if (markSessionExpired()) {
+            setErr("登录状态已失效，请重新登录后查看病例。");
+            setLoading(false);
+          }
+        }
       }
     })();
     return () => { stop = true; };
@@ -954,6 +966,10 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     } finally {
       exportPending.current = false;
       if (isCurrent()) setExportingDoc("");
+      else if (markSessionExpired()) {
+        setExportingDoc("");
+        setExportStatus("登录状态已失效，本次导出未完成。");
+      }
     }
   };
 
@@ -999,8 +1015,8 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   if (loading) return <div style={{ padding: 24 }}>加载中…</div>;
   if (err) return <div role="alert" style={{ padding: 24, color: "crimson" }}>
     加载失败：{err}
-    {requestToken && <button type="button" onClick={() => setLoadAttempt(value => value + 1)}>重试读取病例</button>}
-    <Link to="/">返回首页</Link>
+    {isCurrent() && <button type="button" onClick={() => setLoadAttempt(value => value + 1)}>重试读取病例</button>}
+    <Link to="/">{sessionExpired ? "返回首页重新登录" : "返回首页"}</Link>
   </div>;
   if (!data) return <div style={{ padding: 24 }}>未找到病例</div>;
 
@@ -1012,6 +1028,10 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       style={{ padding: 24, maxWidth: 980, margin: "0 auto", fontFamily: "system-ui,-apple-system,Arial" }}
     >
       <style>{css}</style>
+      {sessionExpired && <div role="alert" className="screen-only">
+        登录状态已失效。请先保留尚未保存的原文，再重新登录；文书需要重新读取并核对。
+        <Link to="/">返回首页重新登录</Link>
+      </div>}
       <div className="screen-only">
         {queueTargetError && <p role="alert">{queueTargetError}</p>}
         {location.search.includes("followup_") && <p><Link to="/followup-plans">返回复查计划清单</Link></p>}
@@ -1046,7 +1066,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           <button
             type="button"
             onClick={() => exportClinicalDoc("admission_hospitalization_record_bilingual", "入院/住院记录")}
-            disabled={Boolean(exportingDoc) || Boolean(docReview)}
+            disabled={sessionExpired || Boolean(exportingDoc) || Boolean(docReview)}
             style={btnDoc}
           >
             {exportingDoc === "admission_hospitalization_record_bilingual" ? "生成中…" : "导出入院/住院记录 DOCX"}
@@ -1054,7 +1074,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           <button
             type="button"
             onClick={() => exportClinicalDoc("discharge_summary_bilingual", "出院小结")}
-            disabled={Boolean(exportingDoc) || Boolean(docReview)}
+            disabled={sessionExpired || Boolean(exportingDoc) || Boolean(docReview)}
             style={btnDoc}
           >
             {exportingDoc === "discharge_summary_bilingual" ? "生成中…" : "导出出院小结 DOCX"}
@@ -1065,7 +1085,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           ].map(([templateId, label]) => (
             <button key={templateId} type="button" style={btnDoc}
               onClick={event => openDocReview(templateId, label, event)}
-              disabled={Boolean(exportingDoc) || Boolean(docReview)}>
+              disabled={sessionExpired || Boolean(exportingDoc) || Boolean(docReview)}>
               {exportingDoc === templateId ? "生成中…" : `导出${label} DOCX`}
             </button>
           ))}
@@ -1080,6 +1100,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
 
       {docReview && <Suspense fallback={<p>正在打开文书核对…</p>}><ClinicalDocReview key={docReview.templateId} caseId={Number(data.id)}
         templateId={docReview.templateId} label={docReview.label} requestToken={requestToken}
+        onSessionExpired={markSessionExpired}
         onClose={closeDocReview}
         onInspectLab={target=>{closeDocReview();setShowLab(true);if(target)setLabTarget({ ...target, request: {} });}}
         sourceRevision={savedRevision}
