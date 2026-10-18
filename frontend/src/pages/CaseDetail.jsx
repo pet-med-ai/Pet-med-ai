@@ -975,6 +975,9 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       else if (markSessionExpired()) {
         setExportingDoc("");
         setExportStatus("登录状态已失效，本次导出未完成。");
+      } else if (active.current) {
+        setExportingDoc("");
+        setExportStatus("登录账号已变化，本次导出未完成。请先保留尚未保存的原文，重新打开病例后再核对草稿。");
       }
     }
   };

@@ -34,6 +34,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [sessionExpired, setSessionExpired] = useState(false);
+  const [sessionChanged, setSessionChanged] = useState(false);
   const [labOpen, setLabOpen] = useState(false), [labIds, setLabIds] = useState([]);
   const selected = useRef([]);
   const [imagingOpen, setImagingOpen] = useState(false), [imagingIds, setImagingIds] = useState([]);
@@ -52,12 +53,16 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
 
   function finishRequest(stamp) {
     if (!active.current || generation.current !== stamp) return;
-    // A current 401 removes the token before this component settles. End the
-    // busy state without accepting old data or affecting a newer login.
-    if (!localStorage.getItem("token")) {
+    // End the old review on expiry or account replacement without accepting
+    // its response, clearing a newer login, or discarding other unsaved work.
+    const token = localStorage.getItem("token");
+    if (!token) {
       invalidateDocument();
       setSessionExpired(true);
       callbacks.current.onSessionExpired?.();
+    } else if (token !== requestToken) {
+      invalidateDocument();
+      setSessionChanged(true);
     } else if (current(stamp)) {
       pending.current = false; setBusy(false);
     }
@@ -111,6 +116,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     active.current = true;
     pending.current = false;
     setSessionExpired(false);
+    setSessionChanged(false);
     selected.current=[]; setLabIds([]); setLabOpen(false);
     selectedImaging.current=[]; setImagingIds([]); setImagingOpen(false);
     selectedComparison.current=null; setComparisonChoice(null); setComparisonOpen(false); comparisonSession.current=false;
@@ -241,11 +247,13 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     }
   }
 
-  if (sessionExpired) return <section aria-label="文书草稿内容核对" className="screen-only">
+  if (sessionExpired || sessionChanged) return <section aria-label="文书草稿内容核对" className="screen-only">
     <h2>核对{label}</h2>
-    <p role="alert">登录状态已失效，本次操作已停止。请先保留尚未保存的原文，再重新登录、读取草稿并核对。</p>
+    <p role="alert">{sessionChanged
+      ? "登录账号已变化，本次草稿核对已停止。请先保留尚未保存的原文，再重新打开病例、读取草稿并核对。"
+      : "登录状态已失效，本次操作已停止。请先保留尚未保存的原文，再重新登录、读取草稿并核对。"}</p>
     <button type="button" onClick={() => { leave(); callbacks.current.onClose(); }}>关闭草稿核对</button>{" "}
-    <Link to="/">返回首页重新登录</Link>
+    <Link to="/">{sessionChanged ? "返回首页重新打开病例" : "返回首页重新登录"}</Link>
   </section>;
 
   return <section aria-label="文书草稿内容核对" className="screen-only"

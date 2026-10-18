@@ -46,6 +46,47 @@ afterEach(()=>{if(renderer)act(()=>renderer.unmount());renderer=null;URL.createO
 
 test('detail shows server history and corrected treatment',async()=>{await mount();assert.match(text(),/病史-1/);assert.match(text(),/更正治疗-1/);});
 for(const label of ['导出门诊病历草稿 DOCX','导出宠主说明草稿 DOCX']) {
+  for(const action of ['重新读取草稿','确认并下载草稿 DOCX'])test(`${label}: account replacement before ${action} stops the old review without another request`,async()=>{
+    await mount();await click(label);await check();
+    const before=requests.length;storage='synthetic-new-login';
+    await click(action);
+    assert.match(text(),/登录账号已变化/);assert.doesNotMatch(text(),/正在读取已保存|正在生成|生成中|预览原文/);
+    assert.equal(button('确认并下载草稿 DOCX'),undefined);
+    assert.equal(requests.length,before);assert.equal(exports().length,0);assert.equal(downloads.length,0);
+    assert.equal(storage,'synthetic-new-login');assert.deepEqual(alerts,[]);
+    assert(renderer.root.findAllByType('a').some(a=>a.props.href==='/'&&a.children.join('')==='返回首页重新打开病例'));
+    await move('/');await move('/cases/1');await click(label);
+    assert.equal(previews().length,2);assert.equal(button('确认并下载草稿 DOCX').props.disabled,true);
+    await confirm();assert.equal(downloads.length,1);
+  });
+  for(const stage of ['preview','download'])test(`${label}: account replacement during ${stage} ends busy state and discards the old success`,async()=>{
+    await mount();const normal=adapter,gate=deferred();
+    if(stage==='download'){await click(label);await check();}
+    const endpoint=stage==='preview'?'/api/clinical-docs/render-preview':'/api/clinical-docs/render';
+    adapter=async c=>{if(c.url===endpoint)await gate.promise;return normal(c);};
+    let pending;
+    await act(async()=>{pending=button(stage==='preview'?label:'确认并下载草稿 DOCX').props.onClick();});
+    assert(requests.some(c=>c.url===endpoint));const before=requests.length;storage='synthetic-new-login';
+    await act(async()=>{gate.resolve();await pending;});
+    assert.match(text(),/登录账号已变化/);assert.doesNotMatch(text(),/正在读取已保存|正在生成|生成中|预览原文/);
+    assert.equal(button('确认并下载草稿 DOCX'),undefined);assert.equal(downloads.length,0);
+    assert.equal(requests.length,before);assert.equal(storage,'synthetic-new-login');assert.deepEqual(alerts,[]);
+    await click('关闭草稿核对');assert.equal(button(label).props.disabled,false);
+    await click(label);assert.match(text(),/登录账号已变化/);assert.equal(requests.length,before);
+  });
+}
+test('account replacement inside a document review preserves an unsaved laboratory draft',async()=>{
+  const normal=adapter;
+  adapter=c=>c.url.endsWith('/manual-lab')?{config:c,status:200,data:{case_id:1,case_token:snapshot,sources:[],reports:[]}}:normal(c);
+  await mount();await click('打开检验项目');await click('录入检验报告');
+  await act(async()=>renderer.root.findByProps({'aria-label':'报告标题'}).props.onChange({target:{value:'未保存原文 café 🐾'}}));
+  await click('导出门诊病历草稿 DOCX');const before=requests.length;storage='synthetic-new-login';await click('重新读取草稿');
+  assert.match(text(),/登录账号已变化/);
+  assert.equal(renderer.root.findByProps({'aria-label':'报告标题'}).props.value,'未保存原文 café 🐾');
+  await click('关闭草稿核对');assert.equal(renderer.root.findByProps({'aria-label':'报告标题'}).props.value,'未保存原文 café 🐾');
+  assert.equal(requests.length,before);assert.equal(downloads.length,0);assert(!requests.some(c=>c.url.endsWith('/confirm')));
+});
+for(const label of ['导出门诊病历草稿 DOCX','导出宠主说明草稿 DOCX']) {
   for(const credential of ['', 'synthetic-new-login'])test(`${label}: credential ${credential?'replaced':'cleared'} before opening gives feedback without a request`,async()=>{
     await mount();const before=requests.length;
     storage=credential; // Same-tab expiry/relogin does not emit a storage event.
@@ -134,6 +175,8 @@ for(const stage of ['preview','download'])test(`late document ${stage} 401 leave
  await act(async()=>{gate.resolve();await pending;});
  assert.equal(storage,'synthetic-new-login');assert.deepEqual(alerts,[]);assert.equal(downloads.length,0);
  assert.doesNotMatch(text(),/登录状态已失效/);
+  assert.match(text(),/登录账号已变化/);assert.doesNotMatch(text(),/正在读取已保存|正在生成|生成中/);
+  assert.equal(button('确认并下载草稿 DOCX'),undefined);
  await move('/');adapter=normal;await move('/cases/1');assert.match(text(),/合成病例-1/);
 });
 test('cross-tab account change clears visible case while next account loads',async()=>{await mount();const gate=deferred(),original=adapter;adapter=c=>c.url==='/api/cases/1'?gate.promise:original(c);storage='synthetic-other';await act(async()=>listeners.storage({key:'token'}));assert.doesNotMatch(text(),/合成病例-1/);await act(async()=>gate.reject(Error('not-owned')));assert.match(text(),/not-owned/);});
