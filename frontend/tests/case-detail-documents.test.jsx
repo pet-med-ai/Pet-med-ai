@@ -132,6 +132,47 @@ test('late old failure cannot hide the new case',async()=>{const gate=deferred()
 test('failed read can retry GET without any write',async()=>{const original=adapter;adapter=c=>c.url==='/api/cases/1'?Promise.reject(Error('temporary')):original(c);await mount();assert.match(text(),/temporary/);adapter=original;await click('重试读取病例');assert.match(text(),/合成病例-1/);assert.doesNotMatch(text(),/temporary/);assert(requests.every(c=>c.method==='get'));});
 test('mismatched response ID is refused before edit print or export',async()=>{const original=adapter;adapter=c=>c.url==='/api/cases/1'?{data:record(2)}:original(c);await mount();assert.match(text(),/返回的病例与当前页面不一致/);assert.equal(button('打印病例'),undefined);assert.equal(exports().length,0);});
 test('anonymous detail does not request a case',async()=>{storage='';await mount();assert.match(text(),/请先登录/);assert.equal(requests.length,0);});
+for(const outcome of ['success','network-error','401'])test(`account replacement during the first case read: ${outcome} ends loading without accepting the old response`,async()=>{
+ const gate=deferred(),normal=adapter;
+ adapter=async c=>{
+  if(c.url==='/api/cases/1'){
+   await gate.promise;
+   if(outcome==='network-error')throw Object.assign(Error('old-account-private-error'),{config:c});
+   if(outcome==='401')throw {config:c,response:{status:401}};
+  }
+  return normal(c);
+ };
+ await mount();assert.match(text(),/加载中/);assert.equal(requests.length,1);
+ storage='synthetic-new-login';await act(async()=>gate.resolve());
+ assert.match(text(),/登录账号已变化/);assert.doesNotMatch(text(),/加载中|合成病例-1|病史-1|old-account-private-error|登录状态已失效/);
+ assert.equal(button('重试读取病例'),undefined);assert.equal(button('打印病例'),undefined);
+ assert.equal(button('导出门诊病历草稿 DOCX'),undefined);assert.equal(downloads.length,0);
+ assert.equal(storage,'synthetic-new-login');assert.deepEqual(alerts,[]);assert.equal(requests.length,1);
+ assert(renderer.root.findAllByType('a').some(a=>a.props.href==='/'));
+ await move('/');adapter=normal;await move('/cases/1');
+ assert.match(text(),/合成病例-1/);assert.doesNotMatch(text(),/登录账号已变化|加载中/);
+ assert.equal(requests.filter(c=>c.url==='/api/cases/1').length,2);assert(requests.every(c=>c.method==='get'));
+});
+for(const credential of ['', 'synthetic-new-login'])test(`credential ${credential?'replaced':'cleared'} before retrying a failed case read prevents another request`,async()=>{
+ const normal=adapter;adapter=c=>c.url==='/api/cases/1'?Promise.reject(Error('temporary')):normal(c);
+ await mount();const retry=button('重试读取病例').props.onClick;assert.equal(requests.length,1);
+ storage=credential;adapter=normal;await act(async()=>retry());
+ assert.match(text(),credential?/登录账号已变化/:/登录状态已失效/);
+ assert.doesNotMatch(text(),/加载中|合成病例-1|temporary/);
+ assert.equal(button('重试读取病例'),undefined);assert.equal(button('打印病例'),undefined);
+ assert.equal(requests.length,1);assert.equal(storage,credential);assert.deepEqual(alerts,[]);
+});
+for(const credential of ['', 'other-owner'])test(`credential ${credential?'replaced':'cleared'} before case request dispatch is rejected before HTTP`,async()=>{
+ const jwt=owner=>'synthetic.'+Buffer.from(JSON.stringify({sub:owner,exp:4102444800})).toString('base64url')+'.signature';
+ storage=jwt('original-owner');const replacement=credential?jwt(credential):'';
+ const interceptor=api.interceptors.request.use(c=>{if(c.url==='/api/cases/1')storage=replacement;return c;});
+ try {
+  await mount();assert.equal(requests.length,0);
+  assert.match(text(),credential?/登录账号已变化/:/登录状态已失效/);
+  assert.doesNotMatch(text(),/加载中|合成病例-1/);assert.equal(button('重试读取病例'),undefined);
+  assert.equal(storage,replacement);assert.deepEqual(alerts,[]);assert.equal(downloads.length,0);
+ } finally {api.interceptors.request.eject(interceptor);}
+});
 test('current detail 401 exits loading and offers login without automatically retrying',async()=>{
  const normal=adapter;
  adapter=c=>{if(c.url==='/api/cases/1')throw {config:c,response:{status:401}};return normal(c);};

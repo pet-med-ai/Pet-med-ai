@@ -161,6 +161,15 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
   // 拉取详情
   useEffect(() => {
     let stop = false;
+    const finishRead = () => {
+      if (stop || !active.current) return;
+      if (!isCurrent()) {
+        setErr(markSessionExpired()
+          ? "登录状态已失效，请重新登录后查看病例。"
+          : "登录账号已变化，请返回首页重新打开病例。");
+      }
+      setLoading(false);
+    };
     setLoading(true);
     setErr("");
     setData(null);
@@ -169,21 +178,16 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
       setLoading(false);
       return;
     }
+    if (!isCurrent()) { finishRead(); return; }
     (async () => {
       try {
-        const res = await api.get(`/api/cases/${id}`);
+        const res = await api.get(`/api/cases/${id}`, { expectedAuthOwner: draftOwner(requestToken) });
         if (!res.data || Number(res.data.id) !== Number(id)) throw new Error("返回的病例与当前页面不一致，请重试。");
         if (!stop && isCurrent()) setData(res.data);
       } catch (e) {
         if (!stop && isCurrent()) setErr(String(e));
       } finally {
-        if (!stop) {
-          if (isCurrent()) setLoading(false);
-          else if (markSessionExpired()) {
-            setErr("登录状态已失效，请重新登录后查看病例。");
-            setLoading(false);
-          }
-        }
+        finishRead();
       }
     })();
     return () => { stop = true; };
