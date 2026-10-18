@@ -877,7 +877,13 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
 
   // Clinical Docs Export UI V1: read-only DOCX download from Case detail.
   const openDocReview = (templateId, label, event) => {
-    if (exportPending.current || reviewActive.current || !isCurrent()) return;
+    if (exportPending.current || reviewActive.current || !active.current) return;
+    if (!isCurrent()) {
+      setExportStatus(markSessionExpired()
+        ? "登录状态已失效，请先保留尚未保存的原文，重新登录后再读取并核对草稿。"
+        : "登录账号已变化，请先保留尚未保存的原文，重新打开病例后再核对草稿。");
+      return;
+    }
     reviewActive.current = true;
     reviewOpener.current = event?.currentTarget;
     setExportStatus(""); setDocReview({ templateId, label });

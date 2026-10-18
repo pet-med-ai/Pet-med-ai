@@ -44,7 +44,7 @@ function Selector({caseId, requestToken, templateId='outpatient_record_zh', onSe
   },[caseId,requestToken,readRevision,revision]);
   function select(row){
     if(busy||localStorage.getItem('token')!==requestToken)return;
-    try{callbacks.current.onSelect(documentContactSelection(list,row,templateId));setNotice('已明确选择，请重新读取完整草稿并核对。');}
+    try{callbacks.current.onSelect(documentContactSelection(list,row,templateId));setNotice('');}
     catch(error){callbacks.current.onSelect(null);setNotice(message(error));}
   }
   return <section aria-label="选择文书人工随访" style={{padding:12,border:'1px solid #ccd5d1',overflowWrap:'anywhere'}}>

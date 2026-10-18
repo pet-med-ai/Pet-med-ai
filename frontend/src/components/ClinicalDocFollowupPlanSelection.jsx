@@ -34,7 +34,7 @@ function Selector({caseId,requestToken,templateId='outpatient_record_zh',onSelec
   },[caseId,requestToken,readRevision,refresh]);
   function select(row){
     if(busy||!active.current||localStorage.getItem('token')!==requestToken)return;
-    try{callbacks.current.onSelect(documentPlanSelection(list,row));setNotice('已明确选择；请重新读取完整草稿并核对。');}
+    try{callbacks.current.onSelect(documentPlanSelection(list,row));setNotice('');}
     catch(error){callbacks.current.onSelect(null);setNotice(message(error));}
   }
   return <section aria-label="选择文书复查计划" style={{padding:12,border:'1px solid #ccd5d1',overflowWrap:'anywhere'}}>

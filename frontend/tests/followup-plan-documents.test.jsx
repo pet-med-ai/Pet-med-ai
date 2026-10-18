@@ -37,6 +37,26 @@ afterEach(()=>act(()=>renderer.unmount()));
 async function select(){await click('选择复查计划附节');await click('将此计划纳入本次文书');}
 async function selected(){await select();await click('重新读取草稿');}
 
+for(const templateId of ['outpatient_record_zh','owner_visit_summary_zh'])test(`successful whole preview clears stale plan reread notice for ${templateId}`,async()=>{
+  if(props.templateId!==templateId){props={...props,templateId};await act(async()=>renderer.update(view()));}
+  await select();
+  assert.match(text(),/已选择复查计划，请重新读取完整草稿并核对。/);
+  assert(!button('确认并下载草稿 DOCX'));
+  await click('重新读取草稿');
+  assert(renderer.root.findByProps({'aria-label':'选择文书复查计划'}));
+  assert(renderer.root.findByProps({'aria-label':'文书复查计划附节'}));
+  assert.doesNotMatch(text(),/请重新读取完整草稿并核对。/);
+  assert(button('确认并下载草稿 DOCX').props.disabled);
+  await confirm();assert.equal(button('确认并下载草稿 DOCX').props.disabled,false);
+  await click('将此计划纳入本次文书');
+  assert.match(text(),/已选择复查计划，请重新读取完整草稿并核对。/);
+  assert(!button('确认并下载草稿 DOCX'));
+  await click('重新读取草稿');
+  assert.doesNotMatch(text(),/请重新读取完整草稿并核对。/);
+  assert(button('确认并下载草稿 DOCX').props.disabled);
+  assert.equal(downloads.length,0);
+});
+
 test('default omitted, explicit selection, complete raw preview and independent confirmation; double click exports once',async()=>{
   assert.equal(requests.length,1);assert.equal(JSON.parse(requests[0].data).manual_followup_plan,undefined);
   await select();assert(!button('确认并下载草稿 DOCX'));await click('重新读取草稿');

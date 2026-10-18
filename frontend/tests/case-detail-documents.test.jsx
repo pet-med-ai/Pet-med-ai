@@ -45,6 +45,34 @@ beforeEach(()=>{
 afterEach(()=>{if(renderer)act(()=>renderer.unmount());renderer=null;URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;});
 
 test('detail shows server history and corrected treatment',async()=>{await mount();assert.match(text(),/病史-1/);assert.match(text(),/更正治疗-1/);});
+for(const label of ['导出门诊病历草稿 DOCX','导出宠主说明草稿 DOCX']) {
+  for(const credential of ['', 'synthetic-new-login'])test(`${label}: credential ${credential?'replaced':'cleared'} before opening gives feedback without a request`,async()=>{
+    await mount();const before=requests.length;
+    storage=credential; // Same-tab expiry/relogin does not emit a storage event.
+    await click(label);
+    assert.match(text(),credential ? /登录账号已变化/ : /登录状态已失效/);
+    const feedback=renderer.root.findByProps({className:'clinical-doc-export-status screen-only'});
+    assert.match(feedback.children.join(''),credential ? /登录账号已变化/ : /登录状态已失效/);
+    assert.equal(storage,credential);assert.equal(requests.length,before);
+    assert.equal(previews().length,0);assert.equal(exports().length,0);assert.equal(downloads.length,0);
+    assert.equal(button('确认并下载草稿 DOCX'),undefined);
+    if(!credential)assert(renderer.root.findAllByType('a').some(a=>a.props.href==='/'&&a.children.join('')==='返回首页重新登录'));
+    await move('/');storage='synthetic-new-login';await move('/cases/1');await click(label);
+    assert.equal(previews().length,1);assert.equal(button('确认并下载草稿 DOCX').props.disabled,true);
+    await confirm();assert.equal(downloads.length,1);
+  });
+}
+test('expiry before opening preserves an unsaved laboratory draft for copying',async()=>{
+  const normal=adapter;
+  adapter=c=>c.url.endsWith('/manual-lab')?{config:c,status:200,data:{case_id:1,case_token:snapshot,sources:[],reports:[]}}:normal(c);
+  await mount();await click('打开检验项目');await click('录入检验报告');
+  await act(async()=>renderer.root.findByProps({'aria-label':'报告标题'}).props.onChange({target:{value:'未保存原文 café 🐾'}}));
+  const before=requests.length;storage='';await click('导出门诊病历草稿 DOCX');
+  assert.match(text(),/登录状态已失效/);
+  assert.equal(renderer.root.findByProps({'aria-label':'报告标题'}).props.value,'未保存原文 café 🐾');
+  assert.equal(requests.length,before);assert.equal(downloads.length,0);
+  assert(!requests.some(c=>c.url.endsWith('/confirm')));
+});
 test('manual lab entry stays lazy and does not alter document preview requests',async()=>{await mount();assert(button('打开检验项目'));assert(!requests.some(c=>c.url.includes('/manual-lab')));await click('导出门诊病历草稿 DOCX');assert(!requests.some(c=>c.url.includes('/manual-lab')));assert.equal(previews().length,1);});
 test('CW-B8 selected ids and snapshot reach actual download request',async()=>{
  const row={id:9,root_id:9,version:1,state:'confirmed',reviewed_by:'1',reviewed_at:'synthetic',source:{name:'synthetic.pdf',sha256:snapshot},data:labData};const normal=adapter;

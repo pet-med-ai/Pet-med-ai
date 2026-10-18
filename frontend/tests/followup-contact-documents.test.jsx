@@ -13,12 +13,12 @@ const button=s=>renderer.root.findAllByType('button').find(n=>n.children.join(''
 const click=async s=>act(async()=>{assert(button(s),s);await button(s).props.onClick();});
 const text=()=>JSON.stringify(renderer.toJSON());
 const row=()=>listing.records.find(r=>r.state==='recorded');
-const payload=()=>({...documentContactSelection(listing,row()).expected,audit_token:hash});
+const payload=(templateId='outpatient_record_zh')=>({...documentContactSelection(listing,row(),templateId).expected,audit_token:hash});
 const confirm=async()=>act(async()=>{const b=renderer.root.findAllByType('input').find(n=>n.props.type==='checkbox'&&!n.props['aria-label']);assert(b&&!b.props.disabled);b.props.onChange({target:{checked:true}});});
 const fire=async(name,e={})=>act(async()=>{for(const fn of [...(listeners[name]||[])])fn(e);});
 const deferred=()=>{let resolve,reject;const promise=new Promise((r,j)=>{resolve=r;reject=j;});return{promise,resolve,reject};};
 const view=()=> <MemoryRouter><ClinicalDocReview {...props}/></MemoryRouter>;
-function preview(c){const b=JSON.parse(c.data),context={};for(const k of ['case_id','pet_name','owner_name','coat_color','species','age','sex','weight','complaint','history','exam','assessment','plan','notes','follow_up'])context['visit.'+k]='未填写';context['visit.case_id']=String(b.case_id);context['export.account_id']='1';return reply(c,{...b,context,content_snapshot:hash,missing_required_keys:[],writes_database:false,...(b.manual_followup_contact?{manual_followup_contact:payload()}:{})});}
+function preview(c){const b=JSON.parse(c.data),context={};for(const k of ['case_id','pet_name','owner_name','coat_color','species','age','sex','weight','complaint','history','exam','assessment','plan','notes','follow_up'])context['visit.'+k]='未填写';context['visit.case_id']=String(b.case_id);context['export.account_id']='1';return reply(c,{...b,context,content_snapshot:hash,missing_required_keys:[],writes_database:false,...(b.manual_followup_contact?{manual_followup_contact:payload(b.template_id)}:{})});}
 beforeEach(async()=>{
  listing=structuredClone(fixture.contact_listing);token='synthetic';requests=[];listeners={};downloads=[];
  global.localStorage={getItem:()=>token,setItem(){throw Error('No persistence');}};global.sessionStorage={setItem(){throw Error('No persistence');}};
@@ -31,6 +31,26 @@ beforeEach(async()=>{
 afterEach(()=>act(()=>renderer.unmount()));
 async function select(){await click('选择人工随访记录附节');const b=renderer.root.findAllByType('button').find(n=>n.children.join('')==='将此随访纳入本次文书'&&!n.props.disabled);assert(b);await act(async()=>b.props.onClick());}
 async function selected(){await select();await click('重新读取草稿');}
+for(const templateId of ['outpatient_record_zh','owner_visit_summary_zh'])test(`successful whole preview clears stale contact reread notice for ${templateId}`,async()=>{
+ if(props.templateId!==templateId){props={...props,templateId};await act(async()=>renderer.update(view()));}
+ await select();
+ assert.match(text(),/已选择人工随访，请重新读取完整草稿并核对。/);
+ assert(!button('确认并下载草稿 DOCX'));
+ await click('重新读取草稿');
+ assert(renderer.root.findByProps({'aria-label':'选择文书人工随访'}));
+ assert(renderer.root.findByProps({'aria-label':'文书人工随访附节'}));
+ assert.doesNotMatch(text(),/请重新读取完整草稿并核对。/);
+ assert(button('确认并下载草稿 DOCX').props.disabled);
+ await confirm();assert.equal(button('确认并下载草稿 DOCX').props.disabled,false);
+ const selectedButton=renderer.root.findAllByType('button').find(n=>n.children.join('')==='将此随访纳入本次文书'&&!n.props.disabled);
+ await act(async()=>selectedButton.props.onClick());
+ assert.match(text(),/已选择人工随访，请重新读取完整草稿并核对。/);
+ assert(!button('确认并下载草稿 DOCX'));
+ await click('重新读取草稿');
+ assert.doesNotMatch(text(),/请重新读取完整草稿并核对。/);
+ assert(button('确认并下载草稿 DOCX').props.disabled);
+ assert.equal(downloads.length,0);
+});
 test('explicit current contact selection, original history, full review and single export',async()=>{
  assert.equal(requests.length,1);assert.equal(JSON.parse(requests[0].data).manual_followup_contact,undefined);
  await selected();assert(button('确认并下载草稿 DOCX').props.disabled);for(const value of [row().data.note,row().data.next_action,row().source.data.purpose,row().token])assert(text().includes(JSON.stringify(value).slice(1,-1)));
