@@ -1,6 +1,6 @@
 """Real JWT + disposable SQLite; independent literal/date/KPI expectations."""
 import copy
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import os
 from pathlib import Path
@@ -181,6 +181,34 @@ class FollowupTests(FollowupFixture):
             audit=db.get(f.models.AuditLog,original['audit_log'][0]['log_id']);audit.extra_data={'schema':'broken'};db.commit()
         self.request('/requests/'+reviewed['request_id'],expected=409)
 
+    def test_missing_audit_never_reports_not_committed_or_allows_read_or_replay(self):
+        body=self.reviewed();self.request('/confirm',body)
+        with f.db.SessionLocal() as db:
+            db.query(f.models.AuditLog).filter_by(case_id=self.cid,source=plans.SOURCE).delete();db.commit()
+        before=self.business()
+        for suffix,value in [('',None),('/requests/'+body['request_id'],None),('/confirm',body)]:
+            with self.subTest(suffix=suffix):
+                self.assertEqual(self.request(suffix,value,409)['detail'],'followup_invalid_saved_data')
+        self.assertEqual(before,self.business())
+
+    def test_audit_actor_operation_reason_and_orphan_are_checked_on_every_read(self):
+        body=self.reviewed();self.request('/confirm',body)
+        with f.db.SessionLocal() as db:
+            row=db.query(f.models.AuditLog).filter_by(case_id=self.cid,source=plans.SOURCE).one()
+            saved={a.key:copy.deepcopy(getattr(row,a.key)) for a in row.__mapper__.column_attrs}
+        variants=[{'clinician_id':'wrong'}, {'note':'changed reason'}, {'event_type':'followup_plan_withdraw'},
+                  {'extra_data':{**saved['extra_data'],'record_id':999999}}]
+        for change in variants:
+            with self.subTest(change=change):
+                with f.db.SessionLocal() as db:
+                    row=db.get(f.models.AuditLog,saved['log_id'])
+                    for key,value in {**saved,**change}.items():setattr(row,key,copy.deepcopy(value))
+                    db.commit()
+                before=self.business()
+                self.assertEqual(self.request(expected=409)['detail'],'followup_invalid_saved_data')
+                self.assertEqual(self.request('/requests/'+body['request_id'],expected=409)['detail'],'followup_invalid_saved_data')
+                self.assertEqual(before,self.business())
+
     def test_legacy_kpi_exactly_unchanged_by_all_plan_states_and_corruption(self):
         with f.db.SessionLocal() as db:
             for i,done in enumerate([datetime(2024,2,29,12),datetime(2024,3,2),None]):
@@ -198,6 +226,24 @@ class FollowupTests(FollowupFixture):
                 db.add(f.models.FollowUp(case_id=self.cid,due_date=datetime(2024,2,29),done_at=datetime(2024,2,29),status=status,channel=channel,note='broken'))
             db.commit()
         self.assertEqual(kpi(),expected);self.assertEqual(self.business()['followups'][:3],before)
+
+    def test_legacy_audit_time_supported_but_duplicate_or_missing_withdrawal_blocked(self):
+        row=self.save()
+        with f.db.SessionLocal() as db:
+            audit=db.query(f.models.AuditLog).filter_by(case_id=self.cid,source=plans.SOURCE).one()
+            audit.created_at+=timedelta(microseconds=500);db.commit()
+        self.assertEqual(self.request()['plans'][0]['id'],row['id'])
+        with f.db.SessionLocal() as db:
+            audit=db.query(f.models.AuditLog).filter_by(case_id=self.cid,source=plans.SOURCE).one()
+            data={a.key:copy.deepcopy(getattr(audit,a.key)) for a in audit.__mapper__.column_attrs}
+            data['request_id']=uuid4().hex;data['log_id']=plans.ledger_id(self.owner_id,self.cid,data['request_id'])
+            db.add(f.models.AuditLog(**data));db.commit()
+        before=self.business();self.request(expected=409);self.assertEqual(before,self.business())
+        with f.db.SessionLocal() as db:db.query(f.models.AuditLog).filter_by(log_id=data['log_id']).delete();db.commit()
+        self.save('withdraw',row)
+        with f.db.SessionLocal() as db:
+            db.query(f.models.AuditLog).filter_by(case_id=self.cid,source=plans.SOURCE,action_taken='withdraw').delete();db.commit()
+        before=self.business();self.request(expected=409);self.assertEqual(before,self.business())
 
 
 if __name__=='__main__':unittest.main(verbosity=2)

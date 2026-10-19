@@ -148,7 +148,7 @@ class ContactQueueTests(ContactQueueFixture):
             event.listen(f.db.engine,'before_cursor_execute',capture)
             try:self.get_queue()
             finally:event.remove(f.db.engine,'before_cursor_execute',capture)
-            self.assertEqual(before,self.all_business());self.assertEqual(sum(s.lstrip().upper().startswith('SELECT') for s in sql),5)
+            self.assertEqual(before,self.all_business());self.assertEqual(sum(s.lstrip().upper().startswith('SELECT') for s in sql),6)
             self.assertFalse(any(s.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','ALTER','CREATE','DROP'} for s in sql))
         before=self.get_queue({'page_size':'1'})
         with f.db.SessionLocal() as db:

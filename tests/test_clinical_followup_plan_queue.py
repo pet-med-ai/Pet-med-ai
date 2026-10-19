@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import time
 import unittest
+from uuid import uuid4
 from unittest.mock import patch
 from sqlalchemy import event
 from sqlalchemy.exc import OperationalError
@@ -58,6 +59,11 @@ class QueueFixture(FollowupFixture):
                     'case_snapshot':plans.case_snapshot(case),'reviewed_by':str(case.owner_id),'reviewed_at':now.replace(tzinfo=timezone.utc).isoformat(),
                     'reason':'' if version==1 else '合成版本更正','withdrawal':None}
                 row.note=json.dumps(meta,ensure_ascii=False)
+                rid=uuid4().hex; operation='create' if version==1 else 'correct'
+                db.add(f.models.AuditLog(log_id=plans.digest([plans.SOURCE,str(case.owner_id),cid,rid]),
+                    request_id=rid,clinician_id=str(case.owner_id),case_id=cid,source=plans.SOURCE,
+                    event_type='followup_plan_'+operation,action_taken=operation,note=meta['reason'],created_at=now,
+                    extra_data={'schema':plans.SCHEMA,'fingerprint':'a'*64,'record_id':row.id,'version':version,'operation':operation}))
             db.commit(); return row.id
 
     def all_business(self):
@@ -142,7 +148,7 @@ class QueueTests(QueueFixture):
             return len([s for s in sql if s.lstrip().upper().startswith('SELECT')]),r
         a,_=check()
         for _ in range(49):self.seed_plan(self.add_case())
-        b,result=check();self.assertEqual((a,b),(3,3));self.assertEqual(result['total'],50)
+        b,result=check();self.assertEqual((a,b),(4,4));self.assertEqual(result['total'],50)
         self.get_queue({'range':'all','page_size':'50'})
 
     def test_all_chain_corruption_fails_even_outside_filter_and_without_repair(self):
@@ -173,6 +179,25 @@ class QueueTests(QueueFixture):
             case=db.get(f.models.Case,self.cid);rows=db.query(f.models.FollowUp).filter_by(case_id=self.cid).order_by(f.models.FollowUp.id).all()
             with patch.object(plans,'SessionLocal',side_effect=AssertionError('no I/O')):
                 with self.assertRaises(plans.PlanError):plans.validated_records(rows,case)
+
+    def test_missing_or_orphan_plan_audit_fails_closed_even_outside_filter(self):
+        self.seed_plan()
+        with f.db.SessionLocal() as db:
+            db.query(f.models.AuditLog).filter_by(case_id=self.cid,source=plans.SOURCE).delete();db.commit()
+        before=self.all_business();self.get_queue({'range':'past'},409);self.assertEqual(before,self.all_business())
+        other=self.add_case();self.seed_plan(other)
+        with f.db.SessionLocal() as db:
+            db.query(f.models.FollowUp).filter_by(case_id=self.cid).delete()
+            db.query(f.models.FollowUp).filter_by(case_id=other).delete();db.commit()
+        before=self.all_business();self.get_queue({'range':'past'},409);self.assertEqual(before,self.all_business())
+
+    def test_changed_audit_invalidates_page_snapshot(self):
+        self.seed_plan();self.seed_plan(self.add_case())
+        first=self.get_queue({'page_size':'1'})
+        with f.db.SessionLocal() as db:
+            audit=db.query(f.models.AuditLog).filter_by(case_id=self.cid,source=plans.SOURCE).one()
+            audit.model_version='synthetic-audit-change';db.commit()
+        self.assertEqual(self.get_queue({'page_size':'1','page':'2','snapshot':first['snapshot']},409)['detail'],'followup_queue_snapshot_changed')
 
 
 if __name__=='__main__': unittest.main(verbosity=2)

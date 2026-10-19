@@ -1,7 +1,8 @@
 import React,{useEffect,useRef,useState} from 'react';
 import api from '../api';
+import {readRecovery,recoveryReference,rememberRecovery,resolveRecovery,matchesRecovery,savedRecoveryRecord} from '../followupRecovery';
 import {PlanContent} from './CaseFollowupPlan';
-import {contactClient,makeRequest,message,newData,newRequestId,same,states,sourceStates,methods,outcomes,validData,validList,validPreview,validReceipt} from '../followupContacts';
+import {contactClient,makeRequest,message,newData,newRequestId,states,sourceStates,methods,outcomes,validData,validList,validPreview,validReceipt} from '../followupContacts';
 const box={padding:16,margin:'12px 0',border:'1px solid #ccd5d1',borderRadius:8,overflowWrap:'anywhere'};
 const leaveMessage='人工随访草稿或保存结果尚未核对，离开不会取消可能已提交的保存。是否继续？';
 export function ContactContent({data}){return <dl style={{whiteSpace:'pre-wrap'}}><dt>实际联系或尝试时间（上海）</dt><dd>{data.occurred_at}</dd><dt>联系方式</dt><dd>{methods[data.method]}</dd><dt>实际结果</dt><dd>{outcomes[data.outcome]}</dd><dt>记录原文</dt><dd>{data.note}</dd><dt>后续安排</dt><dd>{data.next_action||'未填写'}</dd></dl>;}
@@ -13,6 +14,7 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
   const [inspectNotice,setInspectNotice]=useState('');
   const [list,setList]=useState(null),[draft,setDraft]=useState(null),[review,setReview]=useState(null),[checked,setChecked]=useState(false);
   const [busy,setBusy]=useState(false),[unknown,setUnknown]=useState(null),[notice,setNotice]=useState('');
+  const [recoveryError,setRecoveryError]=useState('');
   const active=useRef(false),epoch=useRef(0),flight=useRef(false),control=useRef(null),queued=useRef(false),dirty=useRef(false),pending=useRef(null);
   const callback=useRef(onDirtyChange);callback.current=onDirtyChange;
   const owned=()=>active.current&&Boolean(requestToken)&&localStorage.getItem('token')===requestToken;
@@ -24,6 +26,11 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
     const e=epoch.current,target=targetRef.current;setList(null);
     const result=await client('get');if(!current(e))return;
     if(!validList(result,caseId))throw Error('未收到完整的人工随访记录，暂不能确认保存。');
+    try{
+      const reference=readRecovery('contact',caseId,result.case.owner_id);
+      if(reference&&!pending.current){const attempt={reference,recovered:true};pending.current=attempt;setUnknown(attempt);setNotice('已恢复待核对的保存请求，请先核对结果；不会自动重发。');}
+      setRecoveryError('');
+    }catch(error){setRecoveryError(error.message);}
     readForTarget.current={target,list:result};setList(result);return result;
   }
   async function run(fn){
@@ -72,7 +79,7 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
     return()=>{api.interceptors.request.eject(request);api.interceptors.response.eject(response);window.removeEventListener('focus',focus);window.removeEventListener('storage',storage);window.removeEventListener('beforeunload',unload);document.removeEventListener?.('click',click,true);document.removeEventListener?.('visibilitychange',visibility);};
   },[caseId,requestToken]);
   function edit(row,operation){
-    if(!owned()||flight.current||pending.current)return;
+    if(!owned()||flight.current||pending.current||recoveryError)return;
     if(dirty.current&&!window.confirm(leaveMessage))return;
     invalidate();setNotice('');setDraft({operation,contact_id:row?.id??null,expected_contact_token:row?.token||'',source_plan_id:row?.source.id??null,reason:'',data:row?structuredClone(row.data):newData(),requestId:newRequestId()});
   }
@@ -84,38 +91,39 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
     if(!validPreview(result,saved,body))throw Error('人工随访记录预览与本次输入不一致，暂不能确认。');
     setReview({...result,body});
   }
-  function matchesReceipt(result,attempt,readOnly=false){
-    const {body:request,before,source}=attempt;
-    return validReceipt(result,caseId,request.request_id,readOnly)&&result.state==='committed'&&result.operation===request.operation&&same(result.record.source,source)&&
-      (request.operation==='withdraw'?result.record.id===request.contact_id&&same(result.record.data,before.data)&&result.record.withdrawal?.reason===request.reason:same(result.record.data,request.data))&&
-      (request.operation!=='correct'||result.record.root_id===before.root_id&&result.record.version===before.version+1)&&
-      (request.operation!=='create'||result.record.version===1&&result.record.root_id===result.record.id);
-  }
-  function savedRecord(list,result){return list.records.some(r=>r.id===result.record.id&&r.version===result.record.version&&same(r.data,result.record.data)&&same(r.source,result.record.source));}
   async function checkResult(attempt){
-    const {body:request,before}=attempt;
+    const requestId=attempt.reference.requestId;
     const e=epoch.current;
-    const result=await client('get','/requests/'+request.request_id);if(!current(e))return;
-    if(!validReceipt(result,caseId,request.request_id,true)||result.state==='committed'&&!matchesReceipt(result,attempt,true))throw Error('保存结果尚不能确认，请继续核对，勿重复提交。');
+    const result=await client('get','/requests/'+requestId);if(!current(e))return;
+    if(!validReceipt(result,caseId,requestId,true)||result.state==='committed'&&!await matchesRecovery(attempt.reference,result))throw Error('保存结果尚不能确认，请继续核对，勿重复提交。');
+    if(!current(e))return;
     // Re-read independently before allowing another edit, including not-committed results.
     const saved=await refresh();if(!current(e)||!saved)return;
     if(result.state==='committed'){
-      if(!savedRecord(saved,result))throw Error('独立回读未匹配保存记录，请继续核对。');
+      if(!savedRecoveryRecord('contact',saved,result))throw Error('独立回读未匹配保存记录，请继续核对。');
+      resolveRecovery(attempt.reference);
       pending.current=null;setUnknown(null);setDraft(null);setReview(null);setChecked(false);
       setNotice('已核对服务端保存结果，未重复提交；请查看当前版本。');
     }else{
+      resolveRecovery(attempt.reference);
       pending.current=null;setUnknown(null);setReview(null);setChecked(false);
-      setNotice('暂未查到该请求已提交。已保留请求标识与草稿，请重新预览核对；不会自动重发。');
+      setNotice(attempt.recovered?'未查到该请求已提交，并已独立回读。原草稿未缓存，请重新填写和预览核对；不会自动重发。':'暂未查到该请求已提交。已保留请求标识与草稿，请重新预览核对；不会自动重发。');
     }
   }
   async function confirm(){
     const e=epoch.current,request={...review.body,preview_token:review.preview_token,reviewed:true};
-    const attempt={body:request,before:review.before,source:review.source};pending.current=attempt;setUnknown(attempt);setChecked(false);
+    const attempt={body:request,before:review.before,caseSnapshot:review.case,source:review.source};
+    attempt.reference=await recoveryReference('contact',caseId,list.case.owner_id,attempt);
+    if(!current(e))return;
+    rememberRecovery(attempt.reference);
+    pending.current=attempt;setUnknown(attempt);setChecked(false);
     try{
       const result=await client('post','/confirm',request);if(!current(e))return;
-      if(!matchesReceipt(result,attempt))throw Error('保存回包不能确认');
+      if(!validReceipt(result,caseId,request.request_id)||!await matchesRecovery(attempt.reference,result))throw Error('保存回包不能确认');
+      if(!current(e))return;
       const saved=await refresh();if(!current(e)||!saved)return;
-      if(!savedRecord(saved,result))throw Error('独立回读未匹配保存记录');
+      if(!savedRecoveryRecord('contact',saved,result))throw Error('独立回读未匹配保存记录');
+      resolveRecovery(attempt.reference);
       pending.current=null;setUnknown(null);setDraft(null);setReview(null);
       setNotice('人工随访记录已保存并独立回读。联系不代表已完成复查。');
     }catch{
@@ -125,16 +133,18 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
       try{await checkResult(attempt);}catch{if(current(e))setNotice('保存结果待核对，请点击核对保存结果；不要重复提交。');}
     }
   }
-  const locked=busy||Boolean(unknown),eligible=list?.plans.filter(p=>p.state==='planned')||[];
+  const locked=busy||Boolean(unknown)||Boolean(recoveryError),eligible=list?.plans.filter(p=>p.state==='planned')||[];
   const selected=list?.plans.find(p=>p.id===draft?.source_plan_id);
   const validSelection=selected&&(draft?.operation!=='create'||selected.state==='planned');
   return <section aria-label="人工随访记录" style={box}>
     <h2>人工随访记录</h2><p>登记已经发生的联系或尝试。联系不代表已复诊或完成检查，不会自动关闭计划或发送消息。</p>
     {inspectNotice&&<p role="status">{inspectNotice}</p>}
+    <p>待核对保存的请求标识保留在当前标签页，刷新或同账号重新登录后可继续核对；关闭标签页或清除浏览器存储会丢失该标识。</p>
     <p>未保存草稿仅留在本页；登记账号由系统记录，不代替实际联系医生或电子签名。</p>
     <p role="status">{busy?'正在处理…':notice}</p>
+    {recoveryError&&<p role="alert">{recoveryError}</p>}
     <button type="button" disabled={busy} onClick={reread}>刷新人工随访记录</button>
-    {unknown&&<section aria-label="随访保存结果待核对"><p>保存结果待核对。取消请求或离开页面不代表未保存。</p><button disabled={busy} onClick={()=>run(()=>checkResult(unknown))}>核对随访保存结果</button></section>}
+    {unknown&&<section aria-label="随访保存结果待核对"><p>保存结果待核对。取消请求或离开页面不代表未保存。</p><p>请求标识：{unknown.reference.requestId}</p><button disabled={busy} onClick={()=>run(()=>checkResult(unknown))}>核对随访保存结果</button></section>}
     {list&&<><p>病例 #{caseId} · {list.case.patient_name} · {list.case.species} · 读取日期 {list.as_of_date}（上海）</p>
       {!list.records.length&&<p>尚无人工随访记录，不代表从未联系或无需复查。</p>}
       {!eligible.length&&<p>暂无当前有效且已核对的计划，请先打开复查计划处理。</p>}

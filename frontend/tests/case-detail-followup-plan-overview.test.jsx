@@ -1,3 +1,4 @@
+import {syntheticSessionStorage} from './syntheticSessionStorage';
 import React from 'react';
 import TestRenderer,{act} from 'react-test-renderer';
 import {MemoryRouter,Routes,Route} from 'react-router-dom';
@@ -17,6 +18,7 @@ const text=()=>JSON.stringify(renderer.toJSON());
 beforeEach(()=>{
  requests=[];listeners={};token='synthetic-owner';Object.defineProperty(globalThis,'crypto',{configurable:true,value:webcrypto});
  global.localStorage={getItem:()=>token};global.alert=()=>{};global.window={confirm:()=>false,addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};global.document={addEventListener(){},removeEventListener(){}};
+ window.sessionStorage=syntheticSessionStorage();
  adapter=async c=>{
   let data={};
   if(c.url==='/api/cases/1')data={id:1,...fixture.case};

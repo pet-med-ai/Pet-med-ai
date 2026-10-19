@@ -6,6 +6,7 @@ import {webcrypto} from 'node:crypto';
 import CaseFollowupPlan from '../src/components/CaseFollowupPlan';
 import {schema,validData,validDate,validList,validPreview,validReceipt} from '../src/followupPlan';
 import api from '../src/api';
+import {syntheticSessionStorage} from './syntheticSessionStorage';
 import fixture from '../../tests/fixtures/clinical_followup_plans_cw_b14_cases.json';
 
 const caseFields=['patient_name','species','sex','age_info','breed','weight','coat_color','owner_name','owner_phone','chief_complaint','history','exam_findings','analysis','treatment','prognosis'];
@@ -23,6 +24,7 @@ const fire=async name=>act(async()=>{for(const f of listeners[name]||[])f({key:'
 beforeEach(()=>{
   listing=empty();token='synthetic-owner';requests=[];listeners={};Object.defineProperty(globalThis,'crypto',{configurable:true,value:webcrypto});
   global.localStorage={getItem:()=>token};global.window={confirm:()=>true,addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};
+  global.window.sessionStorage=syntheticSessionStorage();
   global.document={addEventListener(){},removeEventListener(){}};
   adapter=async c=>{
     const b=c.data?JSON.parse(c.data):null;let data;
@@ -90,4 +92,77 @@ test('case correction request invalidates preview before its response',async()=>
 test('malformed preview is rejected while input remains available',async()=>{
  const normal=adapter;adapter=async c=>{const r=await normal(c);if(c.url.endsWith('/preview'))r.data.data={...r.data.data,purpose:'silently changed'};return r;};
  await mount();await fill();await click('预览并核对复查计划');assert(!button('确认保存复查计划'));assert.equal(input('复查目的').props.value,fixture.plan.purpose);assert.match(text(),/预览与本次输入不一致/);
+});
+
+test('unknown plan save survives remount and same-account login without another POST',async()=>{
+ const normal=adapter;let saved,offline=true;
+ adapter=async c=>{if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;throw Error('reply lost');}
+  if(c.url.includes('/requests/')){if(offline)throw Error('offline');return {config:c,data:{...saved,writes_database:false}};}return normal(c);};
+ await mount();await fill();await review();await click('确认保存复查计划');
+ assert.match(text(),/保存结果待核对/);
+ const raw=Array.from({length:window.sessionStorage.length},(_,i)=>window.sessionStorage.getItem(window.sessionStorage.key(i))).join('');
+ assert(raw.includes(saved.request_id));assert(!raw.includes(fixture.plan.purpose));assert(!raw.includes(token));
+ await act(async()=>renderer.unmount());token='same-owner-new-login';await mount();
+ assert(button('核对复查保存结果'));assert(button('更正复查计划').props.disabled);
+ offline=false;await click('核对复查保存结果');assert.match(text(),/已核对服务端保存结果/);
+ assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);assert.equal(window.sessionStorage.length,0);
+});
+test('a plan receipt absent from independent readback cannot unlock an unknown write',async()=>{
+ const normal=adapter;let saved;
+ adapter=async c=>{if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;listing.plans=[];return {config:c,data:saved};}
+  if(c.url.includes('/requests/'))return {config:c,data:{...saved,writes_database:false}};return normal(c);};
+ await mount();await fill();await review();await click('确认保存复查计划');
+ assert.match(text(),/保存结果待核对/);assert(!text().includes('已保存并独立回读'));assert(button('预览并核对复查计划').props.disabled);
+ assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
+});
+test('unavailable recovery storage prevents the first plan POST',async()=>{
+ await mount();await fill();await review();window.sessionStorage.setItem=()=>{throw Error('quota');};
+ await click('确认保存复查计划');assert(!requests.some(c=>c.url.endsWith('/confirm')));assert.match(text(),/恢复标识/);
+});
+
+test('recovered not-committed result needs a fresh read and never replays a lost draft',async()=>{
+ const normal=adapter;let requestId,offline=true;
+ adapter=async c=>{if(c.url.endsWith('/confirm')){requestId=JSON.parse(c.data).request_id;throw Error('not sent');}
+  if(c.url.includes('/requests/')){if(offline)throw Error('offline');return {config:c,data:{schema,case_id:1,request_id:requestId,state:'not_committed',writes_database:false}};}return normal(c);};
+ await mount();await fill();await review();await click('确认保存复查计划');await act(async()=>renderer.unmount());await mount();
+ assert(button('新增复查计划').props.disabled);assert.equal(renderer.root.findAllByProps({'aria-label':'复查计划草稿'}).length,0);
+ offline=false;await click('核对复查保存结果');assert.match(text(),/原草稿未缓存/);assert.equal(requests.at(-1).method,'get');
+ assert(!button('新增复查计划').props.disabled);assert.equal(window.sessionStorage.length,0);assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
+});
+
+test('malformed recovery locator stays blocked and is not silently deleted',async()=>{
+ const normal=adapter;adapter=async c=>{if(c.url.endsWith('/confirm')||c.url.includes('/requests/'))throw Error('offline');return normal(c);};
+ await mount();await fill();await review();await click('确认保存复查计划');
+ const key=window.sessionStorage.key(0);window.sessionStorage.setItem(key,'{broken');
+ await act(async()=>renderer.unmount());await mount();assert.match(text(),/恢复标识无法读取/);
+ assert(button('新增复查计划').props.disabled);assert.equal(window.sessionStorage.getItem(key),'{broken');assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
+});
+
+for(const operation of ['correct','withdraw'])test(operation+' recovery binds the saved version after refresh',async()=>{
+ listing.plans=[plan(fixture.plan)];const normal=adapter;let saved,offline=true;
+ adapter=async c=>{
+  if(c.url.endsWith('/confirm')){
+   const b=JSON.parse(c.data),old=listing.plans[0];
+   const row=operation==='correct'?{...old,id:2,version:2,data:b.data,reason:b.reason}:{...old,state:'withdrawn',stored_state:'withdrawn',withdrawal:{reason:b.reason,by:'1',at:'2026-10-09T05:00:00+00:00'}};
+   listing.plans=operation==='correct'?[{...old,state:'superseded',stored_state:'superseded'},row]:[row];
+   saved={schema,case_id:1,request_id:b.request_id,state:'committed',operation,plan:row,writes_database:false};throw Error('reply lost');
+  }
+  if(c.url.includes('/requests/')){if(offline)throw Error('offline');return {config:c,data:saved};}return normal(c);
+ };
+ await mount();await click(operation==='correct'?'更正复查计划':'撤销复查计划');await change('复查更正或撤销原因','合成原因 {{literal}}');
+ await review();await click('确认保存复查计划');await act(async()=>renderer.unmount());await mount();
+ assert(button('核对复查保存结果'));offline=false;await click('核对复查保存结果');assert.match(text(),/已核对服务端保存结果/);
+ assert.equal(window.sessionStorage.length,0);assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
+});
+
+test('late commit after account replacement keeps only a recoverable locator',async()=>{
+ const normal=adapter;let release,arrive,saved;const started=new Promise(r=>arrive=r);
+ adapter=async c=>{if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;return new Promise(r=>{release=()=>r({config:c,data:saved});arrive();});}
+  if(c.url.includes('/requests/'))return {config:c,data:{...saved,writes_database:false}};return normal(c);};
+ await mount();await fill();await review();let pending;
+ await act(async()=>{pending=button('确认保存复查计划').props.onClick();await started;});
+ await act(async()=>renderer.unmount());token='other-account';const ownerListing=listing;listing={...empty(),case:{...animal,owner_id:2}};await mount();
+ await act(async()=>{release();await pending;});assert(!button('核对复查保存结果'));assert(!text().includes('已保存并独立回读'));
+ await act(async()=>renderer.unmount());token='owner-relogin';listing=ownerListing;await mount();await click('核对复查保存结果');
+ assert.match(text(),/已核对服务端保存结果/);assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
 });

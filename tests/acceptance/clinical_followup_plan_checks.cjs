@@ -79,6 +79,22 @@ async function main(){
   await page.goto(UI);await button(page,'退出').click();await login();token=await page.evaluate(()=>localStorage.getItem('token'));await page.goto(UI+'/cases/'+cid);await button(page,'打开复查计划').click();await expect(view).toContainText('已撤销');
   assert.deepEqual(await call('GET',root),withdrawn);saved.push({case_id:cid,listing:withdrawn});passed.push(species+'_raw_create_correct_withdraw_stale_focus_relogin'+(species==='cat'?'_lost_reply':''));
  }
+ // A committed write with unavailable receipt must survive real reload and re-login.
+ const cid=(await call('POST','/api/cases',{...fixture.case,patient_name:'合成恢复核对犬'})).id;
+ const root=`/api/cases/${cid}/followup-plan`,count=confirms;let requestId;
+ await page.goto(UI+'/cases/'+cid);await button(page,'打开复查计划').click();await button(view,'新增复查计划').click();await fill(fixture.browser_plan);await review();
+ await page.route(API+root+'/requests/**',r=>r.abort('failed'));
+ await page.route(API+root+'/confirm',async r=>{requestId=r.request().postDataJSON().request_id;const response=await r.fetch();assert(response.ok(),await response.text());await r.abort('failed');},{times:1});
+ await button(view,'确认保存复查计划').click();await expect(button(view,'核对复查保存结果')).toBeEnabled();
+ const stored=await page.evaluate(()=>Object.keys(sessionStorage).filter(k=>k.startsWith('pmai.followup-recovery.')).map(k=>sessionStorage.getItem(k)).join(''));
+ assert(stored.includes(requestId));assert(!stored.includes(fixture.browser_plan.purpose));assert(!stored.includes(token));
+ await page.reload();await button(page,'打开复查计划').click();await expect(view).toContainText(requestId);await expect(button(view,'更正复查计划')).toBeDisabled();
+ await page.goto(UI);await button(page,'退出').click();await login();token=await page.evaluate(()=>localStorage.getItem('token'));
+ await page.goto(UI+'/cases/'+cid);await button(page,'打开复查计划').click();await expect(view).toContainText(requestId);
+ await page.unroute(API+root+'/requests/**');await button(view,'核对复查保存结果').click();await expect(view).toContainText('已核对服务端保存结果');
+ assert.equal(confirms,count+1);const recovered=await call('GET',root);assert.equal(recovered.plans.length,1);assert.deepEqual(recovered.plans[0].data,fixture.browser_plan);
+ assert.equal(await page.evaluate(()=>Object.keys(sessionStorage).filter(k=>k.startsWith('pmai.followup-recovery.')).length),0);
+ passed.push('unknown_plan_receipt_reload_relogin_get_only_recovery');
  assert.equal(downloads,0);assert.deepEqual(errors,[]);assert.deepEqual(external,[]);
  fs.writeFileSync(path.join(out,'cwb14-browser-saved.json'),JSON.stringify({saved,confirm_posts:confirms,downloads,external_calls:0},null,2));
 }

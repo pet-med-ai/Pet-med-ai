@@ -113,18 +113,19 @@ def timestamp(value):
 
 def records(db, case):
     rows = db.query(FollowUp).filter(FollowUp.case_id == case.id, namespace(FollowUp.status, FollowUp.channel)).order_by(FollowUp.id).limit(MAX_VERSIONS + 1).all()
-    return validated_records(rows, case)
+    audits = db.query(AuditLog).filter_by(case_id=case.id, source=SOURCE).order_by(AuditLog.log_id).limit(MAX_VERSIONS * 2 + 1).all()
+    return validated_records(rows, case, audits)
 
 
-def validated_records(rows, case):
-    """Validate a complete, ID-ordered prefetched CW-B14 chain without I/O."""
+def validated_records(rows, case, audits=None):
+    """Validate the complete chain and one receipt per operation, without I/O."""
     try:
-        if len(rows) > MAX_VERSIONS: raise ValueError('Version limit')
+        if audits is None or len(rows) > MAX_VERSIONS or len(audits) > MAX_VERSIONS * 2: raise ValueError('Version/receipt limit')
         parsed, roots = [], {}
         for row in rows:
             meta = json.loads(row.note)
             if not isinstance(meta, dict) or set(meta) != META_FIELDS or meta['schema'] != SCHEMA: raise ValueError('Schema')
-            if row.status not in {PLANNED, SUPERSEDED, WITHDRAWN} or row.channel != SOURCE or row.done_at is not None: raise ValueError('Lifecycle')
+            if row.case_id != case.id or row.status not in {PLANNED, SUPERSEDED, WITHDRAWN} or row.channel != SOURCE or row.done_at is not None: raise ValueError('Lifecycle')
             if not positive(meta['root_id']) or not positive(meta['version']) or meta['version'] > MAX_VERSIONS: raise ValueError('Version')
             validate_data(meta['data']); literal(meta['reason'], 500, meta['version'] > 1)
             if row.due_date != due_date(meta['data']['planned_date']): raise ValueError('Date mismatch')
@@ -149,6 +150,30 @@ def validated_records(rows, case):
             if any(row.status != SUPERSEDED for row, _ in versions[:-1]) or versions[-1][0].status == SUPERSEDED: raise ValueError('Broken chain status')
             current += versions[-1][0].status == PLANNED
         if current > 1: raise ValueError('Multiple current plans')
+        by_id = {row.id: (row, meta) for row, meta in parsed}
+        events = {}
+        for audit in audits:
+            info = audit.extra_data
+            if audit.case_id != case.id or audit.source != SOURCE: raise ValueError('Audit case/source')
+            if (not isinstance(info, dict) or set(info) != {'schema', 'fingerprint', 'record_id', 'version', 'operation'}
+                    or info['schema'] != SCHEMA or not isinstance(info['fingerprint'], str)
+                    or not HASH.fullmatch(info['fingerprint']) or not positive(info['record_id'])
+                    or not positive(info['version']) or info['record_id'] not in by_id): raise ValueError('Audit record')
+            row, meta = by_id[info['record_id']]
+            op = info['operation']
+            if op not in {'create', 'correct', 'withdraw'} or info['version'] != meta['version']: raise ValueError('Audit version')
+            if (audit.log_id != ledger_id(audit.clinician_id, case.id, audit.request_id)
+                    or audit.event_type != 'followup_plan_' + op or audit.action_taken != op): raise ValueError('Receipt binding')
+            if op == 'withdraw':
+                withdrawal = meta['withdrawal']
+                if (withdrawal is None or audit.clinician_id != withdrawal['by'] or audit.note != withdrawal['reason']
+                        or audit.created_at < timestamp(withdrawal['at'])): raise ValueError('Withdrawal audit')
+            elif (op != ('create' if meta['version'] == 1 else 'correct') or audit.clinician_id != meta['reviewed_by']
+                    or audit.note != meta['reason'] or audit.created_at < row.created_at): raise ValueError('Creation audit')
+            events.setdefault(row.id, []).append(op)
+        for row, meta in parsed:
+            expected = ['create' if meta['version'] == 1 else 'correct'] + (['withdraw'] if row.status == WITHDRAWN else [])
+            if sorted(events.get(row.id, [])) != sorted(expected): raise ValueError('Missing/duplicate receipt')
         return parsed
     except (ValueError, TypeError, KeyError, AttributeError, PlanError, OverflowError):
         raise PlanError('followup_invalid_saved_data') from None
@@ -248,7 +273,9 @@ def receipt(db, case, uid, rid, prior, fingerprint=None):
 def append_audit(db, uid, cid, body, fingerprint, row, meta):
     db.add(AuditLog(log_id=ledger_id(uid, cid, body['request_id']), request_id=body['request_id'],
         clinician_id=str(uid), case_id=cid, source=SOURCE, event_type='followup_plan_' + body['operation'],
-        action_taken=body['operation'], note=body['reason'], extra_data={'schema': SCHEMA, 'fingerprint': fingerprint,
+        action_taken=body['operation'], note=body['reason'],
+        created_at=timestamp(meta['withdrawal']['at']) if body['operation'] == 'withdraw' else row.created_at,
+        extra_data={'schema': SCHEMA, 'fingerprint': fingerprint,
         'record_id': row.id, 'version': meta['version'], 'operation': body['operation']}))
 
 

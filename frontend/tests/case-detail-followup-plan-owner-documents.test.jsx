@@ -1,3 +1,4 @@
+import {syntheticSessionStorage} from './syntheticSessionStorage';
 // CW-B16 owner template exercises shared guards with independent frozen expectations.
 import React from 'react';
 import TestRenderer,{act} from 'react-test-renderer';
@@ -21,6 +22,7 @@ beforeEach(()=>{
   requests=[];listeners={};downloads=0;listing=structuredClone(fixture.listing);token='synthetic-owner';Object.defineProperty(globalThis,'crypto',{configurable:true,value:webcrypto});
   global.localStorage={getItem:()=>token};global.alert=()=>{};
   global.window={confirm:()=>true,addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};
+  window.sessionStorage=syntheticSessionStorage();
   global.document={addEventListener(){},removeEventListener(){},body:{appendChild(){}},createElement:()=>({click(){downloads++;},remove(){}})};
   adapter=async c=>{
     if(c.url==='/api/cases/1')return reply(c,listing.case);

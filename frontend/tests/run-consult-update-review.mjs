@@ -19,6 +19,13 @@ try {
   names.push('followup-contact-owner-documents', 'case-detail-followup-contact-owner-documents');
   names.push('followup-contact-queue', 'case-detail-followup-contact-queue');
   names.push('clinical-doctor-trial');
+  const requested = process.argv.slice(2);
+  if (requested.length) {
+    if (new Set(requested).size !== requested.length || requested.some(name => !names.includes(name))) {
+      throw new Error('Unknown or duplicate test group');
+    }
+    names.splice(0, names.length, ...requested);
+  }
   const outputs = names.map(name => join(temporary, name + ".cjs"));
   for (let index = 0; index < names.length; index++) {
     await build({

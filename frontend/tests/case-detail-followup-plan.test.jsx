@@ -1,3 +1,4 @@
+import {syntheticSessionStorage} from './syntheticSessionStorage';
 import React from 'react';
 import TestRenderer,{act} from 'react-test-renderer';
 import {MemoryRouter,Routes,Route} from 'react-router-dom';
@@ -18,6 +19,7 @@ const animal={id:1,owner_id:1,...Object.fromEntries(['patient_name','species','s
 beforeEach(()=>{
  requests=[];listeners={};token='synthetic-owner';allow=true;Object.defineProperty(globalThis,'crypto',{configurable:true,value:webcrypto});
  global.localStorage={getItem:()=>token};global.alert=()=>{};global.window={confirm:()=>allow,addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};global.document={addEventListener(){},removeEventListener(){}};
+ window.sessionStorage=syntheticSessionStorage();
  api.defaults.adapter=async c=>{requests.push(c);let data={};
  if(c.url==='/api/cases/1')data=animal;
  if(c.url.endsWith('/manual-lab'))data={case_id:1,case_token:'a'.repeat(64),sources:[],reports:[]};

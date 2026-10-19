@@ -1,6 +1,7 @@
 import React,{useEffect,useRef,useState} from 'react';
 import api from '../api';
-import {followupClient,makeRequest,message,newPlanData,newRequestId,same,states,validData,validList,validPreview,validReceipt} from '../followupPlan';
+import {readRecovery,recoveryReference,rememberRecovery,resolveRecovery,matchesRecovery,savedRecoveryRecord} from '../followupRecovery';
+import {followupClient,makeRequest,message,newPlanData,newRequestId,states,validData,validList,validPreview,validReceipt} from '../followupPlan';
 
 const box={padding:16,margin:'12px 0',border:'1px solid #ccd5d1',borderRadius:8,overflowWrap:'anywhere'};
 const leaveMessage='复查计划草稿或保存结果尚未核对，离开不会取消可能已提交的保存。是否继续？';
@@ -15,6 +16,7 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
   const [inspectNotice,setInspectNotice]=useState('');
   const [list,setList]=useState(null),[draft,setDraft]=useState(null),[review,setReview]=useState(null),[checked,setChecked]=useState(false);
   const [busy,setBusy]=useState(false),[unknown,setUnknown]=useState(null),[notice,setNotice]=useState('');
+  const [recoveryError,setRecoveryError]=useState('');
   const active=useRef(false),epoch=useRef(0),flight=useRef(false),control=useRef(null),queued=useRef(false),dirty=useRef(false),pending=useRef(null);
   const callback=useRef(onDirtyChange);callback.current=onDirtyChange;
   const owned=()=>active.current&&Boolean(requestToken)&&localStorage.getItem('token')===requestToken;
@@ -26,6 +28,11 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
     const e=epoch.current;setList(null);
     const result=await client('get');if(!current(e))return;
     if(!validList(result,caseId))throw Error('未收到完整的复查计划，暂不能确认保存。');
+    try{
+      const reference=readRecovery('plan',caseId,result.case.owner_id);
+      if(reference&&!pending.current){const attempt={reference,recovered:true};pending.current=attempt;setUnknown(attempt);setNotice('已恢复待核对的保存请求，请先核对结果；不会自动重发。');}
+      setRecoveryError('');
+    }catch(error){setRecoveryError(error.message);}
     setList(result);return result;
   }
   async function run(fn){
@@ -66,7 +73,7 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
     return()=>{api.interceptors.request.eject(request);api.interceptors.response.eject(response);window.removeEventListener('focus',focus);window.removeEventListener('storage',storage);window.removeEventListener('beforeunload',unload);document.removeEventListener?.('click',click,true);};
   },[caseId,requestToken]);
   function edit(row,operation){
-    if(!owned()||flight.current||pending.current)return;
+    if(!owned()||flight.current||pending.current||recoveryError)return;
     if(dirty.current&&!window.confirm(leaveMessage))return;
     invalidate();setNotice('');setDraft({operation,plan_id:row?.id??null,expected_plan_token:row?.token||'',reason:'',data:row?structuredClone(row.data):newPlanData(),requestId:newRequestId()});
   }
@@ -78,33 +85,39 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
     if(!validPreview(result,saved,body))throw Error('复查计划预览与本次输入不一致，暂不能确认。');
     setReview({...result,body});
   }
-  function matchesReceipt(result,request,before,readOnly=false){
-    return validReceipt(result,caseId,request.request_id,readOnly)&&result.state==='committed'&&result.operation===request.operation&&
-      (request.operation==='withdraw'?result.plan.id===request.plan_id:same(result.plan.data,request.data))&&
-      (request.operation!=='correct'||result.plan.root_id===before.root_id&&result.plan.version===before.version+1);
-  }
   async function checkResult(attempt){
-    const {body:request,before}=attempt;
+    const requestId=attempt.reference.requestId;
     const e=epoch.current;
-    const result=await client('get','/requests/'+request.request_id);if(!current(e))return;
-    if(!validReceipt(result,caseId,request.request_id,true)||result.state==='committed'&&!matchesReceipt(result,request,before,true))throw Error('保存结果尚不能确认，请继续核对，勿重复提交。');
+    const result=await client('get','/requests/'+requestId);if(!current(e))return;
+    if(!validReceipt(result,caseId,requestId,true)||result.state==='committed'&&!await matchesRecovery(attempt.reference,result))throw Error('保存结果尚不能确认，请继续核对，勿重复提交。');
+    if(!current(e))return;
     // Re-read independently before allowing another edit, including not-committed results.
     const saved=await refresh();if(!current(e)||!saved)return;
     if(result.state==='committed'){
+      if(!savedRecoveryRecord('plan',saved,result))throw Error('独立回读未匹配保存记录，请继续核对。');
+      resolveRecovery(attempt.reference);
       pending.current=null;setUnknown(null);setDraft(null);setReview(null);setChecked(false);
       setNotice('已核对服务端保存结果，未重复提交；请查看当前版本。');
     }else{
+      resolveRecovery(attempt.reference);
       pending.current=null;setUnknown(null);setReview(null);setChecked(false);
-      setNotice('暂未查到该请求已提交。已保留请求标识与草稿，请重新预览核对；不会自动重发。');
+      setNotice(attempt.recovered?'未查到该请求已提交，并已独立回读。原草稿未缓存，请重新填写和预览核对；不会自动重发。':'暂未查到该请求已提交。已保留请求标识与草稿，请重新预览核对；不会自动重发。');
     }
   }
   async function confirm(){
     const e=epoch.current,request={...review.body,preview_token:review.preview_token,reviewed:true};
-    const attempt={body:request,before:review.before};pending.current=attempt;setUnknown(attempt);setChecked(false);
+    const attempt={body:request,before:review.before,caseSnapshot:review.case};
+    attempt.reference=await recoveryReference('plan',caseId,list.case.owner_id,attempt);
+    if(!current(e))return;
+    rememberRecovery(attempt.reference);
+    pending.current=attempt;setUnknown(attempt);setChecked(false);
     try{
       const result=await client('post','/confirm',request);if(!current(e))return;
-      if(!matchesReceipt(result,request,attempt.before))throw Error('保存回包不能确认');
+      if(!validReceipt(result,caseId,request.request_id)||!await matchesRecovery(attempt.reference,result))throw Error('保存回包不能确认');
+      if(!current(e))return;
       const saved=await refresh();if(!current(e)||!saved)return;
+      if(!savedRecoveryRecord('plan',saved,result))throw Error('独立回读未匹配保存记录');
+      resolveRecovery(attempt.reference);
       pending.current=null;setUnknown(null);setDraft(null);setReview(null);
       setNotice('复查计划已保存并独立回读。计划不代表已完成复查。');
     }catch{
@@ -114,14 +127,16 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
       try{await checkResult(attempt);}catch{if(current(e))setNotice('保存结果待核对，请点击核对保存结果；不要重复提交。');}
     }
   }
-  const locked=busy||Boolean(unknown),hasCurrent=list?.plans.some(p=>p.stored_state==='planned');
+  const locked=busy||Boolean(unknown)||Boolean(recoveryError),hasCurrent=list?.plans.some(p=>p.stored_state==='planned');
   return <section aria-label="人工复查计划" style={box}>
     <h2>人工复查计划</h2><p>由医生填写并核对。计划不代表已复查，不会自动预约或发送消息。门诊病历和宠主说明草稿可明确选择当前有效计划，仍需重新核对整份文书。</p>
     {inspectNotice&&<p role="status">{inspectNotice}</p>}
+    <p>待核对保存的请求标识保留在当前标签页，刷新或同账号重新登录后可继续核对；关闭标签页或清除浏览器存储会丢失该标识。</p>
     <p>未保存草稿仅留在本页；刷新、离开或切换病例和账号后清除。</p>
     <p role="status">{busy?'正在处理…':notice}</p>
+    {recoveryError&&<p role="alert">{recoveryError}</p>}
     <button type="button" disabled={busy} onClick={reread}>刷新复查计划</button>
-    {unknown&&<section aria-label="复查保存结果待核对"><p>保存结果待核对。页面变化或取消请求不代表服务端未保存。</p><button disabled={busy} onClick={()=>run(()=>checkResult(unknown))}>核对复查保存结果</button></section>}
+    {unknown&&<section aria-label="复查保存结果待核对"><p>保存结果待核对。页面变化或取消请求不代表服务端未保存。</p><p>请求标识：{unknown.reference.requestId}</p><button disabled={busy} onClick={()=>run(()=>checkResult(unknown))}>核对复查保存结果</button></section>}
     {list&&<><p>病例 #{caseId} · {list.case.patient_name} · {list.case.species} · 读取日期 {list.as_of_date}（上海）</p>
       {!list.plans.length&&<p>尚未建立复查计划，不代表无需复查。</p>}
       <button disabled={locked||Boolean(draft)||hasCurrent||list.plans.length>=50} onClick={()=>edit(null,'create')}>新增复查计划</button>

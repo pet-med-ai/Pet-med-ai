@@ -6,6 +6,7 @@ import {webcrypto} from 'node:crypto';
 import CaseFollowupContacts from '../src/components/CaseFollowupContacts';
 import {schema,validData,validTime,validList,validPreview,validReceipt,frozenSource} from '../src/followupContacts';
 import api from '../src/api';
+import {syntheticSessionStorage} from './syntheticSessionStorage';
 import fixture from '../../tests/fixtures/clinical_followup_contacts_cw_b19_cases.json';
 import baseline from '../../tests/fixtures/clinical_followup_plan_overview_cw_b17_cases.json';
 const empty=()=>{const p=structuredClone(baseline.listing);p.plans[0].data=structuredClone(fixture.plan);return {...p,schema,records:[],limits:{versions:50}};};
@@ -21,7 +22,7 @@ const fire=async name=>act(async()=>{for(const fn of listeners[name]||[])fn({key
 beforeEach(()=>{
   listing=empty();token='synthetic-owner';requests=[];listeners={};Object.defineProperty(globalThis,'crypto',{configurable:true,value:webcrypto});
   global.localStorage={getItem:()=>token};const events={addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};
-  global.window={confirm:()=>true,...events};global.document={hidden:false,...events};original=api.defaults.adapter;
+  global.window={confirm:()=>true,sessionStorage:syntheticSessionStorage(),...events};global.document={hidden:false,...events};original=api.defaults.adapter;
   adapter=async c=>{const b=c.data?JSON.parse(c.data):null;let data;
     if(c.url.endsWith('/preview'))data=preview(b,listing);
     else if(c.url.endsWith('/confirm')){listing={...listing,records:[record(b.data,listing)]};data={schema,case_id:1,request_id:b.request_id,state:'committed',operation:b.operation,record:listing.records[0],writes_database:true};}
@@ -83,4 +84,30 @@ test('empty, disabled and damaged lists remain distinct and refresh is GET only'
  listing.plans=[];await mount();assert.match(output(),/暂无当前有效/);assert(button('新增人工随访记录').props.disabled);
  adapter=async()=>{throw {response:{status:503,data:{detail:'followup_contacts_disabled'}}};};await click('刷新人工随访记录');assert.match(output(),/暂未启用/);assert(!button('新增人工随访记录'));
  adapter=async c=>({config:c,data:{...empty(),records:[{bad:true}]}});await click('刷新人工随访记录');assert.match(output(),/未收到完整/);assert(requests.every(c=>c.method==='get'));
+});
+
+
+test('unknown contact save survives remount and resolves with GET only',async()=>{
+ const normal=adapter;let saved,offline=true;
+ adapter=async c=>{if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;throw Error('reply lost');}
+  if(c.url.includes('/requests/')){if(offline)throw Error('offline');return {config:c,data:{...saved,writes_database:false}};}return normal(c);};
+ await mount();await fill();await review();await click('确认保存人工随访');
+ assert.match(output(),/保存结果待核对/);
+ const raw=Array.from({length:window.sessionStorage.length},(_,i)=>window.sessionStorage.getItem(window.sessionStorage.key(i))).join('');
+ assert(raw.includes(saved.request_id));assert(!raw.includes(fixture.contact.note));assert(!raw.includes(token));
+ await act(async()=>renderer.unmount());token='same-owner-new-login';await mount();
+ assert(button('核对随访保存结果'));assert(button('新增人工随访记录').props.disabled);
+ offline=false;await click('核对随访保存结果');assert.match(output(),/已核对服务端保存结果/);
+ assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);assert.equal(window.sessionStorage.length,0);
+});
+
+test('contact locator hash mismatch after refresh never confirms or auto-retries',async()=>{
+ const normal=adapter;let saved,offline=true;
+ adapter=async c=>{if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;throw Error('reply lost');}
+  if(c.url.includes('/requests/')){if(offline)throw Error('offline');return {config:c,data:{...saved,writes_database:false}};}return normal(c);};
+ await mount();await fill();await review();await click('确认保存人工随访');
+ const key=window.sessionStorage.key(0),ref=JSON.parse(window.sessionStorage.getItem(key));ref.contentHash='f'.repeat(64);window.sessionStorage.setItem(key,JSON.stringify(ref));
+ await act(async()=>renderer.unmount());await mount();offline=false;await click('核对随访保存结果');
+ assert.match(output(),/保存结果尚不能确认/);assert(button('新增人工随访记录').props.disabled);assert.equal(window.sessionStorage.length,1);
+ assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
 });

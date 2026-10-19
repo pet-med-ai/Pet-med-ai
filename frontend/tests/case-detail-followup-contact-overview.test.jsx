@@ -1,3 +1,4 @@
+import {syntheticSessionStorage} from './syntheticSessionStorage';
 import React from 'react';
 import TestRenderer,{act} from 'react-test-renderer';
 import {MemoryRouter,Routes,Route} from 'react-router-dom';
@@ -21,6 +22,7 @@ beforeEach(()=>{
  global.localStorage={getItem:()=>token};global.alert=()=>{};
  const events={addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};
  global.window={confirm:()=>true,...events};global.document={hidden:false,...events};
+ window.sessionStorage=syntheticSessionStorage();
  adapter=async c=>{
   let data={};
   if(c.url==='/api/cases/1')data={id:1,...fixture.case};

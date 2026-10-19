@@ -2013,7 +2013,7 @@ for auth,name,species in [(queue_owner,'cwb18-owner','dog'),(queue_other,'cwb18-
             call('GET',queue_url,auth,expected=422,params={'owner_id':'2'})
     finally:event.remove(f.db.engine,'before_cursor_execute',capture)
     assert not any(s.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','ALTER','CREATE','DROP'} for s in statements)
-    assert sum(s.lstrip().upper().startswith('SELECT') for s in statements)==4 # 3 for queue, 1 auth for rejected parameters
+    assert sum(s.lstrip().upper().startswith('SELECT') for s in statements)==5 # 4 for queue including plan receipts, 1 auth for rejected parameters
     assert before==followup_overview_business()
     assert any(i['case']['id']==cid and i['plan']['data']==queue_fixture['long_plan'] for i in saved['items'])
     if name=='cwb18-other':assert saved['total']==1
@@ -2631,7 +2631,7 @@ for auth,name,species in ((cq_owner,'cwb23-owner','dog'),(cq_other,'cwb23-other'
     event.listen(f.db.engine,'before_cursor_execute',capture)
     try:saved=cq_read(auth,page_size=50)
     finally:event.remove(f.db.engine,'before_cursor_execute',capture)
-    assert sum(s.lstrip().upper().startswith('SELECT') for s in statements)==5
+    assert sum(s.lstrip().upper().startswith('SELECT') for s in statements)==6
     assert not any(s.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','ALTER','CREATE','DROP'} for s in statements)
     assert before==followup_overview_business()
     item=next(i for i in saved['items'] if i['case']['id']==cid)

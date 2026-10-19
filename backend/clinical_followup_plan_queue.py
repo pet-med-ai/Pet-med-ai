@@ -6,7 +6,7 @@ import re
 
 from sqlalchemy import exists, select, text
 from db import SessionLocal
-from models import Case, FollowUp
+from models import Case, FollowUp, AuditLog
 import clinical_followup_plans as plans
 
 SCHEMA = 'clinical-followup-plan-queue-cw-b18-v1'
@@ -82,12 +82,23 @@ def read_transaction():
 def owned_cases(db, uid):
     has_plan = exists(select(FollowUp.id).where(FollowUp.case_id == Case.id,
                                                plans.namespace(FollowUp.status, FollowUp.channel)))
-    return db.query(Case).filter(Case.owner_id == uid, Case.deleted_at.is_(None), has_plan).order_by(Case.id).limit(MAX_CASES+1).all()
+    has_audit = exists(select(AuditLog.log_id).where(AuditLog.case_id == Case.id, AuditLog.source == plans.SOURCE))
+    return db.query(Case).filter(Case.owner_id == uid, Case.deleted_at.is_(None), has_plan | has_audit).order_by(Case.id).limit(MAX_CASES+1).all()
 
 
 def prefetched_rows(db, cases):
     return db.query(FollowUp).filter(FollowUp.case_id.in_([case.id for case in cases]),
         plans.namespace(FollowUp.status, FollowUp.channel)).order_by(FollowUp.id).limit(MAX_ROWS+1).all()
+
+
+def prefetched_plan_audits(db, cases):
+    return db.query(AuditLog).filter(AuditLog.case_id.in_([case.id for case in cases]),
+        AuditLog.source == plans.SOURCE).order_by(AuditLog.log_id).limit(MAX_ROWS * 2 + 1).all()
+
+
+def audit_fingerprint(row):
+    return {field.key: (value.isoformat() if isinstance(value, date) else value)
+            for field in AuditLog.__mapper__.column_attrs for value in [getattr(row, field.key)]}
 
 
 def listing(uid, params):
@@ -100,13 +111,18 @@ def listing(uid, params):
         if len(cases) > MAX_CASES: raise plans.PlanError('followup_queue_scale_limit', 409)
         rows = prefetched_rows(db, cases) if cases else []
         if len(rows) > MAX_ROWS: raise plans.PlanError('followup_queue_scale_limit', 409)
+        audits = prefetched_plan_audits(db, cases) if cases else []
+        if len(audits) > MAX_ROWS * 2: raise plans.PlanError('followup_queue_scale_limit', 409)
         by_case = {case.id: [] for case in cases}
+        by_case_audits = {case.id: [] for case in cases}
         for row in rows: by_case[row.case_id].append(row)
+        for audit in audits: by_case_audits[audit.case_id].append(audit)
         items, fingerprint = [], []
         for case in cases:
-            parsed = plans.validated_records(by_case[case.id], case)
+            parsed = plans.validated_records(by_case[case.id], case, by_case_audits[case.id])
             public = [plans.public(row, meta, case) for row, meta in parsed]
-            fingerprint.append({'case': plans.case_snapshot(case), 'plans': [p['token'] for p in public]})
+            fingerprint.append({'case': plans.case_snapshot(case), 'plans': [p['token'] for p in public],
+                                'audits': [audit_fingerprint(a) for a in by_case_audits[case.id]]})
             for plan in public:
                 if plan['stored_state'] != 'planned': continue
                 items.append({'case': {'id': case.id, **{key: getattr(case, key) for key in IDENTITY}},

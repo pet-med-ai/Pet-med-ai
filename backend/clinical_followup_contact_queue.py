@@ -69,22 +69,25 @@ def listing(uid, params):
         if len(cases) > queue.MAX_CASES: raise plans.PlanError('followup_queue_scale_limit', 409)
         plan_rows = queue.prefetched_rows(db, cases) if cases else []
         if len(plan_rows) > queue.MAX_ROWS: raise plans.PlanError('followup_queue_scale_limit', 409)
+        plan_audits = queue.prefetched_plan_audits(db, cases) if cases else []
+        if len(plan_audits) > queue.MAX_ROWS * 2: raise plans.PlanError('followup_queue_scale_limit', 409)
         contact_rows = prefetched_contacts(db, cases) if cases else []
         if len(contact_rows) > MAX_CONTACTS: raise plans.PlanError('followup_contact_queue_scale_limit', 409)
         audits = prefetched_audits(db, cases) if cases else []
         if len(audits) > MAX_AUDITS: raise plans.PlanError('followup_contact_queue_scale_limit', 409)
-        grouped = {c.id: [[], [], []] for c in cases}
-        for group, rows in enumerate((plan_rows, contact_rows, audits)):
+        grouped = {c.id: [[], [], [], []] for c in cases}
+        for group, rows in enumerate((plan_rows, contact_rows, audits, plan_audits)):
             for row in rows:
                 if row.case_id not in grouped: raise plans.PlanError('contact_invalid_saved_data', 409)
                 grouped[row.case_id][group].append(row)
         items, fingerprint = [], []
         for case in cases:
-            pr, cr, ar = grouped[case.id]
-            sources = [plans.public(row, meta, case) for row, meta in plans.validated_records(pr, case)]
+            pr, cr, ar, pa = grouped[case.id]
+            sources = [plans.public(row, meta, case) for row, meta in plans.validated_records(pr, case, pa)]
             records = [contacts.public(row, meta, sources)
                        for row, meta in contacts.validated_records(cr, ar, case, sources)]
             fingerprint.append({'case': plans.case_snapshot(case), 'plans': [p['token'] for p in sources],
+                                'plan_audits': [queue.audit_fingerprint(a) for a in pa],
                                 'contacts': [r['token'] for r in records], 'audits': [audit_fingerprint(a) for a in ar]})
             for plan in sources:
                 if plan['stored_state'] != 'planned': continue

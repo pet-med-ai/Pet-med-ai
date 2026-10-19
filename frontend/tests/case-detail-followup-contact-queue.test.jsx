@@ -1,3 +1,4 @@
+import {syntheticSessionStorage} from './syntheticSessionStorage';
 import React from 'react';
 import TestRenderer,{act} from 'react-test-renderer';
 import {MemoryRouter,Routes,Route,useNavigate} from 'react-router-dom';
@@ -22,6 +23,7 @@ beforeEach(()=>{
  global.localStorage={getItem:()=>token};global.alert=()=>{};
  const events={addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};
  global.window={confirm:()=>true,...events};global.document={hidden:false,...events};
+ window.sessionStorage=syntheticSessionStorage();
  adapter=async c=>{
   if(token==='other-account'&&c.url.startsWith('/api/cases/'))throw {response:{status:404,data:{detail:'Not found'}}};
   let data={};
