@@ -25,7 +25,7 @@ beforeEach(()=>{
   listing=empty();token='synthetic-owner';requests=[];listeners={};Object.defineProperty(globalThis,'crypto',{configurable:true,value:webcrypto});
   global.localStorage={getItem:()=>token};global.window={confirm:()=>true,addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};
   global.window.sessionStorage=syntheticSessionStorage();
-  global.document={addEventListener(){},removeEventListener(){}};
+  global.document={hidden:false,addEventListener:(k,f)=>(listeners[k]??=new Set()).add(f),removeEventListener:(k,f)=>listeners[k]?.delete(f)};
   adapter=async c=>{
     const b=c.data?JSON.parse(c.data):null;let data;
     if(c.url.endsWith('/preview'))data=preview(b,listing);
@@ -165,4 +165,59 @@ test('late commit after account replacement keeps only a recoverable locator',as
  await act(async()=>{release();await pending;});assert(!button('核对复查保存结果'));assert(!text().includes('已保存并独立回读'));
  await act(async()=>renderer.unmount());token='owner-relogin';listing=ownerListing;await mount();await click('核对复查保存结果');
  assert.match(text(),/已核对服务端保存结果/);assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
+});
+
+for(const [boundary,nextToken] of [['storage','other-owner'],['storage',null],['focus','other-owner'],['visibilitychange',null],['refresh','other-owner'],['confirm',null]])test('account retirement clears 复查计划 at '+boundary+' with '+String(nextToken),async()=>{
+ await mount();await fill();await review();const previousToken=token,count=requests.length;
+ token=nextToken;
+ if(boundary==='refresh')await click('刷新复查计划');
+ else if(boundary==='confirm')await click('确认保存复查计划');
+ else await fire(boundary);
+ for(const label of ['复查计划草稿','复查计划核对','复查保存结果待核对'])assert.equal(renderer.root.findAllByProps({'aria-label':label}).length,0,label);
+ assert(text().includes('账号已变化'),'account change must be explicit');assert(!text().includes('正在处理'));
+ assert(button('刷新复查计划').props.disabled);assert.equal(requests.length,count);
+ token=previousToken;await fire('focus');assert.equal(requests.length,count,'a retired panel must not revive when the token returns');
+});
+
+test('late 复查计划 preview detects same-tab account loss without a storage event',async()=>{
+ await mount();await fill();const normal=adapter;let release,arrive;const started=new Promise(r=>arrive=r);
+ adapter=async c=>c.url.endsWith('/preview')?new Promise(r=>{release=()=>r({config:c,data:preview(JSON.parse(c.data),listing)});arrive();}):normal(c);
+ let pending;await act(async()=>{pending=button('预览并核对复查计划').props.onClick();await started;});
+ token=null;await act(async()=>{release();await pending;});
+ assert(text().includes('账号已变化'),'account change must be explicit');assert(!text().includes('正在处理'));
+ assert.equal(renderer.root.findAllByProps({'aria-label':'复查计划草稿'}).length,0);
+ assert(!button('确认保存复查计划'));assert(!requests.some(c=>c.url.endsWith('/confirm')));
+});
+
+test('current-account 401 clears 复查计划 content and settles busy state',async()=>{
+ await mount();await fill();const normal=adapter;
+ global.localStorage.removeItem=()=>{token=null;};global.alert=()=>{};
+ adapter=async c=>{if(c.url.endsWith('/preview'))throw {config:c,response:{status:401}};return normal(c);};
+ await click('预览并核对复查计划');
+ assert.equal(token,null);assert(text().includes('账号已变化'),'account change must be explicit');assert(!text().includes('正在处理'));
+ assert.equal(renderer.root.findAllByProps({'aria-label':'复查计划草稿'}).length,0);
+ assert(button('刷新复查计划').props.disabled);assert(!requests.some(c=>c.url.endsWith('/confirm')));
+});
+
+test('retiring an in-flight 复查计划 save preserves its locator for the original owner',async()=>{
+ const normal=adapter;let saved,release,arrive;const started=new Promise(r=>arrive=r);
+ adapter=async c=>{
+  if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;return new Promise(r=>{release=()=>r({config:c,data:saved});arrive();});}
+  if(c.url.includes('/requests/'))return {config:c,data:{...saved,writes_database:false}};
+  return normal(c);
+ };
+ await mount();await fill();await review();let pending;const previousToken=token;
+ await act(async()=>{pending=button('确认保存复查计划').props.onClick();await started;});
+ const key=window.sessionStorage.key(0),locator=window.sessionStorage.getItem(key),count=requests.length;
+ token='other-owner';await fire('focus');
+ assert(text().includes('账号已变化'),'account change must be explicit');assert(!text().includes('正在处理'));
+ for(const label of ['复查计划草稿','复查计划核对','复查保存结果待核对'])assert.equal(renderer.root.findAllByProps({'aria-label':label}).length,0,label);
+ assert.equal(window.sessionStorage.getItem(key),locator);assert.equal(requests.length,count);
+ token=previousToken;await fire('focus');await act(async()=>{release();await pending;});
+ assert.equal(requests.length,count);assert.equal(window.sessionStorage.getItem(key),locator);
+ await act(async()=>renderer.unmount());token='same-owner-relogin';await mount();
+ assert(button('核对复查保存结果'));await click('核对复查保存结果');
+ assert.match(text(),/已核对服务端保存结果/);assert.equal(window.sessionStorage.length,0);
+ assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
+ assert(requests.slice(count).every(c=>c.method==='get'),'recovery is GET only');
 });

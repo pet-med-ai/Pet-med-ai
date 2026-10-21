@@ -111,3 +111,58 @@ test('contact locator hash mismatch after refresh never confirms or auto-retries
  assert.match(output(),/保存结果尚不能确认/);assert(button('新增人工随访记录').props.disabled);assert.equal(window.sessionStorage.length,1);
  assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
 });
+
+for(const [boundary,nextToken] of [['storage','other-owner'],['storage',null],['focus','other-owner'],['visibilitychange',null],['refresh','other-owner'],['confirm',null]])test('account retirement clears 人工随访 at '+boundary+' with '+String(nextToken),async()=>{
+ await mount();await fill();await review();const previousToken=token,count=requests.length;
+ token=nextToken;
+ if(boundary==='refresh')await click('刷新人工随访记录');
+ else if(boundary==='confirm')await click('确认保存人工随访');
+ else await fire(boundary);
+ for(const label of ['人工随访草稿','人工随访核对','随访保存结果待核对'])assert.equal(renderer.root.findAllByProps({'aria-label':label}).length,0,label);
+ assert(output().includes('账号已变化'),'account change must be explicit');assert(!output().includes('正在处理'));
+ assert(button('刷新人工随访记录').props.disabled);assert.equal(requests.length,count);
+ token=previousToken;await fire('focus');assert.equal(requests.length,count,'a retired panel must not revive when the token returns');
+});
+
+test('late 人工随访 preview detects same-tab account loss without a storage event',async()=>{
+ await mount();await fill();const normal=adapter;let release,arrive;const started=new Promise(r=>arrive=r);
+ adapter=async c=>c.url.endsWith('/preview')?new Promise(r=>{release=()=>r({config:c,data:preview(JSON.parse(c.data),listing)});arrive();}):normal(c);
+ let pending;await act(async()=>{pending=button('预览并核对人工随访').props.onClick();await started;});
+ token=null;await act(async()=>{release();await pending;});
+ assert(output().includes('账号已变化'),'account change must be explicit');assert(!output().includes('正在处理'));
+ assert.equal(renderer.root.findAllByProps({'aria-label':'人工随访草稿'}).length,0);
+ assert(!button('确认保存人工随访'));assert(!requests.some(c=>c.url.endsWith('/confirm')));
+});
+
+test('current-account 401 clears 人工随访 content and settles busy state',async()=>{
+ await mount();await fill();const normal=adapter;
+ global.localStorage.removeItem=()=>{token=null;};global.alert=()=>{};
+ adapter=async c=>{if(c.url.endsWith('/preview'))throw {config:c,response:{status:401}};return normal(c);};
+ await click('预览并核对人工随访');
+ assert.equal(token,null);assert(output().includes('账号已变化'),'account change must be explicit');assert(!output().includes('正在处理'));
+ assert.equal(renderer.root.findAllByProps({'aria-label':'人工随访草稿'}).length,0);
+ assert(button('刷新人工随访记录').props.disabled);assert(!requests.some(c=>c.url.endsWith('/confirm')));
+});
+
+test('retiring an in-flight 人工随访 save preserves its locator for the original owner',async()=>{
+ const normal=adapter;let saved,release,arrive;const started=new Promise(r=>arrive=r);
+ adapter=async c=>{
+  if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;return new Promise(r=>{release=()=>r({config:c,data:saved});arrive();});}
+  if(c.url.includes('/requests/'))return {config:c,data:{...saved,writes_database:false}};
+  return normal(c);
+ };
+ await mount();await fill();await review();let pending;const previousToken=token;
+ await act(async()=>{pending=button('确认保存人工随访').props.onClick();await started;});
+ const key=window.sessionStorage.key(0),locator=window.sessionStorage.getItem(key),count=requests.length;
+ token='other-owner';await fire('focus');
+ assert(output().includes('账号已变化'),'account change must be explicit');assert(!output().includes('正在处理'));
+ for(const label of ['人工随访草稿','人工随访核对','随访保存结果待核对'])assert.equal(renderer.root.findAllByProps({'aria-label':label}).length,0,label);
+ assert.equal(window.sessionStorage.getItem(key),locator);assert.equal(requests.length,count);
+ token=previousToken;await fire('focus');await act(async()=>{release();await pending;});
+ assert.equal(requests.length,count);assert.equal(window.sessionStorage.getItem(key),locator);
+ await act(async()=>renderer.unmount());token='same-owner-relogin';await mount();
+ assert(button('核对随访保存结果'));await click('核对随访保存结果');
+ assert.match(output(),/已核对服务端保存结果/);assert.equal(window.sessionStorage.length,0);
+ assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
+ assert(requests.slice(count).every(c=>c.method==='get'),'recovery is GET only');
+});
