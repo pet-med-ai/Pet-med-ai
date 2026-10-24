@@ -1,0 +1,111 @@
+{
+  "key": "cough_breathing",
+  "version": "cough_breathing-intake-v1",
+  "label": "犬猫咳嗽／呼吸困难问诊",
+  "review_status": "clinical_draft",
+  "species": [
+    "dog",
+    "cat"
+  ],
+  "source": "医生采集",
+  "questions": [
+    {
+      "key": "onset",
+      "label": "咳嗽及呼吸表现各自的起始时间、先后与变化趋势",
+      "kind": "text"
+    },
+    {
+      "key": "cough",
+      "label": "是否观察到咳嗽",
+      "kind": "presence"
+    },
+    {
+      "key": "cough_detail",
+      "label": "咳嗽的实际表现、持续时间与变化",
+      "kind": "text",
+      "when": "cough"
+    },
+    {
+      "key": "breathing",
+      "label": "是否观察到呼吸方式或用力程度变化",
+      "kind": "presence"
+    },
+    {
+      "key": "breathing_detail",
+      "label": "呼吸方式、姿势与用力程度的实际观察",
+      "kind": "text",
+      "when": "breathing"
+    },
+    {
+      "key": "frequency",
+      "label": "咳嗽与呼吸表现各自的频次、持续时间与昼夜分布",
+      "kind": "text"
+    },
+    {
+      "key": "context",
+      "label": "出现情境、诱发情况与缓解时的观察",
+      "kind": "text"
+    },
+    {
+      "key": "rest_observation",
+      "label": "安静休息或睡眠时的观察",
+      "kind": "text"
+    },
+    {
+      "key": "activity_observation",
+      "label": "活动前后表现与活动耐受的实际记录",
+      "kind": "text"
+    },
+    {
+      "key": "respiratory_rate",
+      "label": "呼吸频率、单位、测量时长与当时状态；未测请注明",
+      "kind": "text"
+    },
+    {
+      "key": "accompanying",
+      "label": "同期其他表现与医生观察",
+      "kind": "text"
+    },
+    {
+      "key": "fainting",
+      "label": "是否观察到晕厥或倒地",
+      "kind": "presence"
+    },
+    {
+      "key": "fainting_detail",
+      "label": "晕厥或倒地时的情境、经过与恢复情况",
+      "kind": "text",
+      "when": "fainting"
+    },
+    {
+      "key": "discharge",
+      "label": "口鼻分泌物及外观的实际观察",
+      "kind": "text"
+    },
+    {
+      "key": "appetite",
+      "label": "食欲、饮水与精神状态的变化",
+      "kind": "text"
+    },
+    {
+      "key": "history",
+      "label": "既往呼吸或心脏相关问题、其他疾病与近期检查记录",
+      "kind": "text"
+    },
+    {
+      "key": "environment",
+      "label": "接触史、环境与近期生活变化",
+      "kind": "text"
+    },
+    {
+      "key": "medication",
+      "label": "当前与近期用药、补充剂及处理",
+      "kind": "text"
+    },
+    {
+      "key": "notes",
+      "label": "医生补充与资料来源",
+      "kind": "text"
+    }
+  ]
+}

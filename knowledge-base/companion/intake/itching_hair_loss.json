@@ -1,0 +1,110 @@
+{
+  "key": "itching_hair_loss",
+  "version": "itching_hair_loss-intake-v1",
+  "label": "犬猫皮肤瘙痒／脱毛问诊",
+  "review_status": "clinical_draft",
+  "species": [
+    "dog",
+    "cat"
+  ],
+  "source": "医生采集",
+  "questions": [
+    {
+      "key": "onset",
+      "label": "瘙痒与脱毛各自的起始时间、先后与变化趋势",
+      "kind": "text"
+    },
+    {
+      "key": "itching",
+      "label": "是否观察到瘙痒相关行为",
+      "kind": "presence"
+    },
+    {
+      "key": "itching_detail",
+      "label": "抓挠、舔咬或摩擦等实际行为、频次与时段",
+      "kind": "text",
+      "when": "itching"
+    },
+    {
+      "key": "hair_loss",
+      "label": "是否观察到毛发减少或脱落",
+      "kind": "presence"
+    },
+    {
+      "key": "hair_loss_detail",
+      "label": "毛发变化的实际外观、经过及原始描述",
+      "kind": "text",
+      "when": "hair_loss"
+    },
+    {
+      "key": "sites",
+      "label": "各表现的部位、左右侧及最先出现的位置",
+      "kind": "text"
+    },
+    {
+      "key": "distribution",
+      "label": "各表现的范围、分布与扩展经过；无法确定请注明",
+      "kind": "text"
+    },
+    {
+      "key": "skin",
+      "label": "皮肤颜色、表面、皮屑、渗出及其他可见变化",
+      "kind": "text"
+    },
+    {
+      "key": "ears",
+      "label": "耳部及耳周的实际观察；未检查或无法观察请注明",
+      "kind": "text"
+    },
+    {
+      "key": "daily_pattern",
+      "label": "各表现的昼夜分布、频次及对日常行为的影响",
+      "kind": "text"
+    },
+    {
+      "key": "season",
+      "label": "季节变化、是否反复及既往相同时间段的观察",
+      "kind": "text"
+    },
+    {
+      "key": "exposure",
+      "label": "居住环境、清洁用品、洗护与近期接触变化",
+      "kind": "text"
+    },
+    {
+      "key": "contacts",
+      "label": "同住动物或接触者的相关观察及资料来源",
+      "kind": "text"
+    },
+    {
+      "key": "parasite_care",
+      "label": "既往驱虫产品、使用时间与实际使用记录；不自动判定效果",
+      "kind": "text"
+    },
+    {
+      "key": "medication",
+      "label": "当前与近期用药、外用处理及补充剂的原文记录",
+      "kind": "text"
+    },
+    {
+      "key": "response",
+      "label": "已进行处理的时间及随后变化；未能观察请注明",
+      "kind": "text"
+    },
+    {
+      "key": "health",
+      "label": "食欲、精神及同期其他表现",
+      "kind": "text"
+    },
+    {
+      "key": "history",
+      "label": "既往皮肤或其他疾病、检查和治疗记录",
+      "kind": "text"
+    },
+    {
+      "key": "notes",
+      "label": "医生补充、观察者与资料来源",
+      "kind": "text"
+    }
+  ]
+}

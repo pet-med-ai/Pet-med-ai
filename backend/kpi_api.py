@@ -1,7 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
+try:
+    from backend.manual_imaging_records import legacy_only as manual_imaging_legacy_only, is_manual as is_manual_imaging
+except ModuleNotFoundError:
+    from manual_imaging_records import legacy_only as manual_imaging_legacy_only, is_manual as is_manual_imaging
+
 
 from collections import Counter, defaultdict
+try:
+    from backend.clinical_followup_plans import legacy_only as followup_plan_legacy_only
+except ModuleNotFoundError:
+    from clinical_followup_plans import legacy_only as followup_plan_legacy_only
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -176,7 +185,7 @@ def build_case_kpi(
 
 def _owned_imaging_studies(db: Session, user: Any, start_dt: datetime, end_dt: datetime) -> List[ImagingStudy]:
     return (
-        db.query(ImagingStudy)
+        db.query(ImagingStudy).filter(manual_imaging_legacy_only(ImagingStudy.source_type))
         .join(Case, ImagingStudy.case_id == Case.id)
         .filter(
             Case.owner_id == getattr(user, "id", None),
@@ -279,6 +288,7 @@ def _owned_followups(db: Session, user: Any, start_dt: datetime, end_dt: datetim
             Case.owner_id == getattr(user, "id", None),
             FollowUp.due_date >= start_dt,
             FollowUp.due_date < end_dt,
+            followup_plan_legacy_only(FollowUp.status, FollowUp.channel),
         )
         .all()
     )

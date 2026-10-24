@@ -5,6 +5,7 @@ import {test, beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import CaseDetail from '../src/pages/CaseDetail';
 import api from '../src/api';
+import labData from '../../tests/fixtures/manual_lab_cw_b7_cases.json';
 
 const mime='application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 const record=id=>({id,patient_name:`合成病例-${id}`,history:`病史-${id}`,treatment:`更正治疗-${id}`});
@@ -20,6 +21,9 @@ const snapshot='a'.repeat(64);
 const previewResponse=c=>{
  const body=JSON.parse(c.data), context={};
  for(const k of ['case_id','pet_name','species','age','sex','weight','complaint','history','exam','assessment','plan','notes','follow_up'])context['visit.'+k]='未填写';
+ if(body.template_id==='outpatient_record_zh'){
+   context['visit.owner_name']='合成宠主 < & {{literal}}';context['visit.coat_color']='黑白（合成）';
+ }
  context['visit.case_id']=String(body.case_id);context['visit.pet_name']='合成病例-'+body.case_id;context['visit.history']='预览原文\n未见呕吐 < & {{literal}}';context['export.account_id']='1';
  return {config:c,status:200,data:{...body,context,content_snapshot:snapshot,missing_required_keys:[],writes_database:false}};
 };
@@ -31,7 +35,7 @@ async function mount(){await act(async()=>{renderer=TestRenderer.create(<MemoryR
 const move=async path=>act(async()=>navigate(path));
 beforeEach(()=>{
  storage='synthetic-owner';requests=[];downloads=[];alerts=[];listeners={};
- global.localStorage={getItem:()=>storage};global.alert=s=>alerts.push(s);
+ global.localStorage={getItem:()=>storage,removeItem:key=>{if(key==='token')storage='';}};global.alert=s=>alerts.push(s);
  global.window={addEventListener:(k,fn)=>{listeners[k]=fn;},removeEventListener:(k)=>{delete listeners[k];},print(){},location:{}};
  global.document={body:{appendChild(){}},createElement:()=>({click(){downloads.push(this.download);},remove(){}})};
  URL.createObjectURL=()=> 'blob:synthetic';URL.revokeObjectURL=()=>{};
@@ -41,12 +45,181 @@ beforeEach(()=>{
 afterEach(()=>{if(renderer)act(()=>renderer.unmount());renderer=null;URL.createObjectURL=originalCreate;URL.revokeObjectURL=originalRevoke;});
 
 test('detail shows server history and corrected treatment',async()=>{await mount();assert.match(text(),/病史-1/);assert.match(text(),/更正治疗-1/);});
+for(const label of ['导出门诊病历草稿 DOCX','导出宠主说明草稿 DOCX']) {
+  for(const action of ['重新读取草稿','确认并下载草稿 DOCX'])test(`${label}: account replacement before ${action} stops the old review without another request`,async()=>{
+    await mount();await click(label);await check();
+    const before=requests.length;storage='synthetic-new-login';
+    await click(action);
+    assert.match(text(),/登录账号已变化/);assert.doesNotMatch(text(),/正在读取已保存|正在生成|生成中|预览原文/);
+    assert.equal(button('确认并下载草稿 DOCX'),undefined);
+    assert.equal(requests.length,before);assert.equal(exports().length,0);assert.equal(downloads.length,0);
+    assert.equal(storage,'synthetic-new-login');assert.deepEqual(alerts,[]);
+    assert(renderer.root.findAllByType('a').some(a=>a.props.href==='/'&&a.children.join('')==='返回首页重新打开病例'));
+    await move('/');await move('/cases/1');await click(label);
+    assert.equal(previews().length,2);assert.equal(button('确认并下载草稿 DOCX').props.disabled,true);
+    await confirm();assert.equal(downloads.length,1);
+  });
+  for(const stage of ['preview','download'])test(`${label}: account replacement during ${stage} ends busy state and discards the old success`,async()=>{
+    await mount();const normal=adapter,gate=deferred();
+    if(stage==='download'){await click(label);await check();}
+    const endpoint=stage==='preview'?'/api/clinical-docs/render-preview':'/api/clinical-docs/render';
+    adapter=async c=>{if(c.url===endpoint)await gate.promise;return normal(c);};
+    let pending;
+    await act(async()=>{pending=button(stage==='preview'?label:'确认并下载草稿 DOCX').props.onClick();});
+    assert(requests.some(c=>c.url===endpoint));const before=requests.length;storage='synthetic-new-login';
+    await act(async()=>{gate.resolve();await pending;});
+    assert.match(text(),/登录账号已变化/);assert.doesNotMatch(text(),/正在读取已保存|正在生成|生成中|预览原文/);
+    assert.equal(button('确认并下载草稿 DOCX'),undefined);assert.equal(downloads.length,0);
+    assert.equal(requests.length,before);assert.equal(storage,'synthetic-new-login');assert.deepEqual(alerts,[]);
+    await click('关闭草稿核对');assert.equal(button(label).props.disabled,false);
+    await click(label);assert.match(text(),/登录账号已变化/);assert.equal(requests.length,before);
+  });
+}
+test('account replacement inside a document review preserves an unsaved laboratory draft',async()=>{
+  const normal=adapter;
+  adapter=c=>c.url.endsWith('/manual-lab')?{config:c,status:200,data:{case_id:1,case_token:snapshot,sources:[],reports:[]}}:normal(c);
+  await mount();await click('打开检验项目');await click('录入检验报告');
+  await act(async()=>renderer.root.findByProps({'aria-label':'报告标题'}).props.onChange({target:{value:'未保存原文 café 🐾'}}));
+  await click('导出门诊病历草稿 DOCX');const before=requests.length;storage='synthetic-new-login';await click('重新读取草稿');
+  assert.match(text(),/登录账号已变化/);
+  assert.equal(renderer.root.findByProps({'aria-label':'报告标题'}).props.value,'未保存原文 café 🐾');
+  await click('关闭草稿核对');assert.equal(renderer.root.findByProps({'aria-label':'报告标题'}).props.value,'未保存原文 café 🐾');
+  assert.equal(requests.length,before);assert.equal(downloads.length,0);assert(!requests.some(c=>c.url.endsWith('/confirm')));
+});
+for(const label of ['导出门诊病历草稿 DOCX','导出宠主说明草稿 DOCX']) {
+  for(const credential of ['', 'synthetic-new-login'])test(`${label}: credential ${credential?'replaced':'cleared'} before opening gives feedback without a request`,async()=>{
+    await mount();const before=requests.length;
+    storage=credential; // Same-tab expiry/relogin does not emit a storage event.
+    await click(label);
+    assert.match(text(),credential ? /登录账号已变化/ : /登录状态已失效/);
+    const feedback=renderer.root.findByProps({className:'clinical-doc-export-status screen-only'});
+    assert.match(feedback.children.join(''),credential ? /登录账号已变化/ : /登录状态已失效/);
+    assert.equal(storage,credential);assert.equal(requests.length,before);
+    assert.equal(previews().length,0);assert.equal(exports().length,0);assert.equal(downloads.length,0);
+    assert.equal(button('确认并下载草稿 DOCX'),undefined);
+    if(!credential)assert(renderer.root.findAllByType('a').some(a=>a.props.href==='/'&&a.children.join('')==='返回首页重新登录'));
+    await move('/');storage='synthetic-new-login';await move('/cases/1');await click(label);
+    assert.equal(previews().length,1);assert.equal(button('确认并下载草稿 DOCX').props.disabled,true);
+    await confirm();assert.equal(downloads.length,1);
+  });
+}
+test('expiry before opening preserves an unsaved laboratory draft for copying',async()=>{
+  const normal=adapter;
+  adapter=c=>c.url.endsWith('/manual-lab')?{config:c,status:200,data:{case_id:1,case_token:snapshot,sources:[],reports:[]}}:normal(c);
+  await mount();await click('打开检验项目');await click('录入检验报告');
+  await act(async()=>renderer.root.findByProps({'aria-label':'报告标题'}).props.onChange({target:{value:'未保存原文 café 🐾'}}));
+  const before=requests.length;storage='';await click('导出门诊病历草稿 DOCX');
+  assert.match(text(),/登录状态已失效/);
+  assert.equal(renderer.root.findByProps({'aria-label':'报告标题'}).props.value,'未保存原文 café 🐾');
+  assert.equal(requests.length,before);assert.equal(downloads.length,0);
+  assert(!requests.some(c=>c.url.endsWith('/confirm')));
+});
+test('manual lab entry stays lazy and does not alter document preview requests',async()=>{await mount();assert(button('打开检验项目'));assert(!requests.some(c=>c.url.includes('/manual-lab')));await click('导出门诊病历草稿 DOCX');assert(!requests.some(c=>c.url.includes('/manual-lab')));assert.equal(previews().length,1);});
+test('CW-B8 selected ids and snapshot reach actual download request',async()=>{
+ const row={id:9,root_id:9,version:1,state:'confirmed',reviewed_by:'1',reviewed_at:'synthetic',source:{name:'synthetic.pdf',sha256:snapshot},data:labData};const normal=adapter;
+ adapter=async c=>{if(c.url.endsWith('/manual-lab-options'))return{data:{case_id:1,reports:[row],writes_database:false}};const r=await normal(c);if(c.url.endsWith('render-preview')&&JSON.parse(c.data).manual_lab_report_ids)r.data.manual_lab_reports=[row];return r;};
+ await mount();await click('导出门诊病历草稿 DOCX');await click('选择已核对检验报告');await act(async()=>renderer.root.findByProps({'aria-label':'纳入 '+labData.report.title}).props.onChange({target:{checked:true}}));await click('重新读取草稿');
+ await act(async()=>renderer.root.findByProps({'aria-label':'文书草稿内容核对'}).findAllByType('input').find(n=>!n.props['aria-label']).props.onChange({target:{checked:true}}));await click('确认并下载草稿 DOCX');
+ assert.deepEqual(JSON.parse(exports()[0].data).manual_lab_report_ids,[9]);assert.equal(JSON.parse(exports()[0].data).expected_content_snapshot,snapshot);assert.equal(downloads.length,1);
+});
+test('CW-B8 return to source closes document review and opens existing lab panel',async()=>{
+ const normal=adapter;adapter=c=>c.url.endsWith('/manual-lab-options')?{data:{case_id:1,reports:[],writes_database:false}}:c.url.endsWith('/manual-lab')?{data:{case_id:1,case_token:snapshot,patient_name:'合成病例-1',species:'dog',sources:[],reports:[]}}:normal(c);
+ await mount();await click('导出门诊病历草稿 DOCX');await click('选择已核对检验报告');await click('返回检验项目与原件');assert.equal(button('确认并下载草稿 DOCX'),undefined);assert.match(text(),/检验项目人工录入/);assert.equal(exports().length,0);
+});
 test('route change immediately removes previous case until current GET completes',async()=>{await mount();const gate=deferred();const original=adapter;adapter=c=>c.url==='/api/cases/2'?gate.promise:original(c);await move('/cases/2');assert.doesNotMatch(text(),/合成病例-1/);assert.match(text(),/加载中/);assert.equal(button('打印病例'),undefined);await act(async()=>gate.resolve({data:record(2)}));assert.match(text(),/合成病例-2/);});
 test('late old detail response cannot replace the new case',async()=>{const gate=deferred(),original=adapter;adapter=c=>c.url==='/api/cases/1'?gate.promise:original(c);await mount();await move('/cases/2');await act(async()=>gate.resolve({data:record(1)}));assert.match(text(),/合成病例-2/);assert.doesNotMatch(text(),/合成病例-1/);});
 test('late old failure cannot hide the new case',async()=>{const gate=deferred(),original=adapter;adapter=c=>c.url==='/api/cases/1'?gate.promise:original(c);await mount();await move('/cases/2');await act(async()=>gate.reject(Error('old-failure')));assert.match(text(),/合成病例-2/);assert.doesNotMatch(text(),/old-failure/);});
 test('failed read can retry GET without any write',async()=>{const original=adapter;adapter=c=>c.url==='/api/cases/1'?Promise.reject(Error('temporary')):original(c);await mount();assert.match(text(),/temporary/);adapter=original;await click('重试读取病例');assert.match(text(),/合成病例-1/);assert.doesNotMatch(text(),/temporary/);assert(requests.every(c=>c.method==='get'));});
 test('mismatched response ID is refused before edit print or export',async()=>{const original=adapter;adapter=c=>c.url==='/api/cases/1'?{data:record(2)}:original(c);await mount();assert.match(text(),/返回的病例与当前页面不一致/);assert.equal(button('打印病例'),undefined);assert.equal(exports().length,0);});
 test('anonymous detail does not request a case',async()=>{storage='';await mount();assert.match(text(),/请先登录/);assert.equal(requests.length,0);});
+for(const outcome of ['success','network-error','401'])test(`account replacement during the first case read: ${outcome} ends loading without accepting the old response`,async()=>{
+ const gate=deferred(),normal=adapter;
+ adapter=async c=>{
+  if(c.url==='/api/cases/1'){
+   await gate.promise;
+   if(outcome==='network-error')throw Object.assign(Error('old-account-private-error'),{config:c});
+   if(outcome==='401')throw {config:c,response:{status:401}};
+  }
+  return normal(c);
+ };
+ await mount();assert.match(text(),/加载中/);assert.equal(requests.length,1);
+ storage='synthetic-new-login';await act(async()=>gate.resolve());
+ assert.match(text(),/登录账号已变化/);assert.doesNotMatch(text(),/加载中|合成病例-1|病史-1|old-account-private-error|登录状态已失效/);
+ assert.equal(button('重试读取病例'),undefined);assert.equal(button('打印病例'),undefined);
+ assert.equal(button('导出门诊病历草稿 DOCX'),undefined);assert.equal(downloads.length,0);
+ assert.equal(storage,'synthetic-new-login');assert.deepEqual(alerts,[]);assert.equal(requests.length,1);
+ assert(renderer.root.findAllByType('a').some(a=>a.props.href==='/'));
+ await move('/');adapter=normal;await move('/cases/1');
+ assert.match(text(),/合成病例-1/);assert.doesNotMatch(text(),/登录账号已变化|加载中/);
+ assert.equal(requests.filter(c=>c.url==='/api/cases/1').length,2);assert(requests.every(c=>c.method==='get'));
+});
+for(const credential of ['', 'synthetic-new-login'])test(`credential ${credential?'replaced':'cleared'} before retrying a failed case read prevents another request`,async()=>{
+ const normal=adapter;adapter=c=>c.url==='/api/cases/1'?Promise.reject(Error('temporary')):normal(c);
+ await mount();const retry=button('重试读取病例').props.onClick;assert.equal(requests.length,1);
+ storage=credential;adapter=normal;await act(async()=>retry());
+ assert.match(text(),credential?/登录账号已变化/:/登录状态已失效/);
+ assert.doesNotMatch(text(),/加载中|合成病例-1|temporary/);
+ assert.equal(button('重试读取病例'),undefined);assert.equal(button('打印病例'),undefined);
+ assert.equal(requests.length,1);assert.equal(storage,credential);assert.deepEqual(alerts,[]);
+});
+for(const credential of ['', 'other-owner'])test(`credential ${credential?'replaced':'cleared'} before case request dispatch is rejected before HTTP`,async()=>{
+ const jwt=owner=>'synthetic.'+Buffer.from(JSON.stringify({sub:owner,exp:4102444800})).toString('base64url')+'.signature';
+ storage=jwt('original-owner');const replacement=credential?jwt(credential):'';
+ const interceptor=api.interceptors.request.use(c=>{if(c.url==='/api/cases/1')storage=replacement;return c;});
+ try {
+  await mount();assert.equal(requests.length,0);
+  assert.match(text(),credential?/登录账号已变化/:/登录状态已失效/);
+  assert.doesNotMatch(text(),/加载中|合成病例-1/);assert.equal(button('重试读取病例'),undefined);
+  assert.equal(storage,replacement);assert.deepEqual(alerts,[]);assert.equal(downloads.length,0);
+ } finally {api.interceptors.request.eject(interceptor);}
+});
+test('current detail 401 exits loading and offers login without automatically retrying',async()=>{
+ const normal=adapter;
+ adapter=c=>{if(c.url==='/api/cases/1')throw {config:c,response:{status:401}};return normal(c);};
+ await mount();
+ assert.equal(storage,'');assert.deepEqual(alerts,['登录状态已失效，请重新登录']);
+ assert.doesNotMatch(text(),/加载中/);assert.match(text(),/登录状态已失效/);
+ assert.equal(button('重试读取病例'),undefined);assert.equal(button('打印病例'),undefined);
+ assert(renderer.root.findAllByType('a').some(a=>a.props.href==='/'&&a.children.join('')==='返回首页重新登录'));
+ assert.equal(requests.length,1);assert.equal(downloads.length,0);
+});
+test('late old detail 401 cannot clear or replace a new login and its case',async()=>{
+ const gate=deferred(),normal=adapter;
+ adapter=async c=>{if(c.url==='/api/cases/1'&&c.headers.Authorization==='Bearer synthetic-owner'){
+   await gate.promise;throw {config:c,response:{status:401}};
+ }return normal(c);};
+ await mount();storage='synthetic-new-login';await act(async()=>listeners.storage({key:'token'}));
+ assert.match(text(),/合成病例-1/);await act(async()=>gate.resolve());
+ assert.equal(storage,'synthetic-new-login');assert.deepEqual(alerts,[]);
+ assert.match(text(),/合成病例-1/);assert.doesNotMatch(text(),/登录状态已失效/);
+});
+test('expiry recovery leaves an unsaved laboratory draft mounted for copying',async()=>{
+ const normal=adapter;
+ adapter=c=>c.url.endsWith('/manual-lab')?{config:c,status:200,data:{case_id:1,case_token:'a'.repeat(64),sources:[],reports:[]}}:normal(c);
+ await mount();await click('打开检验项目');await click('录入检验报告');
+ await act(async()=>renderer.root.findByProps({'aria-label':'报告标题'}).props.onChange({target:{value:'未保存原文 café 🐾'}}));
+ const withLab=adapter;adapter=c=>{if(c.url.endsWith('render-preview'))throw {config:c,response:{status:401}};return withLab(c);};
+ await click('导出门诊病历草稿 DOCX');assert.match(text(),/登录状态已失效/);
+ assert.equal(renderer.root.findByProps({'aria-label':'报告标题'}).props.value,'未保存原文 café 🐾');
+ await click('关闭草稿核对');
+ assert.equal(renderer.root.findByProps({'aria-label':'报告标题'}).props.value,'未保存原文 café 🐾');
+ assert.equal(downloads.length,0);assert(!requests.some(c=>c.url.endsWith('/confirm')));
+});
+for(const stage of ['preview','download'])test(`late document ${stage} 401 leaves a newer login intact`,async()=>{
+ await mount();const normal=adapter,gate=deferred();
+ if(stage==='download'){await click('导出门诊病历草稿 DOCX');await check();}
+ const endpoint=stage==='preview'?'/api/clinical-docs/render-preview':'/api/clinical-docs/render';
+ adapter=async c=>{if(c.url===endpoint){await gate.promise;throw {config:c,response:{status:401}};}return normal(c);};
+ let pending;
+ await act(async()=>{pending=button(stage==='preview'?'导出门诊病历草稿 DOCX':'确认并下载草稿 DOCX').props.onClick();});
+ assert(requests.some(c=>c.url===endpoint));storage='synthetic-new-login';
+ await act(async()=>{gate.resolve();await pending;});
+ assert.equal(storage,'synthetic-new-login');assert.deepEqual(alerts,[]);assert.equal(downloads.length,0);
+ assert.doesNotMatch(text(),/登录状态已失效/);
+  assert.match(text(),/登录账号已变化/);assert.doesNotMatch(text(),/正在读取已保存|正在生成|生成中/);
+  assert.equal(button('确认并下载草稿 DOCX'),undefined);
+ await move('/');adapter=normal;await move('/cases/1');assert.match(text(),/合成病例-1/);
+});
 test('cross-tab account change clears visible case while next account loads',async()=>{await mount();const gate=deferred(),original=adapter;adapter=c=>c.url==='/api/cases/1'?gate.promise:original(c);storage='synthetic-other';await act(async()=>listeners.storage({key:'token'}));assert.doesNotMatch(text(),/合成病例-1/);await act(async()=>gate.reject(Error('not-owned')));assert.match(text(),/not-owned/);});
 test('both document buttons use the loaded case and existing read-only endpoint',async()=>{await mount();await click('导出入院/住院记录 DOCX');await click('导出出院小结 DOCX');assert.deepEqual(exports().map(c=>JSON.parse(c.data)),[{case_id:1,template_id:'admission_hospitalization_record_bilingual',output:'docx'},{case_id:1,template_id:'discharge_summary_bilingual',output:'docx'}]);assert.equal(downloads.length,2);assert(exports().every(c=>c.responseType==='blob'));});
 test('same-tick double export submits once',async()=>{await mount();const gate=deferred(),original=adapter;adapter=async c=>{if(c.method==='post')await gate.promise;return original(c);};const submit=button('导出出院小结 DOCX').props.onClick;await act(async()=>{const a=submit(),b=submit();gate.resolve();await Promise.all([a,b]);});assert.equal(exports().length,1);assert.equal(downloads.length,1);});
@@ -61,6 +234,24 @@ for (const [label, template] of [
   ['导出门诊病历草稿 DOCX', 'outpatient_record_zh'],
   ['导出宠主说明草稿 DOCX', 'owner_visit_summary_zh'],
 ]) {
+  for(const stage of ['preview','download'])test(`${template}: current ${stage} 401 exits busy state and requires login plus fresh review`,async()=>{
+    await mount();const normal=adapter;
+    if(stage==='download')await click(label);
+    const endpoint=stage==='preview'?'/api/clinical-docs/render-preview':'/api/clinical-docs/render';
+    adapter=c=>{if(c.url===endpoint)throw {config:c,response:{status:401,data:new Blob(['{}'],{type:'application/json'})}};return normal(c);};
+    if(stage==='preview')await click(label);else await confirm();
+    assert.equal(storage,'');assert.deepEqual(alerts,['登录状态已失效，请重新登录']);
+    assert.doesNotMatch(text(),/正在读取已保存|正在生成|生成中/);
+    assert.match(text(),/登录状态已失效/);assert.equal(downloads.length,0);
+    assert.equal(button('确认并下载草稿 DOCX'),undefined);
+    assert(renderer.root.findAllByType('a').some(a=>a.props.href==='/'&&a.children.join('')==='返回首页重新登录'));
+    const count=requests.length;await act(async()=>{});assert.equal(requests.length,count);
+    // A deliberate login and return must fetch the case and obtain a new preview.
+    await move('/');storage='synthetic-new-login';adapter=normal;await move('/cases/1');
+    assert.equal(button('确认并下载草稿 DOCX'),undefined);await click(label);
+    assert.equal(button('确认并下载草稿 DOCX').props.disabled,true);await confirm();
+    assert.equal(downloads.length,1);
+  });
   test(`${template}: loaded case uses draft template on existing endpoint`, async () => {
     await mount(); await click(label);
     assert.equal(exports().length,0); await confirm();
@@ -102,6 +293,15 @@ for (const [label, template] of [
   });
 }
 
+for(const label of ['导出入院/住院记录 DOCX','导出出院小结 DOCX'])test(`${label}: current 401 stops generation without a download or retry`,async()=>{
+ await mount();const normal=adapter;
+ adapter=c=>{if(c.url==='/api/clinical-docs/render')throw {config:c,response:{status:401}};return normal(c);};
+ await click(label);assert.equal(storage,'');assert.equal(downloads.length,0);assert.equal(exports().length,1);
+ assert.doesNotMatch(text(),/正在生成|生成中/);assert.match(text(),/登录状态已失效/);
+ assert(renderer.root.findAllByType('a').some(a=>a.props.href==='/'&&a.children.join('')==='返回首页重新登录'));
+ assert.deepEqual(alerts,['登录状态已失效，请重新登录']);
+});
+
 test('review shows literal saved text and blocks unchecked confirmation',async()=>{
  await mount();await click('导出门诊病历草稿 DOCX');
  assert.match(text(),/预览原文/);assert.match(text(),/未填写/);assert.match(text(),/未签署/);
@@ -109,6 +309,26 @@ test('review shows literal saved text and blocks unchecked confirmation',async()
  await click('确认并下载草稿 DOCX');assert.equal(exports().length,0);assert.equal(previews().length,1);
  assert(!renderer.root.findAll(n=>n.props.dangerouslySetInnerHTML).length);
 });
+test('outpatient review includes saved owner name and coat color before confirmation',async()=>{
+ await mount();await click('导出门诊病历草稿 DOCX');
+ for(const [label,value] of [['宠主姓名','合成宠主 < & {{literal}}'],['宠物毛色','黑白（合成）']]){
+   const section=renderer.root.findByProps({'aria-label':label+'核对内容'});
+   assert.equal(section.findByType('pre').children.join(''),value);
+ }
+ assert.equal(button('确认并下载草稿 DOCX').props.disabled,true);
+ await confirm();assert.equal(downloads.length,1);
+});
+for(const key of ['visit.owner_name','visit.coat_color']){
+ test(`missing ${key} refuses an incomplete outpatient preview`,async()=>{
+   const original=adapter;
+   adapter=async c=>{const response=await original(c);if(c.url.endsWith('render-preview')){
+     delete response.data.context[key];
+   }return response;};
+   await mount();await click('导出门诊病历草稿 DOCX');
+   assert.match(text(),/未收到可核对的完整草稿/);
+   assert.equal(button('确认并下载草稿 DOCX'),undefined);assert.equal(downloads.length,0);
+ });
+}
 test('same-tick double confirm exports one reviewed document',async()=>{
  await mount();await click('导出门诊病历草稿 DOCX');await check();
  const submit=button('确认并下载草稿 DOCX').props.onClick;
@@ -181,4 +401,24 @@ test('rolled-back server or mismatched render snapshot is refused before downloa
 test('changing credentials before confirmation cannot dispatch a new account request',async()=>{
  await mount();await click('导出门诊病历草稿 DOCX');await check();storage='synthetic-other';await click('确认并下载草稿 DOCX');
  assert.equal(exports().length,0);assert.equal(downloads.length,0);
+});
+
+
+test('CW-B6 attachments load only on explicit open and preserve existing history', async () => {
+ await mount(); assert.equal(requests.filter(c=>c.url.includes('/attachments')).length,0);
+ const original=adapter; adapter=c=>c.url.endsWith('/attachments')?{config:c,status:200,data:{case_id:1,patient_name:'合成病例-1',species:'dog',items:[],case_token:'a'.repeat(64)}}:original(c);
+ await click('打开检查资料'); await act(async()=>{});
+ assert.equal(requests.filter(c=>c.url.includes('/attachments')).length,1);
+ assert.match(text(),/病史-1/); assert.equal(exports().length,0);
+ await move('/cases/2'); assert.doesNotMatch(text(),/原件已暂存/);
+ assert.equal(requests.filter(c=>c.method!=='get').length,0);
+});
+
+
+test('CW-B9 imaging opens lazily and preserves the existing case history',async()=>{
+ await mount();assert.equal(requests.filter(c=>c.url.includes('/manual-imaging')).length,0);
+ const original=adapter;adapter=c=>c.url.endsWith('/manual-imaging')?{config:c,status:200,data:{case_id:1,patient_name:'合成病例-1',species:'dog',sources:[],reports:[],case_token:'a'.repeat(64)}}:original(c);
+ await click('打开影像记录');await act(async()=>{});
+ assert.equal(requests.filter(c=>c.url.includes('/manual-imaging')).length,1);assert.match(text(),/病史-1/);
+ await move('/cases/2');assert.equal(requests.filter(c=>c.method!=='get').length,0);
 });

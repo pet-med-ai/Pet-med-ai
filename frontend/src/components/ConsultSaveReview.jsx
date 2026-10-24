@@ -126,6 +126,7 @@ export default function ConsultSaveReview({ sessionId, payload, revision, allowe
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 10 }}>
         {metadata.map(([key, label]) => <div key={key}><span style={{ fontSize: 12 }}>{label}</span><div style={{ fontWeight: 600, overflowWrap: "anywhere" }}>{preview[key] || "未填写"}</div></div>)}
       </div>
+      {!!payload.voice_confirmations?.length && <p>本次含 {payload.voice_confirmations.length} 段经核对的语音病史，原文与修订将在保存时一并记入审计。</p>}
       {clinical.map(([key, label]) => <details key={key} open={["chief_complaint", "history", "exam_findings"].includes(key)} style={{ padding: "10px 0", borderBottom: "1px solid #dbeafe" }}>
         <summary style={{ cursor: "pointer", fontWeight: 600 }}>{label}</summary>
         <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", fontFamily: "inherit", fontSize: 13 }}>{preview[key] || "未填写"}</pre>

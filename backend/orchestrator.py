@@ -37,8 +37,8 @@ def _system_path(features):
     return "综合分诊"
 
 
-def run_agent(text: str):
-    features = extract_features(text)
+def run_agent(text: str, evidence_observations=None):
+    features = extract_features(text, evidence_observations)
     species_context = features.get("species_context") or {}
 
     risk = evaluate(features)
@@ -53,6 +53,10 @@ def run_agent(text: str):
 
     diseases = rank(features, tree_path)
     actions = diseases.get("actions") or ["建议进一步检查血常规、生化、影像学"]
+    evidence = features.get("input_evidence")
+    if evidence and evidence["needs_review"]:
+        actions.insert(0, "输入依据待核对：记录存在未知、复杂表述、时间范围或冲突，或尚无可用症状依据；不能据此判定正常。")
+        diseases["actions"] = actions
     structured_intake = build_companion_structured_intake(features) or build_structured_intake(features)
 
     return {
@@ -62,5 +66,6 @@ def run_agent(text: str):
         "diseases": diseases,
         "next_questions": questions,
         "actions": actions,
+        **({"input_evidence": evidence} if evidence else {}),
         **({"structured_intake": structured_intake} if structured_intake else {}),
     }
