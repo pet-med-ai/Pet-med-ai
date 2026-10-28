@@ -29,11 +29,11 @@ export function labMessage(error) {
   };
   return messages[detail] || (typeof detail === "string" && (detail.startsWith("invalid_manual_lab") || detail.startsWith("manual_lab_")) ? "检验内容不完整或格式无效，请检查各项原文。" : attachmentMessage(error));
 }
-export function manualLabClient(caseId, token, signal) {
+export function manualLabClient(caseId, token, signal, isSessionCurrent) {
   return async (method, path = "", data) => {
-    if (!token || localStorage.getItem("token") !== token) throw Error("Account changed");
-    const response = await api.request({ method, url: `/api/cases/${caseId}/manual-lab${path}`, data, signal, timeout: 30000, expectedAuthOwner: draftOwner(token) });
-    if (localStorage.getItem("token") !== token) throw Error("Account changed");
+    if (!token || localStorage.getItem("token") !== token || isSessionCurrent?.() === false) throw Error("Account changed");
+    const response = await api.request({ method, url: `/api/cases/${caseId}/manual-lab${path}`, data, signal, timeout: 30000, expectedAuthOwner: draftOwner(token), expectedAuthCurrent: isSessionCurrent });
+    if (localStorage.getItem("token") !== token || isSessionCurrent?.() === false) throw Error("Account changed");
     return response.data;
   };
 }

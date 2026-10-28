@@ -119,10 +119,10 @@ export function validateOverview(data, caseId) {
   return data;
 }
 
-export async function readOverview(caseId, token, signal) {
-  if (!positive(caseId) || !token || localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
-  const response = await api.get(`/api/cases/${caseId}/visit-overview`, { params: { include_followup_plan: true, include_followup_contacts: true }, signal, timeout: 30000, expectedAuthOwner: draftOwner(token) });
-  if (localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
+export async function readOverview(caseId, token, signal, isSessionCurrent) {
+  if (isSessionCurrent?.() === false || !positive(caseId) || !token || localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
+  const response = await api.get(`/api/cases/${caseId}/visit-overview`, { params: { include_followup_plan: true, include_followup_contacts: true }, signal, timeout: 30000, expectedAuthOwner: draftOwner(token), expectedAuthCurrent: isSessionCurrent });
+  if (isSessionCurrent?.() === false || localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
   return validateOverview(response.data, caseId);
 }
 

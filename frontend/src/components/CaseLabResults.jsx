@@ -15,16 +15,25 @@ function Results({ data }) {
 }
 
 export default function CaseLabResults(props) { return <LabPanel key={JSON.stringify([props.caseId, props.requestToken])} {...props} />; }
-function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onChanged, inspectTarget }) {
+function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onChanged, inspectTarget, sessionExpired = false, isSessionCurrent }) {
   const [list, setList] = useState(null), [draft, setDraft] = useState(null), [review, setReview] = useState(null);
   const [checked, setChecked] = useState(false), [busy, setBusy] = useState(false), [unknown, setUnknown] = useState(null), [message, setMessage] = useState("");
   const active = useRef(false), control = useRef(null), inFlight = useRef(false), dirty = useRef(false), reviewEpoch = useRef(0), pendingRefresh = useRef(false), readEpoch = useRef(0);
   const recordNodes = useRef({});
-  const current = () => active.current && localStorage.getItem("token") === requestToken;
-  const client = (method, path, data) => manualLabClient(caseId, requestToken, control.current?.signal)(method, path, data);
+  const retired = useRef(false), session = useRef(null);
+  session.current = { sessionExpired, isSessionCurrent };
+  const current = () => {
+    if (!active.current) return false;
+    if (retired.current || session.current.sessionExpired || session.current.isSessionCurrent?.() === false || localStorage.getItem("token") !== requestToken) {
+      retired.current = true;
+      return false;
+    }
+    return true;
+  };
+  const client = (method, path, data) => manualLabClient(caseId, requestToken, control.current?.signal, current)(method, path, data);
   const invalidate = () => { reviewEpoch.current++; setReview(null); setChecked(false); };
-  const reset = () => { setDraft(null); setUnknown(null); invalidate(); };
-  async function refresh() { const epoch = ++readEpoch.current; setList(null); const result = await client("get"); if (current() && epoch === readEpoch.current) setList(result); return result; }
+  const reset = () => { if (!current()) return; setDraft(null); setUnknown(null); invalidate(); };
+  async function refresh() { if (!current()) return; const epoch = ++readEpoch.current; setList(null); const result = await client("get"); if (current() && epoch === readEpoch.current) setList(result); return result; }
   async function action(fn) {
     if (!current() || inFlight.current) return;
     inFlight.current = true; setBusy(true); setMessage("");
@@ -34,15 +43,23 @@ function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onC
         pendingRefresh.current = false;
         try { await refresh(); } catch (e) { if (current()) setMessage(labMessage(e)); }
       }
-      inFlight.current = false; if (current()) setBusy(false);
+      inFlight.current = false; if (active.current) { setBusy(false); if (!current()) expireSession(); }
     }
   }
   useEffect(() => {
     active.current = true; control.current = new AbortController(); action(refresh);
     return () => { active.current = false; control.current.abort(); onDirtyChange?.(false); };
   }, [caseId, requestToken]);
+  function expireSession() {
+    if (!active.current || current()) return;
+    // Keep drafts and the pre-dispatch request locator; cancellation is not rollback.
+    pendingRefresh.current = false;
+    invalidate(); setBusy(false); setMessage(""); control.current?.abort();
+  }
+  useEffect(() => { if (sessionExpired || isSessionCurrent?.() === false) expireSession(); }, [sessionExpired, isSessionCurrent]);
   useEffect(() => { dirty.current = Boolean(draft || unknown); onDirtyChange?.(dirty.current); }, [draft, unknown, onDirtyChange]);
   function sourceRefresh() {
+    if (!current()) { expireSession(); return; }
     invalidate(); readEpoch.current++; setList(null);
     if (inFlight.current) pendingRefresh.current = true; else action(refresh);
   }
@@ -69,26 +86,31 @@ function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onC
     if (current() && targetMatches) { const node = recordNodes.current[inspected.id]; node?.scrollIntoView?.({ block: "nearest" }); node?.focus?.(); }
   }, [list, inspectTarget]);
   function edit(row, operation) {
+    if (!current() || inFlight.current || unknown) return;
     if (dirty.current && !window.confirm(prompt)) return;
     invalidate(); setUnknown(null);
     setDraft({ operation, report_id: row?.id || null, expected_report_token: row?.token || "", attachment_id: row?.attachment_id || "", reason: "", data: row ? editableLabData(row.data) : newLabData() });
   }
-  function change(patch) { setDraft(d => ({ ...d, ...patch })); invalidate(); }
+  function change(patch) { if (!current() || inFlight.current || unknown) return; setDraft(d => ({ ...d, ...patch })); invalidate(); }
   function reportChange(key, value) { change({ data: { ...draft.data, report: { ...draft.data.report, [key]: value }, items: draft.data.items.map(r => ({ ...r, checked: false })) } }); }
   function rowChange(index, key, value) { change({ data: { ...draft.data, items: draft.data.items.map((r, i) => i === index ? { ...r, [key]: value, checked: key === "checked" ? value : false } : r) } }); }
   async function preview() {
+    if (!current()) return;
     const body = { ...draft, data: draft.operation === "withdraw" ? null : draft.data, request_id: newAttachmentRequest(), expected_case_token: list.case_token };
     const epoch = reviewEpoch.current;
     const result = await client("post", "/preview", body);
     if (current() && epoch === reviewEpoch.current) { setReview({ ...result, body }); setChecked(false); }
   }
   async function readUnknown(id) {
+    if (!current()) return;
     const result = await client("get", `/requests/${id}`); if (!current()) return;
     if (result.state === "committed") { reset(); await refresh(); if (current()) { setMessage("已回读保存结果，未重复提交。"); onChanged?.(); } }
     else if (result.state === "not_committed") { setUnknown(null); invalidate(); await refresh(); if (current()) setMessage("未找到已提交记录，请重新核对后保存。"); }
   }
   async function confirm() {
+    if (!current() || !review || !checked) return;
     const id = review.body.request_id;
+    setUnknown(id); setChecked(false);
     try { await client("post", "/confirm", { ...review.body, preview_token: review.preview_token, reviewed: true }); if (current()) { reset(); await refresh(); if (current()) { setMessage("检验记录已保存。"); onChanged?.(); } } }
     catch (error) {
       if (!current()) return;
@@ -97,18 +119,31 @@ function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onC
     }
   }
   async function sourceFile(source) {
-    const bytes = await attachmentClient(caseId, requestToken, control.current?.signal)("get", `/${source.id}/content?request_id=${newAttachmentRequest()}&preview=false`, undefined, { responseType: "arraybuffer" });
+    if (!current()) return;
+    const bytes = await attachmentClient(caseId, requestToken, control.current?.signal, current)("get", `/${source.id}/content?request_id=${newAttachmentRequest()}&preview=false`, undefined, { responseType: "arraybuffer" });
     await verifyAttachmentBytes(bytes, source); if (!current()) return;
     const url = URL.createObjectURL(new Blob([bytes], { type: source.mime })), link = document.createElement("a");
     link.href = url; link.download = source.name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
-  const locked = busy || Boolean(unknown);
+  const expired = retired.current || sessionExpired || isSessionCurrent?.() === false;
+  const locked = expired || busy || Boolean(unknown);
   return <section className="clinical-lab-panel" aria-label="检验项目人工录入" style={box}>
     <h2>检验项目人工录入</h2><p>按原报告逐项填写并核对。保留原始数值、单位、范围和标记；未提供的内容请留空。</p>
     <p>未保存草稿仅留在本页，刷新或切换病例、账号后清除。</p>
     <p role="status">{busy ? "正在处理…" : message}</p>
+    {expired && <section aria-label="检验登录失效保留内容">
+      <p role="alert">登录状态已失效，本页操作已停止。请先复制未保存原文及待核对请求标识；刷新或离开页面后不保证保留，不要重复提交。</p>
+      {draft && <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{[
+        `原件标识：${draft.attachment_id || ""}`, `记录标识：${draft.report_id || ""}`,
+        ...Object.entries({ title: "报告标题", panel: "报告类型", specimen: "样本类型", collected_at: "采样时间", reported_at: "报告时间", laboratory: "实验室", device: "仪器", note: "报告备注" }).map(([key, label]) => `${label}：${draft.data?.report?.[key] || ""}`),
+        ...(draft.data?.items || []).map((row, index) => `项目 ${index + 1}\n结果类型：${labTypes[row.result_type] || row.result_type}\n` + Object.entries(fields).map(([key, label]) => `${label}：${row[key] || ""}`).join("\n")),
+        `更正或撤销原因：${draft.reason || ""}`,
+      ].join("\n")}</pre>}
+    </section>}
+    {unknown && <p>本页待核对请求标识：<code>{unknown}</code>。取消请求不代表未保存。</p>}
+
     <button disabled={locked} onClick={() => action(async () => { invalidate(); await refresh(); })}>刷新检验记录</button>
-    {unknown && <button disabled={busy} onClick={() => action(() => readUnknown(unknown))}>核对检验保存结果</button>}
+    {unknown && <button disabled={expired || busy} onClick={() => action(() => readUnknown(unknown))}>核对检验保存结果</button>}
     {list && <>
       <p>病例 #{list.case_id} · {list.patient_name} · {list.species}</p>
       <button disabled={locked || Boolean(draft)} onClick={() => edit(null, "create")}>录入检验报告</button>
@@ -132,7 +167,7 @@ function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onC
         </fieldset>}
         {draft.operation !== "create" && <label>更正或撤销原因<textarea aria-label="更正或撤销原因" disabled={locked} maxLength={500} value={draft.reason} onChange={e => change({ reason:e.target.value })} /></label>}
         <button disabled={locked || (draft.operation !== "withdraw" && (!draft.attachment_id || !draft.data.items.every(r => r.checked)))} onClick={() => action(preview)}>核对整份检验记录</button>
-        <button disabled={locked} onClick={() => { if (window.confirm(prompt)) reset(); }}>放弃本页检验草稿</button>
+        <button disabled={locked} onClick={() => { if (current() && !inFlight.current && !unknown && window.confirm(prompt)) reset(); }}>放弃本页检验草稿</button>
       </section>}
       {review && <section aria-label="整份检验核对" style={box}>
         <h3>核对整份检验记录</h3><p>病例 #{review.case.case_id} · {review.case.patient_name} · {review.case.species}</p>
@@ -141,7 +176,7 @@ function LabPanel({ caseId, requestToken, sourceRevision = 0, onDirtyChange, onC
         {review.data && <><dl>{Object.entries(review.data.report).map(([k,v]) => <React.Fragment key={k}><dt>{{title:"报告标题",panel:"报告类型",specimen:"样本类型",collected_at:"采样时间",reported_at:"报告时间",laboratory:"实验室",device:"仪器",note:"备注"}[k]}</dt><dd>{k === "panel" ? panels[v] : v || "未提供"}</dd></React.Fragment>)}</dl><Results data={review.data}/></>}
         {review.before && <details><summary>更正前的检验记录</summary><Results data={review.before.data}/></details>}
         <p>原因：{review.reason || "首次录入"}</p>
-        <label><input type="checkbox" aria-label="已核对整份检验记录" disabled={locked} checked={checked} onChange={e => setChecked(e.target.checked)} />已核对病例、原件及整份检验内容</label>
+        <label><input type="checkbox" aria-label="已核对整份检验记录" disabled={locked} checked={checked} onChange={e => { if (current() && !busy && !unknown) setChecked(e.target.checked); }} />已核对病例、原件及整份检验内容</label>
         <button disabled={locked || !checked} onClick={() => action(confirm)}>确认保存检验记录</button>
       </section>}
       <h3>检验记录与版本历史</h3>

@@ -31,33 +31,37 @@ function Preview({payload, onReady}) {
 export default function ClinicalDocFollowupContactSelection(props) {
   return props.mode === 'preview' ? <Preview {...props}/> : <Selector key={JSON.stringify([props.caseId,props.requestToken,props.templateId])} {...props}/>;
 }
-function Selector({caseId, requestToken, templateId='outpatient_record_zh', onSelect, onInspect, onInspectPlan, readRevision=0}) {
+function Selector({caseId, requestToken, templateId='outpatient_record_zh', onSelect, onInspect, onInspectPlan, readRevision=0,isSessionCurrent}) {
   const [list,setList]=useState(null),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false),[revision,setRevision]=useState(0);
   const epoch=useRef(0), callbacks=useRef({onSelect,onInspect,onInspectPlan}); callbacks.current={onSelect,onInspect,onInspectPlan};
+  const active=useRef(false),session=useRef(isSessionCurrent);session.current=isSessionCurrent;
+  const owned=()=>active.current&&session.current?.()!==false&&Boolean(requestToken)&&localStorage.getItem('token')===requestToken;
   useEffect(()=>{
+    active.current=true;
     const stamp=++epoch.current, abort=new AbortController(); setList(null);setBusy(true);setNotice('正在读取已保存的人工随访…');
-    readDocumentContacts(caseId,requestToken,abort.signal).then(value=>{
-      if(epoch.current===stamp&&!abort.signal.aborted&&localStorage.getItem('token')===requestToken){setList(value);setNotice('');}
-    }).catch(error=>{if(epoch.current===stamp&&!abort.signal.aborted)setNotice(message(error));})
-      .finally(()=>{if(epoch.current===stamp&&!abort.signal.aborted)setBusy(false);});
-    return()=>{epoch.current++;abort.abort();};
+    const current=()=>owned()&&epoch.current===stamp&&!abort.signal.aborted;
+    readDocumentContacts(caseId,requestToken,abort.signal,current).then(value=>{
+      if(current()){setList(value);setNotice('');}
+    }).catch(error=>{if(current())setNotice(message(error));})
+      .finally(()=>{if(current())setBusy(false);});
+    return()=>{active.current=false;epoch.current++;abort.abort();};
   },[caseId,requestToken,readRevision,revision]);
   function select(row){
-    if(busy||localStorage.getItem('token')!==requestToken)return;
+    if(busy||!owned())return;
     try{callbacks.current.onSelect(documentContactSelection(list,row,templateId));setNotice('');}
     catch(error){callbacks.current.onSelect(null);setNotice(message(error));}
   }
   return <section aria-label="选择文书人工随访" style={{padding:12,border:'1px solid #ccd5d1',overflowWrap:'anywhere'}}>
     <h3>选择已保存的人工随访记录</h3><p>默认不纳入，最多一条当前有效联系记录。历史来源可能已经更正或撤销；请核对原文与当前状态。</p>
     {templateId==='owner_visit_summary_zh'&&<p>联系原文和历史来源可能含内部备注或旧身份，请核对是否适合出示给宠主。可取消纳入；需要更正时请回到原记录处理。下载不会自动发送。</p>}
-    <button type="button" disabled={busy} onClick={()=>{callbacks.current.onSelect(null);setRevision(v=>v+1);}}>刷新可选人工随访</button>
+    <button type="button" disabled={busy} onClick={()=>{if(!owned())return;callbacks.current.onSelect(null);setRevision(v=>v+1);}}>刷新可选人工随访</button>
     <p role="status">{notice}</p>
     {list&&!list.records.length&&<p>尚无保存记录，不代表从未联系或无需复查。</p>}
     {list?.records.map(row=><article key={row.id} aria-label={`文书可选随访记录 ${row.id}`}>
       <Facts record={row} currentCase={list.case}/>
       <button type="button" disabled={busy||row.state!=='recorded'} onClick={()=>select(row)}>将此随访纳入本次文书</button>{' '}
-      <button type="button" disabled={busy} onClick={()=>callbacks.current.onInspect?.({id:row.id,version:row.version})}>回看此随访版本</button>{' '}
-      <button type="button" disabled={busy} onClick={()=>callbacks.current.onInspectPlan?.({id:row.source.id,version:row.source.version})}>回看此随访来源计划</button>
+      <button type="button" disabled={busy} onClick={()=>{if(owned())callbacks.current.onInspect?.({id:row.id,version:row.version});}}>回看此随访版本</button>{' '}
+      <button type="button" disabled={busy} onClick={()=>{if(owned())callbacks.current.onInspectPlan?.({id:row.source.id,version:row.source.version});}}>回看此随访来源计划</button>
       {row.state!=='recorded'&&<p>此联系版本不能作为本次文书选择。</p>}
     </article>)}
   </section>;

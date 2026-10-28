@@ -107,6 +107,30 @@ test('unknown plan save survives remount and same-account login without another 
  offline=false;await click('核对复查保存结果');assert.match(text(),/已核对服务端保存结果/);
  assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);assert.equal(window.sessionStorage.length,0);
 });
+test('parent session expiry keeps actual unknown plan result and copyable raw text without reviving old actions',async()=>{
+ const normal=adapter;let saved,allowed=true;const isSessionCurrent=()=>allowed,originalToken=token;
+ adapter=async c=>{if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;throw Error('reply lost');}
+  if(c.url.includes('/requests/'))throw Error('offline');return normal(c);};
+ await act(async()=>{renderer=TestRenderer.create(<CaseFollowupPlan caseId={1} requestToken={originalToken} isSessionCurrent={isSessionCurrent}/>);});
+ await fill();await review();await click('确认保存复查计划');
+ assert(button('核对复查保存结果'));assert.equal(window.sessionStorage.length,1);
+ const key=window.sessionStorage.key(0),locator=window.sessionStorage.getItem(key),count=requests.length;
+ allowed=false;token=null;
+ await act(async()=>renderer.update(<CaseFollowupPlan caseId={1} requestToken={originalToken} isSessionCurrent={isSessionCurrent} sessionExpired/>));
+ const original=()=>renderer.root.findByProps({'aria-label':'未保存复查目的原文'});
+ assert.equal(original().type,'pre');assert.equal(original().children.join(''),fixture.plan.purpose);
+ assert.equal(renderer.root.findByProps({'aria-label':'未保存复查备注原文'}).children.join(''),fixture.plan.note);
+ assert.match(text(),new RegExp(saved.request_id));assert(renderer.root.findByProps({'aria-label':'复查保存结果待核对'}));
+ assert.equal(renderer.root.findAllByType('button').length,0);assert.equal(window.sessionStorage.getItem(key),locator);
+ token=originalToken;allowed=true;
+ await act(async()=>renderer.update(<CaseFollowupPlan caseId={1} requestToken={originalToken} isSessionCurrent={isSessionCurrent}/>));
+ assert.equal(original().children.join(''),fixture.plan.purpose);assert.equal(renderer.root.findAllByType('button').length,0);
+ assert.equal(window.sessionStorage.getItem(key),locator);assert.equal(requests.length,count);
+ token='other-owner';await fire('storage');
+ assert.equal(renderer.root.findAllByProps({'aria-label':'复查计划原文只读'}).length,0);
+ assert.equal(renderer.root.findAllByProps({'aria-label':'复查保存结果待核对'}).length,0);
+ assert.equal(window.sessionStorage.getItem(key),locator);assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
+});
 test('a plan receipt absent from independent readback cannot unlock an unknown write',async()=>{
  const normal=adapter;let saved;
  adapter=async c=>{if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;listing.plans=[];return {config:c,data:saved};}

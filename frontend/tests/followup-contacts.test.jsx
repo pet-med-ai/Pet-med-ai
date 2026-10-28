@@ -100,6 +100,30 @@ test('unknown contact save survives remount and resolves with GET only',async()=
  offline=false;await click('核对随访保存结果');assert.match(output(),/已核对服务端保存结果/);
  assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);assert.equal(window.sessionStorage.length,0);
 });
+test('parent session expiry keeps actual unknown contact result and copyable raw text without reviving old actions',async()=>{
+ const normal=adapter;let saved,allowed=true;const isSessionCurrent=()=>allowed,originalToken=token;
+ adapter=async c=>{if(c.url.endsWith('/confirm')){saved=(await normal(c)).data;throw Error('reply lost');}
+  if(c.url.includes('/requests/'))throw Error('offline');return normal(c);};
+ await act(async()=>{renderer=TestRenderer.create(<CaseFollowupContacts caseId={1} requestToken={originalToken} isSessionCurrent={isSessionCurrent}/>);});
+ await fill();await review();await click('确认保存人工随访');
+ assert(button('核对随访保存结果'));assert.equal(window.sessionStorage.length,1);
+ const key=window.sessionStorage.key(0),locator=window.sessionStorage.getItem(key),count=requests.length;
+ allowed=false;token=null;
+ await act(async()=>renderer.update(<CaseFollowupContacts caseId={1} requestToken={originalToken} isSessionCurrent={isSessionCurrent} sessionExpired/>));
+ const original=()=>renderer.root.findByProps({'aria-label':'未保存随访记录原文'});
+ assert.equal(original().type,'pre');assert.equal(original().children.join(''),fixture.contact.note);
+ assert.equal(renderer.root.findByProps({'aria-label':'未保存随访后续安排原文'}).children.join(''),fixture.contact.next_action);
+ assert.match(output(),new RegExp(saved.request_id));assert(renderer.root.findByProps({'aria-label':'随访保存结果待核对'}));
+ assert.equal(renderer.root.findAllByType('button').length,0);assert.equal(window.sessionStorage.getItem(key),locator);
+ token=originalToken;allowed=true;
+ await act(async()=>renderer.update(<CaseFollowupContacts caseId={1} requestToken={originalToken} isSessionCurrent={isSessionCurrent}/>));
+ assert.equal(original().children.join(''),fixture.contact.note);assert.equal(renderer.root.findAllByType('button').length,0);
+ assert.equal(window.sessionStorage.getItem(key),locator);assert.equal(requests.length,count);
+ token='other-owner';await fire('storage');
+ assert.equal(renderer.root.findAllByProps({'aria-label':'人工随访原文只读'}).length,0);
+ assert.equal(renderer.root.findAllByProps({'aria-label':'随访保存结果待核对'}).length,0);
+ assert.equal(window.sessionStorage.getItem(key),locator);assert.equal(requests.filter(c=>c.url.endsWith('/confirm')).length,1);
+});
 
 test('contact locator hash mismatch after refresh never confirms or auto-retries',async()=>{
  const normal=adapter;let saved,offline=true;

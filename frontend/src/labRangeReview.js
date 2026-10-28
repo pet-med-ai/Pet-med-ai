@@ -51,10 +51,10 @@ export function validateRangeReview(data, caseId) {
   return data;
 }
 
-export async function readRangeReview(caseId, token, signal) {
-  if (!positive(caseId) || !token || localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
-  const response = await api.get(`/api/cases/${caseId}/lab-range-review`, { signal, timeout: 30000, expectedAuthOwner: draftOwner(token) });
-  if (localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
+export async function readRangeReview(caseId, token, signal, isSessionCurrent) {
+  if (isSessionCurrent?.() === false || !positive(caseId) || !token || localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
+  const response = await api.get(`/api/cases/${caseId}/lab-range-review`, { signal, timeout: 30000, expectedAuthOwner: draftOwner(token), expectedAuthCurrent: isSessionCurrent });
+  if (isSessionCurrent?.() === false || localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
   return validateRangeReview(response.data, caseId);
 }
 export function rangeMessage(error) {

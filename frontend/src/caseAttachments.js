@@ -26,13 +26,13 @@ export const attachmentMessage = error => ({
   attachment_storage_or_database_unavailable: "存储或数据库暂不可用，请先核对操作结果。",
 }[error?.response?.data?.detail] || "操作未确认，请核对结果后再处理；原病历不受影响。");
 
-export function attachmentClient(caseId, token, signal) {
+export function attachmentClient(caseId, token, signal, isSessionCurrent) {
   const root = `/api/cases/${caseId}/attachments`;
   return async (method, path = "", data, options = {}) => {
-    if (!token || localStorage.getItem("token") !== token) throw new Error("Account changed");
+    if (!token || localStorage.getItem("token") !== token || isSessionCurrent?.() === false) throw new Error("Account changed");
     const result = await api.request({ method, url: root + path, data, signal, timeout: 30000,
-      expectedAuthOwner: draftOwner(token), ...options });
-    if (localStorage.getItem("token") !== token) throw new Error("Account changed");
+      ...options, expectedAuthOwner: draftOwner(token), expectedAuthCurrent: isSessionCurrent });
+    if (localStorage.getItem("token") !== token || isSessionCurrent?.() === false) throw new Error("Account changed");
     return result.data;
   };
 }

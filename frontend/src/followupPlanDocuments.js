@@ -1,8 +1,8 @@
 import { followupClient, same, validList, validPlan } from './followupPlan';
 
 export const documentPlanSchema = 'clinical-followup-plan-documents-cw-b15-v1';
-export async function readDocumentPlans(caseId, token, signal) {
-  const value = await followupClient(caseId, token, signal)('get');
+export async function readDocumentPlans(caseId, token, signal, isSessionCurrent) {
+  const value = await followupClient(caseId, token, signal, isSessionCurrent)('get');
   if (!validList(value, caseId)) throw Error('复查计划数据不完整，暂不能纳入文书。');
   return value;
 }

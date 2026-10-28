@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../api";
 import { draftOwner } from "../consultDraft";
@@ -23,7 +23,7 @@ const fields = [
   ["visit.follow_up", "复查安排状态"], ["export.account_id", "导出账号（非签名）"],
 ];
 
-export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose, onSessionExpired, onInspectLab, onInspectImaging, onInspectFollowup, onInspectContact, sourceRevision = 0 }) {
+export default function ClinicalDocReview({ caseId, templateId, label, requestToken, onDownload, onClose, onSessionExpired, onInspectLab, onInspectImaging, onInspectFollowup, onInspectContact, sourceRevision = 0, sessionExpired: parentSessionExpired = false, isSessionCurrent }) {
   const reviewFields = templateId === "outpatient_record_zh" ? [
     ...fields.slice(0, 2), ["visit.owner_name", "宠主姓名"], ["visit.coat_color", "宠物毛色"],
     ...fields.slice(2),
@@ -46,23 +46,35 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
   const [contactOpen,setContactOpen]=useState(false),[contactChoice,setContactChoice]=useState(null),[contactRevision,setContactRevision]=useState(0),[contactReady,setContactReady]=useState(false);
   const selectedContact=useRef(null),contactSession=useRef(false),contactRecheck=useRef(null);
   const active = useRef(false), pending = useRef(false), generation = useRef(0), heading = useRef(null);
+  const retired = useRef(false), parentSession = useRef(null);
+  parentSession.current = { expired: parentSessionExpired, isCurrent: isSessionCurrent };
+  const parentCurrent = () => {
+    if (parentSession.current.expired || parentSession.current.isCurrent?.() === false) retired.current = true;
+    return !retired.current;
+  };
   const callbacks = useRef({ onDownload, onClose, onSessionExpired });
   callbacks.current = { onDownload, onClose, onSessionExpired };
-  const current = stamp => active.current && generation.current === stamp &&
+  const current = stamp => active.current && generation.current === stamp && parentCurrent() &&
     Boolean(requestToken) && localStorage.getItem("token") === requestToken;
+  // Selections invalidate the document generation while remaining in this review.
+  const isReviewSessionCurrent = useCallback(() => active.current && parentCurrent() &&
+    Boolean(requestToken) && localStorage.getItem("token") === requestToken, [requestToken]);
 
   function finishRequest(stamp) {
     if (!active.current || generation.current !== stamp) return;
     // End the old review on expiry or account replacement without accepting
     // its response, clearing a newer login, or discarding other unsaved work.
     const token = localStorage.getItem("token");
-    if (!token) {
+    if (!parentCurrent() || !token || token !== requestToken) {
+      const expired = parentSession.current.expired || !token || token === requestToken;
+      retired.current = true;
       invalidateDocument();
-      setSessionExpired(true);
-      callbacks.current.onSessionExpired?.();
-    } else if (token !== requestToken) {
-      invalidateDocument();
-      setSessionChanged(true);
+      recheckRequest.current?.abort(); planRecheck.current?.abort(); contactRecheck.current?.abort();
+      setPlanPreviewReady(false); setContactReady(false); setMessage("");
+      if (expired) {
+        setSessionExpired(true);
+        callbacks.current.onSessionExpired?.();
+      } else setSessionChanged(true);
     } else if (current(stamp)) {
       pending.current = false; setBusy(false);
     }
@@ -70,7 +82,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
 
   async function load() {
     if (pending.current || !active.current) return;
-    if (localStorage.getItem("token") !== requestToken) { finishRequest(generation.current); return; }
+    if (!parentCurrent() || localStorage.getItem("token") !== requestToken) { finishRequest(generation.current); return; }
     pending.current = true;
     const stamp = ++generation.current;
     documentRequest.current?.abort(); documentRequest.current = new AbortController();
@@ -85,7 +97,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
         ...(choice ? {manual_lab_comparison:choice.request} : {}),
         ...(plan ? {manual_followup_plan:plan.request} : {}),
         ...(contact ? {manual_followup_contact:contact.request} : {}),
-      }, { signal: documentRequest.current.signal, timeout: 15000, expectedAuthOwner: draftOwner(requestToken) });
+      }, { signal: documentRequest.current.signal, timeout: 15000, expectedAuthOwner: draftOwner(requestToken), expectedAuthCurrent: () => current(stamp) });
       if (!current(stamp)) return;
       if (data.case_id !== caseId || data.template_id !== templateId ||
           !/^[a-f0-9]{64}$/.test(data.content_snapshot || "") ||
@@ -114,6 +126,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
 
   useEffect(() => {
     active.current = true;
+    retired.current = false;
     pending.current = false;
     setSessionExpired(false);
     setSessionChanged(false);
@@ -126,6 +139,10 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     void load();
     return () => { active.current = false; generation.current++; documentRequest.current?.abort(); recheckRequest.current?.abort(); planRecheck.current?.abort(); contactRecheck.current?.abort(); };
   }, [caseId, templateId, requestToken]);
+
+  useEffect(() => {
+    if (!parentCurrent()) finishRequest(generation.current);
+  }, [parentSessionExpired, isSessionCurrent]);
 
   function invalidateDocument() {
     generation.current++; pending.current=false; documentRequest.current?.abort();
@@ -148,10 +165,10 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     };
     const request=api.interceptors.request.use(c=>{if(affects(c))reset();return c;});
     const reread=c=>{
-      if(!affects(c)||!active.current||!contactSession.current)return;
+      if(!affects(c)||!current(generation.current)||!contactSession.current)return;
       refresh();contactRecheck.current?.abort();const abort=new AbortController();contactRecheck.current=abort;
       const stamp=generation.current;
-      readDocumentContacts(caseId,requestToken,abort.signal).catch(()=>{
+      readDocumentContacts(caseId,requestToken,abort.signal,()=>current(stamp)).catch(()=>{
         if(current(stamp)&&!abort.signal.aborted)setMessage('随访独立回读未完成，原文书核对已失效，请刷新后重新核对。');
       });
     };
@@ -181,10 +198,10 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     };
     const request=api.interceptors.request.use(c=>{if(affects(c))reset();return c;});
     const reread=c=>{
-      if(!affects(c)||!active.current||!planSession.current)return;
+      if(!affects(c)||!current(generation.current)||!planSession.current)return;
       reset();setPlanReadRevision(v=>v+1);planRecheck.current?.abort();const abort=new AbortController();planRecheck.current=abort;
       const stamp=generation.current;
-      readDocumentPlans(caseId,requestToken,abort.signal).catch(()=>{
+      readDocumentPlans(caseId,requestToken,abort.signal,()=>current(stamp)).catch(()=>{
         if(current(stamp)&&!abort.signal.aborted)setMessage('复查计划独立回读未完成，原文书核对已失效，请刷新后重新核对。');
       });
     };
@@ -200,9 +217,10 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     const affects = c => c?.method?.toLowerCase() === 'post' && ['attachments','manual-lab','manual-imaging'].some(k => c.url === `/api/cases/${caseId}/${k}/confirm`);
     const request = api.interceptors.request.use(c => { if (affects(c)) reset(); return c; });
     const reread = c => {
-      if (affects(c) && active.current && comparisonSession.current) {
+      if (affects(c) && current(generation.current) && comparisonSession.current) {
         reset(); recheckRequest.current?.abort(); recheckRequest.current=new AbortController();
-        readComparison(caseId, requestToken, recheckRequest.current.signal).catch(() => {});
+        const stamp = generation.current;
+        readComparison(caseId, requestToken, recheckRequest.current.signal, () => current(stamp)).catch(() => {});
       }
     };
     const response = api.interceptors.response.use(r => { reread(r.config); return r; }, e => { reread(e.config); return Promise.reject(e); });
@@ -247,7 +265,7 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     }
   }
 
-  if (sessionExpired || sessionChanged) return <section aria-label="文书草稿内容核对" className="screen-only">
+  if (!parentCurrent() || sessionExpired || sessionChanged) return <section aria-label="文书草稿内容核对" className="screen-only">
     <h2>核对{label}</h2>
     <p role="alert">{sessionChanged
       ? "登录账号已变化，本次草稿核对已停止。请先保留尚未保存的原文，再重新打开病例、读取草稿并核对。"
@@ -264,27 +282,27 @@ export default function ClinicalDocReview({ caseId, templateId, label, requestTo
     <Link to={`/cases/${caseId}/edit`} onClick={leave}>返回病例更正</Link>{" "}
     <button type="button" disabled={busy} onClick={load}>重新读取草稿</button>
     {" "}<button type="button" disabled={busy} onClick={()=>{selectLabs([]);setLabOpen(v=>!v);}}>{labOpen ? "不纳入检验报告" : "选择已核对检验报告"}</button>
-    {labOpen && <Suspense fallback={<p>正在打开检验选择…</p>}><ClinicalDocLabSelection caseId={caseId} requestToken={requestToken}
+    {labOpen && <Suspense fallback={<p>正在打开检验选择…</p>}><ClinicalDocLabSelection isSessionCurrent={isReviewSessionCurrent} caseId={caseId} requestToken={requestToken}
       selected={labIds} onChange={selectLabs} onInspect={()=>{leave();onInspectLab?.();}}/></Suspense>}
     {" "}<button type="button" disabled={busy} onClick={()=>{selectImaging([]);setImagingOpen(v=>!v);}}>{imagingOpen ? "不纳入影像报告" : "选择已核对影像报告"}</button>
-    {imagingOpen && <Suspense fallback={<p>正在打开影像选择…</p>}><ClinicalDocImagingSelection caseId={caseId} requestToken={requestToken}
+    {imagingOpen && <Suspense fallback={<p>正在打开影像选择…</p>}><ClinicalDocImagingSelection isSessionCurrent={isReviewSessionCurrent} caseId={caseId} requestToken={requestToken}
       selected={imagingIds} onChange={selectImaging} onInspect={()=>{leave();onInspectImaging?.();}}/></Suspense>}
     {['outpatient_record_zh', 'owner_visit_summary_zh'].includes(templateId) && <>
       {' '}<button type="button" disabled={busy} onClick={()=>{planSession.current=true;setPlanOpen(v=>!v);}}>{planOpen?'收起复查计划选择':'选择复查计划附节'}</button>
       {planChoice&&<p>已选择复查计划 #{planChoice.request.id} 版本 {planChoice.request.version}。<button type="button" onClick={()=>selectPlan(null)}>移除本次复查计划附节</button></p>}
-      {planOpen&&<Suspense fallback={<p>正在打开复查计划选择…</p>}><ClinicalDocFollowupPlanSelection caseId={caseId} requestToken={requestToken} templateId={templateId} readRevision={planReadRevision}
+      {planOpen&&<Suspense fallback={<p>正在打开复查计划选择…</p>}><ClinicalDocFollowupPlanSelection isSessionCurrent={isReviewSessionCurrent} caseId={caseId} requestToken={requestToken} templateId={templateId} readRevision={planReadRevision}
         onSelect={selectPlan} onInspect={target=>{leave();onInspectFollowup?.(target);}}/></Suspense>}
     </>}
     {templateId === 'outpatient_record_zh' && <>
       {' '}<button type="button" disabled={busy} onClick={() => { comparisonSession.current=true; selectComparison(null); setComparisonOpen(v => !v); }}>{comparisonOpen ? '关闭对照选择并移除' : '选择检验前后对照附节'}</button>
       {comparisonChoice && <p>已明确选择一对项目；尚需重新读取完整草稿并确认。<button type="button" onClick={() => selectComparison(null)}>移除本次对照附节</button></p>}
-      {comparisonOpen && <Suspense fallback={<p>正在打开对照选择…</p>}><ClinicalDocLabComparisonSelection caseId={caseId} requestToken={requestToken} sourceRevision={sourceRevision}
+      {comparisonOpen && <Suspense fallback={<p>正在打开对照选择…</p>}><ClinicalDocLabComparisonSelection isSessionCurrent={isReviewSessionCurrent} caseId={caseId} requestToken={requestToken} sourceRevision={sourceRevision}
         onSelect={selectComparison} onInvalidated={() => selectComparison(null)} onInspect={target => {leave();onInspectLab?.(target);}} /></Suspense>}
     </>}
     {['outpatient_record_zh','owner_visit_summary_zh'].includes(templateId) && <>
       {' '}<button type="button" disabled={busy} onClick={()=>{contactSession.current=true;setContactOpen(v=>!v);}}>{contactOpen?'收起人工随访选择':'选择人工随访记录附节'}</button>
       {contactChoice&&<p>已选择随访 #{contactChoice.request.id} 版本 {contactChoice.request.version}。<button type="button" onClick={()=>selectContact(null)}>移除本次人工随访附节</button></p>}
-      {contactOpen&&<Suspense fallback={<p>正在打开随访选择…</p>}><ClinicalDocFollowupContactSelection caseId={caseId} requestToken={requestToken} templateId={templateId} readRevision={contactRevision}
+      {contactOpen&&<Suspense fallback={<p>正在打开随访选择…</p>}><ClinicalDocFollowupContactSelection isSessionCurrent={isReviewSessionCurrent} caseId={caseId} requestToken={requestToken} templateId={templateId} readRevision={contactRevision}
         onSelect={selectContact} onInspect={target=>{leave();onInspectContact?.(target);}} onInspectPlan={target=>{leave();onInspectFollowup?.(target);}}/></Suspense>}
     </>}
     {message && <p role="status" aria-live="polite">{message}</p>}

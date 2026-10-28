@@ -8,24 +8,33 @@ export default function CaseAttachments(props) {
   return <AttachmentPanel key={JSON.stringify([props.caseId, props.requestToken])} {...props} />;
 }
 
-function AttachmentPanel({ caseId, requestToken, onChanged }) {
+function AttachmentPanel({ caseId, requestToken, onChanged, sessionExpired = false, isSessionCurrent }) {
   const [list, setList] = useState(null), [busy, setBusy] = useState(false), [message, setMessage] = useState("");
   const [file, setFile] = useState(null), [stage, setStage] = useState(null), [editing, setEditing] = useState(null);
   const [meta, setMeta] = useState(attachmentMetadata), [reason, setReason] = useState("");
   const [review, setReview] = useState(null), [checked, setChecked] = useState(false), [filter, setFilter] = useState("");
   const [type, setType] = useState(""), [image, setImage] = useState(null), [unknown, setUnknown] = useState(null);
   const control = useRef(null), active = useRef(false), inFlight = useRef(false), imageUrl = useRef(null), input = useRef(null);
-  const current = () => active.current && localStorage.getItem("token") === requestToken;
-  const client = (method, path, data, options) => attachmentClient(caseId, requestToken, control.current?.signal)(method, path, data, options);
+  const retired = useRef(false), session = useRef(null);
+  session.current = { sessionExpired, isSessionCurrent };
+  const current = () => {
+    if (!active.current) return false;
+    if (retired.current || session.current.sessionExpired || session.current.isSessionCurrent?.() === false || localStorage.getItem("token") !== requestToken) {
+      retired.current = true;
+      return false;
+    }
+    return true;
+  };
+  const client = (method, path, data, options) => attachmentClient(caseId, requestToken, control.current?.signal, current)(method, path, data, options);
   function clearImage() { if (imageUrl.current) URL.revokeObjectURL(imageUrl.current); imageUrl.current = null; setImage(null); }
   function invalidate() { setReview(null); setChecked(false); }
-  function reset() { setFile(null); setStage(null); setEditing(null); setMeta(attachmentMetadata()); setReason(""); setUnknown(null); invalidate(); if (input.current) input.current.value = ""; }
-  async function refresh() { const result = await client("get"); if (current()) setList(result); return result; }
+  function reset() { if (!current()) return; setFile(null); setStage(null); setEditing(null); setMeta(attachmentMetadata()); setReason(""); setUnknown(null); invalidate(); if (input.current) input.current.value = ""; }
+  async function refresh() { if (!current()) return; const result = await client("get"); if (current()) setList(result); return result; }
   async function action(fn) {
     if (!current() || inFlight.current) return;
     inFlight.current = true; setBusy(true); setMessage("");
     try { await fn(); } catch (error) { if (current()) setMessage(attachmentMessage(error)); }
-    finally { inFlight.current = false; if (current()) setBusy(false); }
+    finally { inFlight.current = false; if (active.current) { setBusy(false); if (!current()) expireSession(); } }
   }
   useEffect(() => {
     active.current = true; control.current = new AbortController();
@@ -33,7 +42,15 @@ function AttachmentPanel({ caseId, requestToken, onChanged }) {
     return () => { active.current = false; control.current.abort(); if (imageUrl.current) URL.revokeObjectURL(imageUrl.current); };
   }, [caseId, requestToken]);
 
+  function expireSession() {
+    if (!active.current || current()) return;
+    // Retain both unsaved metadata and the locator recorded before the write.
+    invalidate(); setBusy(false); setMessage(""); clearImage(); control.current?.abort();
+  }
+  useEffect(() => { if (sessionExpired || isSessionCurrent?.() === false) expireSession(); }, [sessionExpired, isSessionCurrent]);
+
   function selected(value) {
+    if (!current() || inFlight.current || unknown) return;
     invalidate(); setStage(null); setEditing(null); setUnknown(null); setFile(null);
     if (!value) return;
     if (!/\.(pdf|jpe?g|png)$/i.test(value.name) || !value.size || value.size > 10 * 1024 * 1024) {
@@ -42,6 +59,7 @@ function AttachmentPanel({ caseId, requestToken, onChanged }) {
     setFile(value); setMeta({ ...attachmentMetadata(), title: value.name }); setMessage("");
   }
   async function readUnknown(pending) {
+    if (!current()) return;
     const result = await client("get", pending.kind === "upload" ? `/uploads/${pending.id}` : `/requests/${pending.id}`);
     if (!current()) return;
     if (pending.kind === "upload" && result.state === "pending") {
@@ -55,13 +73,15 @@ function AttachmentPanel({ caseId, requestToken, onChanged }) {
     }
   }
   async function upload() {
+    if (!current() || !file) return;
     const rid = newAttachmentRequest(), pending = { kind: "upload", id: rid };
+    setUnknown(pending); setChecked(false);
     const mime = /\.pdf$/i.test(file.name) ? "application/pdf" : /\.png$/i.test(file.name) ? "image/png" : "image/jpeg";
     try {
       const result = await client("post", `/uploads/${rid}`, file, { headers: { "Content-Type": mime,
         "X-Attachment-Filename": encodeURIComponent(file.name), "X-Case-Token": list.case_token } });
       if (!current()) return;
-      if (result.state === "pending") { setStage({ ...result.attachment, uploadId: rid }); setMessage("原件已暂存，请核对后确认关联。"); }
+      if (result.state === "pending") { setUnknown(null); setStage({ ...result.attachment, uploadId: rid }); setMessage("原件已暂存，请核对后确认关联。"); }
       else { reset(); await refresh(); if (current()) setMessage("相同原件已关联，未重复添加。"); }
     } catch (error) {
       if (!current()) return;
@@ -70,13 +90,16 @@ function AttachmentPanel({ caseId, requestToken, onChanged }) {
     }
   }
   async function preview(operation, item) {
+    if (!current()) return;
     const body = { request_id: newAttachmentRequest(), attachment_id: item.id, operation,
       expected_case_token: list.case_token, metadata: meta, reason };
     const result = await client("post", "/preview", body);
     if (current()) { setReview({ ...result, body }); setChecked(false); }
   }
   async function confirm() {
+    if (!current() || !review || !checked) return;
     const pending = { kind: "operation", id: review.body.request_id };
+    setUnknown(pending); setChecked(false);
     try {
       await client("post", "/confirm", { ...review.body, preview_token: review.preview_token, reviewed: true });
       if (current()) { reset(); clearImage(); await refresh(); if (current()) { onChanged?.(); setMessage("资料操作已保存。"); } }
@@ -87,6 +110,7 @@ function AttachmentPanel({ caseId, requestToken, onChanged }) {
     }
   }
   async function content(item, show) {
+    if (!current()) return;
     const bytes = await client("get", `/${item.id}/content?request_id=${newAttachmentRequest()}&preview=${show}`, undefined, { responseType: "arraybuffer" });
     await verifyAttachmentBytes(bytes, item);
     if (!current()) return;
@@ -94,16 +118,27 @@ function AttachmentPanel({ caseId, requestToken, onChanged }) {
     if (show) { clearImage(); imageUrl.current = url; setImage({ url, name: item.name }); }
     else { const link = document.createElement("a"); link.href = url; link.download = item.name; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000); }
   }
-  function edit(item, operation) { reset(); clearImage(); setEditing({ item, operation }); setMeta(item.metadata); }
-  const locked = busy || Boolean(unknown);
+  function edit(item, operation) { if (!current() || inFlight.current || unknown) return; reset(); clearImage(); setEditing({ item, operation }); setMeta(item.metadata); }
+  const expired = retired.current || sessionExpired || isSessionCurrent?.() === false;
+  const locked = expired || busy || Boolean(unknown);
   const rows = (list?.items || []).filter(a => (!type || a.metadata?.kind === type) && `${a.name} ${a.metadata?.title}`.toLowerCase().includes(filter.toLowerCase()));
   return <section aria-label="检查资料" style={box}>
     <h2>检查资料</h2>
     {list && <p>当前病例 #{list.case_id} · {list.patient_name} · {list.species}</p>}
     <p>选择报告或图片，核对后关联到本病例。每个原件最多 10 MiB。</p>
-    <button type="button" disabled={busy} onClick={() => action(async () => { invalidate(); clearImage(); await refresh(); })}>刷新资料列表</button>
+    <button type="button" disabled={expired || busy} onClick={() => action(async () => { invalidate(); clearImage(); await refresh(); })}>刷新资料列表</button>
     <p role="status">{busy ? "正在处理…" : message}</p>
-    {unknown && <button type="button" disabled={busy} onClick={() => action(() => readUnknown(unknown))}>核对操作结果</button>}
+    {expired && <section aria-label="检查资料登录失效保留内容">
+      <p role="alert">登录状态已失效，本页操作已停止。请先复制未保存原文及待核对请求标识；刷新或离开页面后不保证保留，不要重复上传或确认。</p>
+      <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{[
+        `原件：${file?.name || stage?.name || editing?.item?.name || ""}`,
+        `原件标识：${stage?.id || editing?.item?.id || ""}`, `暂存上传标识：${stage?.uploadId || ""}`,
+        ...Object.entries({ title: "资料标题", kind: "资料类型", taken_at: "采样或检查时间", reported_at: "报告时间", source: "来源机构", note: "备注" }).map(([key, label]) => `${label}：${meta[key] || ""}`),
+        `撤销原因：${reason}`,
+      ].join("\n")}</pre>
+    </section>}
+    {unknown && <p>本页待核对{unknown.kind === "upload" ? "上传" : "操作"}标识：<code>{unknown.id}</code>。取消请求不代表未保存。</p>}
+    {unknown && <button type="button" disabled={expired || busy} onClick={() => action(() => readUnknown(unknown))}>核对操作结果</button>}
     {list && <>
       {!stage && !editing && <label>选择检查文件<input ref={input} type="file" accept=".pdf,.jpg,.jpeg,.png" disabled={locked} onChange={e => selected(e.target.files?.[0])} /></label>}
       {file && !stage && <button type="button" disabled={locked} onClick={() => action(upload)}>上传待核对原件</button>}
@@ -111,13 +146,13 @@ function AttachmentPanel({ caseId, requestToken, onChanged }) {
         <p>原件：{(stage || editing.item).name} · {(stage || editing.item).size} 字节</p>
         {editing?.operation !== "withdraw" && <fieldset disabled={locked}>
           <legend>资料信息</legend>
-          <label>资料标题<input maxLength={150} value={meta.title} onChange={e => { setMeta({ ...meta, title: e.target.value }); invalidate(); }} /></label>
-          <label>资料类型<select aria-label="资料类型" value={meta.kind} onChange={e => { setMeta({ ...meta, kind: e.target.value }); invalidate(); }}>{Object.entries(kinds).map(([k,v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-          {[['taken_at', '采样或检查时间'], ['reported_at', '报告时间']].map(([k,label]) => <label key={k}>{label}<input type="datetime-local" value={meta[k] ? new Date(new Date(meta[k]).getTime() - new Date(meta[k]).getTimezoneOffset()*60000).toISOString().slice(0,16) : ""} onChange={e => { setMeta({ ...meta, [k]: e.target.value ? new Date(e.target.value).toISOString() : "" }); invalidate(); }} /></label>)}
-          <label>来源机构<input maxLength={150} value={meta.source} onChange={e => { setMeta({ ...meta, source: e.target.value }); invalidate(); }} /></label>
-          <label>备注<textarea maxLength={1000} value={meta.note} onChange={e => { setMeta({ ...meta, note: e.target.value }); invalidate(); }} /></label>
+          <label>资料标题<input maxLength={150} value={meta.title} onChange={e => { if (!current() || inFlight.current || unknown) return; setMeta({ ...meta, title: e.target.value }); invalidate(); }} /></label>
+          <label>资料类型<select aria-label="资料类型" value={meta.kind} onChange={e => { if (!current() || inFlight.current || unknown) return; setMeta({ ...meta, kind: e.target.value }); invalidate(); }}>{Object.entries(kinds).map(([k,v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+          {[['taken_at', '采样或检查时间'], ['reported_at', '报告时间']].map(([k,label]) => <label key={k}>{label}<input type="datetime-local" value={meta[k] ? new Date(new Date(meta[k]).getTime() - new Date(meta[k]).getTimezoneOffset()*60000).toISOString().slice(0,16) : ""} onChange={e => { if (!current() || inFlight.current || unknown) return; setMeta({ ...meta, [k]: e.target.value ? new Date(e.target.value).toISOString() : "" }); invalidate(); }} /></label>)}
+          <label>来源机构<input maxLength={150} value={meta.source} onChange={e => { if (!current() || inFlight.current || unknown) return; setMeta({ ...meta, source: e.target.value }); invalidate(); }} /></label>
+          <label>备注<textarea maxLength={1000} value={meta.note} onChange={e => { if (!current() || inFlight.current || unknown) return; setMeta({ ...meta, note: e.target.value }); invalidate(); }} /></label>
         </fieldset>}
-        {editing?.operation === "withdraw" && <label>撤销原因<textarea maxLength={500} disabled={locked} value={reason} onChange={e => { setReason(e.target.value); invalidate(); }} /></label>}
+        {editing?.operation === "withdraw" && <label>撤销原因<textarea maxLength={500} disabled={locked} value={reason} onChange={e => { if (!current() || inFlight.current || unknown) return; setReason(e.target.value); invalidate(); }} /></label>}
         <button type="button" disabled={locked} onClick={() => action(() => preview(editing?.operation || "confirm", stage || editing.item))}>核对资料关联</button>
         <button type="button" disabled={locked} onClick={() => action(async () => { if (stage) await client("post", `/uploads/${stage.uploadId}/cancel`); if (current()) { reset(); setMessage("本次操作已取消。"); } })}>取消本次操作</button>
       </div>}
@@ -129,11 +164,11 @@ function AttachmentPanel({ caseId, requestToken, onChanged }) {
         <p>检查时间：{review.proposed.metadata?.taken_at || "未记录"}；报告时间：{review.proposed.metadata?.reported_at || "未记录"}</p>
         <p>来源：{review.proposed.metadata?.source || "未记录"}；备注：{review.proposed.metadata?.note || "未记录"}</p>
         {review.operation === "withdraw" && <p>撤销原因：{review.proposed.withdrawal_reason}</p>}
-        <label><input type="checkbox" disabled={locked} checked={checked} onChange={e => setChecked(e.target.checked)} />已核对病例、原件和资料信息</label>
+        <label><input type="checkbox" disabled={locked} checked={checked} onChange={e => { if (current() && !inFlight.current && !unknown) setChecked(e.target.checked); }} />已核对病例、原件和资料信息</label>
         <button type="button" disabled={locked || !checked} onClick={() => action(confirm)}>确认资料操作</button>
       </section>}
-      <label>筛选资料<input value={filter} onChange={e => setFilter(e.target.value)} /></label>
-      <label>筛选类型<select aria-label="筛选类型" value={type} onChange={e => setType(e.target.value)}><option value="">全部</option>{Object.entries(kinds).map(([k,v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+      <label>筛选资料<input disabled={expired} value={filter} onChange={e => { if (current()) setFilter(e.target.value); }} /></label>
+      <label>筛选类型<select aria-label="筛选类型" disabled={expired} value={type} onChange={e => { if (current()) setType(e.target.value); }}><option value="">全部</option>{Object.entries(kinds).map(([k,v]) => <option key={k} value={k}>{v}</option>)}</select></label>
       {list.legacy_count > 0 && <p>另有 {list.legacy_count} 条历史附件记录，本页保留原记录。</p>}
       <ul>{rows.map(item => <li key={item.id} style={{ margin: '12px 0' }}>
         <strong>{item.metadata?.title || item.name}</strong> · {kinds[item.metadata?.kind]} · {item.state === "active" ? "已关联" : "已撤销"}
@@ -146,7 +181,7 @@ function AttachmentPanel({ caseId, requestToken, onChanged }) {
         </> : <span> · 原因：{item.withdrawal_reason}</span>}
       </li>)}</ul>
       {!rows.length && <p>暂无匹配的检查资料。</p>}
-      {image && <div><img alt={image.name} src={image.url} style={{ maxWidth: "100%", maxHeight: 600 }} /><button onClick={clearImage}>关闭图片</button></div>}
+      {image && <div><img alt={image.name} src={image.url} style={{ maxWidth: "100%", maxHeight: 600 }} /><button disabled={expired} onClick={() => { if (current()) clearImage(); }}>关闭图片</button></div>}
     </>}
   </section>;
 }

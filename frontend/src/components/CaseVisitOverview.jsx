@@ -19,10 +19,19 @@ export default function CaseVisitOverview(props) {
   return <Overview key={JSON.stringify([props.caseId, props.requestToken])} {...props} />;
 }
 
-function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
+function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate, sessionExpired = false, isSessionCurrent }) {
   const [saved, setSaved] = useState(null), [message, setMessage] = useState(""), [busy, setBusy] = useState(false);
   const active = useRef(false), epoch = useRef(0), controller = useRef(null), refresh = useRef(null);
-  const current = () => active.current && Boolean(requestToken) && localStorage.getItem("token") === requestToken;
+  const retired = useRef(false), session = useRef(null);
+  session.current = { sessionExpired, isSessionCurrent };
+  const current = () => {
+    if (session.current.sessionExpired || session.current.isSessionCurrent?.() === false || localStorage.getItem("token") !== requestToken) retired.current = true;
+    return active.current && !retired.current && Boolean(requestToken);
+  };
+  const retire = () => {
+    retired.current = true; epoch.current++; controller.current?.abort();
+    setSaved(null); setBusy(false); setMessage("登录已失效，请重新登录后读取总览。");
+  };
   refresh.current = async () => {
     const attempt = ++epoch.current;
     controller.current?.abort(); controller.current = new AbortController();
@@ -30,7 +39,7 @@ function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
     if (!current()) { setBusy(false); setMessage("登录已变化，请重新打开病例。"); return; }
     setBusy(true);
     try {
-      const result = await readOverview(caseId, requestToken, controller.current.signal);
+      const result = await readOverview(caseId, requestToken, controller.current.signal, current);
       if (current() && attempt === epoch.current) setSaved({ result, revision: sourceRevision });
     } catch (error) {
       if (active.current && attempt === epoch.current) setMessage(current() ? overviewMessage(error) : "登录已变化，请重新打开病例。");
@@ -45,6 +54,7 @@ function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
     doc?.addEventListener?.("visibilitychange", visibility);
     return () => { active.current = false; epoch.current++; controller.current?.abort(); window.removeEventListener("focus", focus); window.removeEventListener("storage", storage); doc?.removeEventListener?.("visibilitychange", visibility); };
   }, [caseId, requestToken]);
+  useEffect(() => { if (sessionExpired || isSessionCurrent?.() === false) retire(); }, [sessionExpired, isSessionCurrent]);
   useEffect(() => {
     // Invalidate even if the editor saves successfully but its subsequent list GET
     // fails before onChanged. Only observe the existing operation; never submit it.
@@ -80,7 +90,7 @@ function Overview({ caseId, requestToken, sourceRevision = 0, onNavigate }) {
     <h2>就诊资料总览</h2>
     <p>只显示服务器已保存资料，本地未保存草稿未纳入。这里的“已有记录”不代表已确认诊断。</p>
     <p>未记录检查不代表必须检查；本页不评定病例完整度，也不代替医生核对。</p>
-    <button type="button" onClick={() => refresh.current()}>刷新就诊资料总览</button>
+    <button type="button" disabled={retired.current} onClick={() => refresh.current()}>刷新就诊资料总览</button>
     <p role="status" aria-live="polite">{busy ? "正在读取总览…" : message}</p>
     {data && <>
       <p>病例 #{data.case_id} · {data.identity.patient_name || "动物名未填写"} · {data.identity.species || "物种未填写"}</p>

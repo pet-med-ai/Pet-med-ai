@@ -7,17 +7,26 @@ import { labStates, labTypes } from "../manualLabResults";
 const box = { padding: 16, margin: "12px 0", border: "1px solid #ccd5d1", borderRadius: 8, overflowWrap: "anywhere" };
 const literal = value => value === "" ? "未提供" : value;
 export default function CaseLabRangeReview(props) { return <RangeReview key={JSON.stringify([props.caseId, props.requestToken])} {...props} />; }
-function RangeReview({ caseId, requestToken, sourceRevision = 0, onInspect, onCompare }) {
+function RangeReview({ caseId, requestToken, sourceRevision = 0, onInspect, onCompare, sessionExpired = false, isSessionCurrent }) {
   const [saved, setSaved] = useState(null), [message, setMessage] = useState(""), [busy, setBusy] = useState(false), [filter, setFilter] = useState("all");
   const active = useRef(false), epoch = useRef(0), controller = useRef(null), refresh = useRef(null);
-  const current = () => active.current && Boolean(requestToken) && localStorage.getItem("token") === requestToken;
+  const retired = useRef(false), session = useRef(null);
+  session.current = { sessionExpired, isSessionCurrent };
+  const current = () => {
+    if (session.current.sessionExpired || session.current.isSessionCurrent?.() === false || localStorage.getItem("token") !== requestToken) retired.current = true;
+    return active.current && !retired.current && Boolean(requestToken);
+  };
+  const retire = () => {
+    retired.current = true; epoch.current++; controller.current?.abort();
+    setSaved(null); setBusy(false); setMessage("登录已失效，请重新登录后读取区间核对。");
+  };
   refresh.current = async () => {
     const attempt = ++epoch.current;
     controller.current?.abort(); controller.current = new AbortController();
     setSaved(null); setMessage("");
     if (!current()) { setBusy(false); setMessage("登录已变化，请重新打开病例。"); return; }
     setBusy(true);
-    try { const result = await readRangeReview(caseId, requestToken, controller.current.signal); if (current() && attempt === epoch.current) setSaved({ result, revision: sourceRevision }); }
+    try { const result = await readRangeReview(caseId, requestToken, controller.current.signal, current); if (current() && attempt === epoch.current) setSaved({ result, revision: sourceRevision }); }
     catch (error) { if (active.current && attempt === epoch.current) setMessage(current() ? rangeMessage(error) : "登录已变化，请重新打开病例。"); }
     finally { if (active.current && attempt === epoch.current) setBusy(false); }
   };
@@ -28,6 +37,7 @@ function RangeReview({ caseId, requestToken, sourceRevision = 0, onInspect, onCo
     window.addEventListener("focus", focus); window.addEventListener("storage", storage);
     return () => { active.current = false; epoch.current++; controller.current?.abort(); window.removeEventListener("focus", focus); window.removeEventListener("storage", storage); };
   }, [caseId, requestToken]);
+  useEffect(() => { if (sessionExpired || isSessionCurrent?.() === false) retire(); }, [sessionExpired, isSessionCurrent]);
   useEffect(() => {
     const affects = config => config?.method?.toLowerCase() === "post" && ["attachments", "manual-lab"].some(kind => config.url === `/api/cases/${caseId}/${kind}/confirm`);
     const request = api.interceptors.request.use(config => {
@@ -47,16 +57,16 @@ function RangeReview({ caseId, requestToken, sourceRevision = 0, onInspect, onCo
   const source = row => <><p>采样时间：{literal(row.report.collected_at)} · 报告时间：{literal(row.report.reported_at)}</p><p>核对账号：{row.reviewed_by} · 核对时间：{row.reviewed_at}</p><p>来源文件：{row.source.name} · SHA256：<code>{row.source.sha256}</code></p>{inspect(row)}</>;
   return <section aria-label="检验结果区间核对" style={box}>
     <h2>检验结果区间核对</h2>
-    {onCompare && <button type="button" onClick={() => { if (current()) onCompare(); }}>进入同次就诊检验前后对照</button>}
+    {onCompare && <button type="button" disabled={retired.current} onClick={() => { if (current()) onCompare(); }}>进入同次就诊检验前后对照</button>}
     <p>仅比较已保存、当前有效的人工检验记录；未保存草稿不参与。这里只表示数值与原报告参考区间的位置，不作诊断。</p>
     <p>位于上下限之间、没有区间外项目或已核对，都不代表健康或排除疾病。边界含义仍需医生核对。</p>
-    <button type="button" onClick={() => refresh.current()}>刷新检验区间核对</button><p role="status" aria-live="polite">{busy ? "正在读取检验区间…" : message}</p>
+    <button type="button" disabled={retired.current} onClick={() => refresh.current()}>刷新检验区间核对</button><p role="status" aria-live="polite">{busy ? "正在读取检验区间…" : message}</p>
     {data && <>
       <p>病例 #{data.case_id} · {data.identity.patient_name || "动物名未填写"} · {data.identity.species || "物种未填写"}</p>
       <p>宠主 {data.identity.owner_name || "未填写"} · 联系方式 {data.identity.owner_phone || "未填写"} · 性别 {data.identity.sex || "未填写"} · 品种 {data.identity.breed || "未填写"} · 毛色 {data.identity.coat_color || "未填写"} · 年龄 {data.identity.age_info || "未填写"} · 体重 {data.identity.weight || "未填写"}</p>
       <p>读取时间：<time dateTime={data.read_at}>{data.read_at}</time> · 快照 <code>{data.snapshot}</code>。后续变更请刷新。</p>
       <p>当前报告 {data.counts.reports} · 项目 {data.counts.items} · 区间外 {data.counts.out_of_range} · 无法比较 {data.counts.unable} · 边界值 {data.counts.boundary} · 标记冲突 {data.counts.flag_conflicts}</p>
-      <label>项目筛选<select aria-label="检验区间项目筛选" value={filter} onChange={e => setFilter(e.target.value)}><option value="all">全部项目（{data.counts.items}）</option><option value="out">区间外（{data.counts.out_of_range}）</option><option value="unable">无法比较（{data.counts.unable}）</option></select></label>
+      <label>项目筛选<select aria-label="检验区间项目筛选" value={filter} onChange={e => { if (current()) setFilter(e.target.value); }}><option value="all">全部项目（{data.counts.items}）</option><option value="out">区间外（{data.counts.out_of_range}）</option><option value="unable">无法比较（{data.counts.unable}）</option></select></label>
       {!data.reports.length && <p>没有当前可比较的已核对报告，请查看下方未纳入记录或返回检验录入。</p>}
       {data.reports.map(row => <article key={row.id} aria-label={`区间报告 ${row.id}`} style={box}>
         <h3>{row.title} · 版本 {row.version}</h3>{source(row)}

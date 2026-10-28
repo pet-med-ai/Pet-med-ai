@@ -20,15 +20,18 @@ function Report({ row }) {
   </section>;
 }
 
-export default function ClinicalDocLabSelection({ caseId, requestToken, selected = [], onChange, onInspect, reports, mode = "select" }) {
+export default function ClinicalDocLabSelection({ caseId, requestToken, selected = [], onChange, onInspect, reports, mode = "select", isSessionCurrent }) {
   const [rows,setRows] = useState(null), [message,setMessage] = useState("");
+  const active = useRef(false), session = useRef(isSessionCurrent); session.current = isSessionCurrent;
   const generation = useRef(0), callbacks = useRef({onChange}); callbacks.current = {onChange};
-  const current = stamp => stamp === generation.current && localStorage.getItem("token") === requestToken;
+  const owned = () => active.current && session.current?.() !== false && Boolean(requestToken) && localStorage.getItem("token") === requestToken;
+  const current = stamp => owned() && stamp === generation.current;
   async function reload() {
+    if (!owned()) return;
     const stamp=++generation.current;
     callbacks.current.onChange?.([]); setRows(null); setMessage("正在读取当前有效检验报告…");
     try {
-      const {data} = await api.get(`/api/clinical-docs/cases/${caseId}/manual-lab-options`, {timeout:15000,expectedAuthOwner:draftOwner(requestToken)});
+      const {data} = await api.get(`/api/clinical-docs/cases/${caseId}/manual-lab-options`, {timeout:15000,expectedAuthOwner:draftOwner(requestToken),expectedAuthCurrent:()=>current(stamp)});
       if (!current(stamp)) return;
       if (data.case_id !== caseId || data.writes_database !== false || !validDocumentReports(data.reports)) throw Error("Incomplete reports");
       setRows(data.reports); setMessage(data.reports.length ? "每次最多 5 份报告、合计 200 项。选择后请重新读取完整草稿。" : "当前没有可纳入的已核对检验报告。");
@@ -36,9 +39,10 @@ export default function ClinicalDocLabSelection({ caseId, requestToken, selected
   }
   useEffect(()=>{
     if(mode !== "select") return;
+    active.current = true;
     void reload();
     const focus=()=>{void reload();}; window.addEventListener("focus",focus);
-    return ()=>{generation.current++;window.removeEventListener("focus",focus);};
+    return ()=>{active.current=false;generation.current++;window.removeEventListener("focus",focus);};
   },[caseId,requestToken,mode]);
   if(mode === "preview") return <section aria-label="检验结果文书附节">
     <h2>检验结果附节 · 已选择的核对原文</h2>
@@ -46,6 +50,7 @@ export default function ClinicalDocLabSelection({ caseId, requestToken, selected
     {(reports || []).map(row=><Report key={row.id} row={row}/>)}
   </section>;
   function toggle(id, checked) {
+    if (!owned()) return;
     const ids=checked ? [...selected,id] : selected.filter(i=>i!==id);
     if(ids.length>5 || (rows || []).filter(r=>ids.includes(r.id)).reduce((n,r)=>n+r.data.items.length,0)>200) {
       setMessage("超出 5 份报告或 200 项上限，请减少选择；未截断报告。"); return;
@@ -56,7 +61,7 @@ export default function ClinicalDocLabSelection({ caseId, requestToken, selected
     <h3>纳入已核对检验报告</h3>
     <p role="status">{message}</p>
     <button type="button" onClick={reload}>刷新可选检验报告</button>{" "}
-    <button type="button" onClick={onInspect}>返回检验项目与原件</button>
+    <button type="button" onClick={()=>{if(owned())onInspect?.();}}>返回检验项目与原件</button>
     {(rows || []).map(row=><label key={row.id} style={{display:"block",margin:"10px 0"}}>
       <input type="checkbox" aria-label={`纳入 ${row.data.report.title}`} checked={selected.includes(row.id)} onChange={e=>toggle(row.id,e.target.checked)}/>
       {row.data.report.title} · 版本 {row.version} · {row.data.items.length} 项 · 报告时间 {row.data.report.reported_at || "未提供"} · {row.data.report.laboratory || "实验室未提供"} · 核对账号 {row.reviewed_by}

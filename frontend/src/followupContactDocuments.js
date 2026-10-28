@@ -6,8 +6,8 @@ function schemaFor(templateId) {
   return templateId === 'outpatient_record_zh' ? documentContactSchema :
     templateId === 'owner_visit_summary_zh' ? documentContactOwnerSchema : null;
 }
-export async function readDocumentContacts(caseId, token, signal) {
-  const value = await contactClient(caseId, token, signal)('get');
+export async function readDocumentContacts(caseId, token, signal, isSessionCurrent) {
+  const value = await contactClient(caseId, token, signal, isSessionCurrent)('get');
   if (!validList(value, caseId)) throw Error('随访记录或来源不完整，暂不能纳入文书。');
   return value;
 }

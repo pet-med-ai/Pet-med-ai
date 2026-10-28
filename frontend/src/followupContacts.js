@@ -48,10 +48,10 @@ export function validReceipt(v,cid,rid,readOnly=false){
   if(v.state==='not_committed')return readOnly&&keys(v,['schema','case_id','request_id','state','writes_database'])&&!v.writes_database;
   return v.state==='committed'&&keys(v,['schema','case_id','request_id','state','operation','record','writes_database'])&&['create','correct','withdraw'].includes(v.operation)&&validRecord(v.record,cid);
 }
-export function contactClient(cid,token,signal){return async(method,path='',data)=>{
-  if(!token||localStorage.getItem('token')!==token)throw Error('账号已变化，请重新打开病例。');
-  const response=await api.request({method,url:`/api/cases/${cid}/followup-contacts${path}`,data,signal,timeout:30000,expectedAuthOwner:draftOwner(token)});
-  if(localStorage.getItem('token')!==token)throw Error('账号已变化，请重新打开病例。');return response.data;
+export function contactClient(cid,token,signal,isSessionCurrent){return async(method,path='',data)=>{
+  if(!token||localStorage.getItem('token')!==token||(isSessionCurrent&&!isSessionCurrent()))throw Error('账号已变化，请重新打开病例。');
+  const response=await api.request({method,url:`/api/cases/${cid}/followup-contacts${path}`,data,signal,timeout:30000,expectedAuthOwner:draftOwner(token),expectedAuthCurrent:isSessionCurrent});
+  if(localStorage.getItem('token')!==token||(isSessionCurrent&&!isSessionCurrent()))throw Error('账号已变化，请重新打开病例。');return response.data;
 };}
 export function message(error){const code=error?.response?.data?.detail;return ({
   followup_contacts_disabled:'人工随访记录暂未启用。',followup_plans_disabled:'复查计划暂未启用。',case_not_found:'病例不可访问，请重新打开。',

@@ -18,7 +18,7 @@ try {
   names.push('followup-contact-documents', 'case-detail-followup-contact-documents');
   names.push('followup-contact-owner-documents', 'case-detail-followup-contact-owner-documents');
   names.push('followup-contact-queue', 'case-detail-followup-contact-queue');
-  names.push('clinical-doctor-trial');
+  names.push('clinical-doctor-trial', 'case-detail-auth-expiry', 'case-detail-auth-retention', 'case-detail-auth-readonly');
   const requested = process.argv.slice(2);
   if (requested.length) {
     if (new Set(requested).size !== requested.length || requested.some(name => !names.includes(name))) {

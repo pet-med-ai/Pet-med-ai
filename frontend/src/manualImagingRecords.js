@@ -18,11 +18,11 @@ export function imagingMessage(error) {
     manual_imaging_storage_or_database_unavailable:"保存结果暂不确定，请核对保存结果。" }[detail]) ||
     (typeof detail === "string" && (detail.startsWith("manual_imaging") || detail.startsWith("invalid_manual_imaging")) ? "影像内容不完整或超出长度限制，请检查原文。" : attachmentMessage(error));
 }
-export function manualImagingClient(caseId, token, signal) {
+export function manualImagingClient(caseId, token, signal, isSessionCurrent) {
   return async (method,path="",data) => {
-    if(!token || localStorage.getItem("token")!==token) throw Error("Account changed");
-    const response=await api.request({method,url:`/api/cases/${caseId}/manual-imaging${path}`,data,signal,timeout:30000,expectedAuthOwner:draftOwner(token)});
-    if(localStorage.getItem("token")!==token) throw Error("Account changed");
+    if(!token || localStorage.getItem("token")!==token || isSessionCurrent?.()===false) throw Error("Account changed");
+    const response=await api.request({method,url:`/api/cases/${caseId}/manual-imaging${path}`,data,signal,timeout:30000,expectedAuthOwner:draftOwner(token),expectedAuthCurrent:isSessionCurrent});
+    if(localStorage.getItem("token")!==token || isSessionCurrent?.()===false) throw Error("Account changed");
     return response.data;
   };
 }

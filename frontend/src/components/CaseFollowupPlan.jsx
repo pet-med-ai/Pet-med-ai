@@ -11,28 +11,40 @@ export function PlanContent({data}){return <dl style={{whiteSpace:'pre-wrap'}}>
   <dt>提前返回条件</dt><dd>{data.return_conditions||'未填写'}</dd><dt>备注</dt><dd>{data.note||'未填写'}</dd>
 </dl>;}
 export default function CaseFollowupPlan(props){return <Panel key={JSON.stringify([props.caseId,props.requestToken])} {...props}/>;}
-function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget}){
+function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget,sessionExpired=false,isSessionCurrent}){
   const targets=useRef(new Map());
   const [inspectNotice,setInspectNotice]=useState('');
   const [list,setList]=useState(null),[draft,setDraft]=useState(null),[review,setReview]=useState(null),[checked,setChecked]=useState(false);
   const [busy,setBusy]=useState(false),[unknown,setUnknown]=useState(null),[notice,setNotice]=useState('');
-  const [recoveryError,setRecoveryError]=useState(''),[accountChanged,setAccountChanged]=useState(false);
-  const retired=useRef(false);
+  const [recoveryError,setRecoveryError]=useState(''),[accountChanged,setAccountChanged]=useState(false),[expiredHere,setExpiredHere]=useState(false);
+  const retired=useRef(false),heldForLogin=useRef(false);
   const active=useRef(false),epoch=useRef(0),flight=useRef(false),control=useRef(null),queued=useRef(false),dirty=useRef(false),pending=useRef(null);
   const callback=useRef(onDirtyChange);callback.current=onDirtyChange;
-  const owned=()=>active.current&&!retired.current&&Boolean(requestToken)&&localStorage.getItem('token')===requestToken;
+  const owned=()=>active.current&&!retired.current&&!sessionExpired&&(!isSessionCurrent||isSessionCurrent())&&Boolean(requestToken)&&localStorage.getItem('token')===requestToken;
   const current=e=>ensureOwner()&&epoch.current===e;
-  const client=(method,path,data)=>followupClient(caseId,requestToken,control.current?.signal)(method,path,data);
+  const client=(method,path,data)=>followupClient(caseId,requestToken,control.current?.signal,owned)(method,path,data);
   function invalidate(){epoch.current++;control.current?.abort();setReview(null);setChecked(false);}
   function clear(){setDraft(null);pending.current=null;setUnknown(null);invalidate();}
-  function retireAccount(){
+  function expireSession(){
     if(!active.current||retired.current)return;
-    retired.current=true;queued.current=false;
+    retired.current=true;heldForLogin.current=true;queued.current=false;
+    // Same-session expiry retires confirmation, not the user's raw text or unknown result.
+    invalidate();setList(null);setInspectNotice('');setBusy(false);setExpiredHere(true);
+  }
+  function retireAccount(){
+    if(!active.current||(retired.current&&!heldForLogin.current))return;
+    retired.current=true;heldForLogin.current=false;queued.current=false;setExpiredHere(false);
     // Clear private UI state, but keep the original owner's recovery locator.
     clear();setList(null);setInspectNotice('');setRecoveryError('');setBusy(false);setAccountChanged(true);
     setNotice('账号已变化，请重新打开病例；未确认的保存结果需回到原账号核对。');
   }
-  function ensureOwner(){if(owned())return true;retireAccount();return false;}
+  function ensureOwner(){
+    if(owned())return true;
+    const token=localStorage.getItem('token');
+    if((heldForLogin.current||sessionExpired||(isSessionCurrent&&!isSessionCurrent()))&&(!token||token===requestToken))expireSession();
+    else retireAccount();
+    return false;
+  }
   async function refresh(){
     const e=epoch.current;setList(null);
     const result=await client('get');if(!current(e))return;
@@ -62,10 +74,11 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
     active.current=true;void run(refresh);
     return()=>{active.current=false;epoch.current++;control.current?.abort();callback.current?.(false);};
   },[caseId,requestToken]);
+  useEffect(()=>{if(sessionExpired||(isSessionCurrent&&!isSessionCurrent()))ensureOwner();},[sessionExpired,isSessionCurrent]);
   useEffect(()=>{dirty.current=Boolean(draft||unknown);callback.current?.(dirty.current);},[draft,unknown]);
   const previousRevision=useRef(caseRevision);
   useEffect(()=>{
-    if(!inspectTarget||!list)return;
+    if(!owned()||!inspectTarget||!list)return;
     const row=list.plans.find(p=>p.id===inspectTarget.id&&p.version===inspectTarget.version);
     setInspectNotice(row?`正在回看计划 #${row.id} 版本 ${row.version}，未改变编辑草稿。`:'指定计划版本当前无法读取，请刷新核对。');
     if(row){const node=targets.current.get(row.id);node?.scrollIntoView?.({block:'nearest'});node?.focus?.();}
@@ -136,7 +149,16 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
       try{await checkResult(attempt);}catch{if(current(e))setNotice('保存结果待核对，请点击核对保存结果；不要重复提交。');}
     }
   }
-  const locked=accountChanged||busy||Boolean(unknown)||Boolean(recoveryError),hasCurrent=list?.plans.some(p=>p.stored_state==='planned');
+  if(expiredHere)return <section aria-label="人工复查计划" style={box}>
+    <h2>人工复查计划</h2><p role="alert">登录状态已失效。未保存原文仅供复制保留，原预览和确认已失效；重新登录后需重新读取核对。</p>
+    {draft&&<section aria-label="复查计划原文只读"><h3>未保存复查计划原文</h3>
+      {[['planned_date','计划复查日期'],['purpose','复查目的'],['return_conditions','提前返回条件'],['note','复查备注']].map(([key,label])=><div key={key}><strong>{label}</strong><pre aria-label={`未保存${label}原文`} style={{whiteSpace:'pre-wrap'}}>{draft.data[key]}</pre></div>)}
+      {draft.data.items.map((item,i)=><div key={i}><strong>复查项目 {i+1}</strong><pre aria-label={`未保存复查项目 ${i+1}原文`} style={{whiteSpace:'pre-wrap'}}>{item}</pre></div>)}
+      {draft.operation!=='create'&&<div><strong>更正或撤销原因</strong><pre aria-label="未保存复查原因原文" style={{whiteSpace:'pre-wrap'}}>{draft.reason}</pre></div>}
+    </section>}
+    {unknown&&<section aria-label="复查保存结果待核对"><p>保存结果仍待核对；登录失效或取消请求不代表服务端未保存。请用原账号重新登录后核对，勿重复提交。</p><p>请求标识：{unknown.reference.requestId}</p></section>}
+  </section>;
+  const locked=sessionExpired||accountChanged||busy||Boolean(unknown)||Boolean(recoveryError),hasCurrent=list?.plans.some(p=>p.stored_state==='planned');
   return <section aria-label="人工复查计划" style={box}>
     <h2>人工复查计划</h2><p>由医生填写并核对。计划不代表已复查，不会自动预约或发送消息。门诊病历和宠主说明草稿可明确选择当前有效计划，仍需重新核对整份文书。</p>
     {inspectNotice&&<p role="status">{inspectNotice}</p>}
@@ -144,8 +166,8 @@ function Panel({caseId,requestToken,onDirtyChange,caseRevision=0,inspectTarget})
     <p>未保存草稿仅留在本页；刷新、离开或切换病例和账号后清除。</p>
     <p role="status">{busy?'正在处理…':notice}</p>
     {recoveryError&&<p role="alert">{recoveryError}</p>}
-    <button type="button" disabled={busy||accountChanged} onClick={reread}>刷新复查计划</button>
-    {unknown&&<section aria-label="复查保存结果待核对"><p>保存结果待核对。页面变化或取消请求不代表服务端未保存。</p><p>请求标识：{unknown.reference.requestId}</p><button disabled={busy} onClick={()=>run(()=>checkResult(unknown))}>核对复查保存结果</button></section>}
+    <button type="button" disabled={sessionExpired||busy||accountChanged} onClick={reread}>刷新复查计划</button>
+    {unknown&&<section aria-label="复查保存结果待核对"><p>保存结果待核对。页面变化或取消请求不代表服务端未保存。</p><p>请求标识：{unknown.reference.requestId}</p><button disabled={sessionExpired||busy||accountChanged} onClick={()=>run(()=>checkResult(unknown))}>核对复查保存结果</button></section>}
     {list&&<><p>病例 #{caseId} · {list.case.patient_name} · {list.case.species} · 读取日期 {list.as_of_date}（上海）</p>
       {!list.plans.length&&<p>尚未建立复查计划，不代表无需复查。</p>}
       <button disabled={locked||Boolean(draft)||hasCurrent||list.plans.length>=50} onClick={()=>edit(null,'create')}>新增复查计划</button>

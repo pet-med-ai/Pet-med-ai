@@ -67,18 +67,18 @@ export function validatePreview(data, saved, request) {
   }
   return data;
 }
-function auth(caseId, token) {
-  if (!Number.isSafeInteger(caseId) || caseId < 1 || !token || localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
+function auth(caseId, token, isSessionCurrent) {
+  if (isSessionCurrent?.() === false || !Number.isSafeInteger(caseId) || caseId < 1 || !token || localStorage.getItem("token") !== token) throw Error("登录已变化，请重新打开病例。");
 }
-export async function readComparison(caseId, token, signal) {
-  auth(caseId, token);
-  const r = await api.get(`/api/cases/${caseId}/lab-comparison`, { signal, timeout: 30000, expectedAuthOwner: draftOwner(token) });
-  auth(caseId, token); return validateComparison(r.data, caseId);
+export async function readComparison(caseId, token, signal, isSessionCurrent) {
+  auth(caseId, token, isSessionCurrent);
+  const r = await api.get(`/api/cases/${caseId}/lab-comparison`, { signal, timeout: 30000, expectedAuthOwner: draftOwner(token), ...(isSessionCurrent ? { expectedAuthCurrent: isSessionCurrent } : {}) });
+  auth(caseId, token, isSessionCurrent); return validateComparison(r.data, caseId);
 }
-export async function previewComparison(saved, request, token, signal) {
-  auth(saved.case_id, token);
-  const r = await api.post(`/api/cases/${saved.case_id}/lab-comparison/preview`, request, { signal, timeout: 30000, expectedAuthOwner: draftOwner(token) });
-  auth(saved.case_id, token); return validatePreview(r.data, saved, request);
+export async function previewComparison(saved, request, token, signal, isSessionCurrent) {
+  auth(saved.case_id, token, isSessionCurrent);
+  const r = await api.post(`/api/cases/${saved.case_id}/lab-comparison/preview`, request, { signal, timeout: 30000, expectedAuthOwner: draftOwner(token), expectedAuthCurrent: isSessionCurrent });
+  auth(saved.case_id, token, isSessionCurrent); return validatePreview(r.data, saved, request);
 }
 export function comparisonMessage(error) {
   const status = error?.response?.status, detail = error?.response?.data?.detail;

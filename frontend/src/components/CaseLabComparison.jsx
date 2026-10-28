@@ -7,20 +7,29 @@ const box = { padding: 16, margin: "12px 0", border: "1px solid #ccd5d1", border
 const literal = v => v === "" || v === null ? "未填写" : v;
 const empty = () => ({ a: { report: "", item: "" }, b: { report: "", item: "" } });
 export default function CaseLabComparison(props) { return <Comparison key={JSON.stringify([props.caseId, props.requestToken])} {...props} />; }
-function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect, onSelect, onInvalidated }) {
+function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect, onSelect, onInvalidated, sessionExpired = false, isSessionCurrent }) {
   const [saved, setSaved] = useState(null), [selected, setSelected] = useState(empty), [confirmed, setConfirmed] = useState(false);
   const [preview, setPreview] = useState(null), [message, setMessage] = useState(""), [busy, setBusy] = useState(false), [calculating, setCalculating] = useState(false);
   const active = useRef(false), epoch = useRef(0), calculation = useRef(0), reader = useRef(null), calculator = useRef(null), refresh = useRef(null);
   const callbacks = useRef({ onSelect, onInvalidated }); callbacks.current = { onSelect, onInvalidated };
   const previewRequest = useRef(null), runPending = useRef(false);
-  const current = () => active.current && Boolean(requestToken) && localStorage.getItem("token") === requestToken;
+  const retired = useRef(false), session = useRef(null);
+  session.current = { sessionExpired, isSessionCurrent };
+  const current = () => {
+    if (session.current.sessionExpired || session.current.isSessionCurrent?.() === false || localStorage.getItem("token") !== requestToken) retired.current = true;
+    return active.current && !retired.current && Boolean(requestToken);
+  };
   const clearPreview = () => { callbacks.current.onInvalidated?.(); previewRequest.current = null; runPending.current = false; calculation.current++; calculator.current?.abort(); setPreview(null); setCalculating(false); setConfirmed(false); };
   const clear = () => { clearPreview(); setSelected(empty()); setSaved(null); };
+  const retire = () => {
+    retired.current = true; epoch.current++; reader.current?.abort(); clear();
+    setBusy(false); setMessage("登录已失效，请重新登录后读取前后对照。");
+  };
   refresh.current = async () => {
-    const attempt = ++epoch.current; reader.current?.abort(); reader.current = new AbortController(); clear(); setMessage("");
     if (!current()) { setBusy(false); setMessage("登录已变化，请重新打开病例。"); return; }
+    const attempt = ++epoch.current; reader.current?.abort(); reader.current = new AbortController(); clear(); setMessage("");
     setBusy(true);
-    try { const result = await readComparison(caseId, requestToken, reader.current.signal); if (current() && attempt === epoch.current) setSaved({ result, revision: sourceRevision }); }
+    try { const result = await readComparison(caseId, requestToken, reader.current.signal, current); if (current() && attempt === epoch.current) setSaved({ result, revision: sourceRevision }); }
     catch (error) { if (active.current && attempt === epoch.current) setMessage(current() ? comparisonMessage(error) : "登录已变化，请重新打开病例。"); }
     finally { if (active.current && attempt === epoch.current) setBusy(false); }
   };
@@ -30,6 +39,7 @@ function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect, onSel
     window.addEventListener("focus", focus); window.addEventListener("storage", storage);
     return () => { active.current = false; epoch.current++; calculation.current++; reader.current?.abort(); calculator.current?.abort(); window.removeEventListener("focus", focus); window.removeEventListener("storage", storage); };
   }, [caseId, requestToken]);
+  useEffect(() => { if (sessionExpired || isSessionCurrent?.() === false) retire(); }, [sessionExpired, isSessionCurrent]);
   useEffect(() => {
     const affects = config => config?.method?.toLowerCase() === "post" && ["attachments", "manual-lab"].some(kind => config.url === `/api/cases/${caseId}/${kind}/confirm`);
     const request = api.interceptors.request.use(config => {
@@ -43,7 +53,7 @@ function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect, onSel
   useEffect(() => { if (previousRevision.current !== sourceRevision) { previousRevision.current = sourceRevision; refresh.current(); } }, [sourceRevision]);
   const data = current() && saved?.revision === sourceRevision ? saved.result : null;
   const pair = side => { const row = data?.reports.find(r => String(r.id) === selected[side].report); return [row, row?.items.find(i => String(i.index) === selected[side].item)]; };
-  const change = (side, field, value) => { clearPreview(); setMessage(""); setSelected(old => ({ ...old, [side]: { ...old[side], [field]: value, ...(field === "report" ? { item: "" } : {}) } })); };
+  const change = (side, field, value) => { if (!current()) return; clearPreview(); setMessage(""); setSelected(old => ({ ...old, [side]: { ...old[side], [field]: value, ...(field === "report" ? { item: "" } : {}) } })); };
   const inspect = row => <button type="button" onClick={() => { if (current() && data) onInspect?.({ caseId, id: row.id, version: row.version, token: row.token }); }}>回看检验记录 #{row.id} 版本 {row.version}</button>;
   const source = row => <><p>采样时间：{literal(row.report.collected_at)} · 报告时间：{literal(row.report.reported_at)}</p><p>核对账号：{row.reviewed_by} · 核对时间：{row.reviewed_at}</p><p>来源文件：{row.source.name} · SHA256：<code>{row.source.sha256}</code></p>{inspect(row)}</>;
   const run = async () => {
@@ -51,7 +61,7 @@ function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect, onSel
     const request = { snapshot: data.snapshot, a: itemSelection(...a), b: itemSelection(...b), doctor_confirmed: confirmed };
     callbacks.current.onInvalidated?.(); runPending.current = true; previewRequest.current = null;
     const attempt = ++calculation.current; calculator.current?.abort(); calculator.current = new AbortController(); setPreview(null); setMessage(""); setCalculating(true);
-    try { const result = await previewComparison(data, request, requestToken, calculator.current.signal); if (current() && attempt === calculation.current) { previewRequest.current = request; setPreview(result); } }
+    try { const result = await previewComparison(data, request, requestToken, calculator.current.signal, current); if (current() && attempt === calculation.current) { previewRequest.current = request; setPreview(result); } }
     catch (error) { if (active.current && attempt === calculation.current) { setMessage(current() ? comparisonMessage(error) : "登录已变化，请重新打开病例。"); if ([401, 404, 409, 422].includes(error?.response?.status)) clear(); } }
     finally { if (active.current && attempt === calculation.current) { runPending.current = false; setCalculating(false); } }
   };
@@ -59,7 +69,7 @@ function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect, onSel
     <h2>同次就诊检验前后对照</h2>
     <p>选择同一次就诊的两份当前有效、已核对报告。未保存草稿不参与；默认不选择或配对项目。</p>
     <p>只有名称、单位、检验组合、样本类型、实验室和设备一致，且 A 采样早于 B，才可在医生核实方法与采样条件后相减。这里只显示数值变化，不判断病情好转或恶化。</p>
-    <button type="button" onClick={() => refresh.current()}>刷新检验前后对照</button>
+    <button type="button" disabled={retired.current} onClick={() => refresh.current()}>刷新检验前后对照</button>
     <p role="status" aria-live="polite">{busy ? "正在读取前后对照…" : calculating ? "正在核对保存版本与可比条件…" : message}</p>
     {data && <>
       <p>病例 #{data.case_id} · {data.identity.patient_name || "动物名未填写"} · {data.identity.species || "物种未填写"}</p>
@@ -77,9 +87,9 @@ function Comparison({ caseId, requestToken, sourceRevision = 0, onInspect, onSel
           </>}
         </article>; })}
       </div>
-      <button type="button" disabled={!selected.a.report && !selected.b.report} onClick={() => { clearPreview(); setMessage(""); setSelected(old => ({ a: old.b, b: old.a })); }}>交换 A 与 B</button>
+      <button type="button" disabled={!selected.a.report && !selected.b.report} onClick={() => { if (!current()) return; clearPreview(); setMessage(""); setSelected(old => ({ a: old.b, b: old.a })); }}>交换 A 与 B</button>
       <p>设备和实验室名称相同不能证明方法相同，请对照原件核实。此处勾选仅用于当前预览，刷新或选择变化后清除，不保存为报告核对或医生验收记录。</p>
-      <label><input type="checkbox" aria-label="确认方法与采样条件可比" checked={confirmed} onChange={e => { clearPreview(); setConfirmed(e.target.checked); setMessage(""); }} />已对照原件确认同一项目、方法和采样条件可比</label>
+      <label><input type="checkbox" aria-label="确认方法与采样条件可比" checked={confirmed} onChange={e => { if (!current()) return; clearPreview(); setConfirmed(e.target.checked); setMessage(""); }} />已对照原件确认同一项目、方法和采样条件可比</label>
       <button type="button" disabled={busy || calculating || !pair("a")[1] || !pair("b")[1]} onClick={run}>核对条件并预览数值差</button>
       {preview && <article aria-label="检验对照预览" style={box}>
         <p>核对时间：{preview.read_at}</p>
