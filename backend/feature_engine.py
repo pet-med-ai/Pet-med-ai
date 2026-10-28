@@ -14,7 +14,7 @@ def _has_any(text: str, keywords: Iterable[str]) -> bool:
     return any(keyword in text for keyword in keywords)
 
 
-def extract_features(text: str) -> Dict[str, Any]:
+def _extract_unchecked(text: str) -> Dict[str, Any]:
     raw_text = text or ""
     text = raw_text.lower()
     species_context = build_species_context(text=raw_text)
@@ -110,7 +110,10 @@ def extract_features(text: str) -> Dict[str, Any]:
     ])
     collapse = _has_any(text, ["休克", "倒地", "虚脱", "昏迷", "站不起来", "collapse", "不能站立"])
     trauma = _has_any(text, ["摔", "撞", "咬伤", "外伤", "出血不止", "车祸", "夹伤"])
-    toxin = _has_any(text, ["中毒", "误食", "毒", "杀虫剂", "老鼠药", "清洁剂", "重金属", "特氟龙", "ptfe", "烟雾", "油烟", "喷雾"])
+    toxin = _has_any(text, ["中毒", "误食", "杀虫剂", "老鼠药", "清洁剂", "重金属", "特氟龙", "ptfe", "烟雾", "油烟", "喷雾"])
+
+    if species_group not in {"canine", "feline"}:
+        toxin = toxin or "毒" in text  # Preserve the unchanged exotic path.
 
     no_feces = _has_any(text, ["无粪", "没拉屎", "不排便", "没有粪便", "24小时没拉", "一天没拉", "不拉便", "无便"])
     feces_down = no_feces or _has_any(text, ["粪便减少", "便便变少", "粪球变小", "粪少", "排便减少", "便少"])
@@ -163,3 +166,21 @@ def extract_features(text: str) -> Dict[str, Any]:
     }
     features = augment_exotic_features(features, raw_text)
     return augment_companion_animal_features(features, raw_text)
+
+
+def extract_features(text: str, observations=None) -> Dict[str, Any]:
+    try:
+        from backend.clinical_evidence import collect
+    except ModuleNotFoundError:
+        from clinical_evidence import collect
+    context = build_species_context(text=text or "")
+    # B4 is bounded to the currently supported dog/cat consultation workflows.
+    if context.get("group") not in {"canine", "feline"}:
+        return _extract_unchecked(text)
+    species = "犬" if context["group"] == "canine" else "猫"
+    evidence = collect(observations if observations is not None else [{"source": "主诉", "text": text}],
+                       lambda fragment: _extract_unchecked(species + "。" + fragment))
+    features = _extract_unchecked(species + "。" + evidence.pop("positive_text"))
+    features.update(species_context=context, species=context.get("species"), input_evidence=evidence)
+    evidence["needs_review"] |= not any(r["features"] for r in evidence["records"] if r["state"] == "positive")
+    return features

@@ -1,6 +1,14 @@
 import axios from "axios";
 import { draftOwner } from "./consultDraft";
 
+const expiredSessionListeners = new Set<() => void>();
+// Same-window storage writes do not emit a native storage event. Notify only
+// after a 401 has been matched to the currently installed credential.
+export function onAuthSessionExpired(listener: () => void) {
+  expiredSessionListeners.add(listener);
+  return () => { expiredSessionListeners.delete(listener); };
+}
+
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE,
 });
@@ -14,6 +22,10 @@ const isCaseListRequest = (method = "", url = "") =>
 api.interceptors.request.use((config) => {
   const url = config.url || "";
   const token = localStorage.getItem("token");
+  const expectedCurrent = (config as typeof config & { expectedAuthCurrent?: () => boolean }).expectedAuthCurrent;
+  if (expectedCurrent && !expectedCurrent()) {
+    throw new axios.CanceledError("The originating case session has expired");
+  }
   const expectedOwner = (config as typeof config & { expectedAuthOwner?: string }).expectedAuthOwner;
   if (expectedOwner && draftOwner(token) !== expectedOwner) {
     throw Object.assign(new Error("Account changed before request dispatch"), { code: "PMAI_ACCOUNT_CHANGED" });
@@ -53,6 +65,7 @@ api.interceptors.response.use(
       }
 
       localStorage.removeItem("token");
+      for (const listener of [...expiredSessionListeners]) listener();
 
       if (isCaseListRequest(method, url)) {
         console.warn("401 from case list, ignored for current consult workflow:", url);

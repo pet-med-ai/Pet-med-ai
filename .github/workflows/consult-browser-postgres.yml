@@ -35,15 +35,258 @@ on:
       - 'frontend/src/consultDraft.js'
       - 'frontend/src/useConsultDraft.js'
       - 'frontend/src/components/**'
+      - 'frontend/src/diarrheaIntakeState.js'
+      - 'frontend/tests/diarrhea-intake.test.jsx'
+      - 'tests/test_diarrhea_intake.py'
+      - 'knowledge-base/companion/intake/*.json'
+      - 'frontend/src/chiefComplaintIntakeState.js'
+      - 'frontend/tests/chief-complaint-intake.test.jsx'
+      - 'tests/test_chief_complaint_intake.py'
+      - 'docs/clinical_docs/INTAKE_BATCH_B1.md'
+      - 'docs/clinical_docs/INTAKE_BATCH_B2.md'
+      - 'docs/clinical_docs/INTAKE_BATCH_B3.md'
+      - 'docs/clinical_docs/CONSULT_EVIDENCE_B4.md'
+      - 'tests/test_clinical_evidence.py'
+      - 'tests/test_consult_evidence.py'
+      - 'frontend/tests/consult-evidence.test.jsx'
+      - 'docs/clinical_docs/VISIT_MILESTONE_M7.md'
+      - 'frontend/src/voiceDraftState.js'
+      - 'frontend/src/audioCapture.js'
+      - 'frontend/src/audioCapture.worklet.js'
+      - 'frontend/tests/voice-draft.test.jsx'
+      - 'frontend/tests/audio-capture.test.jsx'
+      - 'tests/test_speech_transcription.py'
+      - 'tests/test_speech_budget.py'
+      - 'tests/test_speech_history.py'
+      - 'docs/clinical_docs/VOICE_DRAFT_CW_B5.md'
+      - 'scripts/verify_voice_provider_cw_b5.py'
+      - 'tests/fixtures/voice_cw_b5_cases.json'
+      - 'frontend/src/caseAttachments.js'
+      - 'frontend/tests/case-attachments.test.jsx'
+      - 'tests/test_case_attachment_store.py'
+      - 'tests/test_case_attachments.py'
+      - 'tests/test_case_attachment_concurrency.py'
+      - 'tests/fixtures/build_attachment_cw_b6_fixtures.py'
+      - 'scripts/verify_case_attachment_storage.py'
+      - 'docs/clinical_docs/CASE_ATTACHMENTS_CW_B6.md'
+      - 'docs/product/PET_MED_AI_CLINICAL_WORKFLOW_BATCH_INDEX.md'
+      - 'docs/product/PET_MED_AI_FUTURE_DEVELOPMENT_OUTLINE_V1.md'
+      - 'scripts/validate_case_attachments_cw_b6.py'
+      - 'frontend/src/manualLabResults.js'
+      - 'frontend/tests/manual-lab-results.test.jsx'
+      - 'tests/test_manual_lab_results.py'
+      - 'tests/test_manual_lab_result_concurrency.py'
+      - 'tests/fixtures/manual_lab_cw_b7_cases.json'
+      - 'scripts/validate_manual_lab_cw_b7.py'
+      - 'docs/clinical_docs/MANUAL_LAB_RESULTS_CW_B7.md'
+      - 'frontend/src/manualLabDocuments.js'
+      - 'frontend/tests/manual-lab-documents.test.jsx'
+      - 'tests/test_manual_lab_documents.py'
+      - 'tests/test_manual_lab_document_concurrency.py'
+      - 'tests/fixtures/manual_lab_cw_b8_cases.json'
+      - 'scripts/validate_manual_lab_documents_cw_b8.py'
+      - 'docs/clinical_docs/MANUAL_LAB_DOCUMENTS_CW_B8.md'
+      - 'frontend/src/manualImagingRecords.js'
+      - 'frontend/src/manualImagingDocuments.js'
+      - 'frontend/tests/manual-imaging-records.test.jsx'
+      - 'frontend/tests/manual-imaging-documents.test.jsx'
+      - 'tests/test_manual_imaging_records.py'
+      - 'tests/test_manual_imaging_concurrency.py'
+      - 'tests/test_manual_imaging_documents.py'
+      - 'tests/fixtures/manual_imaging_cw_b9_cases.json'
+      - 'scripts/validate_manual_imaging_cw_b9.py'
+      - 'docs/clinical_docs/MANUAL_IMAGING_CW_B9.md'
+      - 'frontend/src/visitOverview.js'
+      - 'frontend/tests/visit-overview.test.jsx'
+      - 'frontend/tests/case-detail-overview.test.jsx'
+      - 'tests/test_clinical_case_overview.py'
+      - 'tests/test_clinical_case_overview_concurrency.py'
+      - 'tests/fixtures/clinical_case_overview_cw_b10_cases.json'
+      - 'scripts/validate_clinical_case_overview_cw_b10.py'
+      - 'docs/clinical_docs/CLINICAL_CASE_OVERVIEW_CW_B10.md'
+      - 'backend/clinical_lab_range_review.py'
+      - 'backend/clinical_lab_range_review_api.py'
+      - 'frontend/src/components/CaseLabRangeReview.jsx'
+      - 'frontend/src/labRangeReview.js'
+      - 'frontend/tests/lab-range-review.test.jsx'
+      - 'frontend/tests/case-detail-lab-range-review.test.jsx'
+      - 'tests/test_clinical_lab_range_review.py'
+      - 'tests/test_clinical_lab_range_review_concurrency.py'
+      - 'tests/fixtures/clinical_lab_range_review_cw_b11_cases.json'
+      - 'scripts/validate_clinical_lab_range_review_cw_b11.py'
+      - 'backend/clinical_lab_comparison.py'
+      - 'backend/clinical_lab_comparison_api.py'
+      - 'frontend/src/components/CaseLabComparison.jsx'
+      - 'frontend/src/labComparison.js'
+      - 'frontend/tests/lab-comparison.test.jsx'
+      - 'frontend/tests/case-detail-lab-comparison.test.jsx'
+      - 'tests/test_clinical_lab_comparison.py'
+      - 'tests/test_clinical_lab_comparison_concurrency.py'
+      - 'tests/acceptance/clinical_lab_comparison_checks.cjs'
+      - 'tests/fixtures/clinical_lab_comparison_cw_b12_cases.json'
+      - 'scripts/validate_clinical_lab_comparison_cw_b12.py'
+      - 'docs/clinical_docs/CLINICAL_LAB_COMPARISON_CW_B12.md'
+      - 'docs/clinical_docs/CLINICAL_LAB_RANGE_REVIEW_CW_B11.md'
+      - 'backend/clinical_lab_comparison_documents.py'
+      - 'frontend/src/components/ClinicalDocLabComparisonSelection.jsx'
+      - 'frontend/src/labComparisonDocuments.js'
+      - 'frontend/tests/lab-comparison-documents.test.jsx'
+      - 'frontend/tests/case-detail-lab-comparison-documents.test.jsx'
+      - 'tests/test_clinical_lab_comparison_documents.py'
+      - 'tests/test_clinical_lab_comparison_document_concurrency.py'
+      - 'tests/acceptance/clinical_lab_comparison_document_checks.cjs'
+      - 'tests/fixtures/clinical_lab_comparison_documents_cw_b13_cases.json'
+      - 'scripts/validate_clinical_lab_comparison_documents_cw_b13.py'
+      - 'docs/clinical_docs/CLINICAL_LAB_COMPARISON_DOCUMENTS_CW_B13.md'
+      - 'frontend/src/components/CaseFollowupPlan.jsx'
+      - 'frontend/src/followupPlan.js'
+      - 'frontend/tests/followup-plan.test.jsx'
+      - 'frontend/tests/case-detail-followup-plan.test.jsx'
+      - 'tests/test_clinical_followup_plans.py'
+      - 'tests/test_clinical_followup_plan_concurrency.py'
+      - 'tests/fixtures/clinical_followup_plans_cw_b14_cases.json'
+      - 'scripts/validate_clinical_followup_plans_cw_b14.py'
+      - 'backend/clinical_followup_plan_documents.py'
+      - 'frontend/src/components/ClinicalDocFollowupPlanSelection.jsx'
+      - 'frontend/src/followupPlanDocuments.js'
+      - 'frontend/tests/followup-plan-documents.test.jsx'
+      - 'frontend/tests/case-detail-followup-plan-documents.test.jsx'
+      - 'tests/test_clinical_followup_plan_documents.py'
+      - 'tests/test_clinical_followup_plan_document_concurrency.py'
+      - 'tests/acceptance/clinical_followup_plan_document_checks.cjs'
+      - 'tests/fixtures/clinical_followup_plan_documents_cw_b15_cases.json'
+      - 'scripts/validate_clinical_followup_plan_documents_cw_b15.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_DOCUMENTS_CW_B15.md'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLANS_CW_B14.md'
+      - 'backend/clinical_docs_api.py'
+      - 'frontend/src/components/ClinicalDocReview.jsx'
+      - 'frontend/tests/followup-plan-owner-documents.test.jsx'
+      - 'frontend/tests/case-detail-followup-plan-owner-documents.test.jsx'
+      - 'tests/test_clinical_followup_plan_owner_documents.py'
+      - 'tests/test_clinical_followup_plan_owner_document_concurrency.py'
+      - 'tests/acceptance/visit_document_checks.cjs'
+      - 'tests/acceptance/clinical_followup_plan_owner_document_checks.cjs'
+      - 'tests/acceptance/postgres_checks.py'
+      - 'tests/acceptance/fixture.py'
+      - 'tests/fixtures/clinical_followup_plan_owner_documents_cw_b16_cases.json'
+      - 'scripts/validate_clinical_followup_plan_owner_documents_cw_b16.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_OWNER_DOCUMENTS_CW_B16.md'
+      - 'backend/clinical_followup_plan_overview.py'
+      - 'frontend/tests/followup-plan-overview.test.jsx'
+      - 'frontend/tests/case-detail-followup-plan-overview.test.jsx'
+      - 'tests/test_clinical_followup_plan_overview.py'
+      - 'tests/test_clinical_followup_plan_overview_concurrency.py'
+      - 'tests/acceptance/clinical_followup_plan_overview_checks.cjs'
+      - 'tests/fixtures/clinical_followup_plan_overview_cw_b17_cases.json'
+      - 'scripts/validate_clinical_followup_plan_overview_cw_b17.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_OVERVIEW_CW_B17.md'
+
+      - 'backend/clinical_followup_plan_queue.py'
+      - 'backend/clinical_followup_plan_queue_api.py'
+      - 'backend/main.py'
+      - 'backend/clinical_followup_plans.py'
+      - 'frontend/src/followupPlanQueue.js'
+      - 'frontend/src/pages/FollowupPlanQueue.jsx'
+      - 'frontend/tests/followup-plan-queue.test.jsx'
+      - 'frontend/tests/case-detail-followup-plan-queue.test.jsx'
+      - 'tests/test_clinical_followup_plan_queue.py'
+      - 'tests/test_clinical_followup_plan_queue_concurrency.py'
+      - 'tests/acceptance/clinical_followup_plan_queue_checks.cjs'
+      - 'tests/fixtures/clinical_followup_plan_queue_cw_b18_cases.json'
+      - 'scripts/validate_clinical_followup_plan_queue_cw_b18.py'
+      - 'backend/clinical_followup_contacts.py'
+      - 'backend/clinical_followup_contacts_api.py'
+      - 'frontend/src/followupContacts.js'
+      - 'frontend/src/components/CaseFollowupContacts.jsx'
+      - 'frontend/tests/followup-contacts.test.jsx'
+      - 'frontend/tests/case-detail-followup-contacts.test.jsx'
+      - 'tests/test_clinical_followup_contacts.py'
+      - 'tests/test_clinical_followup_contact_concurrency.py'
+      - 'tests/test_clinical_followup_contact_isolation.py'
+      - 'tests/acceptance/clinical_followup_contact_checks.cjs'
+      - 'tests/fixtures/clinical_followup_contacts_cw_b19_cases.json'
+      - 'scripts/validate_clinical_followup_contacts_cw_b19.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACTS_CW_B19.md'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_PLAN_QUEUE_CW_B18.md'
+      - 'backend/clinical_followup_contact_overview.py'
+      - 'backend/clinical_case_overview.py'
+      - 'backend/clinical_case_overview_api.py'
+      - 'frontend/src/components/CaseVisitOverview.jsx'
+      - 'frontend/tests/followup-contact-overview.test.jsx'
+      - 'frontend/tests/case-detail-followup-contact-overview.test.jsx'
+      - 'tests/test_clinical_followup_contact_overview.py'
+      - 'tests/test_clinical_followup_contact_overview_concurrency.py'
+      - 'tests/test_clinical_followup_contact_overview_isolation.py'
+      - 'tests/acceptance/clinical_followup_contact_overview_checks.cjs'
+      - 'tests/fixtures/clinical_followup_contact_overview_cw_b20_cases.json'
+      - 'scripts/validate_clinical_followup_contact_overview_cw_b20.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACT_OVERVIEW_CW_B20.md'
+
+      - 'backend/clinical_followup_contact_documents.py'
+      - 'frontend/src/followupContactDocuments.js'
+      - 'frontend/src/components/ClinicalDocFollowupContactSelection.jsx'
+      - 'frontend/tests/followup-contact-documents.test.jsx'
+      - 'frontend/tests/case-detail-followup-contact-documents.test.jsx'
+      - 'tests/test_clinical_followup_contact_documents.py'
+      - 'tests/test_clinical_followup_contact_document_concurrency.py'
+      - 'tests/test_clinical_followup_contact_document_isolation.py'
+      - 'tests/acceptance/clinical_followup_contact_document_checks.cjs'
+      - 'tests/fixtures/clinical_followup_contact_documents_cw_b21_cases.json'
+      - 'scripts/validate_clinical_followup_contact_documents_cw_b21.py'
+      - 'frontend/tests/followup-contact-owner-documents.test.jsx'
+      - 'frontend/tests/case-detail-followup-contact-owner-documents.test.jsx'
+      - 'tests/test_clinical_followup_contact_owner_documents.py'
+      - 'tests/test_clinical_followup_contact_owner_document_concurrency.py'
+      - 'tests/test_clinical_followup_contact_owner_document_isolation.py'
+      - 'tests/acceptance/clinical_followup_contact_owner_document_checks.cjs'
+      - 'tests/fixtures/clinical_followup_contact_owner_documents_cw_b22_cases.json'
+      - 'scripts/validate_clinical_followup_contact_owner_documents_cw_b22.py'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACT_OWNER_DOCUMENTS_CW_B22.md'
+      - 'docs/clinical_docs/CLINICAL_FOLLOWUP_CONTACT_DOCUMENTS_CW_B21.md'
+
+      - 'backend/clinical_followup_contact_queue.py'
+      - 'frontend/src/followupContactQueue.js'
+      - 'frontend/src/components/FollowupContactQueueSummary.jsx'
+      - 'frontend/tests/followup-contact-queue.test.jsx'
+      - 'frontend/tests/case-detail-followup-contact-queue.test.jsx'
+      - 'tests/test_clinical_followup_contact_queue.py'
+      - 'tests/test_clinical_followup_contact_queue_concurrency.py'
+      - 'tests/test_clinical_followup_contact_queue_isolation.py'
+      - 'tests/acceptance/clinical_followup_contact_queue_checks.cjs'
+      - 'tests/fixtures/clinical_followup_contact_queue_cw_b23_cases.json'
+      - 'scripts/validate_clinical_followup_contact_queue_cw_b23.py'
+
+      - 'scripts/run_clinical_doctor_trial_cw_b26.py'
+      - 'scripts/validate_clinical_doctor_trial_cw_b26.py'
+      - 'tests/test_clinical_doctor_trial.py'
+      - 'tests/fixtures/clinical_doctor_trial_cw_b26_cases.json'
+      - 'frontend/tests/clinical-doctor-trial.test.jsx'
+      - 'docs/clinical_docs/CLINICAL_DOCTOR_TRIAL_CW_B26.md'
 
 permissions:
   contents: read
 
 jobs:
+  history-preservation:
+    name: Consult history preservation
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Run unchanged isolated history tests and route wiring check
+        run: python -B tests/test_consult_history_merge.py
+
   synthetic-acceptance:
     if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 30
     env:
       PMAI_SYNTHETIC_ACCEPTANCE: PR26
       PMAI_ACCEPTANCE_OUT: ${{ github.workspace }}/acceptance-results
@@ -54,24 +297,141 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Bind driver repair to the reviewed integrated release and five-file scope
+      - name: Bind frozen M7 through CW-B26; test current candidate below
         run: |
           set -euo pipefail
+          # CW-B26 is sealed. Its exact-path validator belongs to that commit;
+          # subsequent fixes are exercised by the tests on the current checkout.
+          cwb26_commit=586b21f5f9ebfb7531db9d8d2807ddee57fbab1c
+          git merge-base --is-ancestor "$cwb26_commit" HEAD
+          cwb26_worktree="$(mktemp -d "$RUNNER_TEMP/cwb26-frozen-XXXXXX")"
+          git worktree add --detach --quiet "$cwb26_worktree" "$cwb26_commit"
+          trap 'git worktree remove "$cwb26_worktree"' EXIT
+          (
+            cd "$cwb26_worktree"
+            python -B scripts/validate_clinical_doctor_trial_cw_b26.py
+          ) > "$RUNNER_TEMP/cwb26-scope.json"
+          git worktree remove "$cwb26_worktree"
+          trap - EXIT
           mkdir -p acceptance-results
-          baseline=393e3366055e759b760abacf584b48f3203253da
-          reviewed=2b04d38873b680de4e52309ec42d7bb4ccec8118
-          # PR #42 was squash-merged: source branches are not main ancestors.
-          # Keep the entire reviewed application tree as the immutable baseline.
-          # This tree also belongs to reviewed HEAD 2b04d388; do not depend on
-          # the old PR branch remaining available in a fresh checkout.
+          cp "$RUNNER_TEMP/cwb26-scope.json" acceptance-results/cwb26-scope.json
+          python - <<'PY_SCOPE'
+          import json
+          cwb25 = json.load(open('acceptance-results/cwb26-scope.json'))['frozen_cwb25']
+          open('acceptance-results/cwb25-scope.json','w').write(json.dumps(cwb25,indent=2))
+          cwb24 = cwb25['frozen_cwb24']
+          open('acceptance-results/cwb24-scope.json','w').write(json.dumps(cwb24,indent=2))
+          cwb23 = cwb24['frozen_cwb23']
+          open('acceptance-results/cwb23-scope.json','w').write(json.dumps(cwb23,indent=2))
+          cwb22 = cwb23['frozen_cwb22']
+          open('acceptance-results/cwb22-scope.json','w').write(json.dumps(cwb22,indent=2))
+          cwb21 = cwb22['frozen_cwb21']
+          open('acceptance-results/cwb21-scope.json','w').write(json.dumps(cwb21,indent=2))
+          cwb20 = cwb21['frozen_cwb20']
+          open('acceptance-results/cwb20-scope.json','w').write(json.dumps(cwb20,indent=2))
+          cwb19 = cwb20['frozen_cwb19']
+          open('acceptance-results/cwb19-scope.json','w').write(json.dumps(cwb19,indent=2))
+          cwb18 = cwb19['frozen_cwb18']
+          open('acceptance-results/cwb18-scope.json','w').write(json.dumps(cwb18,indent=2))
+          cwb17 = cwb18['frozen_cwb17']
+          open('acceptance-results/cwb17-scope.json','w').write(json.dumps(cwb17,indent=2))
+          cwb16 = cwb17['frozen_cwb16']
+          open('acceptance-results/cwb16-scope.json','w').write(json.dumps(cwb16,indent=2))
+          cwb15 = cwb16['frozen_cwb15']
+          open('acceptance-results/cwb15-scope.json','w').write(json.dumps(cwb15,indent=2))
+          cwb14 = cwb15['frozen_cwb14']
+          open('acceptance-results/cwb14-scope.json','w').write(json.dumps(cwb14,indent=2))
+          cwb13 = cwb14['frozen_cwb13']
+          open('acceptance-results/cwb13-scope.json','w').write(json.dumps(cwb13,indent=2))
+          new_increment = cwb13['frozen_cwb12']
+          open('acceptance-results/cwb12-scope.json','w').write(json.dumps(new_increment,indent=2))
+          increment = new_increment['frozen_cwb11']
+          open('acceptance-results/cwb11-scope.json','w').write(json.dumps(increment,indent=2))
+          current = increment['frozen_cwb10']
+          open('acceptance-results/cwb10-scope.json','w').write(json.dumps(current,indent=2))
+          cwb9 = current['frozen_cwb9']
+          open('acceptance-results/cwb9-scope.json','w').write(json.dumps(cwb9,indent=2))
+          cwb8 = cwb9['frozen_cwb8']
+          open('acceptance-results/cwb8-scope.json','w').write(json.dumps(cwb8,indent=2))
+          scope = cwb8['frozen_cwb7']
+          open('acceptance-results/cwb7-scope.json','w').write(json.dumps(scope,indent=2))
+          open('acceptance-results/cwb6-scope.json','w').write(json.dumps(scope['frozen_cwb6'],indent=2))
+          PY_SCOPE
+          baseline=793894523be602bd8da265f8f7e8e63e417027a7
           git merge-base --is-ancestor "$baseline" HEAD
-          test "$(git rev-parse "$baseline^{tree}")" = c52b3d2815a744f61ac4f6298ee97c19ce5faabc
-          git diff --exit-code "$baseline" HEAD -- . ':(exclude)backend/db.py' ':(exclude)backend/requirements.txt' ':(exclude)tests/test_database_startup.py' ':(exclude).github/workflows/consult-browser-postgres.yml' ':(exclude)docs/clinical_docs/DATABASE_DRIVER_DEPLOY_FIX.md'
-          test "$(git diff --name-only "$baseline" HEAD | wc -l)" -eq 5
+          test "$(git rev-parse "$baseline^{tree}")" = 63bd051e6e99f0719f474e0ecf38fc70fbc21f42
+          python - <<'PY'
+          import json, subprocess
+          allowed = {
+              'knowledge-base/companion/intake/diarrhea.json', 'backend/diarrhea_intake.py', 'backend/main.py',
+              'frontend/src/components/DiarrheaIntake.jsx', 'frontend/src/diarrheaIntakeState.js', 'frontend/src/App.jsx',
+              'frontend/src/consultDraft.js', 'tests/test_diarrhea_intake.py', 'tests/test_consult_first_save.py',
+              'tests/test_clinical_doc_lifecycle.py', 'frontend/tests/diarrhea-intake.test.jsx',
+              'frontend/tests/consult-draft.test.jsx', 'frontend/tests/manual-case-create.test.jsx',
+              'frontend/tests/run-consult-update-review.mjs', 'tests/acceptance/postgres_checks.py',
+              'tests/acceptance/diarrhea_intake_checks.cjs', '.github/workflows/consult-browser-postgres.yml',
+              'docs/clinical_docs/VISIT_MILESTONE_M7.md',
+          }
+          m7 = '99a4f25ee7267f57414d336bd836f86b27cbbcd8'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', m7, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', m7 + '^{tree}'], text=True).strip() == '0021fe336ce6ebc8cfc2875474c1a4ef5515408a'
+          changed = set(subprocess.check_output(['git', 'diff', '--name-only', '793894523be602bd8da265f8f7e8e63e417027a7', m7], text=True).splitlines())
+          assert 0 < len(changed) <= 18 and changed <= allowed, sorted(changed - allowed)
+          open('acceptance-results/m7-scope.json', 'w').write(json.dumps({'changed': sorted(changed), 'allowed': sorted(allowed)}, indent=2))
+          supplement_allowed = {
+              'backend/clinical_docs_api.py', 'frontend/src/components/ClinicalDocReview.jsx',
+              'frontend/tests/case-detail-documents.test.jsx', 'tests/test_clinical_doc_lifecycle.py',
+              'scripts/validate_outpatient_document_templates.py',
+              'templates/clinical_docs/CLINICAL_DOCS_TEMPLATE_ASSETS_MANIFEST.json',
+              'templates/clinical_docs/outpatient_record_zh.docx',
+              '.github/workflows/consult-browser-postgres.yml',
+          }
+          identity = '25bc2b10db8caffbe31dafc7a7bc4cebdea62bdc'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', identity, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', identity + '^{tree}'], text=True).strip() == 'd109805e9ff66e74863c74a8d29b02f7119749ed'
+          supplement = set(subprocess.check_output(['git', 'diff', '--name-only', m7, identity], text=True).splitlines())
+          assert 0 < len(supplement) <= 8 and supplement <= supplement_allowed, sorted(supplement - supplement_allowed)
+          open('acceptance-results/outpatient-identity-scope.json', 'w').write(json.dumps({'baseline': m7, 'changed': sorted(supplement), 'allowed': sorted(supplement_allowed)}, indent=2))
+          b1_allowed = {'tests/test_diarrhea_intake.py', 'backend/chief_complaint_intake.py', 'frontend/tests/run-consult-update-review.mjs', 'frontend/src/chiefComplaintIntakeState.js', 'tests/test_consult_first_save.py', 'knowledge-base/companion/intake/cough_breathing.json', 'backend/main.py', 'tests/acceptance/postgres_checks.py', '.github/workflows/consult-browser-postgres.yml', 'frontend/tests/diarrhea-intake.test.jsx', 'knowledge-base/companion/intake/appetite_weight.json', 'tests/test_consult_update_preview.py', 'frontend/tests/consult-update-review.test.jsx', 'knowledge-base/companion/intake/polyuria_polydipsia.json', 'tests/test_chief_complaint_intake.py', 'tests/acceptance/chief_complaint_intake_checks.cjs', 'tests/test_manual_case_create.py', 'frontend/tests/chief-complaint-intake.test.jsx', 'frontend/tests/manual-case-create.test.jsx', 'frontend/tests/consult-draft.test.jsx', 'frontend/tests/consult-first-save.test.jsx', 'frontend/src/App.jsx', 'frontend/src/components/DiarrheaIntake.jsx', 'frontend/src/diarrheaIntakeState.js', 'frontend/src/consultDraft.js', 'tests/acceptance/diarrhea_intake_checks.cjs', 'tests/test_clinical_doc_lifecycle.py', 'frontend/src/components/ChiefComplaintIntake.jsx', 'backend/diarrhea_intake.py', 'docs/clinical_docs/INTAKE_BATCH_B1.md'}
+          b1 = '482b484071b00a28e96cd81b1ead71712bd84354'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', b1, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', b1 + '^{tree}'], text=True).strip() == 'c2d804f635262b843997e3fd0ab6ffd071bcd21a'
+          b1_changed = set(subprocess.check_output(['git', 'diff', '--name-only', identity, b1], text=True).splitlines())
+          assert 0 < len(b1_changed) <= 30 and b1_changed <= b1_allowed, sorted(b1_changed - b1_allowed)
+          open('acceptance-results/b1-scope.json', 'w').write(json.dumps({'baseline': identity, 'changed': sorted(b1_changed), 'allowed': sorted(b1_allowed)}, indent=2))
+          b2_allowed = {'backend/main.py', 'knowledge-base/companion/intake/lameness_pain.json', 'frontend/tests/chief-complaint-intake.test.jsx', 'backend/chief_complaint_intake.py', 'frontend/src/consultDraft.js', 'frontend/tests/consult-draft.test.jsx', 'tests/acceptance/chief_complaint_intake_checks.cjs', 'knowledge-base/companion/intake/urinary_abnormality.json', '.github/workflows/consult-browser-postgres.yml', 'tests/test_consult_first_save.py', 'tests/test_clinical_doc_lifecycle.py', 'tests/acceptance/postgres_checks.py', 'frontend/src/chiefComplaintIntakeState.js', 'docs/clinical_docs/INTAKE_BATCH_B2.md', 'frontend/src/components/ChiefComplaintIntake.jsx', 'knowledge-base/companion/intake/syncope_seizure.json', 'frontend/src/App.jsx', 'frontend/tests/consult-first-save.test.jsx', 'tests/test_chief_complaint_intake.py', 'knowledge-base/companion/intake/itching_hair_loss.json'}
+          b2 = 'e584f8ec8646cfbdcad6d0ef9a3fadaa465ffa02'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', b2, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', b2 + '^{tree}'], text=True).strip() == 'd819cdd04f504c9ac79f7e9bc7e0feef3b90e6af'
+          b2_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b1, b2], text=True).splitlines())
+          assert 0 < len(b2_changed) <= 20 and b2_changed <= b2_allowed, sorted(b2_changed - b2_allowed)
+          open('acceptance-results/b2-scope.json', 'w').write(json.dumps({'baseline': b1, 'changed': sorted(b2_changed), 'allowed': sorted(b2_allowed)}, indent=2))
+          b3_allowed = {'knowledge-base/companion/intake/senior_screening.json', 'docs/clinical_docs/INTAKE_BATCH_B3.md', '.github/workflows/consult-browser-postgres.yml', 'frontend/src/chiefComplaintIntakeState.js', 'backend/chief_complaint_intake.py', 'knowledge-base/companion/intake/fever_lethargy.json', 'frontend/src/components/ChiefComplaintIntake.jsx', 'tests/test_chief_complaint_intake.py', 'tests/acceptance/chief_complaint_intake_checks.cjs', 'frontend/tests/chief-complaint-intake.test.jsx'}
+          b3 = '59dcb643510e75d76efd0147545565a0fe327e3c'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', b3, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', b3 + '^{tree}'], text=True).strip() == 'a6a28084a251b38abd4b2e6a2c6348e33a846582'
+          b3_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b2, b3], text=True).splitlines())
+          assert 0 < len(b3_changed) <= 10 and b3_changed <= b3_allowed, sorted(b3_changed - b3_allowed)
+          open('acceptance-results/b3-scope.json', 'w').write(json.dumps({'baseline': b2, 'changed': sorted(b3_changed), 'allowed': sorted(b3_allowed)}, indent=2))
+          b4_allowed = {'frontend/src/App.jsx', 'frontend/tests/consult-evidence.test.jsx', 'frontend/tests/run-consult-update-review.mjs', 'backend/orchestrator.py', 'tests/acceptance/evidence_checks.cjs', 'tests/acceptance/postgres_checks.py', 'frontend/src/components/ConsultEvidence.jsx', 'backend/risk_engine.py', 'backend/feature_engine.py', '.github/workflows/consult-browser-postgres.yml', 'backend/dynamic_consult.py', 'backend/clinical_evidence.py', 'tests/test_clinical_evidence.py', 'tests/test_consult_evidence.py', 'backend/diagnosis_engine.py', 'backend/companion_animal_knowledge.py', 'backend/main.py', 'docs/clinical_docs/CONSULT_EVIDENCE_B4.md'}
+          b4 = '8109a629b6b7159873ff6723c7833a1b26656117'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', b4, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', b4 + '^{tree}'], text=True).strip() == '11c5a93face82e578caddba398160d15d1736add'
+          b4_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b3, b4], text=True).splitlines())
+          assert 0 < len(b4_changed) <= 18 and b4_changed <= b4_allowed, sorted(b4_changed - b4_allowed)
+          open('acceptance-results/b4-scope.json', 'w').write(json.dumps({'baseline': b3, 'changed': sorted(b4_changed), 'allowed': sorted(b4_allowed)}, indent=2))
+          voice_allowed = set(['backend/speech_transcription.py', 'backend/speech_transcription_api.py', 'backend/speech_budget.py', 'backend/main.py', 'frontend/src/App.jsx', 'frontend/src/components/VoiceDraft.jsx', 'frontend/src/voiceDraftState.js', 'frontend/src/audioCapture.js', 'frontend/src/audioCapture.worklet.js', 'frontend/src/components/ConsultSaveReview.jsx', 'frontend/src/components/ConsultUpdateReview.jsx', 'frontend/src/consultDraft.js', 'frontend/tests/voice-draft.test.jsx', 'frontend/tests/audio-capture.test.jsx', 'tests/test_speech_transcription.py', 'tests/test_speech_budget.py', 'tests/test_speech_history.py', 'tests/acceptance/speech_checks.cjs', 'tests/acceptance/postgres_checks.py', 'frontend/tests/run-consult-update-review.mjs', '.github/workflows/consult-browser-postgres.yml', 'docs/clinical_docs/VOICE_DRAFT_CW_B5.md', 'scripts/verify_voice_provider_cw_b5.py', 'tests/fixtures/voice_cw_b5_cases.json', 'frontend/package-lock.json'])
+          voice = 'bba87033eb7e392ded7e9d48652a1ac185b04058'
+          subprocess.check_call(['git', 'merge-base', '--is-ancestor', voice, 'HEAD'])
+          assert subprocess.check_output(['git', 'rev-parse', voice + '^{tree}'], text=True).strip() == 'f72860b116c474b356fc5f6d988dd71cdacdb12e'
+          voice_changed = set(subprocess.check_output(['git', 'diff', '--name-only', b4, voice], text=True).splitlines())
+          assert 0 < len(voice_changed) <= 25 and voice_changed <= voice_allowed, sorted(voice_changed - voice_allowed)
+          open('acceptance-results/cwb5-scope.json', 'w').write(json.dumps({'baseline': b4, 'changed': sorted(voice_changed), 'allowed': sorted(voice_allowed)}, indent=2))
+          PY
           git rev-parse HEAD > acceptance-results/test-commit.txt
           git rev-parse HEAD > acceptance-results/application-commit.txt
           git rev-parse "$baseline" > acceptance-results/application-baseline.txt
-          printf '%s\n' "$reviewed" > acceptance-results/reviewed-integration.txt
+          git rev-parse "$baseline^{tree}" > acceptance-results/application-baseline-tree.txt
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -94,10 +454,6 @@ jobs:
           npm ci --prefix frontend
           npm install --prefix "$RUNNER_TEMP/pmai-browser-deps" --no-package-lock @playwright/test@1.55.0
           "$RUNNER_TEMP/pmai-browser-deps/node_modules/.bin/playwright" install --with-deps chromium
-      - name: Audit locked frontend dependencies
-        run: |
-          set -o pipefail
-          npm --prefix frontend audit --json --audit-level=low | tee acceptance-results/frontend-dependency-audit.json
       - name: Frontend request and consultation regressions
         run: |
           set -o pipefail
@@ -106,6 +462,126 @@ jobs:
         run: python scripts/validate_outpatient_document_templates.py
       - name: Document lifecycle with real authentication and disposable SQLite
         run: python tests/test_clinical_doc_lifecycle.py
+      - name: M7 versioned intake, original states and AI failure without external calls
+        run: python tests/test_diarrhea_intake.py
+      - name: B1, B2 and B3 canonical intake and knowledge base validation
+        run: |
+          python tests/test_chief_complaint_intake.py
+          python tools/validate_kb.py
+      - name: B4 offline assertions and authenticated save/readback/document evidence
+        run: |
+          python tests/test_clinical_evidence.py
+          python tests/test_consult_evidence.py
+      - name: CW-B5 authenticated speech, atomic history and budget with egress blocked
+        run: |
+          python tests/test_speech_transcription.py
+          python tests/test_speech_budget.py
+          python tests/test_speech_history.py
+      - name: CW-B6 private files, authenticated lifecycle and SQLite concurrency
+        run: |
+          set -euo pipefail
+          python tests/test_case_attachment_store.py 2>&1 | tee acceptance-results/cwb6-store-tests.log
+          python tests/test_case_attachments.py 2>&1 | tee acceptance-results/cwb6-route-tests.log
+          python tests/test_case_attachment_concurrency.py 2>&1 | tee acceptance-results/cwb6-concurrency-tests.log
+      - name: CW-B7 exact manual results, isolation and atomic SQLite concurrency
+        run: |
+          set -euo pipefail
+          python tests/test_manual_lab_results.py 2>&1 | tee acceptance-results/cwb7-route-tests.log
+          python tests/test_manual_lab_result_concurrency.py 2>&1 | tee acceptance-results/cwb7-concurrency-tests.log
+      - name: CW-B8 document snapshots, exact originals and SQLite export races
+        run: |
+          set -euo pipefail
+          python tests/test_manual_lab_documents.py 2>&1 | tee acceptance-results/cwb8-doc-tests.log
+          python tests/test_manual_lab_document_concurrency.py 2>&1 | tee acceptance-results/cwb8-concurrency-tests.log
+      - name: CW-B9 manual imaging, mixed snapshots and SQLite races
+        run: |
+          set -euo pipefail
+          python tests/test_manual_imaging_records.py 2>&1 | tee acceptance-results/cwb9-route-tests.log
+          python tests/test_manual_imaging_concurrency.py 2>&1 | tee acceptance-results/cwb9-concurrency-tests.log
+          PMAI_CWB9_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb9-doc-samples" python tests/test_manual_imaging_documents.py 2>&1 | tee acceptance-results/cwb9-document-tests.log
+      - name: CW-B10 read-only inventory, saved fields and SQLite consistency
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_case_overview.py 2>&1 | tee acceptance-results/cwb10-route-tests.log
+          python tests/test_clinical_case_overview_concurrency.py 2>&1 | tee acceptance-results/cwb10-concurrency-tests.log
+      - name: CW-B11 exact decimal comparisons, read-only routes and SQLite races
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_lab_range_review.py 2>&1 | tee acceptance-results/cwb11-route-tests.log
+          python tests/test_clinical_lab_range_review_concurrency.py 2>&1 | tee acceptance-results/cwb11-concurrency-tests.log
+      - name: CW-B12 precise differences, read-only previews and SQLite races
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_lab_comparison.py 2>&1 | tee acceptance-results/cwb12-route-tests.log
+          python tests/test_clinical_lab_comparison_concurrency.py 2>&1 | tee acceptance-results/cwb12-concurrency-tests.log
+      - name: CW-B13 selected comparison documents and full snapshot SQLite races
+        run: |
+          set -euo pipefail
+          PMAI_CWB13_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb13-doc-samples" python tests/test_clinical_lab_comparison_documents.py 2>&1 | tee acceptance-results/cwb13-document-tests.log
+          python tests/test_clinical_lab_comparison_document_concurrency.py 2>&1 | tee acceptance-results/cwb13-concurrency-tests.log
+      - name: CW-B14 manual follow-up plans, legacy KPI and SQLite races
+        run: |
+          set -o pipefail
+          python tests/test_clinical_followup_plans.py 2>&1 | tee acceptance-results/cwb14-route-tests.log
+          python tests/test_clinical_followup_plan_concurrency.py 2>&1 | tee acceptance-results/cwb14-concurrency-tests.log
+      - name: CW-B15 exact saved plan documents and SQLite full-document races
+        run: |
+          set -o pipefail
+          PMAI_CWB15_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb15-doc-samples" python tests/test_clinical_followup_plan_documents.py 2>&1 | tee acceptance-results/cwb15-document-tests.log
+          python tests/test_clinical_followup_plan_document_concurrency.py 2>&1 | tee acceptance-results/cwb15-concurrency-tests.log
+      - name: CW-B16 owner plan documents and SQLite full-document races
+        run: |
+          set -euo pipefail
+          PMAI_CWB16_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb16-doc-samples" python tests/test_clinical_followup_plan_owner_documents.py 2>&1 | tee acceptance-results/cwb16-document-tests.log
+          python tests/test_clinical_followup_plan_owner_document_concurrency.py 2>&1 | tee acceptance-results/cwb16-concurrency-tests.log
+      - name: CW-B17 saved-plan inventory, compatibility and SQLite races
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_followup_plan_overview.py 2>&1 | tee acceptance-results/cwb17-route-tests.log
+          python tests/test_clinical_followup_plan_overview_concurrency.py 2>&1 | tee acceptance-results/cwb17-concurrency-tests.log
+      - name: CW-B18 bounded queue, fixed SELECT count and consistent SQLite snapshots
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_followup_plan_queue.py 2>&1 | tee acceptance-results/cwb18-route-tests.log
+          python tests/test_clinical_followup_plan_queue_concurrency.py 2>&1 | tee acceptance-results/cwb18-concurrency-tests.log
+      - name: CW-B19 contacts, audit concurrency and historical isolation
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_followup_contacts.py 2>&1 | tee acceptance-results/cwb19-route-tests.log
+          python tests/test_clinical_followup_contact_concurrency.py 2>&1 | tee acceptance-results/cwb19-concurrency-tests.log
+          python tests/test_clinical_followup_contact_isolation.py 2>&1 | tee acceptance-results/cwb19-isolation-tests.log
+      - name: CW-B20 contact inventory, snapshot concurrency and historical isolation
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_followup_contact_overview.py 2>&1 | tee acceptance-results/cwb20-route-tests.log
+          python tests/test_clinical_followup_contact_overview_concurrency.py 2>&1 | tee acceptance-results/cwb20-concurrency-tests.log
+          python tests/test_clinical_followup_contact_overview_isolation.py 2>&1 | tee acceptance-results/cwb20-isolation-tests.log
+      - name: CW-B21 literal contact documents, SQLite races and old request isolation
+        run: |
+          set -euo pipefail
+          PMAI_CWB21_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb21-doc-samples" python tests/test_clinical_followup_contact_documents.py 2>&1 | tee acceptance-results/cwb21-document-tests.log
+          python tests/test_clinical_followup_contact_document_concurrency.py 2>&1 | tee acceptance-results/cwb21-concurrency-tests.log
+          python tests/test_clinical_followup_contact_document_isolation.py 2>&1 | tee acceptance-results/cwb21-isolation-tests.log
+      - name: CW-B22 literal contact documents, SQLite races and old request isolation
+        run: |
+          set -euo pipefail
+          PMAI_CWB22_DOC_SAMPLES="$PMAI_ACCEPTANCE_OUT/cwb22-doc-samples" python tests/test_clinical_followup_contact_owner_documents.py 2>&1 | tee acceptance-results/cwb22-document-tests.log
+          python tests/test_clinical_followup_contact_owner_document_concurrency.py 2>&1 | tee acceptance-results/cwb22-concurrency-tests.log
+          python tests/test_clinical_followup_contact_owner_document_isolation.py 2>&1 | tee acceptance-results/cwb22-isolation-tests.log
+      - name: CW-B23 bounded contact queue, SQLite snapshots and frozen validator isolation
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_followup_contact_queue.py 2>&1 | tee acceptance-results/cwb23-route-tests.log
+          python tests/test_clinical_followup_contact_queue_concurrency.py 2>&1 | tee acceptance-results/cwb23-concurrency-tests.log
+          python tests/test_clinical_followup_contact_queue_isolation.py 2>&1 | tee acceptance-results/cwb23-isolation-tests.log
+      - name: CW-B24 reject incomplete and falsely signed acceptance evidence
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_visit_journey_evidence.py 2>&1 | tee acceptance-results/cwb24-evidence-tests.log
+      - name: CW-B26 local trial startup boundaries and cleanup
+        run: |
+          set -euo pipefail
+          python tests/test_clinical_doctor_trial.py 2>&1 | tee acceptance-results/cwb26-runtime-tests.log
       - name: Start fresh native PostgreSQL (no Docker)
         run: |
           test -x /usr/lib/postgresql/16/bin/initdb
@@ -115,7 +591,7 @@ jobs:
           /usr/lib/postgresql/16/bin/createdb -h 127.0.0.1 -p 55432 -U pmai_acceptance pmai_acceptance
       - name: PostgreSQL real routes and concurrent transactions
         run: |
-          set -o pipefail
+          set -euo pipefail
           python tests/acceptance/postgres_checks.py 2>&1 | tee acceptance-results/postgres-checks.log
           python tests/acceptance/postgres_checks.py --readback 2>&1 | tee acceptance-results/restart-readback.log
       - name: Build and serve exact application locally
@@ -172,6 +648,270 @@ jobs:
         run: |
           set -o pipefail
           NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/visit_document_checks.cjs 2>&1 | tee acceptance-results/visit-document-checks.log
+      - name: Real Chromium M7 dog and cat intake, recovery and document lifecycle
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/diarrhea_intake_checks.cjs 2>&1 | tee acceptance-results/diarrhea-intake-checks.log
+      - name: Real Chromium B1, B2 and B3 enabled chief complaints for dog and cat
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/chief_complaint_intake_checks.cjs 2>&1 | tee acceptance-results/b1-intake-checks.log
+      - name: Real Chromium B4 input evidence and document preservation
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/evidence_checks.cjs 2>&1 | tee acceptance-results/b4-evidence-checks.log
+      - name: CW-B5 real Chromium microphone and doctor confirmation with mock-only ASR
+        run: |
+          set -euo pipefail
+          kill "$(cat acceptance-results/backend.pid)"
+          for attempt in $(seq 1 30); do
+            if ! kill -0 "$(cat acceptance-results/backend.pid)" 2>/dev/null; then break; fi
+            sleep 0.2
+          done
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/speech_checks.cjs 2>&1 | tee acceptance-results/cwb5-browser.log
+      - name: CW-B6 real Chromium synthetic originals and doctor review
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          import socket, time
+          for attempt in range(50):
+              with socket.socket() as stream:
+                  if stream.connect_ex(('127.0.0.1', 18026)) != 0: break
+              time.sleep(0.1)
+          else: raise RuntimeError('Previous test server did not stop')
+          PY
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/attachment_checks.cjs 2>&1 | tee acceptance-results/cwb6-browser.log
+      - name: CW-B7 real Chromium manual lab review and original-source lifecycle
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/manual_lab_checks.cjs 2>&1 | tee acceptance-results/cwb7-browser.log
+      - name: CW-B8 real Chromium selected laboratory document review
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/manual_lab_document_checks.cjs 2>&1 | tee acceptance-results/cwb8-browser.log
+      - name: CW-B9 real Chromium manual imaging and mixed document downloads
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/manual_imaging_checks.cjs 2>&1 | tee acceptance-results/cwb9-browser.log
+      - name: CW-B10 real Chromium overview, existing navigation and stale responses
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_case_overview_checks.cjs 2>&1 | tee acceptance-results/cwb10-browser.log
+      - name: CW-B11 real Chromium range checks, exact sources and saved-record navigation
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_lab_range_review_checks.cjs 2>&1 | tee acceptance-results/cwb11-browser.log
+      - name: CW-B12 real Chromium explicit saved pairs and stale preview rejection
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_lab_comparison_checks.cjs 2>&1 | tee acceptance-results/cwb12-browser.log
+      - name: CW-B13 real Chromium explicit pair, full review and DOCX download
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_lab_comparison_document_checks.cjs 2>&1 | tee acceptance-results/cwb13-browser.log
+      - name: CW-B14 real Chromium manual plan lifecycle and lost-reply verification
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_plan_checks.cjs 2>&1 | tee acceptance-results/cwb14-browser.log
+      - name: CW-B15 real Chromium full plan documents and stale response guards
+        run: |
+          set -o pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_plan_document_checks.cjs 2>&1 | tee acceptance-results/cwb15-browser.log
+      - name: CW-B16 real Chromium owner documents, template isolation and failed saves
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_plan_owner_document_checks.cjs 2>&1 | tee acceptance-results/cwb16-browser.log
+      - name: CW-B17 real Chromium plan inventory, exact navigation and stale responses
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_plan_overview_checks.cjs 2>&1 | tee acceptance-results/cwb17-browser.log
+      - name: CW-B18 real Chromium queue, paging and exact case navigation
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_plan_queue_checks.cjs 2>&1 | tee acceptance-results/cwb18-browser.log
+      - name: CW-B19 real Chromium contacts and frozen source history
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_checks.cjs 2>&1 | tee acceptance-results/cwb19-browser.log
+      - name: CW-B20 real Chromium exact contact navigation and draft preservation
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_overview_checks.cjs 2>&1 | tee acceptance-results/cwb20-browser.log
+      - name: CW-B21 real Chromium contact documents, history and lost write replies
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_document_checks.cjs 2>&1 | tee acceptance-results/cwb21-browser.log
+      - name: CW-B22 real Chromium contact documents, history and lost write replies
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_owner_document_checks.cjs 2>&1 | tee acceptance-results/cwb22-browser.log
+      - name: CW-B23 real Chromium contact queue, exact versions and lost write replies
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_followup_contact_queue_checks.cjs 2>&1 | tee acceptance-results/cwb23-browser.log
+      - name: CW-B24 real Chromium complete visits and independent PostgreSQL readback
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_visit_journey_checks.cjs 2>&1 | tee acceptance-results/cwb24-browser.log
+      - name: CW-B25 real Chromium lab literals and responsive table geometry
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_lab_readability_checks.cjs 2>&1 | tee acceptance-results/cwb25-browser.log
+          test -s acceptance-results/cwb24-independent-readback.json
+      - name: CW-B26 real launcher, persistent doctor flows and fresh restart
+        run: |
+          set -euo pipefail
+          NODE_PATH="$RUNNER_TEMP/pmai-browser-deps/node_modules" node tests/acceptance/clinical_doctor_trial_checks.cjs 2>&1 | tee acceptance-results/cwb26-browser.log
+      - name: Render CW-B13 synthetic DOCX samples to page evidence
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libreoffice-writer fonts-noto-cjk fonts-noto-color-emoji poppler-utils
+          python - <<'PY_DOC'
+          import json, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results/cwb13-doc-samples')
+          files=sorted(root.glob('*.docx'))
+          assert len(files)==4
+          result=[]
+          for file in files:
+              target=root/file.stem
+              target.mkdir()
+              subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb13-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],check=True,timeout=90)
+              pdf=target/(file.stem+'.pdf')
+              assert pdf.is_file() and pdf.stat().st_size>0
+              subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+              pages=list(target.glob('page-*.png'))
+              assert pages
+              result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
+          (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
+          PY_DOC
+      - name: Render every CW-B15 document sample page
+        run: |
+          python - <<'PY_DOC15'
+          import json, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results/cwb15-doc-samples')
+          files=sorted(root.glob('*.docx'))
+          assert len(files)==4
+          result=[]
+          for file in files:
+              target=root/file.stem
+              target.mkdir()
+              subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb15-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],check=True,timeout=90)
+              pdf=target/(file.stem+'.pdf')
+              assert pdf.is_file() and pdf.stat().st_size>0
+              subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+              pages=list(target.glob('page-*.png'));assert pages
+              result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
+          (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
+          PY_DOC15
+      - name: Render every CW-B16 document sample page
+        run: |
+          python - <<'PY_DOC16'
+          import json, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results/cwb16-doc-samples')
+          files=sorted(root.glob('*.docx'))
+          assert len(files)==4
+          result=[]
+          for file in files:
+              target=root/file.stem
+              target.mkdir()
+              subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb16-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],check=True,timeout=90)
+              pdf=target/(file.stem+'.pdf')
+              assert pdf.is_file() and pdf.stat().st_size>0
+              subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+              pages=list(target.glob('page-*.png'));assert pages
+              result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
+          (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
+          PY_DOC16
+      - name: Render every CW-B21 document sample page
+        run: |
+          python - <<'PY_DOC21'
+          import json, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results/cwb21-doc-samples')
+          files=sorted(root.glob('*.docx'))
+          assert len(files)==4
+          result=[]
+          for file in files:
+              target=root/file.stem
+              target.mkdir()
+              subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb21-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],check=True,timeout=90)
+              pdf=target/(file.stem+'.pdf')
+              assert pdf.is_file() and pdf.stat().st_size>0
+              subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+              pages=list(target.glob('page-*.png'));assert pages
+              result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
+          (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
+          PY_DOC21
+      - name: Render every CW-B22 document sample page
+        run: |
+          python - <<'PY_DOC22'
+          import json, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results/cwb22-doc-samples')
+          files=sorted(root.glob('*.docx'))
+          assert len(files)==4
+          result=[]
+          for file in files:
+              target=root/file.stem
+              target.mkdir()
+              subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb22-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],check=True,timeout=90)
+              pdf=target/(file.stem+'.pdf')
+              assert pdf.is_file() and pdf.stat().st_size>0
+              subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+              pages=list(target.glob('page-*.png'));assert pages
+              result.append({'sample':file.name,'pages':len(pages),'mac_word_checked':False,'doctor_accepted':False})
+          (root/'render-manifest.json').write_text(json.dumps(result,indent=2))
+          PY_DOC22
+      - name: Render every CW-B24 complete-visit document page
+        run: |
+          python - <<'PY_DOC24'
+          import hashlib, json, os, subprocess
+          from pathlib import Path
+          root=Path('acceptance-results')
+          evidence=json.loads((root/'cwb24-journey.json').read_text())
+          fixture=json.loads(Path('tests/fixtures/clinical_visit_journey_cw_b24_cases.json').read_text())
+          assert evidence['status']=='PASS' and len(evidence['cases'])==2
+          # Deterministic substitutions using already installed fonts; never alter the DOCX.
+          fontconfig=root/'cwb24-render-fontconfig.xml'
+          fontconfig.write_text('''<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "fonts.dtd">
+          <fontconfig><include>/etc/fonts/fonts.conf</include>
+          <alias binding="strong"><family>SimSun</family><prefer><family>Noto Sans CJK SC</family></prefer></alias>
+          <alias binding="strong"><family>Arial</family><prefer><family>Noto Sans CJK SC</family></prefer></alias>
+          </fontconfig>''')
+          render_env=dict(os.environ,FONTCONFIG_FILE=str(fontconfig.resolve()))
+          for requested in ('SimSun','Arial'):
+              expected='Noto Sans CJK SC'
+              actual=subprocess.check_output(['fc-match','-f','%{family}',requested],env=render_env,text=True)
+              assert expected in actual, (requested,actual)
+              print('CW-B24 render font:',requested,'->',actual)
+          result=[]
+          for case in evidence['cases']:
+              for item in case['documents']:
+                  file=root/item['file'];assert hashlib.sha256(file.read_bytes()).hexdigest()==item['sha256']
+                  target=root/'cwb24-pages'/file.stem;target.mkdir(parents=True)
+                  subprocess.run(['libreoffice','-env:UserInstallation=file:///tmp/cwb24-lo-profile','--headless','--convert-to','pdf','--outdir',str(target),str(file)],env=render_env,check=True,timeout=90)
+                  pdf=target/(file.stem+'.pdf');assert pdf.is_file() and pdf.stat().st_size>0
+                  subprocess.run(['pdftoppm','-png','-r','110',str(pdf),str(target/'page')],check=True,timeout=90)
+                  pages=sorted(target.glob('page-*.png'));assert pages
+                  # Keep emoji beside its source line; default reading order can move it after the next line.
+                  text=subprocess.check_output(['pdftotext','-layout',str(pdf),'-'],text=True)
+                  required=[case['saved_case'][key] for key in ('patient_name','history','treatment')]
+                  required += [fixture['corrected_lab_value'],fixture['imaging']['findings'],fixture['contact']['note'],fixture['contact']['next_action'],
+                               '复查目的：'+fixture['plan']['purpose'],'来源复查目的：'+fixture['plan']['purpose']]
+                  for literal in required:
+                      assert ''.join(literal.split()) in ''.join(text.split()), (file.name,'PDF lost literal',literal)
+                  (target/'rendered-text.txt').write_text(text)
+                  result.append({'sample':file.name,'source_sha256':item['sha256'],'pages':len(pages),'pdf_literals_verified':True,'mac_word_checked':False,'doctor_accepted':False})
+          assert len(result)==4
+          (root/'cwb24-render-manifest.json').write_text(json.dumps({'head':evidence['head'],'fontconfig_sha256':hashlib.sha256(fontconfig.read_bytes()).hexdigest(),'documents':result},indent=2))
+          PY_DOC24
+      - name: Audit locked frontend dependencies
+        run: |
+          set -o pipefail
+          npm --prefix frontend audit --json --audit-level=low | tee acceptance-results/frontend-dependency-audit.json
       - name: Stop test processes
         if: always()
         run: |
@@ -222,7 +962,7 @@ jobs:
                   name = f'part-{len(parts) + 1:02d}.bin'
                   (target / name).write_bytes(data)
                   parts.append({'path': name, 'size': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
-          assert 1 <= len(parts) <= 4, 'Evidence exceeds four upload slots; no part may be silently dropped'
+          assert 1 <= len(parts) <= 8, 'Evidence exceeds eight upload slots; no part may be silently dropped'
           manifest = {
               'format': 'pmai-evidence-parts-v1',
               'commit': subprocess.check_output(['git', 'rev-parse', 'HEAD'], text=True).strip(),
@@ -297,6 +1037,38 @@ jobs:
         with:
           name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-04
           path: ${{ runner.temp }}/pmai-evidence-parts/part-04.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part5 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-05
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-05.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part6 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-06
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-06.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part7 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-07
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-07.bin
+          compression-level: 0
+          if-no-files-found: error
+          retention-days: 14
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.evidence.outputs.part8 == 'true'
+        with:
+          name: consult-browser-postgres-${{ github.event.pull_request.head.sha }}-part-08
+          path: ${{ runner.temp }}/pmai-evidence-parts/part-08.bin
           compression-level: 0
           if-no-files-found: error
           retention-days: 14

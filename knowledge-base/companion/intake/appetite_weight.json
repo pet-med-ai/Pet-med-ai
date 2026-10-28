@@ -1,0 +1,96 @@
+{
+  "key": "appetite_weight",
+  "version": "appetite_weight-intake-v1",
+  "label": "犬猫食欲下降／消瘦问诊",
+  "review_status": "clinical_draft",
+  "species": [
+    "dog",
+    "cat"
+  ],
+  "source": "医生采集",
+  "questions": [
+    {
+      "key": "onset",
+      "label": "起病时间、持续时间与症状变化",
+      "kind": "text"
+    },
+    {
+      "key": "intake",
+      "label": "进食量、频次及与平时相比的变化",
+      "kind": "text"
+    },
+    {
+      "key": "weight",
+      "label": "当前与既往体重、测量日期及单位；未测请注明",
+      "kind": "text"
+    },
+    {
+      "key": "diet",
+      "label": "平时食物、近期换粮或喂养变化",
+      "kind": "text"
+    },
+    {
+      "key": "eating_difficulty",
+      "label": "是否观察到进食、咀嚼或吞咽困难",
+      "kind": "presence"
+    },
+    {
+      "key": "eating_detail",
+      "label": "进食困难的实际表现与时间",
+      "kind": "text",
+      "when": "eating_difficulty"
+    },
+    {
+      "key": "vomiting",
+      "label": "是否观察到呕吐",
+      "kind": "presence"
+    },
+    {
+      "key": "vomiting_detail",
+      "label": "呕吐次数、外观与时间的补充",
+      "kind": "text",
+      "when": "vomiting"
+    },
+    {
+      "key": "stool",
+      "label": "排便与粪便的实际观察",
+      "kind": "text"
+    },
+    {
+      "key": "water_urine",
+      "label": "饮水与排尿的实际观察",
+      "kind": "text"
+    },
+    {
+      "key": "activity",
+      "label": "精神、活动与行为变化",
+      "kind": "text"
+    },
+    {
+      "key": "pain",
+      "label": "是否观察到疼痛或不适表现",
+      "kind": "presence"
+    },
+    {
+      "key": "pain_detail",
+      "label": "不适表现、部位与出现情境",
+      "kind": "text",
+      "when": "pain"
+    },
+    {
+      "key": "history",
+      "label": "既往疾病、口腔问题与近期就诊记录",
+      "kind": "text"
+    },
+    {
+      "key": "medication",
+      "label": "当前与近期用药、补充剂及处理",
+      "kind": "text"
+    },
+    {
+      "key": "notes",
+      "label": "医生补充与资料来源",
+      "kind": "text"
+    }
+  ]
+}

@@ -254,3 +254,13 @@ test("M4 logout clears new input and no draft flag can forge a confirmed create"
   assert.equal(writeManualCaseDraft("owner",{...values,history:"x".repeat(100000),analysis:"x".repeat(100000),treatment:"x".repeat(100000)}),false);
   assert.equal(readManualCaseDraft(null).draft,null);assert.equal(posts().length,0);
 });
+
+test("M7 questionnaire history stays in the reviewed fifteen fields and lost responses do not resend",async()=>{
+  const original="  原医生病史🐾\r\n  ", questionnaire="【犬腹泻问诊 · 医生采集 · 临床草稿】\n模板版本：diarrhea-intake-v1\n状态：不确定\n未见黑便 <5 & {{literal}}\n原分支只读保留";
+  revise({history:original+"\n\n"+questionnaire}); await click("核对新建内容");
+  assert(renderer.root.findAllByType("pre").some(n=>n.children.join("")===current.history));
+  check(); adapter=async()=>{throw Error("lost M7 manual response");}; await click("确认并创建病例");
+  assert.deepEqual(Object.keys(JSON.parse(posts()[0].data)).sort(),Object.keys(manualCasePayload(values)).sort());
+  assert.equal(JSON.parse(posts()[0].data).history,current.history);
+  await remount(); assert.equal(button("确认并创建病例"),undefined); assert.equal(posts().length,1);
+});

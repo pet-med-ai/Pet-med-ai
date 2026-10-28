@@ -18,6 +18,7 @@ CASE_FIELDS = {
     'visit.plan': 'treatment', 'visit.notes': 'prognosis',
 }
 TEMPLATES = ('outpatient_record_zh', 'owner_visit_summary_zh')
+IDENTITY_FIELDS = {'visit.owner_name': 'owner_name', 'visit.coat_color': 'coat_color'}
 KEYS = set(CASE_FIELDS) | {'visit.follow_up', 'export.account_id', 'timestamp', 'hash'}
 
 
@@ -30,13 +31,18 @@ def main():
     mapping = next(ast.literal_eval(node.value) for node in source.body if isinstance(node, ast.Assign)
                    and any(isinstance(t, ast.Name) and t.id == 'OUTPATIENT_CASE_FIELDS' for t in node.targets))
     assert mapping == CASE_FIELDS, 'Source fields must not reinterpret assessment as final diagnosis'
+    identity = next(ast.literal_eval(node.value) for node in source.body if isinstance(node, ast.Assign)
+                    and any(isinstance(t, ast.Name) and t.id == 'OUTPATIENT_RECORD_IDENTITY_FIELDS' for t in node.targets))
+    assert identity == IDENTITY_FIELDS, 'Identity fields must read the saved case'
     for name in TEMPLATES:
+        case_fields = {**CASE_FIELDS, **(IDENTITY_FIELDS if name == 'outpatient_record_zh' else {})}
+        keys = KEYS | set(case_fields)
         entry = entries[name]
         path = ROOT / f'templates/clinical_docs/{name}.docx'
         assert entry['path'] == str(path.relative_to(ROOT))
         assert entry['sha256'] == hashlib.sha256(path.read_bytes()).hexdigest(), name
-        assert set(entry['required_placeholders']) == KEYS
-        assert entry['case_field_mapping'] == CASE_FIELDS
+        assert set(entry['required_placeholders']) == keys
+        assert entry['case_field_mapping'] == case_fields
         assert entry['signed'] is False and entry['account_source'] == 'authenticated_user_id'
         assert entry['follow_up_source'] == 'no_independent_field'
         with zipfile.ZipFile(path) as z:
@@ -55,7 +61,7 @@ def main():
                 assert not list(xml.iter(W+'instrText')), 'Unexpected complex field'
                 texts.extend(''.join(t.text or '' for t in p.iter(W+'t')) for p in xml.iter(W+'p'))
             text = '\n'.join(texts)
-            assert set(re.findall(r'\{\{([^{}]+)\}\}', text)) == KEYS
+            assert set(re.findall(r'\{\{([^{}]+)\}\}', text)) == keys
             assert '草稿' in text and '待医生核对' in text and '尚未签署' in text
             for unsafe in ['{{final_dx}}', '{{clinician.name}}', '{{follow_up_plan}}', '{{stamp.image}}',
                            '电子章', 'Address TBD', '最终诊断', '医生签名']:

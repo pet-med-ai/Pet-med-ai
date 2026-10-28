@@ -1,9 +1,17 @@
 // src/pages/CaseDetail.jsx
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, Link, useNavigate, useLocation } from "react-router-dom";
-import api from "../api";
-import ClinicalDocReview from "../components/ClinicalDocReview";
+import api, { onAuthSessionExpired } from "../api";
+const ClinicalDocReview = lazy(() => import("../components/ClinicalDocReview"));
 import { draftOwner } from "../consultDraft";
+const CaseAttachments = lazy(() => import("../components/CaseAttachments"));
+const CaseLabResults = lazy(() => import("../components/CaseLabResults"));
+const CaseImagingRecords = lazy(() => import("../components/CaseImagingRecords"));
+const CaseVisitOverview = lazy(() => import("../components/CaseVisitOverview"));
+const CaseLabRangeReview = lazy(() => import("../components/CaseLabRangeReview"));
+const CaseLabComparison = lazy(() => import("../components/CaseLabComparison"));
+const CaseFollowupPlan = lazy(() => import("../components/CaseFollowupPlan"));
+const CaseFollowupContacts = lazy(() => import("../components/CaseFollowupContacts"));
 
 export default function CaseDetail() {
   const { id } = useParams();
@@ -21,12 +29,34 @@ export default function CaseDetail() {
 }
 
 function CaseDetailContent({ requestToken }) {
+  const [showAttachments, setShowAttachments] = useState(false);
+  const [showOverview, setShowOverview] = useState(false);
+  const overviewAnchors = useRef({});
+  const [overviewTarget, setOverviewTarget] = useState(null);
+  useEffect(() => {
+    if (!overviewTarget) return;
+    overviewAnchors.current[overviewTarget]?.scrollIntoView?.({ block: "start", behavior: "smooth" });
+    overviewAnchors.current[overviewTarget]?.focus?.();
+    setOverviewTarget(null);
+  }, [overviewTarget]);
+  const [showLab, setShowLab] = useState(false), [labDirty, setLabDirty] = useState(false), [sourceRevision, setSourceRevision] = useState(0);
+  // A lab save already refreshes its own list; notify the overview/document without clearing its outcome.
+  const [labRevision, setLabRevision] = useState(0);
+  const savedRevision = sourceRevision + labRevision;
+  const [showRangeReview, setShowRangeReview] = useState(false), [labTarget, setLabTarget] = useState(null);
+  const [showLabComparison, setShowLabComparison] = useState(false);
+  const [showFollowupPlan, setShowFollowupPlan] = useState(false), [followupDirty, setFollowupDirty] = useState(false);
+  const [followupTarget,setFollowupTarget]=useState(null);
+  const [showContacts,setShowContacts]=useState(false), [contactsDirty,setContactsDirty]=useState(false);
+  const [contactTarget,setContactTarget]=useState(null);
+  const [showImaging, setShowImaging] = useState(false), [imagingDirty, setImagingDirty] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const autoPrint = Boolean(location.state?.autoPrint);
 
   const active = useRef(false);
+  const invalidatedSession = useRef(false);
   const exportPending = useRef(false);
   const reviewActive = useRef(false), reviewOpener = useRef(null);
   const [docReview, setDocReview] = useState(null);
@@ -35,11 +65,56 @@ function CaseDetailContent({ requestToken }) {
     active.current = true;
     return () => { active.current = false; };
   }, []);
-  const isCurrent = () => active.current && Boolean(requestToken) &&
-    (localStorage.getItem("token") || "") === requestToken;
+  const isCurrent = useCallback(() => active.current && !invalidatedSession.current && Boolean(requestToken) &&
+    (localStorage.getItem("token") || "") === requestToken, [requestToken]);
+  const caseApi = useMemo(() => {
+    const request = async (method, url, data, config) => {
+      const stale = () => Object.assign(new Error("当前病例会话已失效，请重新登录后读取。"), { code: "ERR_CANCELED" });
+      if (!isCurrent()) throw stale();
+      const response = await api.request({ ...config, method, url, data,
+        expectedAuthOwner: draftOwner(requestToken), expectedAuthCurrent: isCurrent });
+      if (!isCurrent()) throw stale();
+      return response;
+    };
+    return { get: (url, config) => request("get", url, undefined, config),
+      post: (url, data, config) => request("post", url, data, config),
+      delete: (url, config) => request("delete", url, undefined, config) };
+  }, [isCurrent, requestToken]);
 
   const [data, setData] = useState(null);
   const [err, setErr] = useState("");
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [queueTargetError, setQueueTargetError] = useState('');
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const contactPresent = params.has('followup_contact') || params.has('followup_contact_version');
+    if (contactPresent) {
+      const rawId = params.get('followup_contact'), rawVersion = params.get('followup_contact_version');
+      const contactId = Number(rawId), version = Number(rawVersion);
+      if (params.has('followup_plan') || params.has('followup_version') ||
+          params.getAll('followup_contact').length !== 1 || params.getAll('followup_contact_version').length !== 1 ||
+          !/^[1-9][0-9]*$/.test(rawId || '') || !/^[1-9][0-9]*$/.test(rawVersion || '') ||
+          !Number.isSafeInteger(contactId) || !Number.isSafeInteger(version) || version > 50) {
+        setContactTarget(null); setFollowupTarget(null);
+        setQueueTargetError('随访定位信息无效，请返回清单重新打开。'); return;
+      }
+      setQueueTargetError('');
+      if (!data || Number(data.id) !== Number(id)) return;
+      setShowContacts(true); setContactTarget({ id: contactId, version, request: {} }); setOverviewTarget('contacts'); return;
+    }
+    if (!params.has('followup_plan') && !params.has('followup_version')) { setQueueTargetError(''); return; }
+    const rawId = params.get('followup_plan'), rawVersion = params.get('followup_version');
+    const planId = Number(rawId), version = Number(rawVersion);
+    if (params.getAll('followup_plan').length !== 1 || params.getAll('followup_version').length !== 1 ||
+        !/^[1-9][0-9]*$/.test(rawId || '') || !/^[1-9][0-9]*$/.test(rawVersion || '') ||
+        !Number.isSafeInteger(planId) || !Number.isSafeInteger(version) || version > 50) {
+      setQueueTargetError('计划定位信息无效，请返回清单重新打开。'); return;
+    }
+    setQueueTargetError('');
+    if (!data || Number(data.id) !== Number(id)) return;
+    setShowFollowupPlan(true); setFollowupTarget({ id: planId, version, request: {} }); setOverviewTarget('followup');
+  }, [location.search, location.key, data, id]);
+
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [preventiveCareReminders, setPreventiveCareReminders] = useState([]);
@@ -49,6 +124,12 @@ function CaseDetailContent({ requestToken }) {
   const [preventiveCareStatus, setPreventiveCareStatus] = useState("");
   const [exportingDoc, setExportingDoc] = useState("");
   const [exportStatus, setExportStatus] = useState("");
+  const markSessionExpired = () => {
+    if (!active.current || (!invalidatedSession.current && localStorage.getItem("token"))) return false;
+    invalidatedSession.current = true;
+    setSessionExpired(true);
+    return true;
+  };
   const [diagnosticDataSummary, setDiagnosticDataSummary] = useState(null);
   const [diagnosticDataLoading, setDiagnosticDataLoading] = useState(false);
   const [diagnosticDataStatus, setDiagnosticDataStatus] = useState("");
@@ -92,9 +173,39 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
 
 
 
+  useEffect(() => onAuthSessionExpired(() => {
+    if (!active.current) return;
+    // Retire synchronously, before React commits or a late response can run.
+    // Keep editor instances: their raw drafts and pending request IDs are not
+    // recoverable from a token or from a fresh render of the saved case.
+    invalidatedSession.current = true;
+    setSessionExpired(true);
+    setDiagnosticDataSummary(null); setDiagnosticDataLoading(false);
+    setDiagnosticDataStatus("登录状态已失效，诊断摘要需要重新登录后读取。");
+    setDiagnosticAssistancePreview(null); setDiagnosticAssistanceLoading(false);
+    setTreatmentFrameworkPreview(null); setTreatmentFrameworkLoading(false);
+    setSignedReviewStatePreview(null); setSignedReviewStateLoading(false);
+    setSignedReviewStatePersistencePreview(null); setSignedReviewStatePersistenceLoading(false);
+    setSignedReviewStateMigrationPreview(null); setSignedReviewStateMigrationLoading(false);
+    setDiagnosticAssistanceStatus(""); setTreatmentFrameworkStatus("");
+    setSignedReviewStateStatus(""); setSignedReviewStatePersistenceStatus(""); setSignedReviewStateMigrationStatus("");
+    setPreventiveCarePreview([]); setPreventiveCareReminders([]);
+    setPreventiveCareLoading(false); setPreventiveCareBusy(""); setPreventiveCareStatus("");
+    setExportingDoc(""); setExportStatus(""); setDeleting(false);
+  }), []);
+
   // 拉取详情
   useEffect(() => {
     let stop = false;
+    const finishRead = () => {
+      if (stop || !active.current) return;
+      if (!isCurrent()) {
+        setErr(markSessionExpired()
+          ? "登录状态已失效，请重新登录后查看病例。"
+          : "登录账号已变化，请返回首页重新打开病例。");
+      }
+      setLoading(false);
+    };
     setLoading(true);
     setErr("");
     setData(null);
@@ -103,15 +214,18 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
       setLoading(false);
       return;
     }
+    if (!isCurrent()) { finishRead(); return; }
     (async () => {
       try {
-        const res = await api.get(`/api/cases/${id}`);
+        const res = await caseApi.get(`/api/cases/${id}`, { expectedAuthOwner: draftOwner(requestToken) });
+        if (!isCurrent()) return;
         if (!res.data || Number(res.data.id) !== Number(id)) throw new Error("返回的病例与当前页面不一致，请重试。");
         if (!stop && isCurrent()) setData(res.data);
       } catch (e) {
+        if (!isCurrent()) return;
         if (!stop && isCurrent()) setErr(String(e));
       } finally {
-        if (!stop && isCurrent()) setLoading(false);
+        finishRead();
       }
     })();
     return () => { stop = true; };
@@ -132,13 +246,16 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
   }, [loading, data, autoPrint]);
 
   const doDelete = async () => {
+    if (!isCurrent()) return;
     if (!confirm("确定删除该病例？此操作不可恢复。")) return;
     try {
       setDeleting(true);
-      await api.delete(`/api/cases/${id}`);
+      await caseApi.delete(`/api/cases/${id}`);
+      if (!isCurrent()) return;
       alert("已删除");
       navigate("/");
     } catch (e) {
+      if (!isCurrent()) return;
       alert("删除失败：" + e);
     } finally {
       setDeleting(false);
@@ -149,11 +266,12 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
 
   // Case Detail Diagnostic Data Display V1: read-only diagnostic summary panel.
   const fetchDiagnosticDataSummary = async () => {
-    if (!data?.id) return;
+    if (!data?.id || !isCurrent()) return;
 
     try {
       setDiagnosticDataLoading(true);
-      const res = await api.get(`/api/diagnostic-data/cases/${data.id}/summary`);
+      const res = await caseApi.get(`/api/diagnostic-data/cases/${data.id}/summary`);
+      if (!isCurrent()) return;
       const payload = res.data || {};
       const counts = payload.counts || {};
       setDiagnosticDataSummary(payload);
@@ -161,18 +279,19 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
         `已加载诊断数据：reports=${counts.reports || 0} · observations=${counts.observations || 0} · imaging=${counts.imaging_studies || 0} · read_only=true · writes_database=false`
       );
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Diagnostic data summary load failed:", e);
       const detail = e?.response?.data?.detail;
       const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
       setDiagnosticDataStatus(`诊断数据加载失败：${msg}`);
     } finally {
-      setDiagnosticDataLoading(false);
+      if (active.current) setDiagnosticDataLoading(false);
     }
   };
 
   // --- Diagnostic Assistance Case Detail UI V1 actions: start ---
   const buildDiagnosticAssistancePreview = async () => {
-    if (!data?.id) return;
+    if (!data?.id || !isCurrent()) return;
 
     const caseContext = buildDiagnosticAssistanceCaseContext(data);
     const labSummary = buildDiagnosticAssistanceLabSummary(diagnosticDataSummary);
@@ -224,16 +343,17 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
       setDiagnosticAssistanceLoading(true);
       setDiagnosticAssistanceStatus("正在生成诊断辅助预览：problem list → differential candidates → evidence trace；dry_run=true · writes_database=false");
 
-      const problemRes = await api.post(
+      const problemRes = await caseApi.post(
         "/api/diagnostic-data/dry-run/problem-list/build",
         basePayload
       );
+      if (!isCurrent()) return;
       const problemPayload = problemRes.data || {};
       const problemList = Array.isArray(problemPayload.problem_list_preview)
         ? problemPayload.problem_list_preview
         : [];
 
-      const differentialRes = await api.post(
+      const differentialRes = await caseApi.post(
         "/api/diagnostic-data/dry-run/differential-diagnosis/candidates/build",
         {
           ...basePayload,
@@ -242,12 +362,13 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
           upstream_problem_list_preview: problemPayload,
         }
       );
+      if (!isCurrent()) return;
       const differentialPayload = differentialRes.data || {};
       const candidateList = Array.isArray(differentialPayload.differential_diagnosis_candidates_preview)
         ? differentialPayload.differential_diagnosis_candidates_preview
         : [];
 
-      const traceRes = await api.post(
+      const traceRes = await caseApi.post(
         "/api/diagnostic-data/dry-run/diagnostic-reasoning/evidence-trace/build",
         {
           ...basePayload,
@@ -258,6 +379,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
           upstream_differential_candidates_preview: differentialPayload,
         }
       );
+      if (!isCurrent()) return;
       const tracePayload = traceRes.data || {};
 
       const preview = {
@@ -285,6 +407,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
         `已生成诊断辅助预览：problem_list=${problemList.length} · differential_candidates=${candidateList.length} · evidence_trace=${Array.isArray(tracePayload.diagnostic_reasoning_evidence_trace_preview) ? tracePayload.diagnostic_reasoning_evidence_trace_preview.length : 0} · dry_run=true · writes_database=false`
       );
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Diagnostic assistance preview failed:", e);
       const detail = e?.response?.data?.detail;
       const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
@@ -297,7 +420,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
   // --- Diagnostic Assistance Case Detail UI V1 actions: end ---
   // --- Case Detail Treatment Framework Preview UI V1 actions: start ---
   const buildTreatmentFrameworkPreview = async () => {
-    if (!data?.id) return;
+    if (!data?.id || !isCurrent()) return;
 
     const diagnosisLabel = confirmedDiagnosisLabel.trim();
     const confirmedBy = confirmedDiagnosisBy.trim();
@@ -317,7 +440,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
       setTreatmentFrameworkLoading(true);
       setTreatmentFrameworkStatus("正在生成确诊后治疗框架预览：dry_run=true · writes_database=false · no prescription · no dose/route/frequency");
 
-      const res = await api.post(
+      const res = await caseApi.post(
         "/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/build",
         {
           case_id: Number(data.id),
@@ -329,6 +452,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
           case_context: buildDiagnosticAssistanceCaseContext(data),
         }
       );
+      if (!isCurrent()) return;
 
       const payload = res.data || {};
       setTreatmentFrameworkPreview(payload);
@@ -349,6 +473,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
         ].join(" · ")
       );
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Treatment framework preview failed:", e);
       const detail = e?.response?.data?.detail;
       const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
@@ -362,7 +487,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
 
   // --- Case Detail Treatment Framework Signed Review State UI V1 actions: start ---
   const buildTreatmentFrameworkSignedReviewStatePreview = async () => {
-    if (!data?.id) return;
+    if (!data?.id || !isCurrent()) return;
 
     const diagnosisLabel = confirmedDiagnosisLabel.trim();
     const confirmedBy = confirmedDiagnosisBy.trim();
@@ -391,7 +516,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
       setSignedReviewStateLoading(true);
       setSignedReviewStateStatus("正在生成签名复核状态预览：dry_run=true · writes_database=false · signed_review_state_persistence_enabled=false");
 
-      const res = await api.post(
+      const res = await caseApi.post(
         "/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/build",
         {
           case_id: Number(data.id),
@@ -411,6 +536,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
           case_context: buildDiagnosticAssistanceCaseContext(data),
         }
       );
+      if (!isCurrent()) return;
 
       const payload = res.data || {};
       setSignedReviewStatePreview(payload);
@@ -433,6 +559,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
         ].join(" · ")
       );
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Treatment framework signed review state preview failed:", e);
       const detail = e?.response?.data?.detail;
       const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
@@ -445,7 +572,7 @@ const [signedReviewStatePersistenceRequestedBy, setSignedReviewStatePersistenceR
   // --- Case Detail Treatment Framework Signed Review State UI V1 actions: end ---
 // --- Case Detail Treatment Framework Signed Review State Persistence UI V1 actions: start ---
 const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
-  if (!data?.id) return;
+  if (!data?.id || !isCurrent()) return;
 
   const diagnosisLabel = confirmedDiagnosisLabel.trim();
   const confirmedBy = confirmedDiagnosisBy.trim();
@@ -491,10 +618,11 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     setSignedReviewStatePersistenceLoading(true);
     setSignedReviewStatePersistenceStatus("正在生成 signed review state persistence dry-run 预览：writes_database=false · signed_review_state_persistence_enabled=false");
 
-    const res = await api.post(
+    const res = await caseApi.post(
       "/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/persistence/prepare",
       payload
     );
+    if (!isCurrent()) return;
 
     const responsePayload = res.data || {};
     setSignedReviewStatePersistencePreview(responsePayload);
@@ -518,6 +646,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       ].join(" · ")
     );
   } catch (e) {
+    if (!isCurrent()) return;
     console.error("Treatment framework signed review state persistence preview failed:", e);
     const detail = e?.response?.data?.detail;
     const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
@@ -530,7 +659,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
 // --- Case Detail Treatment Framework Signed Review State Persistence UI V1 actions: end ---
   // --- Case Detail Treatment Framework Signed Review State Persistence Migration UI V1 actions: start ---
   const buildTreatmentFrameworkSignedReviewStateMigrationPreview = async () => {
-    if (!data?.id) return;
+    if (!data?.id || !isCurrent()) return;
 
     const diagnosisLabel = confirmedDiagnosisLabel.trim();
     const confirmedBy = confirmedDiagnosisBy.trim();
@@ -578,10 +707,11 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       setSignedReviewStateMigrationLoading(true);
       setSignedReviewStateMigrationStatus("正在生成 signed review state migration dry-run 预览：migration_enabled=false · schema_change_enabled=false · writes_database=false");
 
-      const res = await api.post(
+      const res = await caseApi.post(
         "/api/diagnostic-data/dry-run/confirmed-diagnosis/treatment-framework/signed-review-state/persistence/migration/dry-run",
         payload
       );
+      if (!isCurrent()) return;
 
       const responsePayload = res.data || {};
       setSignedReviewStateMigrationPreview(responsePayload);
@@ -608,6 +738,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         ].join(" · ")
       );
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Treatment framework signed review state migration preview failed:", e);
       const detail = e?.response?.data?.detail;
       const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
@@ -624,21 +755,23 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
 
   // Preventive Care Reminder UI V1: in-app reminders only; sends_external_message=false.
   const fetchPreventiveCareReminders = async () => {
-    if (!data?.id) return;
+    if (!data?.id || !isCurrent()) return;
 
     try {
       setPreventiveCareLoading(true);
-      const res = await api.get("/api/preventive-care/reminders", {
+      const res = await caseApi.get("/api/preventive-care/reminders", {
         params: {
           case_id: Number(data.id),
           page: 1,
           page_size: 20,
         },
       });
+      if (!isCurrent()) return;
       const items = Array.isArray(res.data?.items) ? res.data.items : [];
       setPreventiveCareReminders(items);
       setPreventiveCareStatus(`已加载 ${items.length} 条站内提醒 · sends_external_message=false`);
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Preventive care reminders load failed:", e);
       setPreventiveCareStatus("预防保健提醒加载失败");
     } finally {
@@ -647,13 +780,13 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   };
 
   const runPreventiveCareDryRun = async () => {
-    if (!data?.id) return;
+    if (!data?.id || !isCurrent()) return;
 
     try {
       setPreventiveCareBusy("dry-run");
       setPreventiveCareStatus("正在计算疫苗/驱虫提醒预览…");
 
-      const res = await api.post("/api/preventive-care/dry-run", {
+      const res = await caseApi.post("/api/preventive-care/dry-run", {
         case_id: Number(data.id),
         as_of_date: new Date().toISOString().slice(0, 10),
         include_active: false,
@@ -663,11 +796,13 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           life_stage: "adult",
         },
       });
+      if (!isCurrent()) return;
 
       const items = Array.isArray(res.data?.items) ? res.data.items : [];
       setPreventiveCarePreview(items);
       setPreventiveCareStatus(`已生成 ${items.length} 条预览 · writes_database=false · sends_external_message=false`);
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Preventive care dry-run failed:", e);
       const detail = e?.response?.data?.detail;
       const msg = typeof detail === "string" ? detail : (detail ? JSON.stringify(detail) : String(e?.message || e));
@@ -679,7 +814,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   };
 
   const createPreventiveCareReminderFromPreview = async (item) => {
-    if (!data?.id || !item?.category) return;
+    if (!data?.id || !item?.category || !isCurrent()) return;
 
     try {
       setPreventiveCareBusy(`create-${item.rule_id || item.category}`);
@@ -703,10 +838,12 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         },
       };
 
-      await api.post("/api/preventive-care/reminders", body);
+      await caseApi.post("/api/preventive-care/reminders", body);
+      if (!isCurrent()) return;
       setPreventiveCareStatus("已创建站内提醒 · sends_external_message=false");
       await fetchPreventiveCareReminders();
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Preventive care reminder create failed:", e);
       alert("创建站内提醒失败：" + String(e?.message || e));
     } finally {
@@ -715,9 +852,10 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   };
 
   const completePreventiveCareReminder = async (reminder) => {
+    if (!isCurrent()) return;
     try {
       setPreventiveCareBusy(`complete-${reminder.reminder_id}`);
-      await api.post(`/api/preventive-care/reminders/${reminder.reminder_id}/complete`, {
+      await caseApi.post(`/api/preventive-care/reminders/${reminder.reminder_id}/complete`, {
         event_type: reminder.category || "preventive_care_completed",
         event_date: new Date().toISOString(),
         clinician_id: "UI-OPERATOR",
@@ -727,9 +865,11 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           sends_external_message: false,
         },
       });
+      if (!isCurrent()) return;
       setPreventiveCareStatus("提醒已完成");
       await fetchPreventiveCareReminders();
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Preventive care reminder complete failed:", e);
       alert("完成提醒失败：" + String(e?.message || e));
     } finally {
@@ -738,18 +878,21 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   };
 
   const snoozePreventiveCareReminder = async (reminder) => {
+    if (!isCurrent()) return;
     try {
       setPreventiveCareBusy(`snooze-${reminder.reminder_id}`);
       const due = new Date();
       due.setDate(due.getDate() + 14);
-      await api.post(`/api/preventive-care/reminders/${reminder.reminder_id}/snooze`, {
+      await caseApi.post(`/api/preventive-care/reminders/${reminder.reminder_id}/snooze`, {
         due_date: due.toISOString(),
         reason: "病例详情页手动延后14天",
         note: "站内提醒延后；不发送外部消息。",
       });
+      if (!isCurrent()) return;
       setPreventiveCareStatus("提醒已延后14天");
       await fetchPreventiveCareReminders();
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Preventive care reminder snooze failed:", e);
       alert("延后提醒失败：" + String(e?.message || e));
     } finally {
@@ -758,15 +901,18 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   };
 
   const dismissPreventiveCareReminder = async (reminder) => {
+    if (!isCurrent()) return;
     try {
       setPreventiveCareBusy(`dismiss-${reminder.reminder_id}`);
-      await api.post(`/api/preventive-care/reminders/${reminder.reminder_id}/dismiss`, {
+      await caseApi.post(`/api/preventive-care/reminders/${reminder.reminder_id}/dismiss`, {
         reason: "病例详情页手动关闭",
         note: "关闭本次站内提醒；不发送外部消息。",
       });
+      if (!isCurrent()) return;
       setPreventiveCareStatus("提醒已关闭");
       await fetchPreventiveCareReminders();
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Preventive care reminder dismiss failed:", e);
       alert("关闭提醒失败：" + String(e?.message || e));
     } finally {
@@ -775,17 +921,20 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   };
 
   const disablePreventiveCareReminder = async (reminder) => {
+    if (!isCurrent()) return;
     if (!confirm("确定禁用这条提醒？这会把该提醒标记为 client_opt_out。")) return;
 
     try {
       setPreventiveCareBusy(`disable-${reminder.reminder_id}`);
-      await api.post(`/api/preventive-care/reminders/${reminder.reminder_id}/disable`, {
+      await caseApi.post(`/api/preventive-care/reminders/${reminder.reminder_id}/disable`, {
         reason: "客户暂不接收该提醒",
         note: "禁用本条站内提醒；不发送外部消息。",
       });
+      if (!isCurrent()) return;
       setPreventiveCareStatus("提醒已禁用 · client_opt_out=true");
       await fetchPreventiveCareReminders();
     } catch (e) {
+      if (!isCurrent()) return;
       console.error("Preventive care reminder disable failed:", e);
       alert("禁用提醒失败：" + String(e?.message || e));
     } finally {
@@ -794,18 +943,24 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   };
 
   useEffect(() => {
-    if (!data?.id) return;
+    if (!data?.id || !isCurrent()) return;
     fetchPreventiveCareReminders();
   }, [data?.id]);
 
   useEffect(() => {
-    if (!data?.id) return;
+    if (!data?.id || !isCurrent()) return;
     fetchDiagnosticDataSummary();
   }, [data?.id]);
 
   // Clinical Docs Export UI V1: read-only DOCX download from Case detail.
   const openDocReview = (templateId, label, event) => {
-    if (exportPending.current || reviewActive.current || !isCurrent()) return;
+    if (exportPending.current || reviewActive.current || !active.current) return;
+    if (!isCurrent()) {
+      setExportStatus(markSessionExpired()
+        ? "登录状态已失效，请先保留尚未保存的原文，重新登录后再读取并核对草稿。"
+        : "登录账号已变化，请先保留尚未保存的原文，重新打开病例后再核对草稿。");
+      return;
+    }
     reviewActive.current = true;
     reviewOpener.current = event?.currentTarget;
     setExportStatus(""); setDocReview({ templateId, label });
@@ -815,7 +970,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     // Wait until the opener is enabled again before restoring keyboard focus.
     setTimeout(() => { if (isCurrent()) reviewOpener.current?.focus(); }, 0);
   };
-  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true) => {
+  const exportClinicalDoc = async (templateId, label, expectedSnapshot, reviewCurrent = () => true, labIds = [], imagingIds = [], comparison, signal, followup, contact) => {
     if (reviewActive.current && !expectedSnapshot) return;
     if (!data?.id || !isCurrent()) {
       alert("病例尚未加载或登录已变化，请重新打开病例后导出。");
@@ -828,16 +983,21 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       setExportingDoc(templateId);
       setExportStatus(`正在生成${label}…`);
 
-      const res = await api.post(
+      const res = await caseApi.post(
         "/api/clinical-docs/render",
         {
           case_id: Number(data.id),
           template_id: templateId,
           output: "docx",
           ...(expectedSnapshot ? { expected_content_snapshot: expectedSnapshot } : {}),
+          ...(labIds.length ? { manual_lab_report_ids: labIds } : {}),
+          ...(imagingIds.length ? { manual_imaging_report_ids: imagingIds } : {}),
+          ...(comparison ? { manual_lab_comparison: comparison } : {}),
+          ...(followup ? { manual_followup_plan: followup } : {}),
+          ...(contact ? { manual_followup_contact: contact } : {}),
         },
         {
-          responseType: "blob",
+          responseType: "blob", signal,
           expectedAuthOwner: draftOwner(requestToken),
         }
       );
@@ -889,7 +1049,35 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
     } finally {
       exportPending.current = false;
       if (isCurrent()) setExportingDoc("");
+      else if (markSessionExpired()) {
+        setExportingDoc("");
+        setExportStatus("登录状态已失效，本次导出未完成。");
+      } else if (active.current) {
+        setExportingDoc("");
+        setExportStatus("登录账号已变化，本次导出未完成。请先保留尚未保存的原文，重新打开病例后再核对草稿。");
+      }
     }
+  };
+
+  const navigateOverview = (target, event, plan) => {
+    if (!isCurrent()) return;
+    if (target === "outpatient" || target === "owner_summary") {
+      openDocReview(target === "outpatient" ? "outpatient_record_zh" : "owner_visit_summary_zh", target === "outpatient" ? "门诊病历草稿" : "宠主说明草稿", event);
+      return;
+    }
+    if (target === "followup") {
+      setShowFollowupPlan(true);
+      setFollowupTarget(plan ? { ...plan, request: {} } : null);
+    }
+    else if (target === "contacts") {
+      setShowContacts(true);
+      setContactTarget(plan ? { ...plan, request: {} } : null);
+    }
+    else if (target === "attachments") setShowAttachments(true);
+    else if (target === "lab") setShowLab(true);
+    else if (target === "imaging") setShowImaging(true);
+    else return;
+    setOverviewTarget(target);
   };
 
   const derived = useMemo(() => {
@@ -913,8 +1101,8 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
   if (loading) return <div style={{ padding: 24 }}>加载中…</div>;
   if (err) return <div role="alert" style={{ padding: 24, color: "crimson" }}>
     加载失败：{err}
-    {requestToken && <button type="button" onClick={() => setLoadAttempt(value => value + 1)}>重试读取病例</button>}
-    <Link to="/">返回首页</Link>
+    {isCurrent() && <button type="button" onClick={() => setLoadAttempt(value => value + 1)}>重试读取病例</button>}
+    <Link to="/">{sessionExpired ? "返回首页重新登录" : "返回首页"}</Link>
   </div>;
   if (!data) return <div style={{ padding: 24 }}>未找到病例</div>;
 
@@ -926,6 +1114,42 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       style={{ padding: 24, maxWidth: 980, margin: "0 auto", fontFamily: "system-ui,-apple-system,Arial" }}
     >
       <style>{css}</style>
+      {sessionExpired && <div role="alert" className="screen-only">
+        登录状态已失效。本页内容仅供保留原文和待核对请求标识，不能继续保存或下载。请先保留尚未保存的原文，再重新登录；文书需要重新读取并核对。
+        <Link to="/">返回首页重新登录</Link>
+      </div>}
+      <fieldset disabled={sessionExpired} aria-label="病例操作与保留原文"
+        style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}
+        onClickCapture={event => {
+          if (!isCurrent()) {
+            event.preventDefault(); event.stopPropagation();
+          }
+        }}>
+      <div className="screen-only">
+        {queueTargetError && <p role="alert">{queueTargetError}</p>}
+        {location.search.includes("followup_") && <p><Link to="/followup-plans">返回复查计划清单</Link></p>}
+        <div ref={node => { overviewAnchors.current.followup = node; }} tabIndex={-1} />
+        <button type="button" onClick={() => { if (!showFollowupPlan || !followupDirty || window.confirm("复查计划草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？")) setShowFollowupPlan(v => !v); }}>{showFollowupPlan ? "收起复查计划" : "打开复查计划"}</button>
+        {showFollowupPlan && <Suspense fallback={<p>正在打开复查计划…</p>}><CaseFollowupPlan sessionExpired={sessionExpired} isSessionCurrent={isCurrent} caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} inspectTarget={followupTarget} onDirtyChange={setFollowupDirty}/></Suspense>}
+        <div ref={node => { overviewAnchors.current.contacts = node; }} tabIndex={-1} />
+        <button type="button" onClick={()=>{if(!showContacts||!contactsDirty||window.confirm("人工随访草稿或保存结果尚未核对，收起不会取消可能已提交的保存。是否继续？"))setShowContacts(v=>!v);}}>{showContacts?'收起人工随访记录':'打开人工随访记录'}</button>
+        {showContacts&&<Suspense fallback={<p>正在打开人工随访记录…</p>}><CaseFollowupContacts sessionExpired={sessionExpired} isSessionCurrent={isCurrent} caseId={Number(data.id)} requestToken={requestToken} caseRevision={data} inspectTarget={contactTarget} onDirtyChange={setContactsDirty}/></Suspense>}
+        <button type="button" onClick={() => setShowRangeReview(v => !v)}>{showRangeReview ? "收起检验结果区间核对" : "打开检验结果区间核对"}</button>
+        {showRangeReview && <Suspense fallback={<p>正在读取检验区间组件…</p>}><CaseLabRangeReview sessionExpired={sessionExpired} isSessionCurrent={isCurrent} caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} onCompare={() => setShowLabComparison(true)} /></Suspense>}
+        <button type="button" onClick={() => setShowLabComparison(v => !v)}>{showLabComparison ? "收起检验前后对照" : "打开检验前后对照"}</button>
+        {showLabComparison && <Suspense fallback={<p>正在读取检验对照组件…</p>}><CaseLabComparison sessionExpired={sessionExpired} isSessionCurrent={isCurrent} caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onInspect={target => { setShowLab(true); setLabTarget({ ...target, request: {} }); }} /></Suspense>}
+        <button type="button" onClick={() => setShowOverview(value => !value)}>{showOverview ? "收起就诊资料总览" : "打开就诊资料总览"}</button>
+        {showOverview && <Suspense fallback={<p>正在读取总览组件…</p>}><CaseVisitOverview sessionExpired={sessionExpired} isSessionCurrent={isCurrent} caseId={Number(data.id)} requestToken={requestToken} sourceRevision={savedRevision} onNavigate={navigateOverview} /></Suspense>}
+        <div ref={node => { overviewAnchors.current.attachments = node; }} tabIndex={-1} />
+        <button type="button" onClick={() => setShowAttachments(value => !value)}>{showAttachments ? "收起检查资料" : "打开检查资料"}</button>
+        {showAttachments && <Suspense fallback={<p>正在读取检查资料…</p>}><CaseAttachments sessionExpired={sessionExpired} isSessionCurrent={isCurrent} key={JSON.stringify([data.id, requestToken])} caseId={Number(data.id)} requestToken={requestToken} onChanged={() => setSourceRevision(v => v + 1)} /></Suspense>}
+        <div ref={node => { overviewAnchors.current.lab = node; }} tabIndex={-1} />
+        <button type="button" onClick={() => { if (!showLab || !labDirty || window.confirm("检验草稿尚未保存，收起会丢失。是否继续？")) setShowLab(v => !v); }}>{showLab ? "收起检验项目" : "打开检验项目"}</button>
+        {showLab && <Suspense fallback={<p>正在读取检验项目…</p>}><CaseLabResults sessionExpired={sessionExpired} isSessionCurrent={isCurrent} caseId={Number(data.id)} requestToken={requestToken} inspectTarget={labTarget} sourceRevision={sourceRevision} onDirtyChange={setLabDirty} onChanged={() => setLabRevision(v => v + 1)} /></Suspense>}
+        <div ref={node => { overviewAnchors.current.imaging = node; }} tabIndex={-1} />
+        <button type="button" onClick={()=>{if(!showImaging || !imagingDirty || window.confirm("影像草稿尚未保存，收起会丢失。是否继续？"))setShowImaging(v=>!v);}}>{showImaging?"收起影像记录":"打开影像记录"}</button>
+        {showImaging && <Suspense fallback={<p>正在读取影像记录…</p>}><CaseImagingRecords sessionExpired={sessionExpired} isSessionCurrent={isCurrent} caseId={Number(data.id)} requestToken={requestToken} sourceRevision={sourceRevision} onDirtyChange={setImagingDirty} onChanged={()=>setSourceRevision(v=>v+1)}/></Suspense>}
+      </div>
 
       <div className="screen-toolbar" style={toolbar}>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -935,7 +1159,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           <button
             type="button"
             onClick={() => exportClinicalDoc("admission_hospitalization_record_bilingual", "入院/住院记录")}
-            disabled={Boolean(exportingDoc) || Boolean(docReview)}
+            disabled={sessionExpired || Boolean(exportingDoc) || Boolean(docReview)}
             style={btnDoc}
           >
             {exportingDoc === "admission_hospitalization_record_bilingual" ? "生成中…" : "导出入院/住院记录 DOCX"}
@@ -943,7 +1167,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           <button
             type="button"
             onClick={() => exportClinicalDoc("discharge_summary_bilingual", "出院小结")}
-            disabled={Boolean(exportingDoc) || Boolean(docReview)}
+            disabled={sessionExpired || Boolean(exportingDoc) || Boolean(docReview)}
             style={btnDoc}
           >
             {exportingDoc === "discharge_summary_bilingual" ? "生成中…" : "导出出院小结 DOCX"}
@@ -954,7 +1178,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
           ].map(([templateId, label]) => (
             <button key={templateId} type="button" style={btnDoc}
               onClick={event => openDocReview(templateId, label, event)}
-              disabled={Boolean(exportingDoc) || Boolean(docReview)}>
+              disabled={sessionExpired || Boolean(exportingDoc) || Boolean(docReview)}>
               {exportingDoc === templateId ? "生成中…" : `导出${label} DOCX`}
             </button>
           ))}
@@ -967,10 +1191,16 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         </div>
       </div>
 
-      {docReview && <ClinicalDocReview key={docReview.templateId} caseId={Number(data.id)}
+      {docReview && <Suspense fallback={<p>正在打开文书核对…</p>}><ClinicalDocReview sessionExpired={sessionExpired} isSessionCurrent={isCurrent} key={docReview.templateId} caseId={Number(data.id)}
         templateId={docReview.templateId} label={docReview.label} requestToken={requestToken}
+        onSessionExpired={markSessionExpired}
         onClose={closeDocReview}
-        onDownload={(snapshot, current) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current)} />}
+        onInspectLab={target=>{closeDocReview();setShowLab(true);if(target)setLabTarget({ ...target, request: {} });}}
+        sourceRevision={savedRevision}
+        onInspectImaging={()=>{closeDocReview();setShowImaging(true);}}
+        onInspectContact={target=>{closeDocReview();setShowContacts(true);setContactTarget({...target,request:{}});}}
+        onInspectFollowup={target=>{closeDocReview();setShowFollowupPlan(true);setFollowupTarget({...target,request:{}});}}
+        onDownload={(snapshot, current, ids, imagingIds, comparison, signal, followup, contact) => exportClinicalDoc(docReview.templateId, docReview.label, snapshot, current, ids, imagingIds, comparison, signal, followup, contact)} /></Suspense>}
 
       {exportStatus && (
         <div role="status" aria-live="polite" className="clinical-doc-export-status screen-only">
@@ -1157,10 +1387,10 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
         <TextCard>{data.prognosis}</TextCard>
       </Section>
 
-      {Array.isArray(data.attachments) && data.attachments.length > 0 && (
+      {Array.isArray(data.attachments) && data.attachments.some(a => a?.schema !== "case-attachment-cw-b6-v1") && (
         <Section title="八、附件">
           <ul className="attach-list">
-            {data.attachments.map((a) => (
+            {data.attachments.filter(a => a?.schema !== "case-attachment-cw-b6-v1").map((a) => (
               <li key={a.id}>
                 <span className="attach-name">{a.name}</span>
                 {a.url && (
@@ -1179,6 +1409,7 @@ const buildTreatmentFrameworkSignedReviewStatePersistencePreview = async () => {
       </div>
 
       <div className="print-footer">由 Pet Med AI 生成 · {formatDateTime(new Date())}</div>
+      </fieldset>
     </div>
   );
 }
@@ -3510,6 +3741,33 @@ const css = `
 
   .attach-list { padding-left: 18px; margin: 6px 0; }
   .attach-name { font-weight: 600; margin-right: 6px; }
+
+  /* Keep the existing review forms within narrow case-detail cards. */
+  .signed-review-state-panel,
+  .signed-review-state-persistence-panel,
+  .signed-review-state-migration-panel,
+  .signed-review-state-form,
+  .signed-review-state-persistence-form,
+  .signed-review-state-migration-form {
+    min-width: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .signed-review-state-label,
+  .signed-review-state-persistence-label,
+  .signed-review-state-migration-label,
+  .signed-review-state-boundary,
+  .signed-review-state-persistence-boundary,
+  .signed-review-state-migration-boundary {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .signed-review-state-input,
+  .signed-review-state-persistence-input,
+  .signed-review-state-migration-input {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
 
   @media (max-width: 720px) {
     .case-hero { flex-direction: column; }

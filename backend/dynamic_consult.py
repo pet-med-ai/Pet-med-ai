@@ -281,7 +281,11 @@ def run_dynamic_consult(
     answers = answers or []
     context_text = build_dynamic_context(text, answers)
 
-    result = run_agent(context_text)
+    try:
+        from backend.clinical_evidence import answer_rows
+    except ModuleNotFoundError:
+        from clinical_evidence import answer_rows
+    result = run_agent(context_text, evidence_observations=answer_rows(text, answers))
 
     if not isinstance(result, dict):
         return {

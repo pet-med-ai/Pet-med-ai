@@ -42,12 +42,368 @@ def read(cid, auth):
     return call('GET', f'/api/cases/{cid}', auth)
 
 
+# CW-B6 reuses the real Case/AuditLog schema and actual routes on native PostgreSQL.
+# No SQLite test fixture is imported here; fixture.py rejects SQLite and egress.
+import hashlib
+import os
+import tempfile
+from pathlib import Path
+from urllib.parse import quote
+sys.path.insert(0, str(f.ROOT / 'tests' / 'fixtures'))
+from build_attachment_cw_b6_fixtures import samples as attachment_samples
+import case_attachment_store as attachment_store
+import case_attachment_service as attachment_service
+attachment_directory = Path(tempfile.gettempdir()) / ('pmai-cwb6-pg-' + hashlib.sha256(str(f.OUT).encode()).hexdigest()[:20])
+os.environ.update(CASE_ATTACHMENTS_ENABLED='1', CASE_ATTACHMENTS_SYNTHETIC_ONLY='1', CASE_ATTACHMENTS_DIR=str(attachment_directory), MANUAL_LAB_RESULTS_ENABLED='1', MANUAL_LAB_RESULTS_SYNTHETIC_ONLY='1')
+
+def attachment_readback():
+    saved = json.loads((f.OUT / 'cwb6-restart-expected.json').read_text())
+    auth = login('pg-owner')
+    root = f'/api/cases/{saved["case_id"]}/attachments'
+    listing = call('GET', root, auth)
+    assert listing == saved['listing']
+    for item in listing['items']:
+        r = client.get(root + '/' + item['id'] + '/content', headers=auth, params={'request_id': uuid4().hex})
+        if item['state'] == 'withdrawn':
+            assert r.status_code == 404
+        else:
+            assert r.status_code == 200 and hashlib.sha256(r.content).hexdigest() == item['sha256']
+    with f.db.SessionLocal() as db:
+        assert db.query(f.models.AuditLog).filter_by(case_id=saved['case_id'], event_type='attachment_confirm').count() == 2
+    record('cwb6_fresh_process_exact_refs_raw_sha256_and_withdrawn_access')
+
+
+def manual_lab_readback():
+    saved = json.loads((f.OUT / 'cwb7-restart-expected.json').read_text())
+    auth = login('pg-owner')
+    assert call('GET',f'/api/cases/{saved["case_id"]}/manual-lab',auth) == saved['listing']
+    assert read(saved['case_id'],auth) == saved['case']
+    with f.db.SessionLocal() as db:
+        rows=db.query(f.models.AuditLog).filter_by(case_id=saved['case_id'],source='manual-lab-cw-b7').order_by(f.models.AuditLog.log_id).all()
+        assert [{'id':r.log_id,'event':r.event_type,'data':r.extra_data} for r in rows] == saved['audits']
+    for extra in json.loads((f.OUT / 'cwb7-extra-restart.json').read_text()):
+        assert call('GET',f'/api/cases/{extra["case_id"]}/manual-lab',auth)==extra['listing']
+    record('cwb7_fresh_process_exact_versions_sources_decimal_and_audit')
+
+
+def manual_lab_document_readback():
+    saved=json.loads((f.OUT/'cwb8-restart-expected.json').read_text())
+    auth=login('pg-owner');f.enable_manual_lab_documents()
+    p=call('POST','/api/clinical-docs/render-preview',auth,json=saved['body'])
+    assert p['content_snapshot']==saved['snapshot'] and p['manual_lab_reports']==saved['reports']
+    r=client.post('/api/clinical-docs/render',headers=auth,json={**saved['body'],'expected_content_snapshot':saved['snapshot']})
+    assert r.status_code==200 and r.headers['x-pmai-content-snapshot']==saved['snapshot']
+    (f.OUT/'cwb8-restarted.docx').write_bytes(r.content)
+    record('cwb8_fresh_process_exact_reports_source_hashes_and_document_snapshot')
+
+
+def manual_imaging_readback():
+    f.enable_manual_imaging();auth=login('pg-owner')
+    saved=json.loads((f.OUT/'cwb9-restart-expected.json').read_text())
+    for item in saved:
+        cid=item['case_id']
+        assert call('GET',f'/api/cases/{cid}/manual-imaging',auth)==item['listing']
+        with f.db.SessionLocal() as db:
+            audits=[{'id':r.log_id,'event':r.event_type,'data':r.extra_data} for r in db.query(f.models.AuditLog).filter_by(case_id=cid,source='manual-imaging-cw-b9').order_by(f.models.AuditLog.log_id)]
+        assert audits==item['audits']
+        if 'body' in item:
+            p=call('POST','/api/clinical-docs/render-preview',auth,json=item['body'])
+            assert p['content_snapshot']==item['snapshot']
+            assert p['manual_imaging_reports']==item['images'] and p['manual_lab_reports']==item['labs']
+            r=client.post('/api/clinical-docs/render',headers=auth,json={**item['body'],'expected_content_snapshot':item['snapshot']})
+            assert r.status_code==200 and r.headers['x-pmai-content-snapshot']==item['snapshot']
+            (f.OUT/'cwb9-restarted.docx').write_bytes(r.content)
+    record('cwb9_fresh_process_relogin_exact_versions_audits_mixed_snapshot_and_docx')
+
+
+def overview_readback():
+    f.enable_visit_overview(); auth = login('pg-owner')
+    saved = json.loads((f.OUT / 'cwb10-restart-expected.json').read_text())
+    for item in saved:
+        response = call('GET', f'/api/cases/{item["case_id"]}/visit-overview', auth)
+        response.pop('read_at')
+        assert response == item['overview']
+    record('cwb10_fresh_process_relogin_exact_saved_inventory_and_snapshot')
+
+
+def range_readback():
+    f.enable_lab_range_review(); auth = login('pg-owner')
+    for item in json.loads((f.OUT / 'cwb11-restart-expected.json').read_text()):
+        result = call('GET', f'/api/cases/{item["case_id"]}/lab-range-review', auth)
+        result.pop('read_at')
+        assert result == item['review']
+    record('cwb11_fresh_process_relogin_exact_values_versions_sources_and_snapshot')
+
+
+def comparison_readback():
+    f.enable_lab_comparison(); auth = login('pg-owner')
+    for item in json.loads((f.OUT / 'cwb12-restart-expected.json').read_text()):
+        url = f'/api/cases/{item["case_id"]}/lab-comparison'
+        result = call('GET', url, auth); result.pop('read_at')
+        assert result == item['review']
+        if item.get('preview'):
+            result = call('POST', url + '/preview', auth, json=item['choice']); result.pop('read_at')
+            assert result == item['preview']
+        else: call('POST', url + '/preview', auth, json=item['choice'], expected=409)
+    record('cwb12_fresh_process_relogin_exact_raw_versions_sources_snapshot_and_difference')
+
+
+def comparison_document_readback():
+    f.enable_lab_comparison_documents(); auth=login('pg-owner')
+    for item in json.loads((f.OUT/'cwb13-restart-expected.json').read_text()):
+        preview=call('POST','/api/clinical-docs/render-preview',auth,json=item['body'])
+        assert preview['content_snapshot']==item['snapshot']
+        assert preview['manual_lab_comparison']==item['comparison']
+        assert preview.get('manual_lab_reports',[])==item['labs']
+        assert preview.get('manual_imaging_reports',[])==item['images']
+        response=client.post('/api/clinical-docs/render',headers=auth,json={**item['body'],'expected_content_snapshot':item['snapshot']})
+        assert response.status_code==200 and response.headers['x-pmai-content-snapshot']==item['snapshot']
+        (f.OUT/'cwb13-restarted.docx').write_bytes(response.content)
+    record('cwb13_fresh_process_relogin_exact_pair_provenance_mixed_sections_and_content_snapshot')
+
+
+def followup_plan_readback():
+    f.enable_followup_plans()
+    auth=login('pg-owner')
+    for saved in json.loads((f.OUT/'cwb14-restart-expected.json').read_text()):
+        root=f"/api/cases/{saved['case_id']}/followup-plan"
+        assert call('GET',root,auth)==saved['listing']
+        assert read(saved['case_id'],auth)==saved['case']
+        with f.db.SessionLocal() as db:
+            rows=db.query(f.models.AuditLog).filter_by(case_id=saved['case_id'],source='clinical-followup-plans-cw-b14').order_by(f.models.AuditLog.log_id).all()
+            assert [r.extra_data for r in rows]==saved['audits']
+        for request_id in saved['requests']:
+            result=call('GET',root+'/requests/'+request_id,auth)
+            assert result['state']=='committed' and result['writes_database'] is False
+    record('cwb14_fresh_process_relogin_exact_literals_dates_version_history_and_audit_counts')
+
+
+def followup_document_text(raw):
+    # CW-B15 original fields include Word line breaks/tabs, not XML text alone.
+    import io, zipfile
+    from xml.etree import ElementTree as ET
+    w='{http://schemas.openxmlformats.org/wordprocessingml/2006/main}'
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        root=ET.fromstring(z.read('word/document.xml'))
+    return '\n'.join(''.join(node.text or '' if node.tag==w+'t' else '\n' if node.tag==w+'br' else '\t' if node.tag==w+'tab' else ''
+                             for node in paragraph.iter()) for paragraph in root.iter(w+'p'))
+
+
+def followup_document_readback():
+    f.enable_followup_plan_documents(); f.enable_lab_comparison_documents(); auth=login('pg-owner')
+    for item in json.loads((f.OUT/'cwb15-restart-expected.json').read_text()):
+        p=call('POST','/api/clinical-docs/render-preview',auth,json=item['body'])
+        assert p['content_snapshot']==item['snapshot'] and p['manual_followup_plan']==item['plan']
+        for key in ('manual_lab_reports','manual_imaging_reports','manual_lab_comparison'):
+            assert p.get(key)==item.get(key)
+        r=client.post('/api/clinical-docs/render',headers=auth,json={**item['body'],'expected_content_snapshot':p['content_snapshot']})
+        assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
+        assert r.headers['x-pmai-content-snapshot']==item['snapshot']
+        data=item['plan']['plan']['data'];content=followup_document_text(r.content)
+        for literal in (data['planned_date'],data['purpose'],*data['items'],data['return_conditions'],data['note']):
+            assert literal in content
+        (f.OUT/f"cwb15-restarted-{item['body']['case_id']}.docx").write_bytes(r.content)
+    record('cwb15_fresh_process_relogin_reselect_full_preview_exact_plan_and_mixed_sections')
+
+
+def owner_followup_document_readback():
+    f.enable_followup_plan_owner_documents(); auth=login('pg-owner')
+    for item in json.loads((f.OUT/'cwb16-restart-expected.json').read_text()):
+        p=call('POST','/api/clinical-docs/render-preview',auth,json=item['body'])
+        assert p['template_id']=='owner_visit_summary_zh' and 'manual_lab_comparison' not in p
+        assert p['content_snapshot']==item['snapshot'] and p['manual_followup_plan']==item['plan']
+        for key in ('manual_lab_reports','manual_imaging_reports','manual_lab_comparison'):
+            assert p.get(key)==item.get(key)
+        r=client.post('/api/clinical-docs/render',headers=auth,json={**item['body'],'expected_content_snapshot':p['content_snapshot']})
+        assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
+        assert r.headers['x-pmai-content-snapshot']==item['snapshot']
+        data=item['plan']['plan']['data'];content=followup_document_text(r.content)
+        assert '检验前后对照附节' not in content
+        assert r.headers['x-pmai-template-id']=='owner_visit_summary_zh'
+        for literal in (data['planned_date'],data['purpose'],*data['items'],data['return_conditions'],data['note']):
+            assert literal in content
+        (f.OUT/f"cwb16-restarted-{item['body']['case_id']}.docx").write_bytes(r.content)
+    record('cwb16_fresh_process_relogin_reselect_full_preview_exact_plan_and_mixed_sections')
+
+
+def followup_overview_business():
+    with f.db.engine.connect() as connection:
+        tables = {table.name: [list(map(str, row)) for row in connection.execute(table.select().order_by(*table.primary_key.columns))]
+                  for table in (f.models.Case.__table__, f.models.FollowUp.__table__, f.models.DiagnosticReport.__table__,
+                                f.models.Observation.__table__, f.models.ImagingStudy.__table__, f.models.AuditLog.__table__)}
+    files = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in attachment_directory.iterdir() if p.is_file() and p.name != '.cw-b6.lock'}
+    return tables, files
+
+
+def followup_overview_readback():
+    f.enable_followup_plan_overview(); auth = login('pg-owner')
+    before = followup_overview_business()
+    for item in json.loads((f.OUT/'cwb17-restart-expected.json').read_text()):
+        current = call('GET', f"/api/cases/{item['case_id']}/visit-overview", auth, params={'include_followup_plan': True})
+        current.pop('read_at'); assert current == item['overview']
+        assert current['groups']['followup']['records'] == item['plans']
+        assert read(item['case_id'], auth) == item['case']
+    assert before == followup_overview_business()
+    record('cwb17_fresh_process_relogin_exact_overview_plan_versions_and_readonly_business')
+
+
+def followup_queue_readback():
+    f.enable_followup_plan_queue()
+    before=followup_overview_business()
+    for item in json.loads((f.OUT/'cwb18-restart-expected.json').read_text()):
+        auth=login(item['account'])
+        current=call('GET','/api/followup-plan-queue',auth,params={'range':'all','page_size':50})
+        current.pop('read_at');assert current==item['queue']
+        assert read(item['case_id'],auth)==item['case']
+        assert call('GET',f"/api/cases/{item['case_id']}/followup-plan",auth)==item['plans']
+    assert before==followup_overview_business()
+    record('cwb18_fresh_process_two_accounts_exact_queue_versions_and_readonly_business')
+
+
+def contact_overview_audits(cid):
+    from datetime import datetime  # Also available before the --readback early exit.
+    def value(row, column):
+        # Database column "metadata" maps to extra_data, not DeclarativeBase.metadata.
+        data = getattr(row, row.__mapper__.get_property_by_column(column).key)
+        return str(data) if isinstance(data, datetime) else data
+    with f.db.SessionLocal() as db:
+        return [{c.key: value(row, c) for c in row.__table__.columns}
+                for row in db.query(f.models.AuditLog).filter_by(case_id=cid).order_by(f.models.AuditLog.log_id).all()]
+
+
+def contact_overview_readback():
+    f.enable_followup_contact_overview()
+    before = followup_overview_business()
+    for item in json.loads((f.OUT/'cwb20-restart-expected.json').read_text()):
+        auth = login(item['account']); cid = item['case_id']
+        value = call('GET', f'/api/cases/{cid}/visit-overview', auth,
+                     params={'include_followup_plan': True, 'include_followup_contacts': True})
+        value.pop('read_at'); assert value == item['overview']
+        assert call('GET', f'/api/cases/{cid}/followup-contacts', auth) == item['contacts']
+        assert call('GET', f'/api/cases/{cid}/followup-plan', auth) == item['plans']
+        assert read(cid, auth) == item['case'] and contact_overview_audits(cid) == item['audits']
+    assert before == followup_overview_business()
+    record('cwb20_fresh_process_two_accounts_exact_inventory_contacts_sources_audits_readonly')
+
+
+def followup_contact_readback():
+    f.enable_followup_contacts()
+    import clinical_followup_contacts as contacts
+    before=followup_overview_business()
+    for item in json.loads((f.OUT/'cwb19-restart-expected.json').read_text()):
+        auth=login(item['account']);root=f"/api/cases/{item['case_id']}/followup-contacts"
+        assert call('GET',root,auth)==item['listing']
+        assert read(item['case_id'],auth)==item['case']
+        assert call('GET',f"/api/cases/{item['case_id']}/followup-plan",auth)==item['plans']
+        for rid in item['requests']:assert call('GET',root+'/requests/'+rid,auth)['state']=='committed'
+        with f.db.SessionLocal() as db:
+            audits=db.query(f.models.AuditLog).filter_by(case_id=item['case_id'],source=contacts.SOURCE).order_by(f.models.AuditLog.log_id).all()
+            assert [r.extra_data for r in audits]==item['audits']
+    assert before==followup_overview_business()
+    record('cwb19_fresh_process_two_accounts_exact_contacts_sources_audits_readonly')
+
+
+def contact_document_readback():
+    # All imports required by this entry point occur before --readback exits.
+    f.enable_followup_contact_documents()
+    before=followup_overview_business()
+    for item in json.loads((f.OUT/'cwb21-restart-expected.json').read_text()):
+        auth=login(item['account']);body=item['body'];cid=body['case_id']
+        assert call('GET',f'/api/cases/{cid}/followup-contacts',auth)==item['contacts']
+        assert read(cid,auth)==item['case'] and contact_overview_audits(cid)==item['audits']
+        p=call('POST','/api/clinical-docs/render-preview',auth,json=body)
+        assert p['content_snapshot']==item['snapshot']
+        assert {k:v for k,v in p.items() if k.startswith('manual_')}==item['sections']
+        r=client.post('/api/clinical-docs/render',headers=auth,json={**body,'expected_content_snapshot':p['content_snapshot']})
+        assert r.status_code==200 and r.headers['x-pmai-content-snapshot']==p['content_snapshot']
+        for value in (item['sections']['manual_followup_contact']['record']['data']['note'],item['sections']['manual_followup_contact']['record']['token']):
+            assert value in followup_document_text(r.content)
+    assert before==followup_overview_business()
+    record('cwb21_fresh_process_two_accounts_exact_contact_documents_sources_audits_readonly')
+
+
+def contact_owner_document_readback():
+    # All imports required by this entry point occur before --readback exits.
+    f.enable_followup_contact_owner_documents()
+    before=followup_overview_business()
+    for item in json.loads((f.OUT/'cwb22-restart-expected.json').read_text()):
+        auth=login(item['account']);body=item['body'];cid=body['case_id']
+        assert call('GET',f'/api/cases/{cid}/followup-contacts',auth)==item['contacts']
+        assert read(cid,auth)==item['case'] and contact_overview_audits(cid)==item['audits']
+        p=call('POST','/api/clinical-docs/render-preview',auth,json=body)
+        assert p['content_snapshot']==item['snapshot']
+        assert {k:v for k,v in p.items() if k.startswith('manual_')}==item['sections']
+        r=client.post('/api/clinical-docs/render',headers=auth,json={**body,'expected_content_snapshot':p['content_snapshot']})
+        assert r.status_code==200 and r.headers['x-pmai-content-snapshot']==p['content_snapshot']
+        for value in (item['sections']['manual_followup_contact']['record']['data']['note'],item['sections']['manual_followup_contact']['record']['token']):
+            assert value in followup_document_text(r.content)
+    assert before==followup_overview_business()
+    record('cwb22_fresh_process_two_accounts_exact_contact_documents_sources_audits_readonly')
+
+
+def contact_queue_readback():
+    f.enable_followup_contact_queue()
+    before=followup_overview_business()
+    for item in json.loads((f.OUT/'cwb23-restart-expected.json').read_text()):
+        auth=login(item['account'])
+        current=call('GET','/api/followup-plan-queue',auth,params={'range':'all','page_size':50,'include_followup_contacts':'true'})
+        current.pop('read_at');assert current==item['queue']
+        assert read(item['case_id'],auth)==item['case']
+        assert call('GET',f"/api/cases/{item['case_id']}/followup-contacts",auth)==item['contacts']
+        assert contact_overview_audits(item['case_id'])==item['audits']
+    assert before==followup_overview_business()
+    record('cwb23_fresh_process_two_accounts_exact_queue_contacts_sources_audits_readonly')
+
+
 if '--readback' in sys.argv:
     expected = json.loads((f.OUT / 'restart-expected.json').read_text())
     auth = login('pg-owner')
     assert read(expected['case_id'], auth) == expected['record']
     assert call('GET', expected['session_url'], auth)['case_id'] == expected['case_id']
     record('fresh_process_relogin_and_readback')
+    for item in json.loads((f.OUT / 'm7-restart-expected.json').read_text()):
+        assert read(item['case_id'], auth) == item['record']
+        assert call('GET', item['session_url'], auth)['case_id'] == item['case_id']
+    record('m7_dog_cat_fresh_process_relogin_and_exact_readback')
+    for item in json.loads((f.OUT / 'b1-restart-expected.json').read_text()):
+        assert read(item['case_id'], auth) == item['record']
+        assert call('GET', item['session_url'], auth)['case_id'] == item['case_id']
+    record('b1_all_enabled_dog_cat_fresh_process_exact_readback')
+    for item in json.loads((f.OUT / 'b4-restart-expected.json').read_text()):
+        assert read(item['case_id'], auth) == item['record']
+        reopened = call('GET', item['session_url'], auth)
+        assert reopened['result']['input_evidence'] == item['evidence']
+        assert reopened['case_id'] == item['case_id']
+    record('b4_dog_cat_fresh_process_exact_evidence_and_case_readback')
+    import speech_budget as speech_budget
+    from sqlalchemy.orm import sessionmaker
+    speech_factory = sessionmaker(bind=f.db.engine.execution_options(schema_translate_map={None: 'cwb5_budget_test'}))
+    assert speech_budget.budget_status(speech_factory)['attempts'] == 100
+    saved_voice = json.loads((f.OUT / 'cwb5-restart-expected.json').read_text())
+    assert read(saved_voice['case_id'], auth) == saved_voice['record']
+    with f.db.SessionLocal() as session:
+        rows = session.query(f.models.AuditLog).filter_by(case_id=saved_voice['case_id'], event_type='speech_confirm').order_by(f.models.AuditLog.created_at, f.models.AuditLog.log_id).all()
+        assert len(rows) == 2 and [row.extra_data for row in rows] == saved_voice['audits']
+    record('cwb5_fresh_process_exact_history_audit_and_spent_budget')
+    attachment_readback()
+    manual_lab_readback()
+    manual_lab_document_readback()
+    manual_imaging_readback()
+    overview_readback()
+    range_readback()
+    comparison_readback()
+    comparison_document_readback()
+    followup_plan_readback()
+    followup_document_readback()
+    owner_followup_document_readback()
+    followup_overview_readback()
+    followup_queue_readback()
+    followup_contact_readback()
+    contact_overview_readback()
+    contact_document_readback()
+    contact_owner_document_readback()
+    contact_queue_readback()
+    client.close(); f.db.engine.dispose()
     sys.exit(0)
 
 f.prepare_empty_database()
@@ -384,4 +740,1914 @@ for body in confirmations:
     assert call('POST', deleted_url+'/update-case', owner, expected=404, json=body) == {'detail':'Case not found'}
     assert hidden_rows(deleted_id) == deleted_snapshot
 record('delete_after_preview_rejects_both_modes_without_any_row_change')
+# M7: canonical states survive the same real first-save/row-lock transaction.
+from diarrhea_intake import get_template, build_snapshot
+m7_expected = []
+for animal in ('dog', 'cat'):
+    template = get_template(animal)
+    raw = '  M7医生未见黑便🐾\r\n<5 & >2 {{literal}}\t尾部  \n'
+    snapshot = build_snapshot({'version': template['version'], 'fingerprint': template['fingerprint'], 'species': animal,
+        'answers': {'notes': {'state': 'observed', 'text': raw}, 'blood': {'state': 'uncertain', 'text': '不确定'},
+                    'vomiting': {'state': 'absent', 'text': '未见呕吐'}, 'vomiting_detail': {'state': 'observed', 'text': '原分支只读保留'}}})
+    created = call('POST', '/api/ai/consult/session', owner, json={'text': 'M7隔离合成腹泻', 'species': animal, 'structured_intake_answers': snapshot})
+    m7_url = '/api/ai/consult/session/' + created['session_id']
+    m7_body = {'patient_name': 'M7-PG-'+animal, 'species': animal, 'chief_complaint': '合成腹泻原主诉',
+               'history': '  M7原医生病史🐾\r\n保留末尾  \n', 'structured_intake_answers': snapshot}
+    preview = call('POST', m7_url+'/preview-case', owner, json=m7_body)
+    assert preview['history'].count(raw) == 1 and preview['history'].startswith(m7_body['history'])
+    assert '当前不适用' in preview['history'] and '状态：不确定' in preview['history']
+    call('POST', m7_url+'/preview-case', other, expected=404, json=m7_body)
+    call('POST', m7_url+'/save-case', owner, expected=409, json={**m7_body, 'history': 'stale', 'expected_preview_token': preview['preview_token']})
+    before_m7 = count()
+    request = {**m7_body, 'expected_preview_token': preview['preview_token']}
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _: call('POST', m7_url+'/save-case', owner, json=request), range(2)))
+    assert len({r['case_id'] for r in results}) == 1 and count() == before_m7+1
+    m7_id = results[0]['case_id']; saved = read(m7_id, owner)
+    assert saved['history'] == preview['history']
+    assert f.main._stored_structured_snapshot(call('GET', m7_url, owner)['answers'][0]) == snapshot
+    m7_expected.append({'case_id': m7_id, 'record': saved, 'session_url': m7_url})
+    record('m7_'+animal+'_canonical_states_originals_concurrent_save_one_case')
+(f.OUT / 'm7-restart-expected.json').write_text(json.dumps(m7_expected, ensure_ascii=False))
+
+# B1 uses the same row lock and first-save token as M7, with a distinct template family.
+import chief_complaint_intake as b1
+b1_expected = []
+for key in b1.TEMPLATES:
+    for animal in ('dog', 'cat'):
+        template = b1.get_template(key, animal)
+        raw = '  B1 ' + key + ' 医生原文🐾\r\n<5 & {{literal}}\t末尾  \n'
+        snapshot = b1.build_snapshot(key, {'version':template['version'], 'fingerprint':template['fingerprint'], 'species':animal,
+            'answers':{'notes':{'state':'observed','text':raw}}})
+        created = call('POST', '/api/ai/consult/session', owner, json={'text':'隔离合成问诊','species':animal,'structured_intake_answers':snapshot})
+        route = '/api/ai/consult/session/' + created['session_id']
+        body = {'patient_name':'B1-PG-'+key+'-'+animal,'species':animal,'chief_complaint':'医生核对主诉',
+                'history':'  原病史\n','structured_intake_answers':snapshot}
+        preview = call('POST', route+'/preview-case', owner, json=body)
+        assert preview['history'].count(raw)==1
+        call('POST', route+'/preview-case', other, expected=404, json=body)
+        call('POST', route+'/save-case', owner, expected=409, json={**body,'species':'cat' if animal=='dog' else 'dog','expected_preview_token':preview['preview_token']})
+        before = count()
+        request = {**body,'expected_preview_token':preview['preview_token']}
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            results = list(pool.map(lambda _:call('POST',route+'/save-case',owner,json=request),range(2)))
+        assert len({x['case_id'] for x in results})==1 and count()==before+1
+        saved = read(results[0]['case_id'],owner)
+        assert saved['history'].count(raw)==1 and saved['history'].startswith(body['history'])
+        assert f.main._stored_structured_snapshot(call('GET',route,owner)['answers'][0])==snapshot
+        b1_expected.append({'case_id':results[0]['case_id'],'record':saved,'session_url':route})
+        record('b1_'+key+'_'+animal+'_concurrent_save_one_case_exact_original')
+(f.OUT / 'b1-restart-expected.json').write_text(json.dumps(b1_expected,ensure_ascii=False))
+
+b4_expected = []
+for animal in ['dog', 'cat']:
+    created = call('POST', '/api/ai/consult/session', owner, json={'text':'常规体检；未见黑便','species':animal})
+    route = '/api/ai/consult/session/' + created['session_id']
+    raw = '  不清楚🐾\n保留尾部  '
+    updated = call('POST', route+'/answer', owner, json={'question':'是否有黑便、干呕或腹胀？','answer':raw,'expected_answers_token':created['answers_token']})
+    assert updated['result']['risk_level'] == '待核对'
+    assert updated['result']['diseases']['diseases'] == []
+    assert updated['answers'][-1]['answer'] == raw
+    body = {'patient_name':'B4-PG-'+animal,'species':animal,'chief_complaint':'常规体检','history':'B4原记录'}
+    preview = call('POST', route+'/preview-case', owner, json=body)
+    request = {**body,'expected_preview_token':preview['preview_token']}
+    before = count()
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(lambda _:call('POST',route+'/save-case',owner,json=request),range(2)))
+    assert len({x['case_id'] for x in results}) == 1 and count() == before + 1
+    saved = read(results[0]['case_id'],owner)
+    assert raw in saved['history'] and '待核对' in saved['treatment']
+    assert '扭转' not in saved['analysis']
+    b4_expected.append({'case_id':results[0]['case_id'],'record':saved,'session_url':route,'evidence':updated['result']['input_evidence']})
+    record('b4_'+animal+'_assertions_concurrent_save_one_case_evidence_preserved')
+(f.OUT / 'b4-restart-expected.json').write_text(json.dumps(b4_expected,ensure_ascii=False))
+
+# CW-B5: isolate the budget stress ledger in a second synthetic schema so it
+# cannot reset/reuse the application ledger subsequently used by browser checks.
+import speech_budget as speech_budget
+import speech_transcription as speech_provider
+from sqlalchemy.orm import sessionmaker
+from unittest.mock import AsyncMock
+import base64, io, wave
+with f.db.engine.begin() as connection:
+    connection.execute(text('CREATE SCHEMA cwb5_budget_test'))
+speech_engine = f.db.engine.execution_options(schema_translate_map={None: 'cwb5_budget_test'})
+f.db.Base.metadata.create_all(speech_engine)
+speech_factory = sessionmaker(bind=speech_engine)
+speech_budget.initialize_ledger(speech_factory)
+def spend(_):
+    try:
+        return speech_budget.reserve(uuid4().hex, owner_id, {'session_id': 'synthetic-budget'}, 'f'*64, 1, speech_factory)
+    except speech_provider.SpeechError as error:
+        assert error.code == 'batch_budget_exhausted'; return None
+with ThreadPoolExecutor(max_workers=12) as pool:
+    results = list(pool.map(spend, range(112)))
+assert sorted(x for x in results if x) == list(range(1,101))
+assert speech_budget.budget_status(speech_factory)['reserved_fen'] == 100
+record('cwb5_native_postgresql_concurrent_100_attempt_1yuan_cap')
+speech_budget.initialize_ledger()
+voice_session = call('POST', '/api/ai/consult/session', owner, json={'text':'CW-B5合成语音验收','species':'dog'})['session_id']
+voice_route = '/api/ai/consult/session/' + voice_session
+buf = io.BytesIO()
+with wave.open(buf, 'wb') as writer:
+    writer.setnchannels(1); writer.setsampwidth(2); writer.setframerate(16000); writer.writeframes(b'\x00\x00'*16000)
+def transcript():
+    binding = call('GET', '/api/speech/context/' + voice_session, owner)
+    binding.update(patient_name='CW-B5合成犬', species='dog', draft_version='b'*64)
+    req = {'request_id':uuid4().hex,'binding':binding,'synthetic_only':True,'audio_base64':base64.b64encode(buf.getvalue()).decode()}
+    with patch.object(speech_provider, 'ensure_enabled'), patch.object(speech_provider, 'recognize', AsyncMock(return_value={'text':'未见呕吐，零点五毫升','provider_request_id':'synthetic-only'})):
+        r = call('POST','/api/speech/transcribe',owner,json=req)
+        call('POST','/api/speech/transcribe',owner,expected=409,json=req)
+    return {'receipt':r['receipt'],'original_text':r['text'],'edited_text':'未见呕吐，0.5 毫升。','reviewed':True}
+entry = transcript()
+body = {'patient_name':'CW-B5合成犬','species':'dog','history':'原始病史\n'+entry['edited_text'],'voice_confirmations':[entry]}
+preview = call('POST',voice_route+'/preview-case',owner,json=body)
+request = {**body,'expected_preview_token':preview['preview_token']}
+with ThreadPoolExecutor(max_workers=2) as pool:
+    results = list(pool.map(lambda _: call('POST',voice_route+'/save-case',owner,json=request),range(2)))
+assert len({x['case_id'] for x in results}) == 1
+voice_id = results[0]['case_id']; before_voice = read(voice_id,owner)
+record('cwb5_concurrent_first_save_one_case_one_voice_audit')
+entry = transcript(); entry['edited_text']='补记：核对毫升单位。'
+body = {'history_addendum':entry['edited_text'],'update_mode':'history_only','voice_confirmations':[entry]}
+preview = call('POST',voice_route+'/preview-update-case',owner,json=body)
+request = {**body,'expected_preview_token':preview['preview_token']}
+call('POST',voice_route+'/update-case',owner,json=request)
+call('POST',voice_route+'/update-case',owner,expected=409,json=request)
+saved = read(voice_id,owner); assert saved['history'].startswith(before_voice['history'])
+with f.db.SessionLocal() as session:
+    audits=[row.extra_data for row in session.query(f.models.AuditLog).filter_by(case_id=voice_id,event_type='speech_confirm').order_by(f.models.AuditLog.created_at, f.models.AuditLog.log_id).all()]
+assert len(audits)==2 and audits[1]['edited_text']==entry['edited_text']
+(f.OUT / 'cwb5-restart-expected.json').write_text(json.dumps({'case_id':voice_id,'record':saved,'audits':audits},ensure_ascii=False))
+record('cwb5_addendum_consumed_once_and_atomic_provenance')
+
+# Isolated private directory must not contain files from another candidate.
+assert not attachment_directory.exists(), 'Refusing a pre-existing attachment test store'
+a_case = call('POST', '/api/cases', owner, expected=201, json={**manual, 'patient_name':'CW-B6 PG合成犬'})
+aid_case = a_case['id']; attachment_root = f'/api/cases/{aid_case}/attachments'
+before_attachment = read(aid_case, owner)
+meta = {'title':'合成检验报告','kind':'lab','taken_at':'','reported_at':'','source':'','note':''}
+def attachment_body(item, operation='confirm', metadata=None, reason=''):
+    return {'request_id':uuid4().hex, 'attachment_id':item['id'], 'operation':operation,
+            'expected_case_token':call('GET',attachment_root,owner)['case_token'], 'metadata':metadata or meta, 'reason':reason}
+def attachment_review(body):
+    preview = call('POST', attachment_root+'/preview', owner, json=body)
+    return {**body, 'preview_token':preview['preview_token'], 'reviewed':True}
+originals = attachment_samples()
+# Same idempotency key on independent real route transactions yields one upload/audit.
+name, mime, data = originals[0]
+version = call('GET',attachment_root,owner)['case_token']; upload_id=uuid4().hex
+headers={**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':version}
+with ThreadPoolExecutor(max_workers=2) as pool:
+    uploaded=list(pool.map(lambda _:call('POST',attachment_root+'/uploads/'+upload_id,headers,content=data),range(2)))
+assert uploaded[0]['attachment']['id']==uploaded[1]['attachment']['id']
+item=uploaded[0]['attachment']; request=attachment_review(attachment_body(item))
+with ThreadPoolExecutor(max_workers=2) as pool:
+    confirmed=list(pool.map(lambda _:call('POST',attachment_root+'/confirm',owner,json=request),range(2)))
+assert len(call('GET',attachment_root,owner)['items'])==1
+call('POST',attachment_root+'/confirm',owner,expected=409,json={**request,'reason':'mutated'})
+with f.db.SessionLocal() as db:
+    assert db.query(f.models.AuditLog).filter_by(case_id=aid_case,event_type='attachment_upload').count()==1
+    assert db.query(f.models.AuditLog).filter_by(case_id=aid_case,event_type='attachment_confirm').count()==1
+record('cwb6_postgresql_concurrent_upload_confirm_one_reference_and_audit')
+# Rival metadata corrections invalidate the other preview rather than last-write-wins.
+requests=[attachment_review(attachment_body(item,'update',{**meta,'title':'合成更正'+str(i)})) for i in range(2)]
+with ThreadPoolExecutor(max_workers=2) as pool:
+    results=list(pool.map(lambda req:client.post(attachment_root+'/confirm',headers=owner,json=req),requests))
+assert sorted(r.status_code for r in results)==[200,409]
+record('cwb6_postgresql_concurrent_metadata_revision_rejects_stale_review')
+# Fresh connection reads original bytes; foreign and deleted cases never obtain them.
+path=attachment_root+'/'+item['id']+'/content'
+r=client.get(path,headers=owner,params={'request_id':uuid4().hex}); assert r.content==data
+assert client.get(path,headers=other,params={'request_id':uuid4().hex}).status_code==404
+f.db.engine.dispose(); assert call('GET',attachment_root,owner)['items'][0]['sha256']==hashlib.sha256(data).hexdigest()
+withdraw=attachment_review(attachment_body(item,'withdraw',reason='合成误关联'))
+call('POST',attachment_root+'/confirm',owner,json=withdraw)
+assert client.get(path,headers=owner,params={'request_id':uuid4().hex}).status_code==404
+assert call('GET',attachment_root+'/requests/'+request['request_id'],owner)['attachment']['state']=='withdrawn'
+assert attachment_store.Store().path(item['id'],'.blob').read_bytes()==data
+# A second format remains active, providing byte-exact independent-process readback.
+name,mime,data=originals[1]; upload_id=uuid4().hex
+headers={**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',attachment_root,owner)['case_token']}
+item2=call('POST',attachment_root+'/uploads/'+upload_id,headers,content=data)['attachment']
+req=attachment_review(attachment_body(item2)); call('POST',attachment_root+'/confirm',owner,json=req)
+assert read(aid_case,owner)['history']==before_attachment['history']
+record('cwb6_postgresql_authorized_bytes_withdrawal_history_unchanged')
+# Simulated database commit failure must leave no partial association or audit.
+from sqlalchemy.exc import OperationalError
+from sqlalchemy.orm import Session
+change=attachment_review(attachment_body(item2,'update',{**meta,'title':'故障后更正'}))
+with patch.object(Session,'commit',side_effect=OperationalError('synthetic',{},Exception('injected'))):
+    call('POST',attachment_root+'/confirm',owner,expected=503,json=change)
+assert call('GET',attachment_root+'/requests/'+change['request_id'],owner)['state']=='not_committed'
+call('POST',attachment_root+'/confirm',owner,json=change)
+sys.path.insert(0,str(f.ROOT/'scripts'))
+from verify_case_attachment_storage import backup_readback
+with tempfile.TemporaryDirectory(prefix='cwb6-pg-backup-') as backup:
+    with f.db.SessionLocal() as db:
+        case=db.get(f.models.Case,aid_case)
+        report=backup_readback(attachment_store.Store(),[{'case_id':case.id,'owner_id':case.owner_id,'attachments':case.attachments}],Path(backup)/'restored')
+assert report['verified'] and report['files']==2 and report['database_restored'] is False
+(f.OUT/'cwb6-backup-readback.json').write_text(json.dumps(report,indent=2))
+(f.OUT/'cwb6-restart-expected.json').write_text(json.dumps({'case_id':aid_case,'listing':call('GET',attachment_root,owner)},ensure_ascii=False,indent=2))
+record('cwb6_postgresql_atomic_rollback_retry_private_backup_readback')
+
+
+# CW-B7: exact authenticated routes, independent transactions, no mock provider.
+import manual_lab_results as manual_lab
+lab_case=call('POST','/api/cases',owner,expected=201,json={**manual,'patient_name':'CW-B7 PG合成犬'})['id']
+lab_root=f'/api/cases/{lab_case}/manual-lab'; lab_files=f'/api/cases/{lab_case}/attachments'
+source_request=uuid4().hex
+name,mime,raw=attachment_samples()[0]
+source=call('POST',lab_files+'/uploads/'+source_request,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',lab_files,owner)['case_token']},content=raw)['attachment']
+b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'confirm','expected_case_token':call('GET',lab_files,owner)['case_token'],'metadata':meta,'reason':''}
+p=call('POST',lab_files+'/preview',owner,json=b)
+call('POST',lab_files+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+lab_data=json.loads((f.ROOT/'tests/fixtures/manual_lab_cw_b7_cases.json').read_text())
+def lab_body(old=None,op='create'):
+    return {'request_id':uuid4().hex,'attachment_id':source['id'],'operation':op,'expected_case_token':call('GET',lab_root,owner)['case_token'],
+            'report_id':old['id'] if old else None,'expected_report_token':old['token'] if old else '',
+            'data':None if op=='withdraw' else lab_data,'reason':'合成更正或撤销' if old else ''}
+def lab_review(body):
+    p=call('POST',lab_root+'/preview',owner,json=body)
+    return {**body,'preview_token':p['preview_token'],'reviewed':True}
+req=lab_review(lab_body())
+with ThreadPoolExecutor(max_workers=2) as pool:
+    rows=list(pool.map(lambda _:call('POST',lab_root+'/confirm',owner,json=req)['report'],range(2)))
+assert rows[0]['id']==rows[1]['id']
+assert manual_lab.input_data(rows[0]['data'])==lab_data
+assert rows[0]['data']['items'][0]['decimal']=='0.0100'
+call('GET',lab_root,other,expected=404)
+call('POST',lab_root+'/confirm',owner,expected=409,json={**req,'reason':'changed'})
+assert call('GET',lab_root+'/requests/'+req['request_id'],owner)['state']=='committed'
+with f.db.SessionLocal() as db:
+    assert db.query(f.models.DiagnosticReport).filter_by(case_id=lab_case).count()==1
+    assert db.query(f.models.Observation).filter_by(case_id=lab_case).count()==len(lab_data['items'])
+    assert db.query(f.models.AuditLog).filter_by(case_id=lab_case,event_type='manual_lab_create').count()==1
+record('cwb7_postgresql_duplicate_confirmation_one_report_observations_audit_exact_originals')
+requests=[lab_review(lab_body(rows[0],'correct')) for _ in range(2)]
+with ThreadPoolExecutor(max_workers=2) as pool:
+    results=list(pool.map(lambda r:client.post(lab_root+'/confirm',headers=owner,json=r),requests))
+assert sorted(r.status_code for r in results)==[200,409]
+row=call('GET',lab_root,owner)['reports'][-1]
+req=lab_review(lab_body(row,'correct'))
+with patch.object(Session,'commit',side_effect=OperationalError('synthetic',{},Exception('fail'))):
+    call('POST',lab_root+'/confirm',owner,expected=503,json=req)
+assert call('GET',lab_root+'/requests/'+req['request_id'],owner)['state']=='not_committed'
+assert len(call('GET',lab_root,owner)['reports'])==2
+record('cwb7_postgresql_competing_versions_and_commit_failure_atomic_rollback')
+# Case row lock serializes a concurrent identity change with lab correction.
+with ThreadPoolExecutor(max_workers=2) as pool:
+    change=pool.submit(client.put,f'/api/cases/{lab_case}',headers=owner,json={'owner_name':'并发更正合成宠主'})
+    confirm=pool.submit(client.post,lab_root+'/confirm',headers=owner,json=req)
+    assert change.result().status_code==200
+    assert confirm.result().status_code in (200,409)
+rows=call('GET',lab_root,owner)['reports'];assert rows[-1]['state']=='needs_review'
+assert all(r['state']!='confirmed' for r in rows)
+row=call('POST',lab_root+'/confirm',owner,json=lab_review(lab_body(rows[-1],'correct')))['report']
+assert row['state']=='confirmed'
+# Updating the attached report atomically invalidates the latest lab version.
+b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'update','expected_case_token':call('GET',lab_files,owner)['case_token'],'metadata':{**meta,'title':'PG更正原报告'},'reason':''}
+p=call('POST',lab_files+'/preview',owner,json=b)
+call('POST',lab_files+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+row=call('GET',lab_root,owner)['reports'][-1];assert row['state']=='needs_review'
+call('POST',lab_root+'/confirm',owner,json=lab_review(lab_body(row,'withdraw')))
+assert call('GET',lab_root,owner)['reports'][-1]['state']=='withdrawn'
+with f.db.SessionLocal() as db:
+    audits=[{'id':r.log_id,'event':r.event_type,'data':r.extra_data} for r in db.query(f.models.AuditLog).filter_by(case_id=lab_case,source=manual_lab.SOURCE).order_by(f.models.AuditLog.log_id)]
+(f.OUT/'cwb7-restart-expected.json').write_text(json.dumps({'case_id':lab_case,'listing':call('GET',lab_root,owner),'case':read(lab_case,owner),'audits':audits},ensure_ascii=False,indent=2))
+record('cwb7_postgresql_identity_race_source_revision_withdrawal_and_audit')
+
+
+# Separate synthetic cases exercise first-create and correct/withdraw races, plus
+# original withdrawal versus first confirmation using the same store/case order.
+import copy
+lab_extra=[]
+for scenario,panel in [('first_competition','cbc'),('correct_withdraw','chemistry'),('source_withdraw','urine')]:
+    ecid=call('POST','/api/cases',owner,expected=201,json={**manual,'patient_name':'CW-B7 '+scenario})['id']
+    eroot=f'/api/cases/{ecid}/manual-lab';efiles=f'/api/cases/{ecid}/attachments'
+    name,mime,raw=attachment_samples()[0]
+    eitem=call('POST',efiles+'/uploads/'+uuid4().hex,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',efiles,owner)['case_token']},content=raw)['attachment']
+    ab={'request_id':uuid4().hex,'attachment_id':eitem['id'],'operation':'confirm','expected_case_token':call('GET',efiles,owner)['case_token'],'metadata':meta,'reason':''}
+    ap=call('POST',efiles+'/preview',owner,json=ab)
+    call('POST',efiles+'/confirm',owner,json={**ab,'preview_token':ap['preview_token'],'reviewed':True})
+    edata=copy.deepcopy(lab_data);edata['report']['panel']=panel
+    eb={'request_id':uuid4().hex,'attachment_id':eitem['id'],'operation':'create','expected_case_token':call('GET',eroot,owner)['case_token'],'report_id':None,'expected_report_token':'','data':edata,'reason':''}
+    def er(body):
+        preview=call('POST',eroot+'/preview',owner,json=body)
+        return {**body,'preview_token':preview['preview_token'],'reviewed':True}
+    first=er(eb)
+    if scenario=='first_competition':
+        # A failure in the audit append rolls back report and all observations.
+        with patch.object(manual_lab,'append_audit',side_effect=OperationalError('synthetic',{},Exception('audit unavailable'))):
+            call('POST',eroot+'/confirm',owner,expected=503,json=first)
+        assert call('GET',eroot,owner)['reports']==[]
+        requests=[first,er({**eb,'request_id':uuid4().hex})]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            result=list(pool.map(lambda req:client.post(eroot+'/confirm',headers=owner,json=req),requests))
+        assert sorted(r.status_code for r in result)==[200,409]
+    elif scenario=='correct_withdraw':
+        old=call('POST',eroot+'/confirm',owner,json=first)['report']
+        base={**eb,'report_id':old['id'],'expected_report_token':old['token'],'reason':'并发合成更正或撤销'}
+        requests=[er({**base,'request_id':uuid4().hex,'operation':op,'data':None if op=='withdraw' else edata}) for op in ('correct','withdraw')]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            result=list(pool.map(lambda req:client.post(eroot+'/confirm',headers=owner,json=req),requests))
+        assert sorted(r.status_code for r in result)==[200,409]
+    else:
+        ab={**ab,'request_id':uuid4().hex,'operation':'withdraw','expected_case_token':call('GET',efiles,owner)['case_token'],'reason':'并发合成撤销来源'}
+        ap=call('POST',efiles+'/preview',owner,json=ab)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            save=pool.submit(client.post,eroot+'/confirm',headers=owner,json=first)
+            withdrawal=pool.submit(client.post,efiles+'/confirm',headers=owner,json={**ab,'preview_token':ap['preview_token'],'reviewed':True})
+            assert save.result().status_code in (200,409);assert withdrawal.result().status_code==200
+        assert all(r['state']!='confirmed' for r in call('GET',eroot,owner)['reports'])
+    listing=call('GET',eroot,owner)
+    assert sum(r['state']=='confirmed' for r in listing['reports'])<=1
+    lab_extra.append({'case_id':ecid,'listing':listing})
+    record('cwb7_postgresql_'+scenario+'_one_current_version')
+(f.OUT/'cwb7-extra-restart.json').write_text(json.dumps(lab_extra,ensure_ascii=False,indent=2))
+
+
+# CW-B8 uses real report/source routes and holds the case snapshot until bytes exist.
+f.enable_manual_lab_documents()
+import io,zipfile
+from xml.etree import ElementTree as ET
+from threading import Event
+import clinical_docs_api as document_api
+
+def document_text(raw):
+    with zipfile.ZipFile(io.BytesIO(raw)) as z:
+        return ''.join(ET.fromstring(z.read('word/document.xml')).itertext())
+
+for scenario in ('control','correct','withdraw','source','identity','history'):
+    cid=call('POST','/api/cases',owner,expected=201,json={**manual,'patient_name':'CW-B8 '+scenario})['id']
+    files=f'/api/cases/{cid}/attachments';root=f'/api/cases/{cid}/manual-lab'
+    name,mime,raw=attachment_samples()[0]
+    item=call('POST',files+'/uploads/'+uuid4().hex,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',files,owner)['case_token']},content=raw)['attachment']
+    ab={'request_id':uuid4().hex,'attachment_id':item['id'],'operation':'confirm','expected_case_token':call('GET',files,owner)['case_token'],'metadata':meta,'reason':''}
+    ap=call('POST',files+'/preview',owner,json=ab);call('POST',files+'/confirm',owner,json={**ab,'preview_token':ap['preview_token'],'reviewed':True})
+    b={'request_id':uuid4().hex,'attachment_id':item['id'],'operation':'create','expected_case_token':call('GET',root,owner)['case_token'],'report_id':None,'expected_report_token':'','data':lab_data,'reason':''}
+    p=call('POST',root+'/preview',owner,json=b);row=call('POST',root+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})['report']
+    body={'case_id':cid,'template_id':'outpatient_record_zh','manual_lab_report_ids':[row['id']]}
+    p=call('POST','/api/clinical-docs/render-preview',owner,json=body);request={**body,'expected_content_snapshot':p['content_snapshot']}
+    call('POST','/api/clinical-docs/render-preview',other,expected=404,json=body)
+    if scenario=='control':
+        from sqlalchemy import event
+        statements=[]
+        def writes(_conn,_cursor,statement,*_):
+            if statement.lstrip().split(' ',1)[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}:statements.append(statement)
+        event.listen(f.db.engine,'before_cursor_execute',writes)
+        try:
+            for template in ('outpatient_record_zh','owner_visit_summary_zh'):
+                q={**body,'template_id':template};pr=call('POST','/api/clinical-docs/render-preview',owner,json=q)
+                r=client.post('/api/clinical-docs/render',headers=owner,json={**q,'expected_content_snapshot':pr['content_snapshot']});assert r.status_code==200
+                content=document_text(r.content)
+                for exact in ('0.0100','<0.0010','未测','未提供',item['sha256']):assert exact in content
+                assert r.headers['x-pmai-writes-database']=='false'
+                (f.OUT/('cwb8-pg-'+template+'.docx')).write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',writes)
+        assert statements==[]
+        (f.OUT/'cwb8-restart-expected.json').write_text(json.dumps({'body':body,'snapshot':p['content_snapshot'],'reports':p['manual_lab_reports']},ensure_ascii=False,indent=2))
+        record('cwb8_postgresql_two_templates_literal_values_no_database_writes')
+        continue
+    if scenario in ('correct','withdraw'):
+        update={**b,'request_id':uuid4().hex,'operation':scenario,'report_id':row['id'],'expected_report_token':row['token'],'reason':'合成并发文书验证','data':None if scenario=='withdraw' else copy.deepcopy(lab_data)}
+        if scenario=='correct':update['data']['items'][0]['value']='0.0990'
+        review=call('POST',root+'/preview',owner,json=update)
+        mutation=lambda:client.post(root+'/confirm',headers=owner,json={**update,'preview_token':review['preview_token'],'reviewed':True})
+    elif scenario=='source':
+        update={**ab,'request_id':uuid4().hex,'operation':'withdraw','reason':'合成原件撤销','expected_case_token':call('GET',files,owner)['case_token']};review=call('POST',files+'/preview',owner,json=update)
+        mutation=lambda:client.post(files+'/confirm',headers=owner,json={**update,'preview_token':review['preview_token'],'reviewed':True})
+    else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=owner,json={('owner_name' if scenario=='identity' else 'history'):'并发更正合成字段'})
+    entered,release,attempted=Event(),Event(),Event();normal=document_api._render_docx
+    def held(*args,**kwargs):
+        entered.set();assert release.wait(10);return normal(*args,**kwargs)
+    def change():attempted.set();return mutation()
+    with ThreadPoolExecutor(max_workers=2) as pool,patch.object(document_api,'_render_docx',side_effect=held):
+        export=pool.submit(client.post,'/api/clinical-docs/render',headers=owner,json=request)
+        assert entered.wait(10);rival=pool.submit(change);assert attempted.wait(10);assert not rival.done();release.set()
+        r=export.result(15);assert r.status_code==200 and '0.0100' in document_text(r.content) and '0.0990' not in document_text(r.content)
+        assert rival.result(15).status_code==200
+    call('POST','/api/clinical-docs/render',owner,expected=409,json=request)
+    record('cwb8_postgresql_export_serializes_'+scenario+'_then_rejects_old_snapshot')
+
+
+# CW-B9 real PostgreSQL transactions and independently logged-in restart readback.
+f.enable_manual_imaging()
+import manual_imaging_records as imaging
+image_data=json.loads((f.ROOT/'tests/fixtures/manual_imaging_cw_b9_cases.json').read_text())
+image_expected=[]
+for scenario in ('control','duplicate','first_competition','corrections','correct_withdraw','source_race','identity_race','mixed_export'):
+    cid=call('POST','/api/cases',owner,expected=201,json={**manual,'patient_name':'CW-B9 '+scenario})['id']
+    files=f'/api/cases/{cid}/attachments';root=f'/api/cases/{cid}/manual-imaging'
+    def make_source(index,kind):
+        name,mime,raw=attachment_samples()[index]
+        item=call('POST',files+'/uploads/'+uuid4().hex,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',files,owner)['case_token']},content=raw)['attachment']
+        b={'request_id':uuid4().hex,'attachment_id':item['id'],'operation':'confirm','expected_case_token':call('GET',files,owner)['case_token'],'metadata':{**meta,'kind':kind},'reason':''}
+        p=call('POST',files+'/preview',owner,json=b)
+        return call('POST',files+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})['attachment']
+    source=make_source(0,'dr')
+    def ib(old=None,op='create'):
+        return {'request_id':uuid4().hex,'attachment_id':source['id'],'operation':op,'expected_case_token':call('GET',root,owner)['case_token'],
+                'report_id':old['id'] if old else None,'expected_report_token':old['token'] if old else '',
+                'data':None if op=='withdraw' else copy.deepcopy(image_data),'reason':'合成影像更正/撤销' if old else ''}
+    def ir(b):
+        p=call('POST',root+'/preview',owner,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    first=ir(ib())
+    call('GET',root,other,expected=404)
+    if scenario=='source_race':
+        b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'withdraw','expected_case_token':call('GET',files,owner)['case_token'],'metadata':{**meta,'kind':'dr'},'reason':'合成原件撤销'}
+        p=call('POST',files+'/preview',owner,json=b)
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            save=pool.submit(client.post,root+'/confirm',headers=owner,json=first)
+            removal=pool.submit(client.post,files+'/confirm',headers=owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+            assert save.result().status_code in (200,409);assert removal.result().status_code==200
+        assert all(r['state']!='confirmed' for r in call('GET',root,owner)['reports'])
+    elif scenario in ('first_competition','duplicate'):
+        # Both audit and database failures leave no report or ledger entry.
+        for target,attribute in [(imaging,'append_audit'),(Session,'commit')]:
+            with patch.object(target,attribute,side_effect=OperationalError('synthetic',{},Exception('injected'))):
+                call('POST',root+'/confirm',owner,expected=503,json=first)
+            assert call('GET',root,owner)['reports']==[]
+            assert call('GET',root+'/requests/'+first['request_id'],owner)['state']=='not_committed'
+        requests=[first,first if scenario=='duplicate' else ir(ib())]
+        with ThreadPoolExecutor(max_workers=2) as pool:
+            result=list(pool.map(lambda req:client.post(root+'/confirm',headers=owner,json=req),requests))
+        assert sorted(r.status_code for r in result)==([200,200] if scenario=='duplicate' else [200,409])
+        assert len(call('GET',root,owner)['reports'])==1
+        with f.db.SessionLocal() as db:assert db.query(f.models.AuditLog).filter_by(case_id=cid,event_type='manual_imaging_create').count()==1
+    else:
+        row=call('POST',root+'/confirm',owner,json=first)['report'];assert row['data']==image_data
+        with f.db.SessionLocal() as db:assert db.get(f.models.ImagingStudy,row['id']).taken_at.isoformat()=='2026-10-07T01:30:00'
+        if scenario in ('corrections','correct_withdraw'):
+            reqs=[ir(ib(row,op)) for op in ('correct','correct' if scenario=='corrections' else 'withdraw')]
+            with ThreadPoolExecutor(max_workers=2) as pool:result=list(pool.map(lambda req:client.post(root+'/confirm',headers=owner,json=req),reqs))
+            assert sorted(r.status_code for r in result)==[200,409]
+        elif scenario=='identity_race':
+            req=ir(ib(row,'correct'))
+            with ThreadPoolExecutor(max_workers=2) as pool:
+                change=pool.submit(client.put,f'/api/cases/{cid}',headers=owner,json={'owner_name':'并发影像宠主更正'})
+                save=pool.submit(client.post,root+'/confirm',headers=owner,json=req)
+                assert change.result().status_code==200;assert save.result().status_code in (200,409)
+            assert all(r['state']!='confirmed' for r in call('GET',root,owner)['reports'])
+        else:
+            source_lab=make_source(1,'lab');lab_root=f'/api/cases/{cid}/manual-lab'
+            b={'request_id':uuid4().hex,'attachment_id':source_lab['id'],'operation':'create','expected_case_token':call('GET',lab_root,owner)['case_token'],'report_id':None,'expected_report_token':'','data':lab_data,'reason':''}
+            p=call('POST',lab_root+'/preview',owner,json=b)
+            labrow=call('POST',lab_root+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})['report']
+            body={'case_id':cid,'template_id':'outpatient_record_zh','manual_imaging_report_ids':[row['id']],'manual_lab_report_ids':[labrow['id']]}
+            preview=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+            req={**body,'expected_content_snapshot':preview['content_snapshot']}
+            if scenario=='control':
+                for template in ('outpatient_record_zh','owner_visit_summary_zh'):
+                    q={**body,'template_id':template};p=call('POST','/api/clinical-docs/render-preview',owner,json=q)
+                    r=client.post('/api/clinical-docs/render',headers=owner,json={**q,'expected_content_snapshot':p['content_snapshot']})
+                    assert r.status_code==200
+                    for value in [image_data['taken_at'],source['sha256'],image_data['impression'],'0.0100']:assert value in document_text(r.content)
+                    (f.OUT/('cwb9-pg-'+template+'.docx')).write_bytes(r.content)
+                retained={'body':body,'snapshot':preview['content_snapshot'],'images':preview['manual_imaging_reports'],'labs':preview['manual_lab_reports']}
+            else:
+                image_update=ir(ib(row,'withdraw'))
+                lb={**b,'request_id':uuid4().hex,'operation':'withdraw','report_id':labrow['id'],'expected_report_token':labrow['token'],'data':None,'reason':'并发混合附节验证'}
+                lp=call('POST',lab_root+'/preview',owner,json=lb)
+                entered,release=Event(),Event();normal=document_api._render_docx
+                def held(*a,**k):entered.set();assert release.wait(10);return normal(*a,**k)
+                with ThreadPoolExecutor(max_workers=3) as pool,patch.object(document_api,'_render_docx',side_effect=held):
+                    export=pool.submit(client.post,'/api/clinical-docs/render',headers=owner,json=req);assert entered.wait(10)
+                    a=pool.submit(client.post,root+'/confirm',headers=owner,json=image_update)
+                    b=pool.submit(client.post,lab_root+'/confirm',headers=owner,json={**lb,'preview_token':lp['preview_token'],'reviewed':True})
+                    assert not a.done() and not b.done();release.set()
+                    r=export.result(15);assert r.status_code==200
+                    assert image_data['impression'] in document_text(r.content) and '0.0100' in document_text(r.content)
+                    assert a.result(15).status_code==200 and b.result(15).status_code==200
+                call('POST','/api/clinical-docs/render',owner,expected=409,json=req)
+    listing=call('GET',root,owner)
+    assert sum(r['state']=='confirmed' for r in listing['reports'])<=1
+    with f.db.SessionLocal() as db:
+        audits=[{'id':r.log_id,'event':r.event_type,'data':r.extra_data} for r in db.query(f.models.AuditLog).filter_by(case_id=cid,source=imaging.SOURCE).order_by(f.models.AuditLog.log_id)]
+    image_expected.append({'case_id':cid,'listing':listing,'audits':audits,**(retained if scenario=='control' else {})})
+    record('cwb9_postgresql_'+scenario+'_exact_atomic_imaging')
+(f.OUT/'cwb9-restart-expected.json').write_text(json.dumps(image_expected,ensure_ascii=False,indent=2))
+
+
+# CW-B10 reads all saved material in one Store/case transaction, never listing cleanup.
+f.enable_visit_overview()
+import clinical_case_overview as visit_overview
+overview_expected = []
+overview_case = json.loads((f.ROOT / 'tests/fixtures/clinical_case_overview_cw_b10_cases.json').read_text())['case']
+overview_image = json.loads((f.ROOT / 'tests/fixtures/manual_imaging_cw_b9_cases.json').read_text())
+for scenario in ('control', 'imaging', 'lab', 'withdraw', 'source', 'identity', 'history'):
+    cid = call('POST', '/api/cases', owner, expected=201, json={**overview_case, 'patient_name': 'CW-B10 ' + scenario})['id']
+    files = f'/api/cases/{cid}/attachments'
+    records, source_records = {}, {}
+    for kind, sample in [('imaging', attachment_samples()[0]), ('lab', attachment_samples()[1])]:
+        name, mime, raw = sample
+        item = call('POST', files + '/uploads/' + uuid4().hex,
+                    {**owner, 'Content-Type': mime, 'X-Attachment-Filename': quote(name), 'X-Case-Token': call('GET', files, owner)['case_token']}, content=raw)['attachment']
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'confirm',
+                'expected_case_token': call('GET', files, owner)['case_token'],
+                'metadata': {'title': '合成' + kind, 'kind': 'dr' if kind == 'imaging' else 'lab', 'taken_at': '', 'reported_at': '', 'source': '', 'note': ''}, 'reason': ''}
+        preview = call('POST', files + '/preview', owner, json=body)
+        source_records[kind] = call('POST', files + '/confirm', owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})['attachment']
+        root = f'/api/cases/{cid}/manual-' + kind
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'create',
+                'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': None, 'expected_report_token': '',
+                'data': overview_image if kind == 'imaging' else lab_data, 'reason': ''}
+        preview = call('POST', root + '/preview', owner, json=body)
+        records[kind] = call('POST', root + '/confirm', owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})['report']
+    url = f'/api/cases/{cid}/visit-overview'
+    before = call('GET', url, owner)
+    assert before['groups']['lab']['counts']['confirmed'] == before['groups']['imaging']['counts']['confirmed'] == 1
+    assert next(row['value'] for row in before['fields'] if row['key'] == 'history') == overview_case['history']
+    if scenario == 'control':
+        call('GET', url, other, expected=404)
+        call('GET', url, expected=401)
+        statements = []
+        from sqlalchemy import event
+        def capture_writes(_conn, _cursor, statement, *_):
+            if statement.lstrip().split()[0].upper() in {'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP', 'ALTER'}: statements.append(statement)
+        def business_digest():
+            with f.db.engine.connect() as connection:
+                rows = {table.name: [list(map(str, row)) for row in connection.execute(table.select().order_by(*table.primary_key.columns))]
+                        for table in [f.models.Case.__table__, f.models.DiagnosticReport.__table__, f.models.Observation.__table__, f.models.ImagingStudy.__table__, f.models.AuditLog.__table__]}
+            files = {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in attachment_directory.iterdir() if p.is_file() and p.name != '.cw-b6.lock'}
+            return rows, files
+        previous = business_digest()
+        event.listen(f.db.engine, 'before_cursor_execute', capture_writes)
+        try:
+            with patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('Overview cannot clean originals or temporary files')):
+                assert call('GET', url, owner)['snapshot'] == before['snapshot']
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture_writes)
+        assert statements == [] and previous == business_digest()
+    else:
+        if scenario in {'imaging', 'lab', 'withdraw'}:
+            kind = 'lab' if scenario == 'lab' else 'imaging'; row = records[kind]
+            root = f'/api/cases/{cid}/manual-' + kind
+            body = {'request_id': uuid4().hex, 'attachment_id': row['attachment_id'], 'operation': 'withdraw' if scenario == 'withdraw' else 'correct',
+                    'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': row['id'], 'expected_report_token': row['token'],
+                    'data': None if scenario == 'withdraw' else (overview_image if kind == 'imaging' else lab_data), 'reason': '合成总览并发验证'}
+            preview = call('POST', root + '/preview', owner, json=body)
+            request = {**body, 'preview_token': preview['preview_token'], 'reviewed': True}
+            mutation = lambda: client.post(root + '/confirm', headers=owner, json=request)
+        elif scenario == 'source':
+            source = source_records['imaging']
+            body = {'request_id': uuid4().hex, 'attachment_id': source['id'], 'operation': 'withdraw',
+                    'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': source['metadata'], 'reason': '合成来源撤销'}
+            preview = call('POST', files + '/preview', owner, json=body)
+            mutation = lambda: client.post(files + '/confirm', headers=owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})
+        else:
+            mutation = lambda: client.put(f'/api/cases/{cid}', headers=owner, json={('owner_name' if scenario == 'identity' else 'history'): '合成并发修改'})
+        entered, release, attempted = Event(), Event(), Event(); normal = visit_overview.assemble
+        def held(*args): entered.set(); assert release.wait(10); return normal(*args)
+        def mutate(): attempted.set(); return mutation()
+        with ThreadPoolExecutor(max_workers=2) as pool, patch.object(visit_overview, 'assemble', side_effect=held):
+            reading = pool.submit(call, 'GET', url, owner)
+            try:
+                assert entered.wait(10)
+                changing = pool.submit(mutate); assert attempted.wait(10); assert not changing.done()
+            finally: release.set()
+            assert reading.result(10)['snapshot'] == before['snapshot']
+            assert changing.result(10).status_code == 200
+        assert call('GET', url, owner)['snapshot'] != before['snapshot']
+    saved = call('GET', url, owner); saved.pop('read_at')
+    overview_expected.append({'case_id': cid, 'overview': saved})
+    record('cwb10_postgresql_' + scenario + '_consistent_readonly_inventory')
+(f.OUT / 'cwb10-restart-expected.json').write_text(json.dumps(overview_expected, ensure_ascii=False, indent=2))
+
+# CW-B11 exact decimal comparison on native PostgreSQL with saved-source and row locks.
+f.enable_lab_range_review()
+import clinical_lab_range_review as range_review
+from copy import deepcopy
+range_fixture = json.loads((f.ROOT / 'tests/fixtures/clinical_lab_range_review_cw_b11_cases.json').read_text())
+range_expected = []
+for scenario in ('control', 'correct', 'withdraw', 'source', 'source_metadata', 'identity'):
+    cid = call('POST', '/api/cases', owner, expected=201, json={**range_fixture['case'], 'patient_name': 'CW-B11 ' + scenario})['id']
+    files = f'/api/cases/{cid}/attachments'; root = f'/api/cases/{cid}/manual-lab'; url = f'/api/cases/{cid}/lab-range-review'
+    name, mime, raw = attachment_samples()[0]
+    item = call('POST', files + '/uploads/' + uuid4().hex,
+                {**owner, 'Content-Type': mime, 'X-Attachment-Filename': quote(name), 'X-Case-Token': call('GET', files, owner)['case_token']}, content=raw)['attachment']
+    metadata = {'title': '合成区间原件', 'kind': 'lab', 'taken_at': '', 'reported_at': '', 'source': '', 'note': ''}
+    body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'confirm', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': metadata, 'reason': ''}
+    preview = call('POST', files + '/preview', owner, json=body)
+    source = call('POST', files + '/confirm', owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})['attachment']
+    body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'create', 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': None, 'expected_report_token': '', 'data': range_fixture['data'], 'reason': ''}
+    preview = call('POST', root + '/preview', owner, json=body)
+    row = call('POST', root + '/confirm', owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})['report']
+    before = call('GET', url, owner)
+    assert before['counts'] == range_fixture['review']['counts']
+    assert [i['comparison'] for i in before['reports'][0]['items']] == range_fixture['expected']
+    assert before['reports'][0]['token'] == row['token'] and before['reports'][0]['source']['sha256'] == hashlib.sha256(raw).hexdigest()
+    if scenario == 'control':
+        call('GET', url, other, expected=404); call('GET', url, expected=401)
+        previous = business_digest(); statements = []
+        event.listen(f.db.engine, 'before_cursor_execute', capture_writes)
+        try:
+            with patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('No read cleanup')):
+                assert call('GET', url, owner)['snapshot'] == before['snapshot']
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture_writes)
+        assert statements == [] and business_digest() == previous
+    else:
+        if scenario in {'correct', 'withdraw'}:
+            data = deepcopy(range_fixture['data']); data['items'][0]['value'] = '1.500'
+            body = {'request_id': uuid4().hex, 'attachment_id': row['attachment_id'], 'operation': scenario, 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': row['id'], 'expected_report_token': row['token'], 'data': data if scenario == 'correct' else None, 'reason': '合成区间并发核对'}
+            preview = call('POST', root + '/preview', owner, json=body)
+            mutation = lambda: client.post(root + '/confirm', headers=owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})
+        elif scenario in {'source', 'source_metadata'}:
+            body = {'request_id': uuid4().hex, 'attachment_id': source['id'], 'operation': 'withdraw' if scenario == 'source' else 'update', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': {**metadata, 'title': '合成来源更正'}, 'reason': '合成来源核对'}
+            preview = call('POST', files + '/preview', owner, json=body)
+            mutation = lambda: client.post(files + '/confirm', headers=owner, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})
+        else:
+            mutation = lambda: client.put(f'/api/cases/{cid}', headers=owner, json={'owner_name': '合成身份更正'})
+        entered, release, attempted = Event(), Event(), Event(); normal = range_review.assemble
+        def held(*args): entered.set(); assert release.wait(10); return normal(*args)
+        def mutate(): attempted.set(); return mutation()
+        with ThreadPoolExecutor(max_workers=2) as pool, patch.object(range_review, 'assemble', side_effect=held):
+            reading = pool.submit(call, 'GET', url, owner)
+            try:
+                assert entered.wait(10); changing = pool.submit(mutate)
+                assert attempted.wait(10); assert not changing.done()
+            finally: release.set()
+            assert reading.result(10)['snapshot'] == before['snapshot']; assert changing.result(10).status_code == 200
+        after = call('GET', url, owner); assert after['snapshot'] != before['snapshot']
+        if scenario == 'correct':
+            assert after['reports'][0]['version'] == 2 and after['reports'][0]['items'][0]['value'] == '1.500'
+            assert after['reports'][0]['items'][0]['comparison']['state'] == 'between'
+        else: assert after['reports'] == []
+    saved = call('GET', url, owner); saved.pop('read_at')
+    range_expected.append({'case_id': cid, 'review': saved})
+    record('cwb11_postgresql_' + scenario + '_exact_readonly_snapshot')
+(f.OUT / 'cwb11-restart-expected.json').write_text(json.dumps(range_expected, ensure_ascii=False, indent=2))
+
+# CW-B12: independent sources and explicit selection; native PostgreSQL only.
+f.enable_lab_comparison()
+import clinical_lab_comparison as lab_comparison
+from build_attachment_cw_b6_fixtures import pdf as comparison_pdf
+comparison_fixture = json.loads((f.ROOT / 'tests/fixtures/clinical_lab_comparison_cw_b12_cases.json').read_text())
+comparison_expected = []
+
+
+def comparison_pg(scenario, previewing):
+    global statements
+    cid = call('POST', '/api/cases', owner, expected=201, json={**comparison_fixture['case'], 'patient_name': 'CW-B12 ' + scenario + str(previewing)})['id']
+    files, root, url = (f'/api/cases/{cid}/' + suffix for suffix in ('attachments', 'manual-lab', 'lab-comparison'))
+    sources, rows = [], []
+    metadata = {'title': '合成对照原件', 'kind': 'lab', 'taken_at': '', 'reported_at': '', 'source': '', 'note': ''}
+    for index, data in enumerate(comparison_fixture['reports']):
+        raw = comparison_pdf().replace(b'CW-B6', f'CW-B{index}'.encode())
+        item = call('POST', files + '/uploads/' + uuid4().hex,
+                    {**owner, 'Content-Type': 'application/pdf', 'X-Attachment-Filename': f'comparison-{index}.pdf', 'X-Case-Token': call('GET', files, owner)['case_token']}, content=raw)['attachment']
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'confirm', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': metadata, 'reason': ''}
+        p = call('POST', files + '/preview', owner, json=body)
+        sources.append(call('POST', files + '/confirm', owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})['attachment'])
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'create', 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': None, 'expected_report_token': '', 'data': data, 'reason': ''}
+        p = call('POST', root + '/preview', owner, json=body)
+        rows.append(call('POST', root + '/confirm', owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})['report'])
+    before = call('GET', url, owner)
+    def choice(index):
+        return {'snapshot': before['snapshot'], 'a': lab_comparison.selection(before['reports'][0], before['reports'][0]['items'][index]),
+                'b': lab_comparison.selection(before['reports'][1], before['reports'][1]['items'][index]), 'doctor_confirmed': True}
+    request = choice(3)
+    expected_delta = comparison_fixture['expected_deltas'][3]
+    assert call('POST', url + '/preview', owner, json=request)['delta']['value'] == expected_delta
+    if scenario == 'control':
+        call('GET', url, other, expected=404); call('GET', url, expected=401)
+        call('POST', url + '/preview', other, json=request, expected=404)
+        previous = business_digest(); statements = []
+        event.listen(f.db.engine, 'before_cursor_execute', capture_writes)
+        try:
+            with patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('No comparison cleanup')):
+                assert call('GET', url, owner)['snapshot'] == before['snapshot']
+                for index, delta in enumerate(comparison_fixture['expected_deltas']):
+                    assert call('POST', url + '/preview', owner, json=choice(index))['delta']['value'] == delta
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture_writes)
+        assert statements == [] and business_digest() == previous
+    else:
+        row, source = rows[0], sources[0]
+        if scenario in {'correct', 'withdraw'}:
+            data = deepcopy(comparison_fixture['reports'][0]); data['items'][0]['value'] = '1.500'
+            body = {'request_id': uuid4().hex, 'attachment_id': row['attachment_id'], 'operation': scenario, 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': row['id'], 'expected_report_token': row['token'], 'data': data if scenario == 'correct' else None, 'reason': '合成前后对照并发核对'}
+            p = call('POST', root + '/preview', owner, json=body)
+            mutation = lambda: client.post(root + '/confirm', headers=owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})
+        elif scenario in {'source', 'source_metadata'}:
+            body = {'request_id': uuid4().hex, 'attachment_id': source['id'], 'operation': 'withdraw' if scenario == 'source' else 'update', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': {**metadata, 'title': '合成对照来源更正'}, 'reason': '合成来源核对'}
+            p = call('POST', files + '/preview', owner, json=body)
+            mutation = lambda: client.post(files + '/confirm', headers=owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})
+        else: mutation = lambda: client.put(f'/api/cases/{cid}', headers=owner, json={'owner_name': '对照并发身份更正'})
+        entered, release, attempted = Event(), Event(), Event(); normal = lab_comparison.assemble
+        def held(*args): entered.set(); assert release.wait(10); return normal(*args)
+        def mutate(): attempted.set(); return mutation()
+        with ThreadPoolExecutor(max_workers=2) as pool, patch.object(lab_comparison, 'assemble', side_effect=held):
+            reading = pool.submit(call, 'POST', url + '/preview', owner, json=request) if previewing else pool.submit(call, 'GET', url, owner)
+            try:
+                assert entered.wait(10); changing = pool.submit(mutate)
+                assert attempted.wait(10); assert not changing.done()
+            finally: release.set()
+            result = reading.result(10); assert result['snapshot'] == before['snapshot']
+            if previewing: assert result['delta']['value'] == expected_delta
+            assert changing.result(10).status_code == 200
+        after = call('GET', url, owner); assert after['snapshot'] != before['snapshot']
+        call('POST', url + '/preview', owner, json=request, expected=409)
+        if scenario == 'correct':
+            current = next(r for r in after['reports'] if r['root_id'] == row['root_id'])
+            assert current['version'] == 2 and current['items'][0]['value'] == '1.500'
+        else: assert len(after['reports']) == (0 if scenario == 'identity' else 1)
+    saved = call('GET', url, owner); saved.pop('read_at')
+    preview_saved = call('POST', url + '/preview', owner, json=request) if scenario == 'control' else None
+    if preview_saved: preview_saved.pop('read_at')
+    comparison_expected.append({'case_id': cid, 'review': saved, 'choice': request, 'preview': preview_saved})
+    record('cwb12_postgresql_' + scenario + ('_preview' if previewing else '_get') + '_consistent_readonly_snapshot')
+
+
+comparison_pg('control', True)
+for comparison_scenario in ('correct', 'withdraw', 'source', 'source_metadata', 'identity'):
+    for comparison_preview in (False, True): comparison_pg(comparison_scenario, comparison_preview)
+(f.OUT / 'cwb12-restart-expected.json').write_text(json.dumps(comparison_expected, ensure_ascii=False, indent=2))
+
+# CW-B13: native PostgreSQL lock spans selected raw pair, mixed sections and bytes.
+f.enable_lab_comparison_documents()
+import clinical_lab_comparison_documents as comparison_documents
+comparison_document_expected=[]
+
+
+def comparison_document_pg(scenario, rendering):
+    cid = call('POST', '/api/cases', owner, expected=201, json={**comparison_fixture['case'], 'patient_name': 'CW-B13 ' + scenario + str(rendering)})['id']
+    files, root, url = (f'/api/cases/{cid}/' + suffix for suffix in ('attachments', 'manual-lab', 'lab-comparison'))
+    sources, rows = [], []
+    metadata = {'title': '合成对照原件', 'kind': 'lab', 'taken_at': '', 'reported_at': '', 'source': '', 'note': ''}
+    for index, data in enumerate(comparison_fixture['reports']):
+        raw = comparison_pdf().replace(b'CW-B6', f'CW-B{index}'.encode())
+        item = call('POST', files + '/uploads/' + uuid4().hex,
+                    {**owner, 'Content-Type': 'application/pdf', 'X-Attachment-Filename': f'comparison-{index}.pdf', 'X-Case-Token': call('GET', files, owner)['case_token']}, content=raw)['attachment']
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'confirm', 'expected_case_token': call('GET', files, owner)['case_token'], 'metadata': metadata, 'reason': ''}
+        p = call('POST', files + '/preview', owner, json=body)
+        sources.append(call('POST', files + '/confirm', owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})['attachment'])
+        body = {'request_id': uuid4().hex, 'attachment_id': item['id'], 'operation': 'create', 'expected_case_token': call('GET', root, owner)['case_token'], 'report_id': None, 'expected_report_token': '', 'data': data, 'reason': ''}
+        p = call('POST', root + '/preview', owner, json=body)
+        rows.append(call('POST', root + '/confirm', owner, json={**body, 'preview_token': p['preview_token'], 'reviewed': True})['report'])
+    extras={}
+    if scenario in {'mixed','control'}:
+        name,mime,raw=attachment_samples()[0]
+        image_source=call('POST',files+'/uploads/'+uuid4().hex,{**owner,'Content-Type':mime,'X-Attachment-Filename':quote(name),'X-Case-Token':call('GET',files,owner)['case_token']},content=raw)['attachment']
+        b={'request_id':uuid4().hex,'attachment_id':image_source['id'],'operation':'confirm','expected_case_token':call('GET',files,owner)['case_token'],'metadata':{**metadata,'kind':'dr'},'reason':''}
+        p=call('POST',files+'/preview',owner,json=b);call('POST',files+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+        image_root=f'/api/cases/{cid}/manual-imaging'
+        b={'request_id':uuid4().hex,'attachment_id':image_source['id'],'operation':'create','expected_case_token':call('GET',image_root,owner)['case_token'],'report_id':None,'expected_report_token':'','data':image_data,'reason':''}
+        p=call('POST',image_root+'/preview',owner,json=b);image_row=call('POST',image_root+'/confirm',owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})['report']
+        extras={'manual_lab_report_ids':[rows[0]['id']],'manual_imaging_report_ids':[image_row['id']]}
+    saved=call('GET',url,owner)
+    choice={'snapshot':saved['snapshot'],'a':lab_comparison.selection(saved['reports'][0],saved['reports'][0]['items'][3]),'b':lab_comparison.selection(saved['reports'][1],saved['reports'][1]['items'][3]),'doctor_confirmed':True}
+    body={'case_id':cid,'template_id':'outpatient_record_zh','manual_lab_comparison':choice,**extras}
+    preview=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+    request={**body,'expected_content_snapshot':preview['content_snapshot']}
+    if scenario=='control':
+        call('POST','/api/clinical-docs/render-preview',other,json=body,expected=404)
+        call('POST','/api/clinical-docs/render-preview',json=body,expected=401)
+        previous=business_digest();writes=[]
+        def capture(_c,_cur,sql,*_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','DROP','ALTER'}:writes.append(sql)
+        event.listen(f.db.engine,'before_cursor_execute',capture)
+        try:
+            p=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+            r=client.post('/api/clinical-docs/render',headers=owner,json=request)
+            assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
+            assert p['content_snapshot']==preview['content_snapshot']
+            assert comparison_fixture['expected_deltas'][3] in document_text(r.content)
+            (f.OUT/'cwb13-pg-mixed.docx').write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+        assert writes==[] and business_digest()==previous
+        comparison_document_expected.append({'body':body,'snapshot':p['content_snapshot'],'comparison':p['manual_lab_comparison'],'labs':p.get('manual_lab_reports',[]),'images':p.get('manual_imaging_reports',[])})
+    else:
+        row,source=rows[0],sources[0]
+        if scenario in {'correct','withdraw','mixed'}:
+            target=image_root if scenario=='mixed' else root
+            selected=image_row if scenario=='mixed' else row
+            data=deepcopy(comparison_fixture['reports'][0]);data['items'][0]['value']='1.500'
+            b={'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':'correct' if scenario=='correct' else 'withdraw','expected_case_token':call('GET',target,owner)['case_token'],'report_id':selected['id'],'expected_report_token':selected['token'],'data':data if scenario=='correct' else None,'reason':'合成文书并发核对'}
+            p=call('POST',target+'/preview',owner,json=b)
+            mutation=lambda:client.post(target+'/confirm',headers=owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+        elif scenario in {'source','source_metadata'}:
+            b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'withdraw' if scenario=='source' else 'update','expected_case_token':call('GET',files,owner)['case_token'],'metadata':{**metadata,'title':'合成文书来源更正'},'reason':'合成来源核对'}
+            p=call('POST',files+'/preview',owner,json=b)
+            mutation=lambda:client.post(files+'/confirm',headers=owner,json={**b,'preview_token':p['preview_token'],'reviewed':True})
+        else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=owner,json={('owner_name' if scenario=='identity' else 'history'):'文书并发正文或身份更正'})
+        entered,release,attempted=Event(),Event(),Event()
+        module,method=(document_api,'_render_docx') if rendering else (comparison_documents,'read_selected')
+        normal=getattr(module,method)
+        def held(*args,**kwargs):entered.set();assert release.wait(10);return normal(*args,**kwargs)
+        def mutate():attempted.set();return mutation()
+        with ThreadPoolExecutor(max_workers=2) as pool,patch.object(module,method,side_effect=held):
+            reading=pool.submit(client.post,'/api/clinical-docs/'+('render' if rendering else 'render-preview'),headers=owner,json=request if rendering else body)
+            try:
+                assert entered.wait(10);changing=pool.submit(mutate);assert attempted.wait(10);assert not changing.done()
+            finally:release.set()
+            r=reading.result(15);assert r.status_code==200
+            if rendering:assert comparison_fixture['expected_deltas'][3] in document_text(r.content) and '文书并发正文或身份更正' not in document_text(r.content)
+            else:assert r.json()['content_snapshot']==preview['content_snapshot']
+            assert changing.result(15).status_code==200
+        call('POST','/api/clinical-docs/render',owner,json=request,expected=409)
+    record('cwb13_postgresql_'+scenario+('_render' if rendering else '_preview')+'_full_snapshot_consistency')
+    return body
+
+
+comparison_document_pg('control',True)
+for document_scenario in ('correct','withdraw','source','source_metadata','identity','body','mixed'):
+    for rendering in (False,True):comparison_document_pg(document_scenario,rendering)
+(f.OUT/'cwb13-restart-expected.json').write_text(json.dumps(comparison_document_expected,ensure_ascii=False,indent=2))
+
+# CW-B14 native PostgreSQL: separate sessions, Case row locks, no SQLite imports.
+f.enable_followup_plans()
+import clinical_followup_plans as followup
+from threading import Event
+from sqlalchemy.exc import OperationalError
+followup_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_plans_cw_b14_cases.json').read_text())
+followup_expected=[]
+
+
+def followup_pg(scenario):
+    cid=call('POST','/api/cases',owner,expected=201,json={**followup_fixture['case'],'species':'cat' if scenario=='lifecycle' else 'dog'})['id']
+    root=f'/api/cases/{cid}/followup-plan'
+    original_case=read(cid,owner);request_ids=[]
+    def body(operation='create',row=None,data=None):
+        l=call('GET',root,owner)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':l['case_token'],'expected_state_token':l['state_token'],'data':None if operation=='withdraw' else data or followup_fixture['plan'],
+           'reason':'' if operation=='create' else followup_fixture['correction_reason']}
+        p=call('POST',root+'/preview',owner,json=b)
+        return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    def save(b,expected=200):
+        r=call('POST',root+'/confirm',owner,expected=expected,json=b)
+        if expected==200:request_ids.append(b['request_id'])
+        return r
+    def race(a,b):
+        barrier=Barrier(2)
+        def send(v):barrier.wait(10);return client.post(root+'/confirm',headers=owner,json=v)
+        with ThreadPoolExecutor(2) as pool:
+            jobs=[pool.submit(send,v) for v in (a,b)]
+            responses=[j.result(20) for j in jobs]
+        for b,r in zip((a,b),responses):
+            if r.status_code==200:request_ids.append(b['request_id'])
+        return responses
+    if scenario=='create-race':
+        responses=race(body(),body());assert sorted(r.status_code for r in responses)==[200,409]
+    elif scenario=='idempotent-race':
+        b=body();responses=race(b,b);assert [r.status_code for r in responses]==[200,200]
+        assert sorted(r.json()['writes_database'] for r in responses)==[False,True]
+    elif scenario=='correct-withdraw':
+        row=save(body())['plan'];responses=race(body('correct',row),body('withdraw',row))
+        assert sorted(r.status_code for r in responses)==[200,409]
+    elif scenario=='case-edit':
+        b=body();entered,release=Event(),Event()
+        with ThreadPoolExecutor(2) as pool:
+            def edit():
+                with followup.transaction(owner_id,cid) as (db,case):
+                    case.history='并发病例更正';db.flush();entered.set();assert release.wait(10);db.commit()
+            writer=pool.submit(edit);assert entered.wait(10)
+            future=pool.submit(lambda:client.post(root+'/confirm',headers=owner,json=b));assert not future.done()
+            release.set();writer.result(20);assert future.result(20).status_code==409
+        original_case=read(cid,owner)
+    elif scenario=='rollback':
+        for operation in ['create','correct','withdraw']:
+            row=save(body())['plan'] if operation=='correct' else (call('GET',root,owner)['plans'][-1] if operation=='withdraw' else None)
+            b=body(operation,row);before=call('GET',root,owner);append=followup.append_audit
+            def fail(*args):append(*args);args[0].flush();raise OperationalError('synthetic',{},Exception('rollback'))
+            with patch.object(followup,'append_audit',side_effect=fail):save(b,503)
+            assert call('GET',root,owner)==before
+            assert call('GET',root+'/requests/'+b['request_id'],owner)['state']=='not_committed'
+    elif scenario=='lost-reply':
+        b=body();entered,release=Event(),Event();append=followup.append_audit
+        def held(*args):append(*args);args[0].flush();entered.set();assert release.wait(10)
+        with patch.object(followup,'append_audit',side_effect=held),ThreadPoolExecutor(2) as pool:
+            write=pool.submit(lambda:client.post(root+'/confirm',headers=owner,json=b));assert entered.wait(10)
+            result=pool.submit(lambda:client.get(root+'/requests/'+b['request_id'],headers=owner));assert not result.done()
+            release.set();assert write.result(20).status_code==200;request_ids.append(b['request_id'])
+            receipt=result.result(20);assert receipt.status_code==200 and receipt.json()['state']=='committed'
+        assert save(b)['writes_database'] is False
+    else:
+        row=save(body())['plan'];row=save(body('correct',row,followup_fixture['corrected_plan']))['plan'];save(body('withdraw',row))
+        listed=call('GET',root,owner)['plans'];assert [p['data'] for p in listed]==[followup_fixture['plan'],followup_fixture['corrected_plan']]
+        assert [p['state'] for p in listed]==['superseded','withdrawn']
+        with f.db.SessionLocal() as db:
+            rows=db.query(f.models.FollowUp).filter_by(case_id=cid).order_by(f.models.FollowUp.id).all()
+            assert [r.due_date.isoformat() for r in rows]==[followup_fixture['expected_due_utc'],followup_fixture['corrected_due_utc']]
+    saved=call('GET',root,owner);assert sum(p['stored_state']=='planned' for p in saved['plans'])<=1
+    assert read(cid,owner)==original_case
+    call('GET',root,other,expected=404)
+    with f.db.SessionLocal() as db:
+        audits=db.query(f.models.AuditLog).filter_by(case_id=cid,source=followup.SOURCE).order_by(f.models.AuditLog.log_id).all()
+        assert len(audits)==len(set(request_ids))
+        followup_expected.append({'case_id':cid,'listing':saved,'case':original_case,'audits':[r.extra_data for r in audits],'requests':sorted(set(request_ids))})
+    record('cwb14_postgresql_'+scenario)
+
+
+for scenario in ['create-race','idempotent-race','correct-withdraw','case-edit','rollback','lost-reply','lifecycle']:followup_pg(scenario)
+# Independent legacy KPI sample; all CW-B14 source/status records remain excluded.
+from datetime import datetime
+cid=call('POST','/api/cases',owner,expected=201,json=followup_fixture['case'])['id']
+with f.db.SessionLocal() as db:
+    for i,done in enumerate([datetime(2024,2,29,12),datetime(2024,3,2),None]):
+        db.add(f.models.FollowUp(case_id=cid,due_date=datetime(2024,2,29),done_at=done,status='legacy-'+str(i),channel='phone',note='旧自由文本'))
+    db.commit()
+kpi_url='/api/kpi/followups?start=2024-02-01&end=2024-03-31'
+legacy=call('GET',kpi_url,owner)
+for key,value in followup_fixture['legacy_kpi'].items():assert legacy['metrics']['followup_compliance'][key]==value
+with f.db.SessionLocal() as db:
+    for state,channel in [('cw-b14-broken',''),('corrupt',followup.SOURCE)]:db.add(f.models.FollowUp(case_id=cid,due_date=datetime(2024,2,29),done_at=None,status=state,channel=channel,note='broken'))
+    db.commit()
+assert call('GET',kpi_url,owner)==legacy
+record('cwb14_postgresql_legacy_kpi_unchanged_with_broken_namespace')
+(f.OUT/'cwb14-restart-expected.json').write_text(json.dumps(followup_expected,ensure_ascii=False,indent=2))
+
+# CW-B15 native PostgreSQL document locks, complete bytes and fresh-process proof.
+f.enable_followup_plan_documents()
+import clinical_followup_plan_documents as plan_documents
+document_plan_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_plan_documents_cw_b15_cases.json').read_text())
+document_plan_expected=[]
+
+
+def followup_document_pg(scenario, rendering, mixed=False):
+    # The earlier CW-B13 control case has real saved lab/image/comparison sections.
+    # Reuse only its synthetic immutable records and freshly re-read selectors.
+    if mixed:
+        baseline=(comparison_document_pg('control',True) if scenario in ('source','source_metadata','lab','imaging') else comparison_document_expected[0]['body'])
+        cid=baseline['case_id'];extra={k:v for k,v in baseline.items() if k.startswith('manual_')}
+    else:
+        cid=call('POST','/api/cases',owner,expected=201,json=document_plan_fixture['case'])['id'];extra={}
+    root=f'/api/cases/{cid}/followup-plan'
+    def plan_body(operation='create',row=None,data=None):
+        listed=call('GET',root,owner)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':listed['case_token'],'expected_state_token':listed['state_token'],'data':None if operation=='withdraw' else data or document_plan_fixture['plan'],
+           'reason':'' if operation=='create' else 'CW-B15 合成并发核对'}
+        p=call('POST',root+'/preview',owner,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    existing=call('GET',root,owner)['plans']
+    active=next((p for p in existing if p['stored_state']=='planned'),None)
+    row=call('POST',root+'/confirm',owner,json=plan_body('correct' if active else 'create',active))['plan']
+    body={'case_id':cid,'template_id':'outpatient_record_zh','manual_followup_plan':{k:row[k] for k in ('id','version','token')},**extra}
+    before=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+    request={**body,'expected_content_snapshot':before['content_snapshot']}
+    if scenario=='control':
+        writes=[];original=business_digest()
+        with f.db.SessionLocal() as db:plan_before=[(r.id,r.note,r.status,r.updated_at) for r in db.query(f.models.FollowUp).filter_by(case_id=cid).order_by(f.models.FollowUp.id)]
+        def capture(_c,_cur,sql,*_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}:writes.append(sql)
+        event.listen(f.db.engine,'before_cursor_execute',capture)
+        try:
+            p=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+            r=client.post('/api/clinical-docs/render',headers=owner,json=request)
+            assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
+            assert p['manual_followup_plan']['plan']['data']==document_plan_fixture['plan']
+            for literal in [row['data']['purpose'],row['data']['planned_date'],row['token'],*row['data']['items']]:assert literal in followup_document_text(r.content)
+            (f.OUT/f'cwb15-pg-{cid}.docx').write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+        assert writes==[] and business_digest()==original
+        with f.db.SessionLocal() as db:assert [(r.id,r.note,r.status,r.updated_at) for r in db.query(f.models.FollowUp).filter_by(case_id=cid).order_by(f.models.FollowUp.id)]==plan_before
+        document_plan_expected.append({'body':body,'snapshot':before['content_snapshot'],'plan':before['manual_followup_plan'],
+            **{k:before[k] for k in ('manual_lab_reports','manual_imaging_reports','manual_lab_comparison') if k in before}})
+    else:
+        if scenario in ('correct','withdraw','replace'):
+            b=plan_body('correct' if scenario=='correct' else 'withdraw',row,document_plan_fixture['corrected_plan'])
+            def mutation():
+                r=client.post(root+'/confirm',headers=owner,json=b)
+                if scenario=='replace':call('POST',root+'/confirm',owner,json=plan_body(data=document_plan_fixture['short_plan']))
+                return r
+        elif scenario in ('source','source_metadata','lab','imaging'):
+            record_root=f'/api/cases/{cid}/'+('manual-imaging' if scenario=='imaging' else 'manual-lab')
+            selected=next(r for r in call('GET',record_root,owner)['reports'] if r['id']==extra['manual_imaging_report_ids' if scenario=='imaging' else 'manual_lab_report_ids'][0])
+            if scenario.startswith('source'):
+                target=f'/api/cases/{cid}/attachments';state=call('GET',target,owner);source=next(s for s in state['items'] if s['id']==selected['attachment_id'])
+                b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'withdraw' if scenario=='source' else 'update','expected_case_token':state['case_token'],'metadata':{**source['metadata'],'title':'CW-B15 来源更正'},'reason':'合成来源变更'}
+            else:
+                target=record_root;b={'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':'withdraw','expected_case_token':call('GET',target,owner)['case_token'],'report_id':selected['id'],'expected_report_token':selected['token'],'data':None,'reason':'CW-B15 合成撤销'}
+            preview=call('POST',target+'/preview',owner,json=b)
+            mutation=lambda:client.post(target+'/confirm',headers=owner,json={**b,'preview_token':preview['preview_token'],'reviewed':True})
+        elif scenario=='delete':mutation=lambda:client.delete(f'/api/cases/{cid}',headers=owner)
+        else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=owner,json={'history':'CW-B15 并发正文更正'})
+        entered,release,attempted=Event(),Event(),Event();module,method=(document_api,'_render_docx') if rendering else (plan_documents,'read_selected');normal=getattr(module,method)
+        def held(*args,**kwargs):entered.set();assert release.wait(15);return normal(*args,**kwargs)
+        def mutate():attempted.set();return mutation()
+        with ThreadPoolExecutor(2) as pool,patch.object(module,method,side_effect=held):
+            reading=pool.submit(client.post,'/api/clinical-docs/'+('render' if rendering else 'render-preview'),headers=owner,json=request if rendering else body)
+            try:
+                assert entered.wait(10);changing=pool.submit(mutate);assert attempted.wait(10);assert not changing.done()
+            finally:release.set()
+            r=reading.result(20);assert r.status_code==200
+            if rendering:assert row['data']['purpose'] in followup_document_text(r.content) and 'CW-B15 并发正文更正' not in followup_document_text(r.content)
+            else:assert r.json()['content_snapshot']==before['content_snapshot']
+            assert changing.result(20).status_code==(204 if scenario=='delete' else 200)
+        call('POST','/api/clinical-docs/render',owner,json=request,expected=404 if scenario=='delete' else 409)
+    record('cwb15_postgresql_'+scenario+('_mixed' if mixed else '_plan_only')+('_render' if rendering else '_preview'))
+
+
+for scenario in ('correct','withdraw','replace','body','delete'):
+    for rendering in (False,True):followup_document_pg(scenario,rendering)
+# Mixed plan races leave the existing comparison sources/case intact for historical readback.
+for rendering in (False,True):followup_document_pg('correct',rendering,True)
+for scenario in ('source','source_metadata','lab','imaging'):
+    for rendering in (False,True):followup_document_pg(scenario,rendering,True)
+followup_document_pg('control',True)
+followup_document_pg('control',True,True)
+(f.OUT/'cwb15-restart-expected.json').write_text(json.dumps(document_plan_expected,ensure_ascii=False,indent=2))
+
+# CW-B16 native PostgreSQL document locks, complete bytes and fresh-process proof.
+f.enable_followup_plan_owner_documents()
+import clinical_followup_plan_documents as plan_documents
+owner_document_plan_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_plan_owner_documents_cw_b16_cases.json').read_text())
+owner_document_plan_expected=[]
+
+
+def owner_followup_document_pg(scenario, rendering, mixed=False):
+    # Build fresh real sources for every mixed owner case; never mutate historical readback cases.
+    if mixed:
+        baseline=comparison_document_pg('control',True)
+        cid=baseline['case_id'];extra={k:v for k,v in baseline.items() if k in ('manual_lab_report_ids','manual_imaging_report_ids')}
+    else:
+        cid=call('POST','/api/cases',owner,expected=201,json=owner_document_plan_fixture['case'])['id'];extra={}
+    root=f'/api/cases/{cid}/followup-plan'
+    def plan_body(operation='create',row=None,data=None):
+        listed=call('GET',root,owner)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':listed['case_token'],'expected_state_token':listed['state_token'],'data':None if operation=='withdraw' else data or owner_document_plan_fixture['plan'],
+           'reason':'' if operation=='create' else 'CW-B16 合成并发核对'}
+        p=call('POST',root+'/preview',owner,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    existing=call('GET',root,owner)['plans']
+    active=next((p for p in existing if p['stored_state']=='planned'),None)
+    row=call('POST',root+'/confirm',owner,json=plan_body('correct' if active else 'create',active))['plan']
+    body={'case_id':cid,'template_id':'owner_visit_summary_zh','manual_followup_plan':{k:row[k] for k in ('id','version','token')},**extra}
+    before=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+    request={**body,'expected_content_snapshot':before['content_snapshot']}
+    if scenario=='control':
+        writes=[];original=business_digest()
+        with f.db.SessionLocal() as db:plan_before=[(r.id,r.note,r.status,r.updated_at) for r in db.query(f.models.FollowUp).filter_by(case_id=cid).order_by(f.models.FollowUp.id)]
+        def capture(_c,_cur,sql,*_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}:writes.append(sql)
+        event.listen(f.db.engine,'before_cursor_execute',capture)
+        try:
+            p=call('POST','/api/clinical-docs/render-preview',owner,json=body)
+            r=client.post('/api/clinical-docs/render',headers=owner,json=request)
+            assert r.status_code==200 and r.headers['cache-control']=='private, no-store'
+            assert p['manual_followup_plan']['plan']['data']==owner_document_plan_fixture['plan']
+            assert p['template_id']=='owner_visit_summary_zh' and 'manual_lab_comparison' not in p
+            assert '检验前后对照附节' not in followup_document_text(r.content)
+            assert r.headers['x-pmai-template-id']=='owner_visit_summary_zh'
+            for literal in [row['data']['purpose'],row['data']['planned_date'],row['token'],*row['data']['items']]:assert literal in followup_document_text(r.content)
+            (f.OUT/f'cwb16-pg-{cid}.docx').write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+        assert writes==[] and business_digest()==original
+        with f.db.SessionLocal() as db:assert [(r.id,r.note,r.status,r.updated_at) for r in db.query(f.models.FollowUp).filter_by(case_id=cid).order_by(f.models.FollowUp.id)]==plan_before
+        owner_document_plan_expected.append({'body':body,'snapshot':before['content_snapshot'],'plan':before['manual_followup_plan'],
+            **{k:before[k] for k in ('manual_lab_reports','manual_imaging_reports','manual_lab_comparison') if k in before}})
+    else:
+        if scenario in ('correct','withdraw','replace'):
+            b=plan_body('correct' if scenario=='correct' else 'withdraw',row,owner_document_plan_fixture['corrected_plan'])
+            def mutation():
+                r=client.post(root+'/confirm',headers=owner,json=b)
+                if scenario=='replace':call('POST',root+'/confirm',owner,json=plan_body(data=owner_document_plan_fixture['short_plan']))
+                return r
+        elif scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):
+            record_root=f'/api/cases/{cid}/'+('manual-imaging' if scenario.startswith('imaging') else 'manual-lab')
+            selected=next(r for r in call('GET',record_root,owner)['reports'] if r['id']==extra['manual_imaging_report_ids' if scenario.startswith('imaging') else 'manual_lab_report_ids'][0])
+            if scenario.startswith('source'):
+                target=f'/api/cases/{cid}/attachments';state=call('GET',target,owner);source=next(s for s in state['items'] if s['id']==selected['attachment_id'])
+                b={'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'withdraw' if scenario=='source' else 'update','expected_case_token':state['case_token'],'metadata':{**source['metadata'],'title':'CW-B16 来源更正'},'reason':'合成来源变更'}
+            else:
+                target=record_root; data=None; operation='withdraw'
+                if scenario.endswith('_correct'):
+                    operation='correct'; data=deepcopy(selected['data'])
+                    if scenario.startswith('lab'):
+                        import manual_lab_results
+                        data=manual_lab_results.input_data(data); data['items'][0]['value']='1.500'
+                    else:data['findings']+=' CW-B16 更正影像原文'
+                b={'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':operation,'expected_case_token':call('GET',target,owner)['case_token'],'report_id':selected['id'],'expected_report_token':selected['token'],'data':data,'reason':'CW-B16 合成更正或撤销'}
+            preview=call('POST',target+'/preview',owner,json=b)
+            mutation=lambda:client.post(target+'/confirm',headers=owner,json={**b,'preview_token':preview['preview_token'],'reviewed':True})
+        elif scenario=='delete':mutation=lambda:client.delete(f'/api/cases/{cid}',headers=owner)
+        else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=owner,json={'owner_name':'CW-B16 更正身份'} if scenario=='identity' else {'history':'CW-B16 并发正文更正'})
+        entered,release,attempted=Event(),Event(),Event();module,method=(document_api,'_render_docx') if rendering else (plan_documents,'read_selected');normal=getattr(module,method)
+        def held(*args,**kwargs):entered.set();assert release.wait(15);return normal(*args,**kwargs)
+        def mutate():attempted.set();return mutation()
+        with ThreadPoolExecutor(2) as pool,patch.object(module,method,side_effect=held):
+            reading=pool.submit(client.post,'/api/clinical-docs/'+('render' if rendering else 'render-preview'),headers=owner,json=request if rendering else body)
+            try:
+                assert entered.wait(10);changing=pool.submit(mutate);assert attempted.wait(10);assert not changing.done()
+            finally:release.set()
+            r=reading.result(20);assert r.status_code==200
+            if rendering:assert row['data']['purpose'] in followup_document_text(r.content) and 'CW-B16 并发正文更正' not in followup_document_text(r.content)
+            else:assert r.json()['content_snapshot']==before['content_snapshot']
+            assert changing.result(20).status_code==(204 if scenario=='delete' else 200)
+        call('POST','/api/clinical-docs/render',owner,json=request,expected=404 if scenario=='delete' else 409)
+    record('cwb16_postgresql_'+scenario+('_mixed' if mixed else '_plan_only')+('_render' if rendering else '_preview'))
+
+
+for mixed in (False,True):
+    actions=('correct','withdraw','replace','body','identity','delete')+(('source','source_metadata','lab','lab_correct','imaging','imaging_correct') if mixed else ())
+    for scenario in actions:
+        for rendering in (False,True):owner_followup_document_pg(scenario,rendering,mixed)
+    owner_followup_document_pg('control',True,mixed)
+(f.OUT/'cwb16-restart-expected.json').write_text(json.dumps(owner_document_plan_expected,ensure_ascii=False,indent=2))
+
+# CW-B17: native PostgreSQL inventory locks and independent saved-plan readback.
+f.enable_followup_plan_overview()
+import clinical_followup_plan_overview as plan_overview
+overview_plan_fixture = json.loads((f.ROOT/'tests/fixtures/clinical_followup_plan_overview_cw_b17_cases.json').read_text())
+overview_plan_expected = []
+
+
+def followup_overview_pg(scenario):
+    # A new synthetic mixed case per race; never mutate historical readback cases.
+    baseline = comparison_document_pg('control', True)
+    cid = baseline['case_id']; root = f'/api/cases/{cid}/followup-plan'; url = f'/api/cases/{cid}/visit-overview'
+    if scenario == 'control_cat': call('PUT', f'/api/cases/{cid}', owner, json={'species': 'cat'})
+    def plan_body(operation='create', row=None, data=None):
+        listing = call('GET', root, owner)
+        body = {'request_id': uuid4().hex, 'operation': operation, 'plan_id': row['id'] if row else None,
+                'expected_plan_token': row['token'] if row else '', 'expected_case_token': listing['case_token'],
+                'expected_state_token': listing['state_token'], 'reason': '' if operation == 'create' else 'CW-B17 合成并发更正',
+                'data': None if operation == 'withdraw' else data or overview_plan_fixture['plan']}
+        preview = call('POST', root+'/preview', owner, json=body)
+        return {**body, 'preview_token': preview['preview_token'], 'reviewed': True}
+    def inventory(): return call('GET', url, owner, params={'include_followup_plan': True})
+    row = None if scenario == 'create' else call('POST', root+'/confirm', owner, json=plan_body())['plan']
+    before = inventory()
+    if scenario.startswith('control_'):
+        previous = followup_overview_business(); writes = []
+        def capture(_c, _cur, sql, *_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}: writes.append(sql)
+        event.listen(f.db.engine, 'before_cursor_execute', capture)
+        try:
+            with (patch.object(plan_overview.plans, 'transaction', side_effect=AssertionError('No nested transaction')),
+                  patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('No GET cleanup'))):
+                saved = inventory(); assert saved['groups']['followup']['records'] == [row]
+                assert row['data'] == overview_plan_fixture['plan']
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture)
+        assert not writes and previous == followup_overview_business()
+        saved.pop('read_at')
+        overview_plan_expected.append({'case_id':cid, 'overview':saved, 'plans':[row], 'case':read(cid,owner)})
+    else:
+        if scenario in ('create','correct','withdraw','replace'):
+            body = plan_body('withdraw' if scenario == 'replace' else scenario, row, overview_plan_fixture['corrected_plan'])
+            def mutation():
+                result = client.post(root+'/confirm', headers=owner, json=body)
+                if scenario == 'replace': call('POST', root+'/confirm', owner, json=plan_body(data=overview_plan_fixture['short_plan']))
+                return result
+        elif scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):
+            target = f'/api/cases/{cid}/' + ('manual-imaging' if scenario.startswith('imaging') else 'manual-lab')
+            selected_id = baseline['manual_imaging_report_ids' if scenario.startswith('imaging') else 'manual_lab_report_ids'][0]
+            selected = next(r for r in call('GET', target, owner)['reports'] if r['id'] == selected_id)
+            if scenario.startswith('source'):
+                target = f'/api/cases/{cid}/attachments'; listing = call('GET', target, owner)
+                source = next(r for r in listing['items'] if r['id'] == selected['attachment_id'])
+                body = {'request_id':uuid4().hex,'attachment_id':source['id'],'operation':'withdraw' if scenario=='source' else 'update',
+                        'expected_case_token':listing['case_token'],'metadata':{**source['metadata'],'title':'CW-B17 来源更正'},'reason':'合成更正'}
+            else:
+                data = None
+                if scenario.endswith('_correct'):
+                    data = deepcopy(selected['data'])
+                    if scenario.startswith('lab'):
+                        import manual_lab_results
+                        data = manual_lab_results.input_data(data); data['items'][0]['value'] = '1.500'
+                    else: data['findings'] += ' CW-B17 影像更正'
+                body = {'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':'correct' if data else 'withdraw',
+                        'expected_case_token':call('GET',target,owner)['case_token'],'report_id':selected['id'],
+                        'expected_report_token':selected['token'],'data':data,'reason':'CW-B17 合成更正'}
+            preview = call('POST', target+'/preview', owner, json=body)
+            mutation = lambda: client.post(target+'/confirm', headers=owner, json={**body,'preview_token':preview['preview_token'],'reviewed':True})
+        elif scenario == 'delete': mutation = lambda: client.delete(f'/api/cases/{cid}', headers=owner)
+        else: mutation = lambda: client.put(f'/api/cases/{cid}', headers=owner,
+                        json={'owner_name':'CW-B17 更正身份'} if scenario=='identity' else {'history':'CW-B17 并发正文更正'})
+        entered, release, attempted = Event(), Event(), Event(); normal = plan_overview.group
+        def held(*args): entered.set(); assert release.wait(15); return normal(*args)
+        def mutate(): attempted.set(); return mutation()
+        with ThreadPoolExecutor(2) as pool, patch.object(plan_overview, 'group', side_effect=held):
+            reading = pool.submit(inventory)
+            try:
+                assert entered.wait(10); writing = pool.submit(mutate); assert attempted.wait(10); assert not writing.done()
+            finally: release.set()
+            result = reading.result(20); assert result['snapshot'] == before['snapshot'] and result['groups'] == before['groups']
+            assert writing.result(20).status_code == (204 if scenario=='delete' else 200)
+        if scenario == 'delete': call('GET', url, owner, expected=404, params={'include_followup_plan':True})
+        else: assert inventory()['snapshot'] != before['snapshot']
+    record('cwb17_postgresql_'+scenario+'_consistent_readonly_inventory')
+
+
+for scenario in ('create','correct','withdraw','replace','body','identity','delete','source','source_metadata','lab','lab_correct','imaging','imaging_correct','control_dog','control_cat'):
+    followup_overview_pg(scenario)
+(f.OUT/'cwb17-restart-expected.json').write_text(json.dumps(overview_plan_expected, ensure_ascii=False, indent=2))
+
+# CW-B18: fresh account scope, REPEATABLE READ, committed writers between two SELECTs.
+f.enable_followup_plan_queue()
+import clinical_followup_plan_queue as plan_queue
+queue_fixture = json.loads((f.ROOT/'tests/fixtures/clinical_followup_plan_queue_cw_b18_cases.json').read_text())
+for name in ('cwb18-owner','cwb18-other'):
+    call('POST','/auth/signup',json={'email':name+'@example.com','password':PASSWORD})
+queue_owner, queue_other = login('cwb18-owner'), login('cwb18-other')
+queue_url = '/api/followup-plan-queue'
+
+
+def queue_case(auth=queue_owner, species='dog'):
+    return call('POST','/api/cases',auth,expected=201,json=queue_fixture['cat_case' if species=='cat' else 'case'])['id']
+
+
+def queue_save(cid, operation='create', row=None, auth=queue_owner, data=None):
+    root=f'/api/cases/{cid}/followup-plan'; listing=call('GET',root,auth)
+    body={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,
+          'expected_plan_token':row['token'] if row else '', 'expected_case_token':listing['case_token'],
+          'expected_state_token':listing['state_token'],'data':None if operation=='withdraw' else data or queue_fixture['plan'],
+          'reason':'' if operation=='create' else 'CW-B18 合成并发更正'}
+    preview=call('POST',root+'/preview',auth,json=body)
+    return call('POST',root+'/confirm',auth,json={**body,'preview_token':preview['preview_token'],'reviewed':True})['plan']
+
+
+def queue_read(auth=queue_owner, **params):
+    return call('GET',queue_url,auth,params={'range':'all',**params})
+
+
+def queue_race(scenario):
+    cid=queue_case(); other_cid=queue_case(species='cat')
+    row=None if scenario=='create' else queue_save(cid)
+    queue_save(other_cid)
+    if scenario=='restore':
+        with f.db.SessionLocal() as db:db.get(f.models.Case,cid).deleted_at=datetime.utcnow();db.commit()
+    before=queue_read(page_size=1)
+    def mutation():
+        if scenario in ('create','correct','withdraw','replace'):
+            queue_save(cid,'withdraw' if scenario=='replace' else scenario,row,data=queue_fixture['short_plan'])
+            if scenario=='replace':queue_save(cid)
+        elif scenario=='new_case_plan':queue_save(queue_case())
+        elif scenario=='delete':
+            assert client.delete(f'/api/cases/{cid}',headers=queue_owner).status_code==204
+        elif scenario=='restore':
+            with f.db.SessionLocal() as db:db.get(f.models.Case,cid).deleted_at=None;db.commit()
+        elif scenario=='cross_case':
+            with f.db.SessionLocal() as db:
+                for target in (cid,other_cid):db.get(f.models.Case,target).patient_name='CW-B18 合成跨病例更正'
+                db.commit()
+        else:call('PUT',f'/api/cases/{cid}',queue_owner,json={'owner_name':'合成身份更正'} if scenario=='identity' else {'history':'合成正文更正'})
+    entered, release = Event(), Event(); normal=plan_queue.prefetched_rows
+    def held(db,cases):
+        assert db.execute(text('SHOW transaction_isolation')).scalar_one()=='repeatable read'
+        assert db.execute(text('SHOW transaction_read_only')).scalar_one()=='on'
+        entered.set();assert release.wait(20);return normal(db,cases)
+    with ThreadPoolExecutor(2) as pool,patch.object(plan_queue,'prefetched_rows',side_effect=held):
+        reading=pool.submit(queue_read,page_size=1)
+        try:
+            assert entered.wait(10);pool.submit(mutation).result(15)
+        finally:release.set()
+        result=reading.result(15)
+    assert result['snapshot']==before['snapshot'] and result['items']==before['items'] and result['total']==before['total']
+    assert queue_read(page_size=1)['snapshot']!=before['snapshot']
+    call('GET',queue_url,queue_owner,expected=409,params={'range':'all','page_size':1,'page':2,'snapshot':before['snapshot']})
+    record('cwb18_postgresql_'+scenario+'_committed_writer_consistent_snapshot')
+
+
+for scenario in ('create','correct','withdraw','replace','body','identity','delete','restore','new_case_plan','cross_case'):
+    queue_race(scenario)
+queue_expected=[]
+for auth,name,species in [(queue_owner,'cwb18-owner','dog'),(queue_other,'cwb18-other','cat')]:
+    cid=queue_case(auth,species); row=queue_save(cid,auth=auth,data=queue_fixture['long_plan'])
+    before=followup_overview_business(); statements=[]
+    def capture(_c,_cur,sql,*_):statements.append(sql)
+    event.listen(f.db.engine,'before_cursor_execute',capture)
+    try:
+        with patch.object(attachment_store.Store,'cleanup',side_effect=AssertionError('No GET cleanup')):
+            saved=queue_read(auth,page_size=50)
+            call('GET',queue_url,auth,expected=422,params={'owner_id':'2'})
+    finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+    assert not any(s.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','ALTER','CREATE','DROP'} for s in statements)
+    assert sum(s.lstrip().upper().startswith('SELECT') for s in statements)==5 # 4 for queue including plan receipts, 1 auth for rejected parameters
+    assert before==followup_overview_business()
+    assert any(i['case']['id']==cid and i['plan']['data']==queue_fixture['long_plan'] for i in saved['items'])
+    if name=='cwb18-other':assert saved['total']==1
+    saved.pop('read_at')
+    queue_expected.append({'account':name,'queue':saved,'case':read(cid,auth),'plans':call('GET',f'/api/cases/{cid}/followup-plan',auth),'case_id':cid})
+    record('cwb18_postgresql_'+species+'_readonly_minimal_identity_fixed_queries')
+(f.OUT/'cwb18-restart-expected.json').write_text(json.dumps(queue_expected,ensure_ascii=False,indent=2))
+
+# CW-B19 native PostgreSQL contacts: distinct synthetic accounts and physical Case locks.
+f.enable_followup_contacts()
+import clinical_followup_contacts as contacts
+contact_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_contacts_cw_b19_cases.json').read_text())
+for name in ('cwb19-owner','cwb19-other'):
+    call('POST','/auth/signup',json={'email':name+'@example.com','password':PASSWORD})
+contact_owner,contact_other=login('cwb19-owner'),login('cwb19-other')
+with f.db.SessionLocal() as db:
+    contact_owner_id=db.query(f.models.User).filter_by(email='cwb19-owner@example.com').one().id
+    contact_other_id=db.query(f.models.User).filter_by(email='cwb19-other@example.com').one().id
+contact_expected=[]
+
+
+def contact_pg(scenario,auth=contact_owner,account='cwb19-owner'):
+    cid=call('POST','/api/cases',auth,expected=201,json=contact_fixture['cat' if account=='cwb19-other' else 'case'])['id']
+    root=f'/api/cases/{cid}/followup-contacts'; planroot=f'/api/cases/{cid}/followup-plan'
+    requests=[]
+    def plan_save(operation='create',row=None):
+        l=call('GET',planroot,auth)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':l['case_token'],'expected_state_token':l['state_token'],'data':None if operation=='withdraw' else contact_fixture['plan'],'reason':'' if operation=='create' else '合成计划变化'}
+        p=call('POST',planroot+'/preview',auth,json=b)
+        return call('POST',planroot+'/confirm',auth,json={**b,'preview_token':p['preview_token'],'reviewed':True})['plan']
+    source=plan_save()
+    def body(operation='create',row=None):
+        l=call('GET',root,auth);p=next(p for p in l['plans'] if p['id']==source['id'])
+        b={'request_id':uuid4().hex,'operation':operation,'contact_id':row['id'] if row else None,'expected_contact_token':row['token'] if row else '',
+           'source_plan_id':p['id'],'source_plan_version':p['version'],'expected_source_token':p['token'],
+           'expected_case_token':l['case_token'],'expected_state_token':l['state_token'],'data':None if operation=='withdraw' else contact_fixture['corrected' if operation=='correct' else 'contact'],
+           'reason':'' if operation=='create' else contact_fixture['correction_reason']}
+        p=call('POST',root+'/preview',auth,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    def save(b,expected=200):
+        result=call('POST',root+'/confirm',auth,expected=expected,json=b)
+        if expected==200:requests.append(b['request_id'])
+        return result
+    def race(a,b):
+        gate=Barrier(2)
+        def send(v):gate.wait(10);return client.post(root+'/confirm',headers=auth,json=v)
+        with ThreadPoolExecutor(2) as pool:responses=list(pool.map(send,[a,b]))
+        for b,r in zip((a,b),responses):
+            if r.status_code==200:requests.append(b['request_id'])
+        return responses
+    original=read(cid,auth);plans_before=call('GET',planroot,auth)
+    kpi=call('GET',kpi_url,auth)
+    if scenario in {'create-race','idempotent-race'}:
+        a=body();responses=race(a,a if scenario=='idempotent-race' else body())
+        assert sorted(r.status_code for r in responses)==([200,200] if scenario=='idempotent-race' else [200,409])
+        if scenario=='idempotent-race':assert sorted(r.json()['writes_database'] for r in responses)==[False,True]
+    elif scenario=='correct-withdraw':
+        row=save(body())['record'];responses=race(body('correct',row),body('withdraw',row));assert sorted(r.status_code for r in responses)==[200,409]
+    elif scenario in {'body','identity','delete','owner','plan-correct','plan-withdraw'}:
+        b=body();entered,release=Event(),Event();uid=contact_owner_id
+        if scenario.startswith('plan-'):
+            append=followup.append_audit
+            def held(*args):append(*args);args[0].flush();entered.set();assert release.wait(10)
+            with patch.object(followup,'append_audit',side_effect=held),ThreadPoolExecutor(2) as pool:
+                write=pool.submit(plan_save,scenario.removeprefix('plan-'),source);assert entered.wait(10)
+                check=pool.submit(lambda:client.post(root+'/confirm',headers=auth,json=b));assert not check.done();release.set();write.result(20);assert check.result(20).status_code==409
+        else:
+            def edit():
+                with followup.transaction(uid,cid) as (db,case):
+                    if scenario=='body':case.history='合成并发正文'
+                    elif scenario=='identity':case.patient_name='合成身份更正'
+                    elif scenario=='delete':case.deleted_at=datetime.utcnow()
+                    else:case.owner_id=contact_other_id
+                    db.flush();entered.set();assert release.wait(10);db.commit()
+            with ThreadPoolExecutor(2) as pool:
+                write=pool.submit(edit);assert entered.wait(10)
+                check=pool.submit(lambda:client.post(root+'/confirm',headers=auth,json=b));assert not check.done();release.set();write.result(20);assert check.result(20).status_code==(404 if scenario in {'delete','owner'} else 409)
+            if scenario in {'delete','owner'}:
+                with f.db.SessionLocal() as db:
+                    case=db.get(f.models.Case,cid);case.deleted_at=None;case.owner_id=uid;db.commit()
+        original=read(cid,auth);plans_before=call('GET',planroot,auth)
+        assert call('GET',root+'/requests/'+b['request_id'],auth)['state']=='not_committed'
+    elif scenario=='rollback':
+        for operation in ('create','correct','withdraw'):
+            row=save(body())['record'] if operation=='correct' else (call('GET',root,auth)['records'][-1] if operation=='withdraw' else None)
+            for stage in ('audit','commit'):
+                b=body(operation,row);before=call('GET',root,auth)
+                def fail(*args,**kwargs):raise OperationalError('synthetic',{},Exception('rollback'))
+                append=contacts.append_audit
+                def flush_fail(*args):append(*args);args[0].flush();fail()
+                from sqlalchemy.orm import Session
+                with (patch.object(contacts,'append_audit',side_effect=flush_fail) if stage=='audit' else patch.object(Session,'commit',side_effect=fail)):
+                    save(b,503)
+                assert call('GET',root,auth)==before and call('GET',root+'/requests/'+b['request_id'],auth)['state']=='not_committed'
+    elif scenario=='lost-reply':
+        b=body();entered,release=Event(),Event();append=contacts.append_audit
+        def held(*args):append(*args);args[0].flush();entered.set();assert release.wait(10)
+        with patch.object(contacts,'append_audit',side_effect=held),ThreadPoolExecutor(2) as pool:
+            write=pool.submit(lambda:client.post(root+'/confirm',headers=auth,json=b));assert entered.wait(10)
+            result=pool.submit(lambda:client.get(root+'/requests/'+b['request_id'],headers=auth));assert not result.done();release.set();assert write.result(20).status_code==200;requests.append(b['request_id'])
+            assert result.result(20).json()['state']=='committed'
+        assert save(b)['writes_database'] is False
+    else:
+        row=save(body())['record'];row=save(body('correct',row))['record'];save(body('withdraw',row));save(body())
+        records=call('GET',root,auth)['records'];assert [r['state'] for r in records]==['superseded','withdrawn','recorded']
+        assert [r['data'] for r in records]==[contact_fixture['contact'],contact_fixture['corrected'],contact_fixture['contact']]
+    saved=call('GET',root,auth)
+    assert read(cid,auth)==original and call('GET',planroot,auth)==plans_before and call('GET',kpi_url,auth)==kpi
+    denied=contact_other if auth==contact_owner else contact_owner;call('GET',root,denied,expected=404)
+    with f.db.SessionLocal() as db:
+        rows=db.query(f.models.FollowUp).filter_by(case_id=cid,channel=contacts.SOURCE).all()
+        assert all(r.done_at is None and r.due_date==followup.due_date(contact_fixture['plan']['planned_date']) for r in rows)
+        audits=db.query(f.models.AuditLog).filter_by(case_id=cid,source=contacts.SOURCE).order_by(f.models.AuditLog.log_id).all();assert len(audits)==len(set(requests))
+        contact_expected.append({'case_id':cid,'account':account,'listing':saved,'case':original,'plans':plans_before,'audits':[r.extra_data for r in audits],'requests':sorted(set(requests))})
+    record('cwb19_postgresql_'+scenario+'_'+account)
+
+
+for scenario in ('create-race','idempotent-race','correct-withdraw','body','identity','delete','owner','plan-correct','plan-withdraw','rollback','lost-reply','lifecycle'):contact_pg(scenario)
+contact_pg('lifecycle',contact_other,'cwb19-other')
+(f.OUT/'cwb19-restart-expected.json').write_text(json.dumps(contact_expected,ensure_ascii=False,indent=2))
+
+# CW-B20: one physical case lock spans the complete opt-in inventory.
+f.enable_followup_contact_overview()
+import clinical_followup_contact_overview as contact_inventory
+contact_inventory_fixture = json.loads((f.ROOT/'tests/fixtures/clinical_followup_contact_overview_cw_b20_cases.json').read_text())
+contact_inventory_expected = []
+
+
+def contact_inventory_pg(scenario):
+    auth, account = (contact_other, 'cwb19-other') if scenario == 'control_cat' else (owner, 'pg-owner')
+    if scenario == 'control_cat':
+        cid = call('POST', '/api/cases', auth, expected=201, json=contact_inventory_fixture['cat_case'])['id']
+        baseline = None
+    else:
+        baseline = comparison_document_pg('control', True)
+        cid = baseline['case_id']
+    root = f'/api/cases/{cid}/followup-contacts'; planroot = f'/api/cases/{cid}/followup-plan'; url = f'/api/cases/{cid}/visit-overview'
+    params = {'include_followup_plan': True, 'include_followup_contacts': True}
+
+    def plan_body(operation='create', row=None):
+        listing = call('GET', planroot, auth)
+        body = {'request_id': uuid4().hex, 'operation': operation, 'plan_id': row['id'] if row else None,
+                'expected_plan_token': row['token'] if row else '', 'expected_case_token': listing['case_token'],
+                'expected_state_token': listing['state_token'], 'reason': '' if operation == 'create' else 'CW-B20 合成计划更正',
+                'data': None if operation == 'withdraw' else contact_inventory_fixture['corrected_plan' if operation == 'correct' else 'plan']}
+        preview = call('POST', planroot+'/preview', auth, json=body)
+        return {**body, 'preview_token': preview['preview_token'], 'reviewed': True}
+
+    source = call('POST', planroot+'/confirm', auth, json=plan_body())['plan']
+
+    def contact_body(operation='create', row=None):
+        listing = call('GET', root, auth)
+        selected = next(p for p in listing['plans'] if p['id'] == (row['source']['id'] if row else source['id']))
+        body = {'request_id': uuid4().hex, 'operation': operation, 'contact_id': row['id'] if row else None,
+                'expected_contact_token': row['token'] if row else '', 'source_plan_id': selected['id'], 'source_plan_version': selected['version'],
+                'expected_source_token': selected['token'], 'expected_case_token': listing['case_token'], 'expected_state_token': listing['state_token'],
+                'data': None if operation == 'withdraw' else contact_inventory_fixture['corrected' if operation == 'correct' else 'contact'],
+                'reason': '' if operation == 'create' else contact_inventory_fixture['correction_reason']}
+        preview = call('POST', root+'/preview', auth, json=body)
+        return {**body, 'preview_token': preview['preview_token'], 'reviewed': True}
+
+    def contact_save(operation='create', row=None):
+        return call('POST', root+'/confirm', auth, json=contact_body(operation, row))['record']
+
+    def inventory(): return call('GET', url, auth, params=params)
+    row = contact_save(); before = inventory()
+    if scenario.startswith('control_'):
+        changed = contact_save('correct', row); contact_save('withdraw', changed); contact_save()
+        source = call('POST', planroot+'/confirm', auth, json=plan_body('correct', source))['plan']
+        contact_save(); call('POST', planroot+'/confirm', auth, json=plan_body('withdraw', source))
+        expected_contacts = call('GET', root, auth); expected_plans = call('GET', planroot, auth)
+        legacy10 = call('GET', url, auth); legacy10.pop('read_at')
+        legacy17 = call('GET', url, auth, params={'include_followup_plan': True}); legacy17.pop('read_at')
+        previous = followup_overview_business(); writes = []
+        def capture(_c, _cur, sql, *_):
+            if sql.lstrip().split()[0].upper() in {'INSERT', 'UPDATE', 'DELETE', 'CREATE', 'ALTER', 'DROP'}: writes.append(sql)
+        event.listen(f.db.engine, 'before_cursor_execute', capture)
+        try:
+            with (patch.object(contacts.plans, 'transaction', side_effect=AssertionError('No nested session')),
+                  patch.object(attachment_store.Store, 'cleanup', side_effect=AssertionError('No GET cleanup'))):
+                saved = inventory(); again = inventory()
+                assert saved['snapshot'] == again['snapshot']
+        finally: event.remove(f.db.engine, 'before_cursor_execute', capture)
+        assert not writes and previous == followup_overview_business()
+        assert saved['schema'] == contact_inventory.SCHEMA
+        group = saved['groups']['contacts']
+        assert group['records'] == expected_contacts['records']
+        assert group['counts'] == {'recorded': 2, 'superseded': 1, 'withdrawn': 1}
+        assert group['records'][0]['data'] == contact_inventory_fixture['contact']
+        assert group['records'][0]['source']['data'] == contact_inventory_fixture['plan']
+        assert group['records'][-1]['source_state'] == 'withdrawn'
+        old = call('GET', url, auth); old.pop('read_at'); assert old == legacy10
+        old = call('GET', url, auth, params={'include_followup_plan': True}); old.pop('read_at'); assert old == legacy17
+        call('GET', url, owner if auth == contact_other else contact_other, expected=404, params=params)
+        saved.pop('read_at')
+        contact_inventory_expected.append({'case_id': cid, 'account': account, 'overview': saved, 'contacts': expected_contacts,
+                                           'plans': expected_plans, 'case': read(cid, auth), 'audits': contact_overview_audits(cid)})
+    else:
+        if scenario.startswith('contact_'):
+            operation = scenario.removeprefix('contact_'); body = contact_body(operation, None if operation == 'create' else row)
+            mutation = lambda: client.post(root+'/confirm', headers=auth, json=body)
+        elif scenario.startswith('plan_'):
+            body = plan_body('withdraw' if scenario == 'plan_replace' else scenario.removeprefix('plan_'), source)
+            def mutation():
+                result = client.post(planroot+'/confirm', headers=auth, json=body)
+                if scenario == 'plan_replace': call('POST', planroot+'/confirm', auth, json=plan_body())
+                return result
+        elif scenario in ('source', 'source_metadata', 'lab', 'lab_correct', 'imaging', 'imaging_correct'):
+            target = f'/api/cases/{cid}/' + ('manual-imaging' if scenario.startswith('imaging') else 'manual-lab')
+            selected_id = baseline['manual_imaging_report_ids' if scenario.startswith('imaging') else 'manual_lab_report_ids'][0]
+            selected = next(r for r in call('GET', target, auth)['reports'] if r['id'] == selected_id)
+            if scenario.startswith('source'):
+                target = f'/api/cases/{cid}/attachments'; listing = call('GET', target, auth)
+                original = next(r for r in listing['items'] if r['id'] == selected['attachment_id'])
+                body = {'request_id': uuid4().hex, 'attachment_id': original['id'], 'operation': 'withdraw' if scenario == 'source' else 'update',
+                        'expected_case_token': listing['case_token'], 'metadata': {**original['metadata'], 'title': 'CW-B20 原件更正'}, 'reason': '合成更正'}
+            else:
+                data = None
+                if scenario.endswith('_correct'):
+                    data = deepcopy(selected['data'])
+                    if scenario.startswith('lab'):
+                        import manual_lab_results
+                        data = manual_lab_results.input_data(data); data['items'][0]['value'] = '1.500'
+                    else: data['findings'] += ' CW-B20 影像更正'
+                body = {'request_id': uuid4().hex, 'attachment_id': selected['attachment_id'], 'operation': 'correct' if data else 'withdraw',
+                        'expected_case_token': call('GET', target, auth)['case_token'], 'report_id': selected['id'],
+                        'expected_report_token': selected['token'], 'data': data, 'reason': 'CW-B20 合成更正'}
+            preview = call('POST', target+'/preview', auth, json=body)
+            mutation = lambda: client.post(target+'/confirm', headers=auth, json={**body, 'preview_token': preview['preview_token'], 'reviewed': True})
+        elif scenario == 'owner':
+            uid = before['groups']['contacts']['case']['owner_id']
+            def mutation():
+                with followup.transaction(uid, cid) as (db, case):
+                    case.owner_id = contact_other_id; db.commit()
+                from types import SimpleNamespace
+                return SimpleNamespace(status_code=200)
+        elif scenario == 'delete': mutation = lambda: client.delete(f'/api/cases/{cid}', headers=auth)
+        else: mutation = lambda: client.put(f'/api/cases/{cid}', headers=auth,
+                         json={'owner_name': 'CW-B20 并发身份'} if scenario == 'identity' else {'history': 'CW-B20 并发正文'})
+        entered, release, attempting_sql, attempting_store = Event(), Event(), Event(), Event()
+        normal = contact_inventory.group; normal_locked = attachment_store.Store.locked; pids = set()
+        store_serialized = scenario in {'source', 'source_metadata', 'lab', 'lab_correct', 'imaging', 'imaging_correct'}
+        from contextlib import contextmanager
+        @contextmanager
+        def observed_store(store):
+            if entered.is_set(): attempting_store.set()
+            with normal_locked(store): yield
+        def held(*args): entered.set(); assert release.wait(15); return normal(*args)
+        def lock_sql(connection, _cursor, sql, *_):
+            if 'FOR UPDATE' in sql.upper() or sql.lstrip().upper().startswith(('UPDATE CASES ', 'DELETE FROM CASES ')):
+                pids.add(connection.connection.driver_connection.get_backend_pid())
+                if entered.is_set(): attempting_sql.set()
+        event.listen(f.db.engine, 'before_cursor_execute', lock_sql)
+        try:
+            with (ThreadPoolExecutor(2) as pool, patch.object(contact_inventory, 'group', side_effect=held),
+                  patch.object(attachment_store.Store, 'locked', observed_store)):
+                reading = pool.submit(inventory)
+                try:
+                    assert entered.wait(10); writing = pool.submit(mutation)
+                    if store_serialized:
+                        # Original attachment/report routes first wait at Store.locked;
+                        # preserve that mutex instead of bypassing it to force a SQL race.
+                        assert attempting_store.wait(10) and not writing.done()
+                    else:
+                        assert attempting_sql.wait(10); assert len(pids) >= 2 and not writing.done()
+                finally: release.set()
+                result = reading.result(20)
+                assert result['snapshot'] == before['snapshot'] and result['groups'] == before['groups']
+                assert writing.result(20).status_code == (204 if scenario == 'delete' else 200)
+        finally: event.remove(f.db.engine, 'before_cursor_execute', lock_sql)
+        if scenario in ('owner', 'delete'): call('GET', url, auth, expected=404, params=params)
+        else: assert inventory()['snapshot'] != before['snapshot']
+    record('cwb20_postgresql_'+scenario+'_consistent_readonly_inventory')
+
+
+for scenario in ('control_dog', 'control_cat', 'contact_create', 'contact_correct', 'contact_withdraw', 'plan_correct', 'plan_withdraw',
+                 'plan_replace', 'body', 'identity', 'delete', 'owner', 'source', 'source_metadata', 'lab', 'lab_correct', 'imaging', 'imaging_correct'):
+    contact_inventory_pg(scenario)
+(f.OUT/'cwb20-restart-expected.json').write_text(json.dumps(contact_inventory_expected, ensure_ascii=False, indent=2))
+
+# CW-B21: contact facts, every selected appendix and native physical locks.
+f.enable_followup_contact_documents()
+import clinical_followup_contact_documents as contact_documents
+contact_document_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_contact_documents_cw_b21_cases.json').read_text())
+contact_document_expected=[]
+
+
+def contact_document_pg(scenario, rendering=True):
+    auth,account=(contact_other,'cwb19-other') if scenario=='control_cat' else (owner,'pg-owner')
+    mixed=scenario in ('control_dog','source','source_metadata','lab','lab_correct','imaging','imaging_correct','mixed_plan')
+    if mixed:
+        baseline=comparison_document_pg('control',True);cid=baseline['case_id'];extra={k:v for k,v in baseline.items() if k.startswith('manual_')}
+    else:
+        cid=call('POST','/api/cases',auth,expected=201,json=contact_document_fixture['cat_case' if scenario=='control_cat' else 'case'])['id'];extra={}
+    root=f'/api/cases/{cid}/followup-contacts';planroot=f'/api/cases/{cid}/followup-plan'
+    def plan_body(operation='create',row=None):
+        listing=call('GET',planroot,auth)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':listing['case_token'],'expected_state_token':listing['state_token'],'data':None if operation=='withdraw' else contact_document_fixture['corrected_plan' if operation=='correct' else 'plan'],
+           'reason':'' if operation=='create' else 'CW21 合成来源变化'}
+        p=call('POST',planroot+'/preview',auth,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    source=call('POST',planroot+'/confirm',auth,json=plan_body())['plan']
+    def contact_body(operation='create',row=None):
+        listing=call('GET',root,auth);p=next(p for p in listing['plans'] if p['id']==source['id'])
+        b={'request_id':uuid4().hex,'operation':operation,'contact_id':row['id'] if row else None,'expected_contact_token':row['token'] if row else '',
+           'source_plan_id':p['id'],'source_plan_version':p['version'],'expected_source_token':p['token'],'expected_case_token':listing['case_token'],'expected_state_token':listing['state_token'],
+           'data':None if operation=='withdraw' else contact_document_fixture['corrected' if operation=='correct' else 'contact'],'reason':'' if operation=='create' else 'CW21 合成联系变化'}
+        p=call('POST',root+'/preview',auth,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    row=call('POST',root+'/confirm',auth,json=contact_body())['record']
+    if scenario=='control_cat':
+        # Historical contact remains exportable with an explicitly withdrawn source.
+        call('POST',planroot+'/confirm',auth,json=plan_body('withdraw',source))
+    listing=call('GET',root,auth);current_source=next(p for p in listing['plans'] if p['id']==source['id'])
+    selection={**{k:row[k] for k in ('id','version','token')},'source_token':current_source['token'],'case_token':listing['case_token']}
+    if scenario=='control_dog':extra['manual_followup_plan']={k:source[k] for k in ('id','version','token')}
+    body={'case_id':cid,'template_id':'outpatient_record_zh','manual_followup_contact':selection,**extra}
+    before=call('POST','/api/clinical-docs/render-preview',auth,json=body);request={**body,'expected_content_snapshot':before['content_snapshot']}
+    if scenario.startswith('control_'):
+        original=followup_overview_business();writes=[]
+        def capture(_c,_cur,sql,*_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}:writes.append(sql)
+        event.listen(f.db.engine,'before_cursor_execute',capture)
+        try:
+            p=call('POST','/api/clinical-docs/render-preview',auth,json=body)
+            r=client.post('/api/clinical-docs/render',headers=auth,json=request);assert r.status_code==200,r.text
+            assert r.headers['x-pmai-content-snapshot']==before['content_snapshot'] and r.headers['cache-control']=='private, no-store'
+            for value in (row['data']['note'],row['data']['next_action'],row['source']['data']['purpose'],row['token']):assert value in followup_document_text(r.content)
+            assert p['manual_followup_contact']['record']['source']==row['source']
+            (f.OUT/f'cwb21-pg-{account}.docx').write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+        assert not writes and original==followup_overview_business()
+        call('POST','/api/clinical-docs/render-preview',owner if auth==contact_other else contact_other,expected=404,json=body)
+        contact_document_expected.append({'account':account,'body':body,'snapshot':before['content_snapshot'],'sections':{k:v for k,v in before.items() if k.startswith('manual_')},
+            'contacts':listing,'case':read(cid,auth),'audits':contact_overview_audits(cid)})
+    elif scenario=='template':
+        original=document_api.Path.read_bytes
+        def changed(path):
+            raw=original(path);return raw+b'CW21 changed template' if str(path).endswith('outpatient_record_zh.docx') else raw
+        with patch.object(document_api.Path,'read_bytes',changed):call('POST','/api/clinical-docs/render',auth,json=request,expected=409)
+    else:
+        if scenario in ('correct','withdraw'):
+            b=contact_body(scenario,row);mutation=lambda:client.post(root+'/confirm',headers=auth,json=b)
+        elif scenario in ('plan_correct','plan_withdraw','mixed_plan'):
+            b=plan_body('withdraw' if scenario=='plan_withdraw' else 'correct',source);mutation=lambda:client.post(planroot+'/confirm',headers=auth,json=b)
+        elif scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):
+            target=f'/api/cases/{cid}/'+('manual-imaging' if scenario.startswith('imaging') else 'manual-lab')
+            selected=next(r for r in call('GET',target,auth)['reports'] if r['id']==extra['manual_imaging_report_ids' if scenario.startswith('imaging') else 'manual_lab_report_ids'][0])
+            if scenario.startswith('source'):
+                target=f'/api/cases/{cid}/attachments';state=call('GET',target,auth);original=next(s for s in state['items'] if s['id']==selected['attachment_id'])
+                b={'request_id':uuid4().hex,'attachment_id':original['id'],'operation':'withdraw' if scenario=='source' else 'update','expected_case_token':state['case_token'],'metadata':{**original['metadata'],'title':'CW21 原件更正'},'reason':'合成更正'}
+            else:
+                data=None
+                if scenario.endswith('_correct'):
+                    data=deepcopy(selected['data'])
+                    if scenario.startswith('lab'):
+                        import manual_lab_results
+                        data=manual_lab_results.input_data(data);data['items'][0]['value']='1.500'
+                    else:data['findings']+=' CW21 影像更正'
+                b={'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':'correct' if data else 'withdraw','expected_case_token':call('GET',target,auth)['case_token'],
+                   'report_id':selected['id'],'expected_report_token':selected['token'],'data':data,'reason':'CW21 合成更正'}
+            preview=call('POST',target+'/preview',auth,json=b);mutation=lambda:client.post(target+'/confirm',headers=auth,json={**b,'preview_token':preview['preview_token'],'reviewed':True})
+        elif scenario=='owner':
+            def mutation():
+                with followup.transaction(listing['case']['owner_id'],cid) as (db,case):case.owner_id=contact_other_id;db.commit()
+                from types import SimpleNamespace
+                return SimpleNamespace(status_code=200)
+        elif scenario=='delete':mutation=lambda:client.delete(f'/api/cases/{cid}',headers=auth)
+        else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=auth,json={'owner_name':'CW21 并发身份'} if scenario=='identity' else {'history':'CW21 并发正文'})
+        entered,release,attempting_sql,attempting_store=Event(),Event(),Event(),Event();pids=set()
+        module,method=(document_api,'_render_docx') if rendering else (contact_documents,'read_selected');normal=getattr(module,method);normal_locked=attachment_store.Store.locked
+        from contextlib import contextmanager
+        @contextmanager
+        def observed_store(store):
+            if entered.is_set():attempting_store.set()
+            with normal_locked(store):yield
+        def held(*args,**kwargs):entered.set();assert release.wait(15);return normal(*args,**kwargs)
+        def locks(connection,_cursor,sql,*_):
+            if 'FOR UPDATE' in sql.upper() or sql.lstrip().upper().startswith(('UPDATE CASES ','DELETE FROM CASES ')):
+                pids.add(connection.connection.driver_connection.get_backend_pid())
+                if entered.is_set():attempting_sql.set()
+        event.listen(f.db.engine,'before_cursor_execute',locks)
+        try:
+            with ThreadPoolExecutor(2) as pool,patch.object(module,method,side_effect=held),patch.object(attachment_store.Store,'locked',observed_store):
+                reading=pool.submit(client.post,'/api/clinical-docs/'+('render' if rendering else 'render-preview'),headers=auth,json=request if rendering else body)
+                try:
+                    assert entered.wait(10);writing=pool.submit(mutation)
+                    if scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):assert attempting_store.wait(10) and not writing.done()
+                    else:assert attempting_sql.wait(10) and len(pids)>=2 and not writing.done()
+                finally:release.set()
+                r=reading.result(20);assert r.status_code==200,r.text if r.status_code!=200 else ''
+                if rendering:assert row['data']['note'] in followup_document_text(r.content) and 'CW21 并发正文' not in followup_document_text(r.content)
+                else:assert r.json()['content_snapshot']==before['content_snapshot']
+                assert writing.result(20).status_code==(204 if scenario=='delete' else 200)
+        finally:event.remove(f.db.engine,'before_cursor_execute',locks)
+        call('POST','/api/clinical-docs/render',auth,json=request,expected=404 if scenario in ('owner','delete') else 409)
+    record('cwb21_postgresql_'+scenario+('_render' if rendering else '_preview'))
+
+for scenario in ('correct','withdraw','plan_correct','plan_withdraw','body','identity','owner','delete','source','source_metadata','lab','lab_correct','imaging','imaging_correct','mixed_plan'):
+    for rendering in (False,True):contact_document_pg(scenario,rendering)
+for scenario in ('control_dog','control_cat','template'):contact_document_pg(scenario)
+(f.OUT/'cwb21-restart-expected.json').write_text(json.dumps(contact_document_expected,ensure_ascii=False,indent=2))
+
+# CW-B22: contact facts, every selected appendix and native physical locks.
+f.enable_followup_contact_owner_documents()
+import clinical_followup_contact_documents as contact_documents
+contact_owner_document_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_contact_owner_documents_cw_b22_cases.json').read_text())
+contact_owner_document_expected=[]
+
+
+def contact_owner_document_pg(scenario, rendering=True):
+    auth,account=(contact_other,'cwb19-other') if scenario=='control_cat' else (owner,'pg-owner')
+    mixed=scenario in ('control_dog','source','source_metadata','lab','lab_correct','imaging','imaging_correct','mixed_plan')
+    if mixed:
+        baseline=comparison_document_pg('control',True);cid=baseline['case_id'];extra={k:v for k,v in baseline.items() if k.startswith('manual_') and k!='manual_lab_comparison'}
+    else:
+        cid=call('POST','/api/cases',auth,expected=201,json=contact_owner_document_fixture['cat_case' if scenario=='control_cat' else 'case'])['id'];extra={}
+    root=f'/api/cases/{cid}/followup-contacts';planroot=f'/api/cases/{cid}/followup-plan'
+    def plan_body(operation='create',row=None):
+        listing=call('GET',planroot,auth)
+        b={'request_id':uuid4().hex,'operation':operation,'plan_id':row['id'] if row else None,'expected_plan_token':row['token'] if row else '',
+           'expected_case_token':listing['case_token'],'expected_state_token':listing['state_token'],'data':None if operation=='withdraw' else contact_owner_document_fixture['corrected_plan' if operation=='correct' else 'plan'],
+           'reason':'' if operation=='create' else 'CW22 合成来源变化'}
+        p=call('POST',planroot+'/preview',auth,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    source=call('POST',planroot+'/confirm',auth,json=plan_body())['plan']
+    def contact_body(operation='create',row=None):
+        listing=call('GET',root,auth);p=next(p for p in listing['plans'] if p['id']==source['id'])
+        b={'request_id':uuid4().hex,'operation':operation,'contact_id':row['id'] if row else None,'expected_contact_token':row['token'] if row else '',
+           'source_plan_id':p['id'],'source_plan_version':p['version'],'expected_source_token':p['token'],'expected_case_token':listing['case_token'],'expected_state_token':listing['state_token'],
+           'data':None if operation=='withdraw' else contact_owner_document_fixture['corrected' if operation=='correct' else 'contact'],'reason':'' if operation=='create' else 'CW22 合成联系变化'}
+        p=call('POST',root+'/preview',auth,json=b);return {**b,'preview_token':p['preview_token'],'reviewed':True}
+    row=call('POST',root+'/confirm',auth,json=contact_body())['record']
+    if scenario=='control_cat':
+        # Historical contact remains exportable with an explicitly withdrawn source.
+        call('POST',planroot+'/confirm',auth,json=plan_body('withdraw',source))
+    listing=call('GET',root,auth);current_source=next(p for p in listing['plans'] if p['id']==source['id'])
+    selection={**{k:row[k] for k in ('id','version','token')},'source_token':current_source['token'],'case_token':listing['case_token']}
+    if scenario in ('control_dog','mixed_plan'):extra['manual_followup_plan']={k:source[k] for k in ('id','version','token')}
+    body={'case_id':cid,'template_id':'owner_visit_summary_zh','manual_followup_contact':selection,**extra}
+    before=call('POST','/api/clinical-docs/render-preview',auth,json=body);request={**body,'expected_content_snapshot':before['content_snapshot']}
+    if scenario.startswith('control_'):
+        original=followup_overview_business();writes=[]
+        def capture(_c,_cur,sql,*_):
+            if sql.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','CREATE','ALTER','DROP'}:writes.append(sql)
+        event.listen(f.db.engine,'before_cursor_execute',capture)
+        try:
+            p=call('POST','/api/clinical-docs/render-preview',auth,json=body)
+            r=client.post('/api/clinical-docs/render',headers=auth,json=request);assert r.status_code==200,r.text
+            assert r.headers['x-pmai-content-snapshot']==before['content_snapshot'] and r.headers['cache-control']=='private, no-store'
+            for value in (row['data']['note'],row['data']['next_action'],row['source']['data']['purpose'],row['token']):assert value in followup_document_text(r.content)
+            assert p['manual_followup_contact']['record']['source']==row['source']
+            assert p['manual_followup_contact']['schema']==contact_documents.OWNER_SCHEMA and p['manual_followup_contact']['template_id']=='owner_visit_summary_zh'
+            (f.OUT/f'cwb22-pg-{account}.docx').write_bytes(r.content)
+        finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+        assert not writes and original==followup_overview_business()
+        call('POST','/api/clinical-docs/render-preview',owner if auth==contact_other else contact_other,expected=404,json=body)
+        contact_owner_document_expected.append({'account':account,'body':body,'snapshot':before['content_snapshot'],'sections':{k:v for k,v in before.items() if k.startswith('manual_')},
+            'contacts':listing,'case':read(cid,auth),'audits':contact_overview_audits(cid)})
+    elif scenario=='template':
+        original=document_api.Path.read_bytes
+        def changed(path):
+            raw=original(path);return raw+b'CW22 changed template' if str(path).endswith('owner_visit_summary_zh.docx') else raw
+        with patch.object(document_api.Path,'read_bytes',changed):call('POST','/api/clinical-docs/render',auth,json=request,expected=409)
+    else:
+        if scenario in ('correct','withdraw'):
+            b=contact_body(scenario,row);mutation=lambda:client.post(root+'/confirm',headers=auth,json=b)
+        elif scenario in ('plan_correct','plan_withdraw','mixed_plan'):
+            b=plan_body('withdraw' if scenario=='plan_withdraw' else 'correct',source);mutation=lambda:client.post(planroot+'/confirm',headers=auth,json=b)
+        elif scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):
+            target=f'/api/cases/{cid}/'+('manual-imaging' if scenario.startswith('imaging') else 'manual-lab')
+            selected=next(r for r in call('GET',target,auth)['reports'] if r['id']==extra['manual_imaging_report_ids' if scenario.startswith('imaging') else 'manual_lab_report_ids'][0])
+            if scenario.startswith('source'):
+                target=f'/api/cases/{cid}/attachments';state=call('GET',target,auth);original=next(s for s in state['items'] if s['id']==selected['attachment_id'])
+                b={'request_id':uuid4().hex,'attachment_id':original['id'],'operation':'withdraw' if scenario=='source' else 'update','expected_case_token':state['case_token'],'metadata':{**original['metadata'],'title':'CW22 原件更正'},'reason':'合成更正'}
+            else:
+                data=None
+                if scenario.endswith('_correct'):
+                    data=deepcopy(selected['data'])
+                    if scenario.startswith('lab'):
+                        import manual_lab_results
+                        data=manual_lab_results.input_data(data);data['items'][0]['value']='1.500'
+                    else:data['findings']+=' CW22 影像更正'
+                b={'request_id':uuid4().hex,'attachment_id':selected['attachment_id'],'operation':'correct' if data else 'withdraw','expected_case_token':call('GET',target,auth)['case_token'],
+                   'report_id':selected['id'],'expected_report_token':selected['token'],'data':data,'reason':'CW22 合成更正'}
+            preview=call('POST',target+'/preview',auth,json=b);mutation=lambda:client.post(target+'/confirm',headers=auth,json={**b,'preview_token':preview['preview_token'],'reviewed':True})
+        elif scenario=='owner':
+            def mutation():
+                with followup.transaction(listing['case']['owner_id'],cid) as (db,case):case.owner_id=contact_other_id;db.commit()
+                from types import SimpleNamespace
+                return SimpleNamespace(status_code=200)
+        elif scenario=='delete':mutation=lambda:client.delete(f'/api/cases/{cid}',headers=auth)
+        else:mutation=lambda:client.put(f'/api/cases/{cid}',headers=auth,json={'owner_name':'CW22 并发身份'} if scenario=='identity' else {'history':'CW22 并发正文'})
+        entered,release,attempting_sql,attempting_store=Event(),Event(),Event(),Event();pids=set()
+        module,method=(document_api,'_render_docx') if rendering else (contact_documents,'read_selected');normal=getattr(module,method);normal_locked=attachment_store.Store.locked
+        from contextlib import contextmanager
+        @contextmanager
+        def observed_store(store):
+            if entered.is_set():attempting_store.set()
+            with normal_locked(store):yield
+        def held(*args,**kwargs):entered.set();assert release.wait(15);return normal(*args,**kwargs)
+        def locks(connection,_cursor,sql,*_):
+            if 'FOR UPDATE' in sql.upper() or sql.lstrip().upper().startswith(('UPDATE CASES ','DELETE FROM CASES ')):
+                pids.add(connection.connection.driver_connection.get_backend_pid())
+                if entered.is_set():attempting_sql.set()
+        event.listen(f.db.engine,'before_cursor_execute',locks)
+        try:
+            with ThreadPoolExecutor(2) as pool,patch.object(module,method,side_effect=held),patch.object(attachment_store.Store,'locked',observed_store):
+                reading=pool.submit(client.post,'/api/clinical-docs/'+('render' if rendering else 'render-preview'),headers=auth,json=request if rendering else body)
+                try:
+                    assert entered.wait(10);writing=pool.submit(mutation)
+                    if scenario in ('source','source_metadata','lab','lab_correct','imaging','imaging_correct'):assert attempting_store.wait(10) and not writing.done()
+                    else:assert attempting_sql.wait(10) and len(pids)>=2 and not writing.done()
+                finally:release.set()
+                r=reading.result(20);assert r.status_code==200,r.text if r.status_code!=200 else ''
+                if rendering:assert row['data']['note'] in followup_document_text(r.content) and 'CW22 并发正文' not in followup_document_text(r.content)
+                else:assert r.json()['content_snapshot']==before['content_snapshot']
+                assert writing.result(20).status_code==(204 if scenario=='delete' else 200)
+        finally:event.remove(f.db.engine,'before_cursor_execute',locks)
+        call('POST','/api/clinical-docs/render',auth,json=request,expected=404 if scenario in ('owner','delete') else 409)
+    record('cwb22_postgresql_'+scenario+('_render' if rendering else '_preview'))
+
+for scenario in ('correct','withdraw','plan_correct','plan_withdraw','body','identity','owner','delete','source','source_metadata','lab','lab_correct','imaging','imaging_correct','mixed_plan'):
+    for rendering in (False,True):contact_owner_document_pg(scenario,rendering)
+for scenario in ('control_dog','control_cat','template'):contact_owner_document_pg(scenario)
+(f.OUT/'cwb22-restart-expected.json').write_text(json.dumps(contact_owner_document_expected,ensure_ascii=False,indent=2))
+
+# CW-B23 explicit contact queue, native PostgreSQL read-only bulk snapshot.
+f.enable_followup_contact_queue()
+import clinical_followup_contact_queue as contact_queue
+contact_queue_fixture=json.loads((f.ROOT/'tests/fixtures/clinical_followup_contact_queue_cw_b23_cases.json').read_text())
+for name in ('cwb23-owner','cwb23-other'):
+    call('POST','/auth/signup',json={'email':name+'@example.com','password':PASSWORD})
+cq_owner,cq_other=login('cwb23-owner'),login('cwb23-other')
+cq_expected=[]
+
+
+def cq_read(auth=cq_owner,expected=200,**params):
+    return call('GET','/api/followup-plan-queue',auth,expected=expected,
+                params={'range':'all','include_followup_contacts':'true',**params})
+
+
+def cq_save(cid,source,auth=cq_owner,operation='create',row=None):
+    root=f'/api/cases/{cid}/followup-contacts';value=call('GET',root,auth)
+    source=next(p for p in value['plans'] if p['id']==source['id'])
+    body={'request_id':uuid4().hex,'operation':operation,'contact_id':row['id'] if row else None,
+          'expected_contact_token':row['token'] if row else '', 'source_plan_id':source['id'],'source_plan_version':source['version'],
+          'expected_source_token':source['token'],'expected_case_token':value['case_token'],'expected_state_token':value['state_token'],
+          'data':None if operation=='withdraw' else contact_queue_fixture['corrected' if operation=='correct' else 'long_contact'],
+          'reason':'' if operation=='create' else 'CW23 合成更正'}
+    preview=call('POST',root+'/preview',auth,json=body)
+    return call('POST',root+'/confirm',auth,json={**body,'preview_token':preview['preview_token'],'reviewed':True})['record']
+
+
+def cq_race(scenario,stage):
+    cid=queue_case(cq_owner);source=queue_save(cid,auth=cq_owner);row=cq_save(cid,source)
+    before=cq_read(page_size=1);audit_backup=None
+    def mutation():
+        nonlocal audit_backup
+        if scenario in ('create','correct','withdraw'):cq_save(cid,source,operation=scenario,row=None if scenario=='create' else row)
+        elif scenario.startswith('plan_'):queue_save(cid,scenario.removeprefix('plan_'),source,auth=cq_owner)
+        elif scenario in ('body','identity'):call('PUT',f'/api/cases/{cid}',cq_owner,json={'history':'CW23 并发正文'} if scenario=='body' else {'patient_name':'CW23 并发身份'})
+        elif scenario=='delete':assert client.delete(f'/api/cases/{cid}',headers=cq_owner).status_code==204
+        else:
+            with f.db.SessionLocal() as db:
+                if scenario=='owner':db.get(f.models.Case,cid).owner_id=db.query(f.models.User).filter_by(email='cwb23-other@example.com').one().id
+                else:
+                    a=db.query(f.models.AuditLog).filter_by(case_id=cid,source=contacts.SOURCE).one()
+                    audit_backup={p.key:getattr(a,p.key) for p in f.models.AuditLog.__mapper__.column_attrs}
+                    if scenario=='audit':a.model_version='CW23 审计元数据'
+                    elif scenario=='bad_audit':a.extra_data={**a.extra_data,'content_hash':'b'*64}
+                    else:db.delete(a)
+                db.commit()
+    module=plan_queue if stage=='prefetched_rows' else contact_queue
+    entered,release=Event(),Event();normal=getattr(module,stage)
+    def held(db,cases):
+        assert db.execute(text('SHOW transaction_isolation')).scalar_one()=='repeatable read'
+        assert db.execute(text('SHOW transaction_read_only')).scalar_one()=='on'
+        entered.set();assert release.wait(20);return normal(db,cases)
+    with ThreadPoolExecutor(2) as pool,patch.object(module,stage,side_effect=held):
+        reading=pool.submit(cq_read,page_size=1)
+        try:assert entered.wait(10);pool.submit(mutation).result(15)
+        finally:release.set()
+        result=reading.result(15)
+    assert all(result[k]==before[k] for k in ('snapshot','items','total'))
+    if scenario in ('bad_audit','missing_audit'):cq_read(expected=409)
+    else:assert cq_read(page_size=1)['snapshot']!=before['snapshot']
+    cq_read(expected=409,page_size=1,page=2,snapshot=before['snapshot'])
+    if scenario in ('bad_audit','missing_audit'):
+        with f.db.SessionLocal() as db:
+            current=db.get(f.models.AuditLog,audit_backup['log_id'])
+            if current:
+                for key,value in audit_backup.items():setattr(current,key,value)
+            else:db.add(f.models.AuditLog(**audit_backup))
+            db.commit()
+    record('cwb23_postgresql_'+scenario+'_'+stage+'_committed_writer_one_snapshot')
+
+
+for index,scenario in enumerate(('create','correct','withdraw','plan_correct','plan_withdraw','body','identity','owner','delete','audit','bad_audit','missing_audit')):
+    cq_race(scenario,('prefetched_rows','prefetched_contacts','prefetched_audits')[index%3])
+
+# Prove PostgreSQL rejects actual DML, not just a declared response flag.
+from sqlalchemy.exc import DBAPIError
+with plan_queue.read_transaction() as readonly:
+    rejected=False
+    try:
+        with readonly.begin_nested():readonly.execute(text('UPDATE cases SET patient_name=patient_name WHERE false'))
+    except DBAPIError:rejected=True
+    assert rejected and readonly.execute(text('SHOW transaction_read_only')).scalar_one()=='on'
+record('cwb23_postgresql_readonly_rejects_dml')
+
+for auth,name,species in ((cq_owner,'cwb23-owner','dog'),(cq_other,'cwb23-other','cat')):
+    cid=queue_case(auth,species);source=queue_save(cid,auth=auth);historical=cq_save(cid,source,auth)
+    source=queue_save(cid,'correct',source,auth=auth);current=cq_save(cid,source,auth)
+    before=followup_overview_business();statements=[]
+    def capture(_c,_cur,sql,*_):statements.append(sql)
+    event.listen(f.db.engine,'before_cursor_execute',capture)
+    try:saved=cq_read(auth,page_size=50)
+    finally:event.remove(f.db.engine,'before_cursor_execute',capture)
+    assert sum(s.lstrip().upper().startswith('SELECT') for s in statements)==6
+    assert not any(s.lstrip().split()[0].upper() in {'INSERT','UPDATE','DELETE','ALTER','CREATE','DROP'} for s in statements)
+    assert before==followup_overview_business()
+    item=next(i for i in saved['items'] if i['case']['id']==cid)
+    assert item['contacts']['counts']=={'current':1,'historical':1}
+    assert item['contacts']['latest']['current']['data']==current['data'] and item['contacts']['latest']['historical']['data']==historical['data']
+    assert item['contacts']['latest']['historical']['source']['state']=='superseded'
+    for mode in ('current','historical_only','none'):
+        filtered=cq_read(auth,contact_state=mode,page_size=50)
+        assert all((i['contacts']['counts']['current']>0 if mode=='current' else i['contacts']['counts']['current']==0 and (i['contacts']['counts']['historical']>0 if mode=='historical_only' else i['contacts']['counts']['historical']==0)) for i in filtered['items'])
+    with patch.object(contact_queue,'prefetched_contacts',side_effect=AssertionError('default must not read contacts')):
+        assert call('GET','/api/followup-plan-queue',auth,params={'range':'all'})['schema']==plan_queue.SCHEMA
+    saved.pop('read_at')
+    cq_expected.append({'account':name,'case_id':cid,'queue':saved,'case':read(cid,auth),'contacts':call('GET',f'/api/cases/{cid}/followup-contacts',auth),'audits':contact_overview_audits(cid)})
+    record('cwb23_postgresql_'+species+'_literal_groups_fixed_selects_no_writes_default_isolation')
+(f.OUT/'cwb23-restart-expected.json').write_text(json.dumps(cq_expected,ensure_ascii=False,indent=2))
+
+
+# Close only after every batch has finished using the shared authenticated client.
 client.close(); f.db.engine.dispose()

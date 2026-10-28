@@ -11,7 +11,7 @@ from uuid import uuid4
 
 ROOT = Path(__file__).resolve().parents[1]
 FIXTURE = tempfile.TemporaryDirectory(prefix="pmai-update-preview-")
-DATABASE = Path(FIXTURE.name) / "synthetic.sqlite3"
+DATABASE = (Path(FIXTURE.name) / "synthetic.sqlite3").resolve()
 os.environ.clear()
 os.environ.update({
     "DATABASE_URL": "sqlite:///" + str(DATABASE),

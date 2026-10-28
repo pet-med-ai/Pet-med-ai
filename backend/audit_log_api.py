@@ -183,8 +183,14 @@ def append_diagnostic_summary_audit_log(
         except Exception as exc:
             raise HTTPException(status_code=422, detail="diagnostic_report target_id must be an integer") from exc
         report = db.get(DiagnosticReport, target_id)
+        try:
+            from backend.manual_lab_results import is_manual
+        except ModuleNotFoundError:
+            from manual_lab_results import is_manual
         if report is None or int(getattr(report, "case_id", -1)) != int(case.id):
             raise HTTPException(status_code=404, detail="diagnostic report target not found")
+        if report is not None and is_manual(report):
+            raise HTTPException(status_code=409, detail="manual_lab_use_dedicated_review")
         normalized_payload["target_type"] = "diagnostic_report"
         normalized_payload["target_id"] = target_id
 

@@ -1,0 +1,105 @@
+{
+  "key": "lameness_pain",
+  "version": "lameness_pain-intake-v1",
+  "label": "犬猫跛行／疼痛问诊",
+  "review_status": "clinical_draft",
+  "species": [
+    "dog",
+    "cat"
+  ],
+  "source": "医生采集",
+  "questions": [
+    {
+      "key": "onset",
+      "label": "跛行或疼痛表现的起始时间、当时情境与经过",
+      "kind": "text"
+    },
+    {
+      "key": "location",
+      "label": "表现涉及的部位；无法定位或观察不全请保留原文",
+      "kind": "text"
+    },
+    {
+      "key": "side",
+      "label": "左右侧的实际观察；侧别不明请注明",
+      "kind": "text"
+    },
+    {
+      "key": "limb_count",
+      "label": "单肢、多肢或是否涉及肢体的实际观察；无法确定请注明",
+      "kind": "text"
+    },
+    {
+      "key": "trend",
+      "label": "表现持续、间歇、变化及各次出现的时间",
+      "kind": "text"
+    },
+    {
+      "key": "weight_bearing",
+      "label": "站立或行走时各肢负重的实际观察",
+      "kind": "text"
+    },
+    {
+      "key": "rest",
+      "label": "安静、卧下与休息时的表现",
+      "kind": "text"
+    },
+    {
+      "key": "activity",
+      "label": "起身、行走及活动前后的表现；未观察请注明",
+      "kind": "text"
+    },
+    {
+      "key": "pain",
+      "label": "是否观察到疼痛相关行为或反应",
+      "kind": "presence"
+    },
+    {
+      "key": "pain_detail",
+      "label": "疼痛相关行为、反应、发生情境及观察来源",
+      "kind": "text",
+      "when": "pain"
+    },
+    {
+      "key": "trauma",
+      "label": "是否有明确观察或记录的外伤事件",
+      "kind": "presence"
+    },
+    {
+      "key": "trauma_detail",
+      "label": "已知事件的时间、经过、涉及部位与资料来源",
+      "kind": "text",
+      "when": "trauma"
+    },
+    {
+      "key": "accompanying",
+      "label": "同期其他表现及医生观察",
+      "kind": "text"
+    },
+    {
+      "key": "treatment",
+      "label": "已进行的处理、限制活动或用药及实施时间",
+      "kind": "text"
+    },
+    {
+      "key": "response",
+      "label": "处理后的变化和观察时段；未观察请注明",
+      "kind": "text"
+    },
+    {
+      "key": "history",
+      "label": "既往类似表现、疾病、手术及检查记录",
+      "kind": "text"
+    },
+    {
+      "key": "observer",
+      "label": "观察者、视频或其他资料及观察限制",
+      "kind": "text"
+    },
+    {
+      "key": "notes",
+      "label": "医生补充与资料来源",
+      "kind": "text"
+    }
+  ]
+}
