@@ -17,6 +17,7 @@ on:
       - 'tests/test_consult_update_preview.py'
       - 'tests/test_consult_first_save.py'
       - 'tests/test_manual_case_create.py'
+      - 'tests/test_login_form_limits.py'
       - '.github/workflows/consult-update-preview.yml'
 
 permissions:
@@ -35,6 +36,7 @@ jobs:
         run: python -m pip install -r requirements.txt -r backend/requirements.txt
       - name: Verify real routes with synthetic SQLite and JWT
         run: |
+          python tests/test_login_form_limits.py
           python tests/test_consult_update_preview.py
           python tests/test_consult_first_save.py
           python tests/test_manual_case_create.py
