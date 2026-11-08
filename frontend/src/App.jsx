@@ -22,6 +22,8 @@ const ClinicalDoctorTrialGate = import.meta.env.VITE_DOCTOR_TRIAL === "1"
   ? lazy(() => import("./components/ClinicalDoctorTrialGate")) : null;
 
 const FollowupPlanQueue = lazy(() => import("./pages/FollowupPlanQueue"));
+const ClinicReadPilot = import.meta.env.VITE_MULTICLINIC_READ_PILOT === "1"
+  ? lazy(() => import("./pages/ClinicReadPilot")) : null;
 
 // Secondary pages are loaded on navigation; keep consultation and case editing eager.
 const KpiDashboard = lazy(() => import("./pages/KpiDashboard"));
@@ -2081,6 +2083,9 @@ export function AppRoutes() {
 }
 
 export default function App() {
+  if (ClinicReadPilot) {
+    return <Suspense fallback={<p role="status">正在打开院区病例查阅……</p>}><ClinicReadPilot /></Suspense>;
+  }
   const application = (
     <Router>
       <AppRoutes />

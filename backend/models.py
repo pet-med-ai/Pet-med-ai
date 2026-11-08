@@ -31,11 +31,10 @@ class User(Base):
     full_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
 
-    # 删除用户时，级联删除其病例（与你原来保持一致）
+    # Deactivate accounts; never cascade-delete their clinical history.
     cases: Mapped[List["Case"]] = relationship(
         back_populates="owner",
-        cascade="all, delete",
-        passive_deletes=True,
+        passive_deletes="all",
     )
 
 
@@ -43,7 +42,7 @@ class Case(Base):
     __tablename__ = "cases"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    owner_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="RESTRICT"), index=True)
 
     patient_name: Mapped[str] = mapped_column(String(255), index=True)
     species: Mapped[str] = mapped_column(String(50), default="dog")   # dog/cat/other
