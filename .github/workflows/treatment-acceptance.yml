@@ -29,6 +29,12 @@ jobs:
       - name: Local PostgreSQL 17 tools (no existing service is used)
         run: |
           if [ ! -x /usr/lib/postgresql/17/bin/initdb ]; then
+            # Official PGDG repository; Ubuntu 24.04's default repository lacks 17.
+            # https://www.postgresql.org/download/linux/ubuntu/
+            curl --fail --silent --show-error --location https://www.postgresql.org/media/keys/ACCC4CF8.asc -o "$RUNNER_TEMP/pmai-pgdg.asc"
+            test "$(gpg --show-keys --with-colons "$RUNNER_TEMP/pmai-pgdg.asc" | awk -F: '$1 == "fpr" { print $10; exit }')" = B97B0AFCAA1A47F044F244A07FCC7D46ACCC4CF8
+            sudo install -m 644 "$RUNNER_TEMP/pmai-pgdg.asc" /usr/share/keyrings/pmai-pgdg.asc
+            printf '%s\n' 'deb [signed-by=/usr/share/keyrings/pmai-pgdg.asc] https://apt.postgresql.org/pub/repos/apt noble-pgdg main' | sudo tee /etc/apt/sources.list.d/pmai-pgdg.list >/dev/null
             sudo apt-get update
             sudo apt-get install -y postgresql-17
           fi
