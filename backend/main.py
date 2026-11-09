@@ -83,6 +83,8 @@ from multiclinic.api import router as multiclinic_router
 from multiclinic.gate import scope_gate
 app.middleware("http")(scope_gate)
 app.include_router(multiclinic_router)
+from treatment_store.api import router as treatment_store_router
+app.include_router(treatment_store_router)
 
 app.add_middleware(
     CORSMiddleware,

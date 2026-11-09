@@ -1,0 +1,12 @@
+.treatment-workspace { color: #152d3b; background: #fbfdff; line-height: 1.6; }
+.treatment-workspace fieldset { border: 1px solid #b9cbd6; border-radius: 8px; margin: 16px 0; padding: 16px; }
+.treatment-workspace fieldset label { display: grid; gap: 6px; font-weight: 600; }
+.treatment-workspace textarea { box-sizing: border-box; width: 100%; min-height: 92px; resize: vertical; padding: 10px; border: 1px solid #91aab8; border-radius: 6px; font: inherit; }
+.treatment-workspace input:not([type=checkbox]) { box-sizing: border-box; max-width: 100%; margin-left: 8px; padding: 7px; font: inherit; }
+.treatment-workspace button { margin: 6px 8px 6px 0; padding: 8px 12px; border: 1px solid #527788; border-radius: 6px; background: white; color: #123e50; font: inherit; cursor: pointer; }
+.treatment-workspace button:disabled { opacity: .5; cursor: default; }
+.treatment-workspace dt { font-weight: 600; margin-top: 12px; }
+.treatment-workspace dd { margin-left: 0; }
+.treatment-workspace aside, .treatment-workspace [role=status] { padding: 12px; background: #edf4f8; border-radius: 6px; overflow-wrap: anywhere; }
+.treatment-workspace section[aria-label="当前有效签署"] { padding: 16px; background: #eaf5ef; border: 1px solid #b6d5c3; border-radius: 8px; }
+.treatment-workspace section[aria-label="冻结版本"] { padding: 16px; margin-top: 16px; border: 1px solid #b9cbd6; border-radius: 8px; }

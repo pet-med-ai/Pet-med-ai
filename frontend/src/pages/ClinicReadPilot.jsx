@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from "react";
 
+import TreatmentWorkspace from "./TreatmentWorkspace";
+const treatmentEnabled = import.meta.env.VITE_TREATMENT_PILOT === "1";
+
 const base = (import.meta.env.VITE_API_BASE || "").replace(/\/$/, "");
 const fields = [
   ["patient_name", "宠物名称"], ["species", "物种"], ["sex", "性别"], ["age_info", "年龄"],
@@ -95,8 +98,8 @@ export default function ClinicReadPilot() {
     catch { if (task.current()) setMessage("本页已退出；服务端会话撤销未确认，该会话最多 15 分钟后到期。"); }
   }
   return <main style={{ maxWidth: 960, margin: "32px auto", padding: 20, fontFamily: "system-ui, sans-serif" }}>
-    <h1>院区病例查阅</h1>
-    <p>当前开放病例查阅。治疗原文保留原始记录状态，本入口尚未开放编辑、处方或签署。</p>
+    <h1>{treatmentEnabled ? "院区病例与治疗记录" : "院区病例查阅"}</h1>
+    <p>{treatmentEnabled ? "病例资料按院区授权读取；治疗记录在下方独立审核、冻结和签署。" : "当前开放病例查阅。治疗原文保留原始记录状态，本入口尚未开放编辑、处方或签署。"}</p>
     {!token ? <form onSubmit={login}>
       <p><label>邮箱 <input type="email" required autoComplete="username" value={email} onChange={e => setEmail(e.target.value)} disabled={busy} /></label></p>
       <p><label>密码 <input type="password" required autoComplete="current-password" value={password} onChange={e => setPassword(e.target.value)} disabled={busy} /></label></p>
@@ -117,6 +120,8 @@ export default function ClinicReadPilot() {
       <p>{selected()?.org_name}／{selected()?.clinic_name} · {detail.visibility === "owner_private" ? "原账号私人病例" : "院区病例"}</p>
       <dl>{fields.filter(([key]) => Object.hasOwn(detail, key)).map(([key, label]) => <React.Fragment key={key}>
         <dt style={{ fontWeight: 700, marginTop: 16 }}>{label}</dt><dd style={{ marginLeft: 0, whiteSpace: "pre-wrap" }}>{detail[key] || "未记录"}</dd>
-      </React.Fragment>)}</dl></section>}
+      </React.Fragment>)}</dl>
+      {treatmentEnabled && projection(selected()) === "clinical" && <TreatmentWorkspace key={`${scopeKey}/${detail.id}/${token}`} token={token} scope={selected()} caseId={detail.id} />}
+      </section>}
   </main>;
 }
