@@ -3,7 +3,7 @@
 # ----------------------------------------
 node_modules/
 dist/
-frontend/node_modules/
+frontend/node_modules
 frontend/dist/
 
 # 打包日志
@@ -99,3 +99,6 @@ backend/.env
 # Python local build metadata
 .ruff_cache/
 .tox/
+.acceptance/
+.acceptance-venv/
+acceptance-manifest.json

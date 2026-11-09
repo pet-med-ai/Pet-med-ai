@@ -1,0 +1,65 @@
+name: Treatment candidate fresh restore and browser
+
+on:
+  pull_request:
+    paths:
+      - 'backend/**'
+      - 'frontend/**'
+      - 'scripts/*treatment_acceptance*'
+      - 'tests/test_treatment_acceptance_kit.py'
+      - '.github/workflows/treatment-acceptance.yml'
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  fresh-candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt -r backend/requirements.txt
+      - name: Local PostgreSQL 17 tools (no existing service is used)
+        run: |
+          if [ ! -x /usr/lib/postgresql/17/bin/initdb ]; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-17
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm ci
+        working-directory: frontend
+      - name: Fresh-target host and control boundaries
+        env:
+          PMAI_ACCEPTANCE_POSTGRES_BIN: /usr/lib/postgresql/17/bin
+        run: python tests/test_treatment_acceptance_kit.py
+      - name: Independent pre-migration and post-signing restore
+        run: python scripts/treatment_acceptance.py --state "$RUNNER_TEMP/treatment-restore" drill --postgres-bin /usr/lib/postgresql/17/bin
+      - name: Browser tools
+        run: |
+          npm install --prefix "$RUNNER_TEMP/treatment-browser-deps" --no-package-lock @playwright/test@1.55.0
+          "$RUNNER_TEMP/treatment-browser-deps/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Current frontend with current API and disposable PostgreSQL
+        run: PMAI_PLAYWRIGHT_MODULE="$RUNNER_TEMP/treatment-browser-deps/node_modules/@playwright/test" python scripts/run_treatment_acceptance_browser.py --state "$RUNNER_TEMP/treatment-browser" --postgres-bin /usr/lib/postgresql/17/bin
+      - name: Save receipts (synthetic only; no accounts or tokens)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: treatment-acceptance-${{ github.event.pull_request.head.sha || github.sha }}
+          retention-days: 30
+          if-no-files-found: warn
+          path: |
+            ${{ runner.temp }}/treatment-restore/drill-receipt.json
+            ${{ runner.temp }}/treatment-restore/*fingerprint.json
+            ${{ runner.temp }}/treatment-browser/receipt.json
+            ${{ runner.temp }}/treatment-browser/chromium-receipt.json
+            ${{ runner.temp }}/treatment-browser/cleanup-receipt.json
+            ${{ runner.temp }}/treatment-browser/events.json
