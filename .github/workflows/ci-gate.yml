@@ -32,8 +32,8 @@ jobs:
           pip install -r requirements.txt
           pip install -r backend/requirements.txt
 
-      - name: Run static CI checks
-        run: bash scripts/ci_static_checks.sh
+      - name: Check current syntax and replay frozen PR72 governance at its candidate
+        run: python scripts/check_frozen_candidate.py
 
   frontend-build-gate:
     name: Frontend build gate

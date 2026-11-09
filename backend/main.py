@@ -78,6 +78,12 @@ CORS_ORIGINS = _csv_env(
 
 app = FastAPI(title="Pet Med AI Backend", version="1.0.0")
 
+# Explicit opt-in pilot. Unported legacy APIs are blocked in this mode.
+from multiclinic.api import router as multiclinic_router
+from multiclinic.gate import scope_gate
+app.middleware("http")(scope_gate)
+app.include_router(multiclinic_router)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=CORS_ORIGINS,

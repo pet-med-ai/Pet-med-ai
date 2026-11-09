@@ -21,6 +21,7 @@ if str(BACKEND_DIR) not in sys.path:
 
 from db import Base, DATABASE_URL, engine  # noqa: E402
 import models  # noqa: F401,E402  # import registers SQLAlchemy models on Base.metadata
+from multiclinic.migration_ownership import include_object
 
 target_metadata = Base.metadata
 
@@ -34,6 +35,7 @@ def run_migrations_offline() -> None:
         compare_type=True,
         compare_server_default=False,
         render_as_batch=DATABASE_URL.startswith("sqlite"),
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -48,6 +50,7 @@ def run_migrations_online() -> None:
             compare_type=True,
             compare_server_default=False,
             render_as_batch=DATABASE_URL.startswith("sqlite"),
+            include_object=include_object,
         )
 
         with context.begin_transaction():
