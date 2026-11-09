@@ -44,7 +44,7 @@ def engine_for(url):
 
 
 def get_db():
-    if mode() != "read_pilot":
+    if mode() not in ("read_pilot", "treatment_pilot"):
         raise HTTPException(503, "Clinic read pilot is not enabled")
     url = os.getenv("MULTICLINIC_DATABASE_URL", "")
     if not url:
@@ -52,7 +52,8 @@ def get_db():
     with Session(engine_for(url)) as db:
         # Fail closed for accidentally supplied owner credentials or a partially installed policy.
         ready = db.execute(
-            text("""SELECT current_user='pmai_scope_runtime'
+            text(
+                """SELECT current_user=:expected_role
           AND NOT r.rolsuper AND NOT r.rolbypassrls AND NOT r.rolcreaterole AND NOT r.rolinherit
           AND NOT r.rolcreatedb AND NOT r.rolreplication
           AND c.relrowsecurity AND c.relforcerowsecurity
@@ -65,10 +66,29 @@ def get_db():
           AND NOT EXISTS(SELECT FROM pg_namespace WHERE nspowner=r.oid)
           AND NOT EXISTS(SELECT FROM pg_auth_members WHERE member=r.oid)
           FROM pg_roles r,pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-          WHERE r.rolname=current_user AND n.nspname='public' AND c.relname='cases'""")
+          WHERE r.rolname=current_user AND n.nspname='public' AND c.relname='cases'"""
+            ),
+            {
+                "expected_role": (
+                    "pmai_treatment_runtime"
+                    if mode() == "treatment_pilot"
+                    else "pmai_scope_runtime"
+                )
+            },
         ).scalar()
         if not ready:
             raise HTTPException(503, "Clinic runtime role or row policy is not ready")
+        if mode() == "treatment_pilot":
+            installed = db.execute(
+                text(
+                    """SELECT count(*)=9 AND bool_and(relrowsecurity AND relforcerowsecurity)
+                FROM pg_class WHERE relnamespace='public'::regnamespace AND relname IN
+                ('treatment_plans','treatment_drafts','treatment_revisions','treatment_reviews','treatment_signatures',
+                 'treatment_events','clinical_audit_events','command_receipts','signing_challenges')"""
+                )
+            ).scalar()
+            if not installed:
+                raise HTTPException(503, "Treatment schema and policies are not ready")
         yield db
         # Read requests deliberately never commit; SET LOCAL cannot leak through the pool.
 
@@ -83,8 +103,10 @@ def login(body: Login, response: Response, db: Session = Depends(get_db)):
     key = secret()
     row = (
         db.execute(
-            text("""SELECT id,hashed_password,token_version,status,principal_kind FROM users
-                             WHERE email=:email"""),
+            text(
+                """SELECT id,hashed_password,token_version,status,principal_kind FROM users
+                             WHERE email=:email"""
+            ),
             {"email": body.email.strip()},
         )
         .mappings()
@@ -110,8 +132,10 @@ def login(body: Login, response: Response, db: Session = Depends(get_db)):
     sid, now = str(uuid4()), datetime.now(timezone.utc)
     expires = now + timedelta(minutes=15)
     db.execute(
-        text("""INSERT INTO auth_sessions(id,user_id,token_version,expires_at)
-                       VALUES (:sid,:user,:tv,:expires)"""),
+        text(
+            """INSERT INTO auth_sessions(id,user_id,token_version,expires_at)
+                       VALUES (:sid,:user,:tv,:expires)"""
+        ),
         {"sid": sid, "user": row["id"], "tv": row["token_version"], "expires": expires},
     )
     db.commit()
@@ -157,10 +181,12 @@ def principal(
     except (JWTError, ValueError, KeyError, TypeError):
         raise HTTPException(401, "Session expired; log in again")
     row = db.execute(
-        text("""SELECT s.id FROM auth_sessions s JOIN users u ON u.id=s.user_id
+        text(
+            """SELECT s.id FROM auth_sessions s JOIN users u ON u.id=s.user_id
        WHERE s.id=:sid AND s.user_id=:actor AND s.token_version=:tv AND u.token_version=s.token_version
          AND s.revoked_at IS NULL AND s.expires_at>statement_timestamp()
-         AND u.status='active' AND u.principal_kind='human'"""),
+         AND u.status='active' AND u.principal_kind='human'"""
+        ),
         {"sid": sid, "actor": actor, "tv": claims["tv"]},
     ).first()
     if not row:

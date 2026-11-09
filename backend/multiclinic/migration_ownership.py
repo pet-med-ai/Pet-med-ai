@@ -15,9 +15,24 @@ TABLES = frozenset(
         "auth_sessions",
         "access_audit_events",
         "migration_batches",
+        "clinician_profiles",
+        "treatment_plans",
+        "treatment_drafts",
+        "treatment_revisions",
+        "treatment_reviews",
+        "signing_challenges",
+        "treatment_signatures",
+        "treatment_events",
+        "clinical_audit_events",
+        "command_receipts",
     }
 )
 COLUMNS = {
+    "organizations": {
+        "review_policy",
+        "required_signing_assurance",
+        "signing_policy_version",
+    },
     "users": {"status", "principal_kind", "token_version"},
     "cases": {
         "org_id",
@@ -46,7 +61,8 @@ CONSTRAINTS = frozenset(
 def include_object(obj, name, type_, reflected, compare_to):
     if reflected and compare_to is None:
         if type_ == "table" and (
-            name in TABLES or getattr(obj, "schema", None) == "pmai_scope"
+            name in TABLES
+            or getattr(obj, "schema", None) in ("pmai_scope", "pmai_treatment")
         ):
             return False
         if type_ == "column" and name in COLUMNS.get(obj.table.name, set()):

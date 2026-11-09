@@ -33,16 +33,22 @@ jobs:
         env:
           PMAI_TEST_POSTGRES_ADMIN_URL: postgresql+psycopg2://postgres:synthetic-ci-only@127.0.0.1:5432/postgres
         run: python scripts/run_multiclinic_tests.py
+      - name: Treatment persistence, account attestations and atomic recovery
+        env:
+          PMAI_TEST_POSTGRES_ADMIN_URL: postgresql+psycopg2://postgres:synthetic-ci-only@127.0.0.1:5432/postgres
+          PMAI_POSTGRES_TEST_PATTERN: test_treatment_postgres.py
+        run: python scripts/run_multiclinic_tests.py
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
       - run: npm ci
         working-directory: frontend
       - name: Clinic switching and legacy auth regressions
-        run: node tests/run-consult-update-review.mjs clinic-read-pilot case-list-auth case-detail-auth-expiry
+        run: node tests/run-consult-update-review.mjs clinic-read-pilot treatment-workspace case-list-auth case-detail-auth-expiry
         working-directory: frontend
       - name: Build clinic pilot
         env:
           VITE_MULTICLINIC_READ_PILOT: "1"
+          VITE_TREATMENT_PILOT: "1"
         run: npm run build
         working-directory: frontend

@@ -26,7 +26,7 @@ def run(env):
             "-s",
             "tests",
             "-p",
-            "test_multiclinic_postgres.py",
+            env.get("PMAI_POSTGRES_TEST_PATTERN", "test_multiclinic_postgres.py"),
             "-v",
         ],
         env=env,

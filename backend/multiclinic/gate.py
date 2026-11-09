@@ -9,7 +9,7 @@ async def scope_gate(request, call_next):
     if selected != "off":
         path = request.url.path
         allowed = path in ("/healthz", "/healthz/") or path.startswith("/api/v2/")
-        if selected != "read_pilot" or not allowed:
+        if selected not in ("read_pilot", "treatment_pilot") or not allowed:
             return JSONResponse(
                 status_code=409,
                 content={
