@@ -44,7 +44,11 @@ async function review() {
   await page.getByLabel('已核对冻结版本', { exact: true }).check();
   await page.getByLabel('操作原因', { exact: true }).fill('核对合成原文');
   await page.getByRole('button', { name: '审核通过', exact: true }).click();
-  await expect(page.locator('[aria-label="冻结版本"]')).toContainText('审核通过');
+  // The action button itself also says 审核通过. Wait for the persisted review,
+  // after reload has reset the previous acknowledgement, before checking again.
+  await expect(page.getByRole('button', { name: '审核通过', exact: true })).toHaveCount(0);
+  await expect(page.locator('[aria-label="冻结版本"]')).toContainText('审核：');
+  await expect(page.getByLabel('已核对冻结版本', { exact: true })).toBeEnabled();
 }
 async function sign() {
   await page.getByLabel('已核对冻结版本', { exact: true }).check();
@@ -136,5 +140,6 @@ try {
   throw error;
 } finally {
   fs.writeFileSync(path.join(state, 'chromium-receipt.json'), JSON.stringify(result, null, 2));
+  console.log(JSON.stringify(result));
   await browser.close();
 }

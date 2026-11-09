@@ -55,6 +55,8 @@ jobs:
           "$RUNNER_TEMP/treatment-browser-deps/node_modules/.bin/playwright" install --with-deps chromium
       - name: Current frontend with current API and disposable PostgreSQL
         run: PMAI_PLAYWRIGHT_MODULE="$RUNNER_TEMP/treatment-browser-deps/node_modules/@playwright/test" python scripts/run_treatment_acceptance_browser.py --state "$RUNNER_TEMP/treatment-browser" --postgres-bin /usr/lib/postgresql/17/bin
+      - name: Package the exact candidate for Mac
+        run: python scripts/package_treatment_acceptance.py "$RUNNER_TEMP/treatment-kit.tar.gz"
       - name: Save receipts (synthetic only; no accounts or tokens)
         if: always()
         uses: actions/upload-artifact@v4
@@ -69,3 +71,4 @@ jobs:
             ${{ runner.temp }}/treatment-browser/chromium-receipt.json
             ${{ runner.temp }}/treatment-browser/cleanup-receipt.json
             ${{ runner.temp }}/treatment-browser/events.json
+            ${{ runner.temp }}/treatment-kit.tar.gz
