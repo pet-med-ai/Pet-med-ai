@@ -62,6 +62,7 @@ class HostTests(unittest.TestCase):
         cls.tmp = tempfile.TemporaryDirectory(prefix="pmai-host-check-")
         cls.state = Path(cls.tmp.name)
         cls.cluster = support.Cluster(cls.state / "postgres", os.environ["PMAI_ACCEPTANCE_POSTGRES_BIN"]).__enter__()
+        support.check(cls.cluster.password != cls.cluster.runtime_password, "Admin and runtime passwords must be independent")
         cls.fixture = support.seed_legacy(cls.cluster)
         support.expand_and_seed(cls.cluster, cls.fixture)
         cls.receipt = {"session": str(cls.state), "candidate": {"baseline": support.BASELINE}, "manual_safari_result": "PENDING"}

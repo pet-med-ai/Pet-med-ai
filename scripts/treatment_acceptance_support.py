@@ -86,6 +86,7 @@ class Cluster:
     def __init__(self, path, pg_bin, admin="pmai_acceptance_admin"):
         self.path, self.bin = Path(path).resolve(), Path(pg_bin).resolve()
         self.admin, self.password = admin, secrets.token_urlsafe(32)
+        self.runtime_password = secrets.token_urlsafe(32)
         self.port, self.process, self.log = free_port(), None, None
         self.engines = []
 
@@ -94,7 +95,8 @@ class Cluster:
         return subprocess.run([str(self.bin / tool), *map(str, args)], env=env, check=True, **kwargs)
 
     def url(self, database=DBNAME, user=None, password=None):
-        return URL.create("postgresql+psycopg2", username=user or self.admin, password=password or self.password, host="127.0.0.1", port=self.port, database=database).render_as_string(hide_password=False)
+        selected_password = password if password is not None else self.runtime_password if user == "pmai_treatment_runtime" else self.password
+        return URL.create("postgresql+psycopg2", username=user or self.admin, password=selected_password, host="127.0.0.1", port=self.port, database=database).render_as_string(hide_password=False)
 
     def engine(self, database=DBNAME, user=None, password=None):
         engine = sa.create_engine(self.url(database, user, password))
@@ -204,7 +206,7 @@ def expand_and_seed(cluster, f):
     repeated = import_legacy(owner, **args, apply=True, expected_sha256=preview["source_sha256"])
     with owner.begin() as conn:
         check(conn.exec_driver_sql("SELECT count(*) FROM treatment_signatures").scalar() == 0, "Import manufactured signature")
-        conn.execute(sa.text("ALTER ROLE pmai_treatment_runtime PASSWORD :p"), {"p": cluster.password})
+        conn.execute(sa.text("ALTER ROLE pmai_treatment_runtime PASSWORD :p"), {"p": cluster.runtime_password})
     return {"backfill_dry_run": dry, "backfill_apply": applied, "backfill_replay": replay, "private_history_preserved": True, "source_text_preserved": True, "unsigned_import": imported, "unsigned_import_replay": repeated, "migration_chain": ["0009_diag_data", "mc01_scope_expand", "mc02_treatment_store"]}
 
 
@@ -283,4 +285,4 @@ def restore(cluster, archive):
     cluster.run("psql", "-X", "--set", "ON_ERROR_STOP=1", "--file", archive.with_suffix(".roles.sql"), stdout=subprocess.DEVNULL)
     cluster.run("pg_restore", "--exit-on-error", "--create", "--dbname", "postgres", archive)
     with cluster.engine().begin() as conn:
-        conn.execute(sa.text("ALTER ROLE pmai_treatment_runtime PASSWORD :p"), {"p": cluster.password}) if conn.exec_driver_sql("SELECT EXISTS(SELECT FROM pg_roles WHERE rolname='pmai_treatment_runtime')").scalar() else None
+        conn.execute(sa.text("ALTER ROLE pmai_treatment_runtime PASSWORD :p"), {"p": cluster.runtime_password}) if conn.exec_driver_sql("SELECT EXISTS(SELECT FROM pg_roles WHERE rolname='pmai_treatment_runtime')").scalar() else None
