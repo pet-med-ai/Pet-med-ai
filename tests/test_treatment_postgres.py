@@ -379,6 +379,15 @@ class TreatmentPostgresTests(unittest.TestCase):
             ).json()["state"],
             "revoked",
         )
+        # A revoked amendment must not permanently strand the treatment plan.
+        self.assertIsNone(g["draft"]["amendment_of"])
+        self.assertEqual(g["draft"]["content"], CONTENT)
+        rid3 = self.freeze()
+        sid3 = self.sign(rid3, self.review(rid3))
+        g = self.get()
+        self.assertEqual(g["plan"]["active_signature_id"], sid3)
+        self.assertEqual(len(g["signatures"]), 3)
+        self.assertEqual(len(g["events"]), 2)
 
     def test_07_cancel_before_request_fences_late_worker(self):
         key = uuid4().hex + uuid4().hex
@@ -707,3 +716,47 @@ class TreatmentPostgresTests(unittest.TestCase):
                 {"id": self.case},
             )
         self.assertEqual(self.get()["plan"]["active_signature_id"], sid)
+
+    def test_19_revocation_keeps_open_draft_but_invalidates_its_old_approval(self):
+        rid = self.freeze()
+        sid = self.sign(rid, self.review(rid))
+        r = self.mutation("amend", {"base_signature_id": sid, "reason": "new draft"})
+        self.assertEqual(r.status_code, 201, r.text)
+        content = copy.deepcopy(CONTENT)
+        content["assessment"] = "保留未签署修订的原文 café 🐾\n{{literal}}"
+        r = self.mutation("draft.save", {"content": content})
+        self.assertEqual(r.status_code, 201, r.text)
+        before = self.get()
+        r = self.mutation("revision.freeze", {
+            "draft_version": before["draft"]["draft_version"],
+            "expected_source_epoch": before["source_epoch"],
+        })
+        self.assertEqual(r.status_code, 201, r.text)
+        pending_revision = r.json()["revision_id"]
+        approval = self.review(pending_revision)
+        proof = self.challenge(pending_revision)
+        old_hash = self.get()["revisions"][0]["content_sha256"]
+        revoke_proof = self.challenge(rid, "revoke", sid)
+        r = self.mutation("revoke", {
+            "challenge_id": revoke_proof, "reason": "撤回当前签署，保留新草稿"
+        }, target=sid)
+        self.assertEqual(r.status_code, 201, r.text)
+        after = self.get()
+        self.assertEqual(after["draft"]["content"], content)
+        self.assertIsNone(after["draft"]["amendment_of"])
+        self.assertEqual(after["draft"]["draft_version"], before["draft"]["draft_version"] + 1)
+        self.assertIsNone(after["plan"]["active_signature_id"])
+        r = self.mutation("sign", {
+            "review_id": approval, "content_hash": old_hash, "challenge_id": proof,
+        }, target=pending_revision)
+        self.assertEqual(r.status_code, 409, r.text)
+        self.assertEqual(r.json()["code"], "DRAFT_CHANGED")
+        r = self.mutation("revision.freeze", {
+            "draft_version": after["draft"]["draft_version"],
+            "expected_source_epoch": after["source_epoch"],
+        })
+        self.assertEqual(r.status_code, 201, r.text)
+        fresh_revision = r.json()["revision_id"]
+        fresh_signature = self.sign(fresh_revision, self.review(fresh_revision))
+        self.assertEqual(self.get()["plan"]["active_signature_id"], fresh_signature)
+        self.assertEqual(self.get()["draft"]["content"], content)

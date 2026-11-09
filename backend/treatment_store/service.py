@@ -837,6 +837,16 @@ def mutate(db, actor, p, cmd, ctx, op, target, precondition, body):
             text("UPDATE treatment_plans SET active_signature_id=NULL WHERE id=:p"),
             {"p": p["id"]},
         )
+        # Keep any open draft verbatim, but detach it from the now-terminal
+        # signature. A new draft version fences its old approval/challenge and
+        # permits a freshly frozen, reviewed and authenticated replacement.
+        if d:
+            db.execute(
+                text(
+                    "UPDATE treatment_drafts SET amendment_of=NULL,draft_version=draft_version+1,updated_by=:a,updated_at=clock_timestamp() WHERE plan_id=:p"
+                ),
+                {"a": actor["id"], "p": p["id"]},
+            )
         return {"signature_id": target, "event_id": eid}
     raise Problem(422, "INVALID_OPERATION")
 

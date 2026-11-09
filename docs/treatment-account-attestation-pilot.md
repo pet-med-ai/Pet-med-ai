@@ -65,6 +65,12 @@ also takes the organization lock. Signature, audit, optional supersession, activ
 pointer and committed receipt share one transaction. Unexpected failures roll back
 all domain facts while preserving the separately reserved pending receipt.
 
+Revocation retains the exact open draft and all signed history, clears its active
+amendment target, and advances the draft version in that same transaction. Earlier
+frozen approvals and challenges cannot sign it after revocation. A replacement
+requires a new freeze, review and password confirmation; it never reactivates a
+revoked signature.
+
 Commands reserve a 60-second lease. They are never automatically re-executed with
 a new key. Pending commands are queried or explicitly cancelled; late execution
 must still find the same pending receipt and an unexpired lease. Cancellation
@@ -129,7 +135,8 @@ Native Mac/Safari acceptance is still required for this **new** increment:
 4. A changed draft or diagnostic source invalidates the earlier frozen revision.
 5. 401 during work preserves copyable raw text and disables old confirmation.
 6. Stop waiting/lost response → same-account login → original-key lookup without duplicate signing.
-7. Two-person policy, amendment replacement and revocation history.
+7. Two-person policy, amendment replacement, revocation history and a newly
+   reviewed signature after revocation, preserving any open draft.
 8. Different account/case/clinic and late responses cannot disclose previous content.
 
 Existing S6–S8A evidence does not substitute for these new native-browser checks.
