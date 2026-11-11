@@ -2,6 +2,7 @@
 
 import copy
 from concurrent.futures import ThreadPoolExecutor
+from hashlib import sha256
 import json
 import os
 from pathlib import Path
@@ -760,3 +761,101 @@ class TreatmentPostgresTests(unittest.TestCase):
         fresh_signature = self.sign(fresh_revision, self.review(fresh_revision))
         self.assertEqual(self.get()["plan"]["active_signature_id"], fresh_signature)
         self.assertEqual(self.get()["draft"]["content"], content)
+
+    def test_20_actual_application_keeps_json_login_and_legacy_gate(self):
+        fixture.ClinicPostgresTests.assert_actual_application_auth_contract(self)
+
+    def test_21_large_json_defaults_and_literal_bytes_survive_signing(self):
+        literal = "  e\u0301 café 🐾\r\n\t"
+        content = {
+            "diagnoses": [{"label": "合成诊断"}],
+            "assessment": literal,
+            "treatment": {"management_text": literal + "界" * 6000 + " \n"},
+        }
+        # Independent wire-format oracle, not the application's canonicalizer.
+        # Includes decomposed/composed accents, whitespace, emoji and defaults.
+        golden = (
+            '{"assessment":"  e\u0301 café 🐾\\r\\n\\t",'
+            '"diagnoses":[{"code":null,"code_system":null,"label":"合成诊断"}],'
+            '"linked_orders":[],"provenance":{"ai_generation_ids":[],"voice_transcript_revision_ids":[]},'
+            '"schema":"treatment-content-v1","treatment":{"followup_text":"","goals":[],"management_text":"'
+            '  e\u0301 café 🐾\\r\\n\\t' + "界" * 6000 + ' \\n","monitoring_text":""}}'
+        ).encode("utf-8")
+        self.assertEqual(sha256(golden).hexdigest(), "8d67bb97dd5f0fe9f846ee6fd0a76030adb9061dca986ed7ad1353f0af8ced14")
+        request_bytes = json.dumps({"content": content}, ensure_ascii=False).encode("utf-8")
+        self.assertGreater(len(request_bytes), 16 * 1024)
+        response = self.client.patch(
+            self.root + "/treatment/draft", content=request_bytes,
+            headers={**self.headers, "Content-Type": "application/json", "If-None-Match": "*",
+                     "Idempotency-Key": uuid4().hex + uuid4().hex},
+        )
+        self.assertEqual(response.status_code, 201, response.text)
+        saved = self.get()
+        self.assertEqual(saved["draft"]["content"], json.loads(golden))
+        response = self.mutation("revision.freeze", {
+            "draft_version": saved["draft"]["draft_version"],
+            "expected_source_epoch": saved["source_epoch"],
+        })
+        self.assertEqual(response.status_code, 201, response.text)
+        rid = response.json()["revision_id"]
+        sid = self.sign(rid, self.review(rid))
+        response = self.client.get(self.root + "/treatment/signatures/" + sid, headers=self.headers)
+        self.assertEqual(response.status_code, 200, response.text)
+        signed = response.json()
+        self.assertEqual(signed["revision"]["content"], json.loads(golden))
+        canonical_bytes = signed["revision"]["canonical_utf8"].encode("utf-8")
+        self.assertIn(b'"content":' + golden + b',"created_at":', canonical_bytes)
+        self.assertEqual(sha256(canonical_bytes).hexdigest(), signed["signature"]["content_hash"])
+        self.assertEqual(signed["state"], "effective")
+
+    def treatment_snapshot(self):
+        tables = ("treatment_plans", "treatment_drafts", "treatment_revisions", "treatment_reviews",
+                  "treatment_signatures", "treatment_events", "clinical_audit_events", "command_receipts", "signing_challenges")
+        with self.owner.connect() as conn:
+            return {table: sorted(conn.execute(
+                sa.text(f"SELECT row_to_json(t)::text FROM {table} t WHERE case_id=:case_id"),
+                {"case_id": self.case},
+            ).scalars().all()) for table in tables}
+
+    def test_22_strict_payload_rejections_have_no_treatment_side_effects(self):
+        invalid = [
+            {**CONTENT, "assessment": 123},
+            {**CONTENT, "signer_id": 1},
+            {**CONTENT, "diagnoses": [{"label": None}]},
+            {**CONTENT, "treatment": {**CONTENT["treatment"], "goals": [1]}},
+            {**CONTENT, "treatment": {**CONTENT["treatment"], "management_text": "x" * 30001}},
+        ]
+        before = self.treatment_snapshot()
+        for index, content in enumerate(invalid):
+            with self.subTest(invalid_payload=index):
+                response = self.mutation("draft.save", {"content": content})
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertEqual(self.treatment_snapshot(), before)
+        for value in (True, "1", 1.0):
+            with self.subTest(draft_version=value):
+                response = self.mutation("revision.freeze", {"draft_version": value, "expected_source_epoch": 1})
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertEqual(self.treatment_snapshot(), before)
+
+    def test_23_invalid_uuids_and_hashes_do_not_create_signing_state(self):
+        rid = self.freeze()
+        review = self.review(rid)
+        value_hash = self.get()["revisions"][0]["content_sha256"]
+        reauth = {**self.scope, "revision_id": rid, "content_hash": value_hash,
+                  "action": "sign", "password": self.password}
+        before = self.treatment_snapshot()
+        for invalid in ({"org_id": "not-a-uuid"}, {"revision_id": "not-a-uuid"},
+                        {"content_hash": "g" * 64}, {"case_id": str(self.case)},
+                        {"action": "approve"}, {"signer_id": 1}):
+            with self.subTest(reauth=invalid):
+                response = self.client.post("/api/v2/auth/reauthenticate", headers=self.headers,
+                                            json={**reauth, **invalid})
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertEqual(self.treatment_snapshot(), before)
+        valid_shape = {"review_id": review, "content_hash": value_hash, "challenge_id": str(uuid4())}
+        for invalid in ({"review_id": "not-a-uuid"}, {"challenge_id": "not-a-uuid"},
+                        {"content_hash": "g" * 64}):
+            with self.subTest(sign=invalid):
+                response = self.mutation("sign", {**valid_shape, **invalid}, target=rid)
+                self.assertEqual(response.status_code, 422, response.text)
+                self.assertEqual(self.treatment_snapshot(), before)

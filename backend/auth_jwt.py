@@ -10,6 +10,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from db import SessionLocal
+from login_form_limits import LoginFormRoute
 from sqlalchemy import select, String, Integer, DateTime
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -93,7 +94,7 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
     return user
 
 # ------- Router -------
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix="/auth", tags=["auth"], route_class=LoginFormRoute)
 
 @router.post("/signup", response_model=UserOut)
 def signup(data: UserCreate, db: Session = Depends(get_db)):

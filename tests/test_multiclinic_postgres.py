@@ -579,28 +579,73 @@ class ClinicPostgresTests(unittest.TestCase):
         )
 
     def test_15_actual_application_routes_are_guarded(self):
+        self.assert_actual_application_auth_contract()
+
+    def assert_actual_application_auth_contract(self):
         # Match deployment's backend-only import path in a fresh process; legacy
         # modules support both package and flat imports, which must not be mixed.
         code = """
 import os
+from uuid import UUID
+from jose import jwt
 from fastapi.testclient import TestClient
 from main import app
+from multiclinic.api import AUDIENCE
 with TestClient(app) as client:
-    auth={'Authorization': os.environ['PMAI_TEST_TOKEN']}
     assert client.get('/healthz').status_code == 200
-    assert client.get('/api/cases/1',headers=auth).status_code == 409
+    assert client.get('/api/cases/1').status_code == 409
     assert client.post('/auth/signup',json={}).status_code == 409
+    login={'email':'u1@example.invalid','password':os.environ['PMAI_TEST_PASSWORD']}
+    form={'username':login['email'],'password':login['password']}
+    for body in ({'data':form}, {'files':{k:(None,v) for k,v in form.items()}},
+                 {'json':login}):
+        response=client.post('/auth/login',**body)
+        assert response.status_code == 409, response.text
+        assert response.json()['code'] == 'CLINIC_WORKFLOW_NOT_PORTED'
+    response=client.post('/api/v2/auth/login',json=login)
+    assert response.status_code == 200, response.text
+    assert response.headers['cache-control'] == 'no-store'
+    assert response.headers['pragma'] == 'no-cache'
+    token=response.json()
+    assert set(token) == {'access_token','token_type','expires_in'}
+    assert token['token_type'] == 'bearer' and token['expires_in'] == 900
+    claims=jwt.decode(token['access_token'],os.environ['MULTICLINIC_TOKEN_SECRET'],
+                      algorithms=['HS256'],audience=AUDIENCE,issuer=AUDIENCE)
+    assert claims['sub'] == '1' and claims['ver'] == 2 and claims['tv'] == 1
+    assert str(UUID(claims['sid'])) == claims['sid']
+    assert claims['exp']-claims['iat'] == 900
+    auth={'Authorization':'Bearer '+token['access_token']}
+    assert client.get('/api/cases/1',headers=auth).status_code == 409
     response=client.get(os.environ['PMAI_TEST_PATH'],headers=auth)
     assert response.status_code == 200, response.text
+    assert response.headers['cache-control'] == 'no-store'
+    assert client.get(os.environ['PMAI_TEST_PATH']).status_code == 401
+    bad=client.post('/api/v2/auth/login',json={**login,'password':'incorrect'})
+    assert bad.status_code == 401, bad.text
+    assert bad.headers['cache-control'] == 'no-store'
+    assert client.post('/api/v2/auth/login',json={'email':login['email']}).status_code == 422
+    assert client.post('/api/v2/auth/login',data=form).status_code == 422
+    old=jwt.encode({'sub':login['email'],'exp':claims['exp']},
+                   os.environ['MULTICLINIC_TOKEN_SECRET'],algorithm='HS256')
+    assert client.get(os.environ['PMAI_TEST_PATH'],headers={'Authorization':'Bearer '+old}).status_code == 401
+    assert client.post('/api/v2/auth/logout',headers=auth).status_code == 204
+    assert client.get(os.environ['PMAI_TEST_PATH'],headers=auth).status_code == 401
 """
         with tempfile.TemporaryDirectory() as cwd:
+            # Only this fixture's fresh database and generated session settings
+            # enter the real application; inherited connection settings do not.
+            keep = ("PATH", "HOME", "LANG", "LC_ALL", "LD_LIBRARY_PATH", "SSL_CERT_FILE", "SSL_CERT_DIR")
             result = subprocess.run(
                 [sys.executable, "-c", code],
                 cwd=cwd,
                 env={
-                    **os.environ,
+                    **{k: os.environ[k] for k in keep if k in os.environ},
                     "PYTHONPATH": str(ROOT / "backend"),
-                    "PMAI_TEST_TOKEN": self.auth()["Authorization"],
+                    "DATABASE_URL": self.runtime_url,
+                    "MULTICLINIC_DATABASE_URL": self.runtime_url,
+                    "MULTICLINIC_TOKEN_SECRET": KEY,
+                    "PMAI_MULTICLINIC_MODE": os.environ["PMAI_MULTICLINIC_MODE"],
+                    "PMAI_TEST_PASSWORD": self.password,
                     "PMAI_TEST_PATH": self.url(1),
                 },
                 capture_output=True,
