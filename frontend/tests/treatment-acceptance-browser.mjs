@@ -93,6 +93,52 @@ async function rejectWrongPassword(action) {
   assert.equal(caseWritePaths.length, writesBefore, 'Rejected proof must not send a case mutation');
   return writesBefore;
 }
+async function checkDiscardOnCaseSwitch() {
+  const heading = page.locator('[aria-label="病例详情"] h2').first();
+  const assessment = page.getByLabel('治疗评估', { exact: true });
+  const rowButton = id => page.getByRole('row')
+    .filter({ has: page.getByRole('cell', { name: '#' + id, exact: true }) })
+    .getByRole('button', { name: '查看', exact: true });
+  const writesBefore = caseWritePaths.length;
+  await openCase(110);
+  // Only #104 has an imported treatment draft. #110 starts with an empty assessment.
+  await expect(assessment).toHaveValue('');
+  const localText = '仅在本页的合成评估 🐾\n未保存 {{navigation}}';
+  await assessment.fill(localText);
+
+  async function selectImportedCase(discard) {
+    const targetPath = `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/104`;
+    const [prompt, detail] = await Promise.all([
+      page.waitForEvent('dialog', { timeout: 10000 }).then(async dialog => {
+        const observed = { type: dialog.type(), message: dialog.message() };
+        if (discard) await dialog.accept();
+        else await dialog.dismiss();
+        return observed;
+      }),
+      page.waitForResponse(response => response.request().method() === 'GET' && new URL(response.url()).pathname === targetPath),
+      rowButton(104).click(),
+    ]);
+    assert.equal(detail.status(), 200);
+    assert.equal(prompt.type, 'confirm');
+    assert.match(prompt.message, /未保存.*草稿/);
+  }
+
+  await selectImportedCase(false);
+  await expect(heading).toContainText('#110');
+  await expect(assessment).toHaveValue(localText);
+  await expect(page.getByText('有尚未保存的修改。保存后才能冻结和签署。', { exact: true })).toBeVisible();
+
+  await selectImportedCase(true);
+  await expect(heading).toContainText('#104');
+  await expect(assessment).toHaveValue(text);
+  await expect(page.getByLabel('治疗措施', { exact: true })).toHaveValue(text);
+
+  await rowButton(110).click();
+  await expect(heading).toContainText('#110');
+  await expect(assessment).toHaveValue('');
+  assert.equal(caseWritePaths.length, writesBefore, 'Navigating and discarding must send no case mutation');
+  checks.push('dirty-case-switch-cancel-preserves-confirm-discards-without-write');
+}
 async function prepared(kind, after=0) {
   await expect.poll(() => {
     const events = JSON.parse(fs.readFileSync(path.join(state, 'events.json')));
@@ -102,7 +148,9 @@ async function prepared(kind, after=0) {
 
 try {
   await page.goto(receipt.url);
-  await login(); await openCase(101); await freeze(); await review();
+  await login();
+  await checkDiscardOnCaseSwitch();
+  await openCase(101); await freeze(); await review();
   const beforeSign = await rejectWrongPassword('sign');
   await sign(); await readback();
   assert.equal(caseWritePaths.length, beforeSign + 1);

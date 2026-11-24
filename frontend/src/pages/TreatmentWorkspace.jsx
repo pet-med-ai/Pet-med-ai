@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import './TreatmentWorkspace.css';
 import TreatmentDraftList, { draftListItems } from './TreatmentDraftList';
 
@@ -32,7 +32,7 @@ const errors = {
   AMENDMENT_REQUIRED: '已签署内容需要先创建修订草稿。', SESSION_EXPIRED: '登录已失效。', REAUTHENTICATION_FAILED: '再次认证失败。',
 };
 
-export default function TreatmentWorkspace({ token, scope, caseId }) {
+export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef }) {
   const path = `/organizations/${scope.org_id}/clinics/${scope.clinic_id}/cases/${caseId}`;
   const [data, setData] = useState(null), [content, setContent] = useState(empty);
   const [listEdits, setListEdits] = useState({});
@@ -44,6 +44,14 @@ export default function TreatmentWorkspace({ token, scope, caseId }) {
   const [checked, setChecked] = useState(false), [password, setPassword] = useState(''), [reason, setReason] = useState('');
   const [message, setMessage] = useState(''), [pending, setPending] = useState(null), [verified, setVerified] = useState(null);
   const work = useRef({ epoch: 0, controller: null }), storage = useRef(null), pendingRef = useRef(null);
+  useImperativeHandle(workspaceRef, () => ({
+    dirty,
+    refreshWhenIdle() {
+      if (busy || expired || pendingRef.current) return;
+      setVerified(null); setReason('');
+      return refresh();
+    },
+  }));
   function task() {
     work.current.controller?.abort(); const controller = new AbortController(); const epoch = ++work.current.epoch;
     work.current.controller = controller;
@@ -61,6 +69,9 @@ export default function TreatmentWorkspace({ token, scope, caseId }) {
     const response = await fetch(base + '/api/v2' + suffix, { method, signal: t.signal, cache: 'no-store', credentials: 'omit',
       headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+    if (method === 'GET' && suffix === path + '/treatment' && (response.status === 403 || response.status === 404)) {
+      throw Object.assign(new Error('当前无法查看此病例的治疗记录。'), { aggregateDenied: true });
+    }
     // A proxy or expired session can return a 401 without a JSON body.
     const result = response.status === 401 ? await response.json().catch(() => null) : await response.json();
     if (!t.current()) throw Object.assign(new Error('stale'), { stale: true });
@@ -75,7 +86,10 @@ export default function TreatmentWorkspace({ token, scope, caseId }) {
   function failed(error, t) {
     if (!t.current() || error.stale || error.name === 'AbortError') return;
     setChecked(false); setRevokeChecked(false); setPassword(''); setVerified(null);
-    if (error.status === 401) {
+    if (error.aggregateDenied) {
+      setData(null); setContent(empty()); setListEdits({}); setEditBase(null); setRejectedDraft(false); setReason('');
+      setMessage(error.message);
+    } else if (error.status === 401) {
       if (error.rejectedPassword) {
         setMessage('再次认证未通过，本次操作尚未提交。请重新核对并输入当前账号密码。');
         return;
@@ -172,7 +186,7 @@ export default function TreatmentWorkspace({ token, scope, caseId }) {
     finally { if (t.current()) { setBusy(false); setPassword(''); } }
   }
   async function recover(cancel = false) {
-    if (busy || expired || !pending) return;
+    if (busy || expired || !pending || !data) return;
     const t = task(); setBusy(true);
     try {
       const suffix = path + '/commands/' + pending.key + (cancel ? '/cancel' : '?operation=' + pending.operation);
@@ -192,8 +206,8 @@ export default function TreatmentWorkspace({ token, scope, caseId }) {
     <p>{scope.org_name}／{scope.clinic_name} · 病例 #{caseId}</p>
     <p>医生审核后以院内账号确认签署。此入口不执行处方、不调用证书签名服务。</p>
     {message && <p role="status">{message}</p>}{busy && <p role="status">正在核对……</p>}
-    {pending && <aside><p>待核对请求：{pending.key}</p>{busy && <button onClick={() => { task(); setBusy(false); setPassword(''); setChecked(false); setRevokeChecked(false); setMessage('已停止等待，原请求仍需查询或取消。'); }}>停止等待（保留原请求）</button>}<button disabled={busy || expired} onClick={() => recover()}>查询原请求</button>{' '}
-      <button disabled={busy || expired} onClick={() => recover(true)}>取消原请求</button></aside>}
+    {pending && <aside><p>待核对请求：{pending.key}</p>{busy && <button onClick={() => { task(); setBusy(false); setPassword(''); setChecked(false); setRevokeChecked(false); setMessage('已停止等待，原请求仍需查询或取消。'); }}>停止等待（保留原请求）</button>}<button disabled={busy || expired || !data} onClick={() => recover()}>查询原请求</button>{' '}
+      <button disabled={busy || expired || !data} onClick={() => recover(true)}>取消原请求</button></aside>}
     {expired ? <section><h3>未保存原文 · 只读保留</h3><ContentView content={currentContent(true)} /></section> : <>
       <button disabled={busy} onClick={() => refresh()}>重新读取治疗记录</button>
       {data && <>
