@@ -61,17 +61,31 @@ export default function TreatmentWorkspace({ token, scope, caseId }) {
     const response = await fetch(base + '/api/v2' + suffix, { method, signal: t.signal, cache: 'no-store', credentials: 'omit',
       headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-    const result = await response.json();
+    // A proxy or expired session can return a 401 without a JSON body.
+    const result = response.status === 401 ? await response.json().catch(() => null) : await response.json();
     if (!t.current()) throw Object.assign(new Error('stale'), { stale: true });
-    // Receipts can have a terminal 4xx status; keep their state for reconciliation.
-    if (!response.ok && !result.state) throw Object.assign(new Error(result.code || result.detail || '读取失败'), { status: response.status, code: result.code });
+    // Only business endpoints return terminal command receipts with a 4xx status.
+    if (response.status === 401 || (!response.ok && (suffix === '/auth/reauthenticate' || !result?.state))) {
+      const rejectedPassword = response.status === 401 && suffix === '/auth/reauthenticate'
+        && result?.code === 'REAUTHENTICATION_FAILED' && !Object.hasOwn(result, 'state') && !Object.hasOwn(result, 'challenge_id');
+      throw Object.assign(new Error(result?.code || result?.detail || '读取失败'), { status: response.status, code: result?.code, rejectedPassword });
+    }
     return { status: response.status, body: result };
   }
   function failed(error, t) {
     if (!t.current() || error.stale || error.name === 'AbortError') return;
     setChecked(false); setRevokeChecked(false); setPassword(''); setVerified(null);
-    if (error.status === 401) { setExpired(true); setData(null); setMessage('登录已失效。原文仅供复制保留；原预览、勾选和认证已失效。请退出后使用同一账号重新登录，再查询原请求。'); }
-    else setMessage(errors[error.code] || (pendingRef.current ? '结果尚未确认，请查询原请求；不要重复提交。' : String(error.message)));
+    if (error.status === 401) {
+      if (error.rejectedPassword) {
+        setMessage('再次认证未通过，本次操作尚未提交。请重新核对并输入当前账号密码。');
+        return;
+      }
+      setExpired(true); setData(null);
+      const next = pendingRef.current
+        ? '请退出后使用同一账号重新登录，再查询原请求。'
+        : '请退出后重新登录，再打开本病例。';
+      setMessage('登录已失效。原文仅供复制保留；原预览、勾选和认证已失效。' + next);
+    } else setMessage(errors[error.code] || (pendingRef.current ? '结果尚未确认，请查询原请求；不要重复提交。' : String(error.message)));
   }
   async function load(t, replaceDraft = true, committedDraftETag = null) {
     const g = (await request(path + '/treatment', t)).body;
@@ -140,6 +154,9 @@ export default function TreatmentWorkspace({ token, scope, caseId }) {
         const challenge = await request('/auth/reauthenticate', t, 'POST', { org_id: scope.org_id, clinic_id: scope.clinic_id, case_id: caseId,
           revision_id: proof.revision_id, content_hash: proof.hash, action: operation, target_signature_id: proof.signature_id || null, password });
         if (!t.current()) return;
+        if (challenge.status !== 200 || typeof challenge.body?.challenge_id !== 'string' || !challenge.body.challenge_id.trim() || Object.hasOwn(challenge.body, 'state')) {
+          throw new Error('再次认证结果无法核实，请重新核对并认证。');
+        }
         body = { ...body, challenge_id: challenge.body.challenge_id }; setPassword('');
       }
       const key = newKey();

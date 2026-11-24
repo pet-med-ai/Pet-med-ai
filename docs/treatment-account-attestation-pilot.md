@@ -129,9 +129,15 @@ Use Enter for separate diagnoses or goals. Drafts with coded diagnoses or
 stored multiline items display those lists one item per box. Moving a diagnosis
 keeps its code. Renaming it clears the old code when the draft is saved.
 
-On 401, raw unsaved text remains copyable and read-only; old preview acknowledgement
-and credentials are invalidated. Exit and re-login to the same account, reopen the
-case, and query the original request. A different account cannot recover the
+If the password check for signing or revoking returns `REAUTHENTICATION_FAILED`
+with HTTP 401, the case stays open. The password and acknowledgements are cleared.
+Check the intended action again, enter the current account password, and submit.
+The failed password check creates no signature or revocation request.
+
+When the session expires, raw unsaved text remains copyable and read-only.
+The page clears the previous acknowledgements and credentials. Copy any text you
+need before leaving, then sign in to the same account and reopen the case. If
+a command was already sent, query its original request. A different account cannot recover the
 previous account's partition. Case/clinic/account navigation aborts outstanding
 work and ignores late responses. “Stop waiting” retains the original request key;
 it does not claim the request was cancelled or unsaved.
