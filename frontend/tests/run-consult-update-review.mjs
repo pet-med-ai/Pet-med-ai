@@ -19,7 +19,7 @@ try {
   names.push('followup-contact-owner-documents', 'case-detail-followup-contact-owner-documents');
   names.push('followup-contact-queue', 'case-detail-followup-contact-queue');
   names.push('clinical-doctor-trial', 'case-detail-auth-expiry', 'case-detail-auth-retention', 'case-detail-auth-readonly');
-  names.push('clinic-read-pilot', 'treatment-workspace');
+  names.push('clinic-read-pilot', 'treatment-workspace', 'clinic-draft-navigation');
   const requested = process.argv.slice(2);
   if (requested.length) {
     if (new Set(requested).size !== requested.length || requested.some(name => !names.includes(name))) {
@@ -29,10 +29,12 @@ try {
   }
   const outputs = names.map(name => join(temporary, name + ".cjs"));
   for (let index = 0; index < names.length; index++) {
+    const env = names[index] === 'clinic-draft-navigation'
+      ? { VITE_MULTICLINIC_READ_PILOT: '1', VITE_TREATMENT_PILOT: '1' } : {};
     await build({
       entryPoints: [join(root, "tests", names[index] + ".test.jsx")], outfile: outputs[index],
       bundle: true, platform: "node", format: "cjs", packages: "external",
-      define: { "import.meta.env": "{}", "import.meta.url": JSON.stringify(import.meta.url) }, logLevel: "warning",
+      define: { "import.meta.env": JSON.stringify(env), "import.meta.url": JSON.stringify(import.meta.url) }, logLevel: "warning",
     });
   }
   const result = spawnSync(process.execPath, ["--test", "--test-concurrency=2", ...outputs], { stdio: "inherit" });

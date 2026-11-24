@@ -146,6 +146,15 @@ To reopen a known case, select its clinic, enter the case number and choose
 **按号查看**. The case can be on any list page. If both views are available, use
 the clinical view for treatment or the demographics view for basic details.
 
+While a treatment draft has unsaved edits, opening another case from the list
+or by number asks whether to discard those edits once the target case is read.
+Cancel to stay on the original case, or confirm to open the other case. Changing
+the clinic or view, reloading the case list, and paging also ask before closing
+an edited draft. If you select the current row again, the page checks access.
+When the server denies access to the current treatment record, the page clears
+its treatment text. To keep text through logout or a browser reload, save the
+draft first, or copy it if the session has expired.
+
 Native Mac/Safari acceptance is still required for this **new** increment:
 
 1. Same-clinic veterinarian versus assistant/admin/frontdesk and cross-clinic read grant.

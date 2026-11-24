@@ -36,6 +36,7 @@ export default function ClinicReadPilot() {
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const work = useRef({ epoch: 0, abort: null });
+  const treatmentWorkspace = useRef(null);
 
   useEffect(() => () => { work.current.epoch++; work.current.abort?.abort(); }, []);
   function resetWork() {
@@ -46,6 +47,9 @@ export default function ClinicReadPilot() {
     return { signal: abort.signal, current: () => work.current.epoch === epoch };
   }
   function clearContent() { setRows([]); setDetail(null); setNextAfter(null); }
+  function canLeaveDraft() {
+    return !treatmentWorkspace.current?.dirty || window.confirm("当前病例有未保存的治疗草稿。离开将丢弃本页修改，确定离开吗？");
+  }
   function clearSession() { setToken(""); setScopes([]); setScopeKey(""); setActiveProjection(""); setCaseNumber(""); clearContent(); }
   async function request(path, auth, signal, body) {
     const response = await fetch(base + "/api/v2" + path, {
@@ -83,13 +87,14 @@ export default function ClinicReadPilot() {
     return `/organizations/${scope.org_id}/clinics/${scope.clinic_id}/cases`;
   }
   async function loadScope(key, after = 0, preferred = key === scopeKey ? activeProjection : "") {
+    if (!canLeaveDraft()) return;
     const scope = selected(key);
     const allowed = availableProjections(scope);
     const view = preferred ? allowed.find(item => item.value === preferred) : allowed[0];
     const nextProjection = view?.value || "";
     if (key !== scopeKey || nextProjection !== activeProjection) setCaseNumber("");
     const task = resetWork();
-    setScopeKey(key); setActiveProjection(nextProjection); clearContent(); setMessage("");
+    clearContent(); setScopeKey(key); setActiveProjection(nextProjection); setMessage("");
     if (!view) { setBusy(false); return; }
     setBusy(true);
     try {
@@ -101,14 +106,21 @@ export default function ClinicReadPilot() {
     finally { if (task.current()) setBusy(false); }
   }
   async function openCase(id, { keepCurrent = false } = {}) {
+    const sameCase = detail && String(detail.id) === String(id);
     const task = resetWork();
-    if (!keepCurrent) setDetail(null);
     setMessage(""); setBusy(true);
     const scope = selected();
     try {
       const data = await request(`${pathFor(scope)}/${id}?projection=${activeProjection}`, token, task.signal);
-      if (task.current()) setDetail(data);
-    } catch (error) { failed(error, task, keepCurrent); }
+      if (!task.current()) return;
+      if (String(data?.id) !== String(id)) throw new Error("unexpected case");
+      if (!sameCase && !canLeaveDraft()) return;
+      setDetail(data);
+      if (sameCase) await treatmentWorkspace.current?.refreshWhenIdle();
+    } catch (error) {
+      const lostAccess = sameCase && (error.status === 403 || error.status === 404);
+      failed(error, task, !lostAccess && (keepCurrent || !!detail));
+    }
     finally { if (task.current()) setBusy(false); }
   }
   function lookupCase(event) {
@@ -162,12 +174,13 @@ export default function ClinicReadPilot() {
     </>}
     {busy && <p role="status">正在读取……</p>}
     {message && <p role="status">{message}</p>}
-    {detail && <section aria-label="病例详情"><h2>病例 #{detail.id} · {detail.patient_name}</h2>
+    {token && scope && detail && <section aria-label="病例详情"><h2>病例 #{detail.id} · {detail.patient_name}</h2>
       <p>{scope?.org_name}／{scope?.clinic_name} · {detail.visibility === "owner_private" ? "原账号私人病例" : "院区病例"}</p>
       <dl>{fields.filter(([key]) => Object.hasOwn(detail, key)).map(([key, label]) => <React.Fragment key={key}>
         <dt style={{ fontWeight: 700, marginTop: 16 }}>{label}</dt><dd style={{ marginLeft: 0, whiteSpace: "pre-wrap" }}>{detail[key] || "未记录"}</dd>
       </React.Fragment>)}</dl>
-      {treatmentEnabled && activeProjection === "clinical" && <TreatmentWorkspace key={`${scopeKey}/${detail.id}/${token}`} token={token} scope={scope} caseId={detail.id} />}
+      {treatmentEnabled && activeProjection === "clinical" && <TreatmentWorkspace key={`${scopeKey}/${detail.id}/${token}`}
+        token={token} scope={scope} caseId={detail.id} workspaceRef={treatmentWorkspace} />}
       </section>}
   </main>;
 }
