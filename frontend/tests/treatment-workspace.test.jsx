@@ -2,13 +2,57 @@ import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { test, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import TreatmentWorkspace from '../src/pages/TreatmentWorkspace';
 let renderer, handler, requests, originalFetch, originalStorage, saved;
 const scope={org_id:'11111111-1111-1111-1111-111111111111',clinic_id:'22222222-2222-2222-2222-222222222222',org_name:'合成机构',clinic_name:'合成院区'};
 const content={schema:'treatment-content-v1',diagnoses:[{label:'合成诊断',code_system:null,code:null}],assessment:'café 🐾\n{{literal}} literal \\n',treatment:{goals:[],management_text:'合成治疗原文',monitoring_text:'',followup_text:''},linked_orders:[],provenance:{ai_generation_ids:[],voice_transcript_revision_ids:[]}};
-const rev={id:'revision1',revision_no:1,draft_version:1,content,source_manifest:{case:{patient_name:'合成犬',clinical_epoch:1},diagnostic_reports:[]},content_sha256:'a'.repeat(64),origin:'clinical'};
-function data(overrides={}) {return {actor_id:1,plan:{id:'p',lock_version:4,head_revision_id:'revision1',active_signature_id:null},etag:'"plan:4"',draft_etag:'"draft:1"',draft:{draft_version:1,content},revisions:[rev],reviews:[],signatures:[],events:[],profile:{display_name:'合成医生'},source_epoch:1,policy:{review_policy:'self_allowed',required_assurance:'account_attestation'},allowed_actions:{edit:true,review:true,sign:true},...overrides};}
+const ids = {
+  plan: '3708b584-295b-4691-a6b4-6422cf410001', revision: '3708b584-295b-4691-a6b4-6422cf410002',
+  priorRevision: '3708b584-295b-4691-a6b4-6422cf410003', signature: '3708b584-295b-4691-a6b4-6422cf410004',
+  priorSignature: '3708b584-295b-4691-a6b4-6422cf410005', review: '3708b584-295b-4691-a6b4-6422cf410006',
+  audit: '3708b584-295b-4691-a6b4-6422cf410007', event: '3708b584-295b-4691-a6b4-6422cf410008',
+};
+const caseScope = {org_id:scope.org_id, clinic_id:scope.clinic_id, case_id:1, plan_id:ids.plan};
+function frozenRevision(id, revision_no) {
+  const source_manifest = {case:{patient_name:'合成犬',clinical_epoch:1},diagnostic_reports:[]};
+  const created_at = '2026-11-09T00:00:00Z';
+  const envelope = {schema:'pmai-treatment-revision-v1', canonicalization:'pmai-canonical-json-v1', ...caseScope,
+    revision_id:id, draft_version:1, content, source_manifest, created_by:1, created_at};
+  const canonical_utf8 = JSON.stringify(envelope, (_, value) => value && typeof value === 'object' && !Array.isArray(value)
+    ? Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]])) : value);
+  return {id, ...caseScope, revision_no, draft_version:1, content, source_manifest, created_at, created_by:1, origin:'clinical',
+    canonical_utf8, content_sha256:createHash('sha256').update(canonical_utf8, 'utf8').digest('hex')};
+}
+const rev = frozenRevision(ids.revision, 2);
+const priorRevision = frozenRevision(ids.priorRevision, 1);
+function data(overrides={}) {return {actor_id:1,plan:{id:ids.plan,lock_version:4,head_revision_id:rev.id,active_signature_id:null},etag:'"plan:4"',draft_etag:'"draft:1"',draft:{draft_version:1,content},revisions:[rev],reviews:[],signatures:[],events:[],profile:{display_name:'合成医生'},source_epoch:1,policy:{review_policy:'self_allowed',required_assurance:'account_attestation'},allowed_actions:{edit:true,review:true,sign:true},...overrides};}
 const response=(body,status=200)=>({ok:status<400,status,json:async()=>body});
+function pendingCommand() {
+  const stored = saved.get(`pmai:treatment:1:${scope.org_id}:${scope.clinic_id}:1`);
+  assert.ok(stored, 'the original pending command must remain in its scoped recovery slot');
+  return JSON.parse(stored);
+}
+function receipt(fields, status) {
+  const {key, operation, request_hash} = pendingCommand();
+  const result = fields.state === 'committed' ? {etag:'"plan:5"', ...fields} : fields;
+  return response({idempotency_key:key, operation, request_hash, ...result}, status);
+}
+const draftResult = version => ({
+  state:'committed', plan_id:ids.plan, draft_version:version, draft_etag:'"draft:' + version + '"', audit_id:ids.audit,
+});
+const signResult = () => ({
+  state:'committed', signature_id:ids.signature, revision_id:rev.id, assurance:'account_attestation',
+});
+function signedReadback(action = 'sign', state = action === 'sign' ? 'effective' : 'revoked') {
+  const revision = action === 'sign' ? rev : priorRevision;
+  const id = action === 'sign' ? ids.signature : ids.priorSignature;
+  const signature = {...caseScope, id, revision_id:revision.id, content_hash:revision.content_sha256, assurance:'account_attestation',
+    review_id:ids.review, signer_id:1, signed_at:'2026-11-09T00:01:00Z', clinician_snapshot:{display_name:'合成医生'},
+    audit_event_id:ids.audit};
+  return {signature, revision, state, audit:{...caseScope, id:ids.audit, action:'sign', target_id:id}, terminal_event:state === 'effective'
+    ? null : {...caseScope, id:ids.event, signature_id:id, event:state, actor_id:1, reason:'合成原因', created_at:'2026-11-09T01:00:00Z'}};
+}
 const output=()=>JSON.stringify(renderer.toJSON());
 const button=name=>renderer.root.findAllByType('button').find(n=>n.children.join('')===name);
 async function mount(props={}) {await act(async()=>{renderer=TestRenderer.create(<TreatmentWorkspace token="synthetic-token" scope={scope} caseId={1} {...props}/>);});}
@@ -38,14 +82,14 @@ test('lost response stores only scoped key/hash and queries without a second wri
  await mount();handler=async(url,options)=>{if(options.method==='PATCH')throw new TypeError('synthetic disconnect');return response(data());};
  await click('保存治疗草稿');assert.equal(requests.filter(r=>r.options.method==='PATCH').length,1);assert.equal(saved.size,1);
  const [key,value]=[...saved.entries()][0];assert.match(key,/pmai:treatment:1:/);assert.doesNotMatch(value,/café|token|password|management_text/);
- const p=JSON.parse(value);handler=async url=>url.includes('/commands/')?response({state:'committed',operation:'draft.save',idempotency_key:p.key,request_hash:p.request_hash}):response(data());
+ handler=async url=>url.includes('/commands/')?receipt(draftResult(2),201):response(storedDraft(2,content.assessment));
  await click('查询原请求');assert.equal(requests.filter(r=>r.options.method==='PATCH').length,1);assert.equal(saved.size,0);assert.match(output(),/已从服务端核对保存结果/);});
 test('signature success needs independent readback; lost GET keeps original key',async()=>{
- const reviewed=data({reviews:[{id:'review1',revision_id:'revision1',decision:'approve',reason:'核对',clinician_snapshot:{display_name:'合成医生'}}]});
+ const reviewed=data({reviews:[{id:ids.review,revision_id:rev.id,decision:'approve',reason:'核对',clinician_snapshot:{display_name:'合成医生'}}]});
  handler=async()=>response(reviewed);await mount();change('已核对冻结版本',null,true);change('签署认证密码','reauth-secret');
- handler=async(url,options)=>{if(url.endsWith('/auth/reauthenticate'))return response({challenge_id:'challenge1'});if(options.method==='POST')return response({state:'committed',signature_id:'sig1'},201);throw new TypeError('readback interrupted');};
+ handler=async(url,options)=>{if(url.endsWith('/auth/reauthenticate'))return response({challenge_id:'challenge1'});if(options.method==='POST')return receipt(signResult(),201);throw new TypeError('readback interrupted');};
  await click('再次认证并确认签署');assert.doesNotMatch(output(),/已独立回读签署|已从服务端核对保存结果/);assert.equal(saved.size,1);
- assert.equal(requests.filter(r=>r.url.endsWith('/treatment/signatures/sig1')).length,1);assert.doesNotMatch([...saved.values()].join(),/reauth-secret|challenge1|token/);});
+ assert.equal(requests.filter(r=>r.url.endsWith('/treatment/signatures/'+ids.signature)).length,1);assert.doesNotMatch([...saved.values()].join(),/reauth-secret|challenge1|token/);});
 test('different actor cannot load the previous actor pending key',async()=>{
  saved.set(`pmai:treatment:1:${scope.org_id}:${scope.clinic_id}:1`,JSON.stringify({key:'a'.repeat(64),request_hash:'b'.repeat(64),operation:'sign'}));
  handler=async()=>response(data({actor_id:2}));await mount();assert.doesNotMatch(output(),/待核对请求/);});
@@ -61,7 +105,7 @@ test('stop waiting keeps original key and makes recovery available',async()=>{
  await mount();let release;handler=()=>new Promise(resolve=>{release=resolve;});let sending;
  await act(async()=>{sending=button('保存治疗草稿').props.onClick();await new Promise(resolve=>setTimeout(resolve,15));});
  assert.equal(saved.size,1);await click('停止等待（保留原请求）');assert.equal(button('查询原请求').props.disabled,false);
- await act(async()=>{release(response({state:'committed'},201));await sending;});
+ await act(async()=>{release(receipt(draftResult(2),201));await sending;});
  assert.equal(saved.size,1);assert.doesNotMatch(output(),/已从服务端核对保存结果/);
 });
 test('a saved changed draft blocks signing its previous frozen version',async()=>{
@@ -72,7 +116,7 @@ test('a saved changed draft blocks signing its previous frozen version',async()=
 
 test('revocation has a separate acknowledgement of the effective signed version',async()=>{
  const signature={id:'sig1',revision_id:'old',content_hash:'b'.repeat(64),clinician_snapshot:{display_name:'旧签署医生'},signed_at:'2026-11-09T00:00:00Z'};
- handler=async()=>response(data({plan:{id:'p',head_revision_id:'revision1',active_signature_id:'sig1'},signatures:[signature],revisions:[rev,{...rev,id:'old',revision_no:0,content:{...content,assessment:'当前有效版本的原文'}}]}));
+ handler=async()=>response(data({plan:{id:'p',head_revision_id:rev.id,active_signature_id:'sig1'},signatures:[signature],revisions:[rev,{...rev,id:'old',revision_no:0,content:{...content,assessment:'当前有效版本的原文'}}]}));
  await mount();assert.match(output(),/当前有效版本的原文/);change('已核对冻结版本',null,true);change('签署认证密码','secret');change('操作原因','synthetic revocation');
  assert.equal(button('再次认证并作废签署').props.disabled,true);change('已核对待作废签署',null,true);assert.equal(button('再次认证并作废签署').props.disabled,false);
 });
@@ -95,7 +139,7 @@ test('refresh of an unchanged draft preserves typed text and saves against the e
   assert.equal(assessment(), local);
   assert.equal(button(discardDraft), undefined);
   handler = async (url, options) => options.method === 'PATCH'
-    ? response({state:'committed', draft_etag:'"draft:2"'}, 201)
+    ? receipt(draftResult(2), 201)
     : response(storedDraft(2, local));
   await click('保存治疗草稿');
   assert.equal(draftWrites().length, 1);
@@ -129,7 +173,7 @@ test('a concurrent change found by refresh preserves the local draft until expli
   assert.equal(draftWrites().length, 0);
   change('治疗评估', '以最新院内版本编辑');
   handler = async (url, options) => options.method === 'PATCH'
-    ? response({state:'committed', draft_etag:'"draft:4"'}, 201)
+    ? receipt(draftResult(4), 201)
     : response(storedDraft(4, '以最新院内版本编辑'));
   await click('保存治疗草稿');
   assert.equal(draftWrites()[0].options.headers['If-Match'], '"draft:3"');
@@ -141,7 +185,7 @@ test('first-draft creation keeps If-None-Match and a terminal 412 blocks even wh
   change('治疗评估', '新建时的本地原文');
   await click('重新读取治疗记录');
   handler = async (url, options) => {
-    if (options.method === 'PATCH') return response({state:'failed', code:'VERSION_MISMATCH'}, 412);
+    if (options.method === 'PATCH') return receipt({state:'failed', code:'VERSION_MISMATCH'}, 412);
     throw new TypeError('synthetic read interrupted');
   };
   await click('保存治疗草稿');
@@ -165,10 +209,10 @@ test('querying a lost draft receipt preserves local text if a subsequent revisio
   handler = async () => { throw new TypeError('synthetic lost response'); };
   await click('保存治疗草稿');
   assert.equal(saved.size, 1);
-  const [receipt] = saved.values();
-  assert.doesNotMatch(receipt, /先前发送的本地草稿/);
+  const [storedReceipt] = saved.values();
+  assert.doesNotMatch(storedReceipt, /先前发送的本地草稿/);
   handler = async url => url.includes('/commands/')
-    ? response({state:'committed', draft_etag:'"draft:2"'})
+    ? receipt(draftResult(2), 201)
     : response(storedDraft(3, '后续修订'));
   await click('查询原请求');
   assert.equal(saved.size, 0);
@@ -196,7 +240,7 @@ test('late discard response for a former case cannot replace the active case dra
 const inputValue = label => renderer.root.findByProps({ 'aria-label': label }).props.value;
 async function checkDraftPatch(expected) {
   handler = async (_url, options) => options.method === 'PATCH'
-    ? response({ state: 'committed', operation: 'draft.save', draft_etag: '"draft:2"' }, 201)
+    ? receipt(draftResult(2), 201)
     : response(data({ draft_etag: '"draft:2"', draft: { draft_version: 2, content: expected } }));
   await click('保存治疗草稿');
   const patches = requests.filter(request => request.options.method === 'PATCH');
@@ -288,13 +332,13 @@ const signButton = '再次认证并确认签署';
 const revokeButton = '再次认证并作废签署';
 
 function reviewedTreatment() {
-  const prior = { ...rev, id: 'prior-revision', revision_no: 1 };
-  const active = { id: 'active-signature', revision_id: prior.id, clinician_snapshot: { display_name: '合成医生' }, signed_at: '2026-11-09T00:00:00Z' };
+  const prior = priorRevision;
+  const active = signedReadback('revoke', 'effective').signature;
   return data({
-    plan: { id:'p', head_revision_id:rev.id, active_signature_id:active.id },
+    plan: { id:ids.plan, head_revision_id:rev.id, active_signature_id:active.id },
     revisions: [{ ...rev, revision_no:2, amendment_of:active.id }, prior], signatures:[active],
     draft: { draft_version:1, amendment_of:active.id, content },
-    reviews: [{ id:'review', revision_id:rev.id, decision:'approve', clinician_snapshot:{ display_name:'合成医生' } }],
+    reviews: [{ id:ids.review, revision_id:rev.id, decision:'approve', clinician_snapshot:{ display_name:'合成医生' } }],
   });
 }
 function acknowledgeTreatment(password) {
@@ -305,8 +349,8 @@ function acknowledgeTreatment(password) {
 }
 
 for (const [action, label, target] of [
-  ['sign', signButton, '/treatment/revisions/revision1/signatures'],
-  ['revoke', revokeButton, '/treatment/signatures/active-signature/revocations'],
+  ['sign', signButton, '/treatment/revisions/' + rev.id + '/signatures'],
+  ['revoke', revokeButton, '/treatment/signatures/' + ids.priorSignature + '/revocations'],
 ]) {
   test('wrong reauthentication password permits explicit retry for ' + action, async t => {
     const original = reviewedTreatment();
@@ -331,20 +375,21 @@ for (const [action, label, target] of [
     assert.equal(renderer.root.findByProps({'aria-label':'治疗评估'}).props.value, content.assessment);
     assert.equal(button(label).props.disabled, true);
 
-    const signatureId = action === 'sign' ? 'new-signature' : 'active-signature';
-    const signature = { ...original.signatures[0], id:signatureId, revision_id:action === 'sign' ? rev.id : 'prior-revision' };
+    const readback = signedReadback(action);
+    const signature = readback.signature;
+    const signatureId = signature.id;
     const final = { ...original, plan:{...original.plan, active_signature_id:action === 'sign' ? signatureId : null},
       signatures: action === 'sign' ? [...original.signatures, signature] : original.signatures,
-      events:[{signature_id:'active-signature', event:action === 'sign' ? 'superseded' : 'revoked'}] };
+      events:[{signature_id:ids.priorSignature, event:action === 'sign' ? 'superseded' : 'revoked'}] };
     handler = async (url, options) => {
       if (url.endsWith('/auth/reauthenticate')) return response({challenge_id:'fresh-proof'});
       if (url.endsWith(target)) {
         assert.equal(JSON.parse(options.body).challenge_id, 'fresh-proof');
         assert.match(options.headers['Idempotency-Key'], /^[a-f0-9]{64}$/);
-        return response({state:'committed', signature_id:signatureId}, 201);
+        return receipt(action === 'sign' ? signResult() : {state:'committed', signature_id:signatureId, event_id:ids.event}, 201);
       }
       if (url.endsWith('/treatment/signatures/' + signatureId)) {
-        return response({state:action === 'sign' ? 'effective' : 'revoked', signature, revision:{content}});
+        return response(readback);
       }
       return response(final);
     };
@@ -429,3 +474,239 @@ test('a late wrong-password response cannot affect the clinician now viewing a d
   assert.doesNotMatch(output(), /再次认证未通过|未保存原文 · 只读保留/);
   assert.equal(saved.size, 0);
 });
+
+const queryButton = '查询原请求';
+const cancelButton = '取消原请求';
+function assertUnconfirmed(original) {
+  assert.deepEqual(pendingCommand(), original);
+  assert.equal(button(queryButton).props.disabled, false);
+  assert.equal(renderer.root.findByType('fieldset').props.disabled, true);
+  assert.doesNotMatch(output(), /已独立回读签署|已从服务端核对保存结果/);
+}
+async function startDraft(commandResponse) {
+  await mount();
+  change('治疗评估', '待核实的原文 🐾');
+  let original;
+  handler = async (_url, options) => {
+    if (options.method === 'PATCH') {
+      original = pendingCommand();
+      return commandResponse();
+    }
+    return response(storedDraft(2, '待核实的原文 🐾'));
+  };
+  await click('保存治疗草稿');
+  assert.equal(draftWrites()[0].options.headers['Idempotency-Key'], original.key);
+  return original;
+}
+async function finishOriginalDraft(original) {
+  const start = requests.length;
+  handler = async url => url.includes('/commands/') ? receipt(draftResult(2), 201) : response(storedDraft(2, '待核实的原文 🐾'));
+  await click(queryButton);
+  assert.deepEqual(requests.slice(start).map(r => [r.options.method, r.url.split('/cases/1/')[1]]), [
+    ['GET', 'commands/' + original.key + '?operation=draft.save'], ['GET', 'treatment'],
+  ]);
+  assert.equal(draftWrites().length, 1);
+  assert.equal(saved.size, 0);
+  assert.equal(assessment(), '待核实的原文 🐾');
+  assert.match(output(), /已从服务端核对保存结果/);
+}
+for (const [problem, invalid] of [
+  ['response without a state', () => response({draft_version:2}, 201)],
+  ['unrecognized state', () => receipt({state:'complete'}, 201)],
+  ['missing command bindings', () => response(draftResult(2), 201)],
+  ['different original key', () => receipt({...draftResult(2), idempotency_key:'c'.repeat(64)}, 201)],
+  ['different operation', () => receipt({...draftResult(2), operation:'amend'}, 201)],
+  ['different payload hash', () => receipt({...draftResult(2), request_hash:'0'.repeat(64)}, 201)],
+  ['committed receipt on error status', () => receipt(draftResult(2), 409)],
+  ['inconsistent saved version and ETag', () => receipt({...draftResult(2), draft_version:3}, 201)],
+  ['missing committed plan ETag', () => receipt({...draftResult(2), etag:undefined}, 201)],
+  ['invalid committed plan ETag', () => receipt({...draftResult(2), etag:'"plan:0"'}, 201)],
+  ['missing committed plan ID', () => receipt({...draftResult(2), plan_id:undefined}, 201)],
+  ['invalid committed audit ID', () => receipt({...draftResult(2), audit_id:'another-audit'}, 201)],
+  ['unbound terminal failure', () => response({state:'failed', code:'VERSION_MISMATCH'}, 412)],
+]) {
+  test('a draft command with ' + problem + ' keeps its original key until verified lookup', async () => {
+    const original = await startDraft(invalid);
+    assertUnconfirmed(original);
+    assert.equal(requests.filter(r => r.options.method === 'GET').length, 1, 'an invalid receipt must not start a readback');
+    await finishOriginalDraft(original);
+  });
+}
+
+test('lookup and cancellation keep an unresolved original key across malformed responses', async () => {
+  const original = await startDraft(() => receipt({state:'pending'}, 202));
+  for (const [label, reply] of [
+    [queryButton, response({state:'not_observed', idempotency_key:original.key, operation:original.operation}, 202)],
+    [queryButton, receipt({state:'cancelled', code:'COMMAND_CANCELLED', request_hash:'f'.repeat(64)}, 409)],
+    [cancelButton, receipt({state:'cancelled', code:'COMMAND_CANCELLED', operation:'review'}, 409)],
+  ]) {
+    handler = async () => reply;
+    await click(label);
+    assertUnconfirmed(original);
+    const {url, options} = requests.at(-1);
+    if (label === cancelButton) {
+      assert.ok(url.endsWith('/commands/' + original.key + '/cancel'));
+      assert.equal(options.method, 'POST');
+      const body = JSON.parse(options.body);
+      assert.equal(body.request_hash, original.request_hash); assert.equal(body.operation, original.operation);
+    } else {
+      assert.ok(url.endsWith('/commands/' + original.key + '?operation=draft.save'));
+      assert.equal(options.method, 'GET');
+    }
+  }
+  await finishOriginalDraft(original);
+});
+
+test('a verified cancellation retires only the pending command and preserves unsaved draft text', async () => {
+  const original = await startDraft(() => receipt({state:'pending'}, 202));
+  handler = async url => url.endsWith('/cancel') ? receipt({state:'cancelled', code:'COMMAND_CANCELLED'}, 409) : response(data());
+  await click(cancelButton);
+  assert.ok(requests.some(r => r.url.endsWith('/commands/' + original.key + '/cancel')));
+  assert.equal(draftWrites().length, 1); assert.equal(saved.size, 0);
+  assert.equal(assessment(), '待核实的原文 🐾');
+  assert.match(output(), /原请求已取消/); assert.doesNotMatch(output(), /已从服务端核对保存结果/);
+});
+
+for (const [problem, receiptChanges, modifyReadback] of [
+  ['committed sign receipt without signature ID', {signature_id:undefined}],
+  ['committed sign receipt with an invalid signature ID', {signature_id:'another/scope'}],
+  ['independent GET receives a different signature', {}, body => { body.signature.id = ids.priorSignature; }],
+  ['independent GET returns a different case', {}, body => { body.signature.case_id = 2; }],
+  ['independent GET returns a different plan', {}, body => { body.revision.plan_id = ids.audit; }],
+  ['independent GET returns a different signer', {}, body => { body.signature.signer_id = 2; }],
+  ['independent GET returns other frozen text', {}, body => { body.revision.content.assessment = '错误回读原文'; }],
+  ['independent GET returns changed canonical bytes', {}, body => { body.revision.canonical_utf8 += ' '; }],
+  ['independent GET contradicts the terminal event', {}, body => { body.state = 'revoked'; }],
+]) {
+  test('signature reconciliation rejects ' + problem + ' and later verifies the same original command', async () => {
+    const initial = reviewedTreatment();
+    handler = async () => response(initial);
+    await mount(); acknowledgeTreatment('test-password');
+    let original;
+    handler = async (url, options) => {
+      if (url.endsWith('/reauthenticate')) return response({challenge_id:'fresh-proof'});
+      if (options.method === 'POST') {
+        original = pendingCommand();
+        return receipt({...signResult(), ...receiptChanges}, 201);
+      }
+      if (url.endsWith('/treatment')) return response(initial);
+      const readback = structuredClone(signedReadback());
+      if (modifyReadback) modifyReadback(readback);
+      return response(readback);
+    };
+    await click(signButton);
+    assertUnconfirmed(original);
+    assert.doesNotMatch(output(), /错误回读原文/);
+    assert.equal(requests.filter(r => r.options.method === 'GET' && r.url.includes('/treatment/signatures/')).length, modifyReadback ? 1 : 0);
+    const start = requests.length;
+    const verified = signedReadback('sign', 'superseded');
+    verified.terminal_event.successor_signature_id = ids.priorSignature;
+    handler = async url => url.includes('/commands/') ? receipt(signResult(), 201)
+      : response(url.endsWith('/treatment/signatures/' + ids.signature) ? verified : initial);
+    await click(queryButton);
+    assert.deepEqual(requests.slice(start).map(r => [r.options.method, r.url.split('/cases/1/')[1]]), [
+      ['GET', 'commands/' + original.key + '?operation=sign'], ['GET', 'treatment/signatures/' + ids.signature], ['GET', 'treatment'],
+    ]);
+    assert.equal(saved.size, 0); assert.match(output(), /已独立回读签署/);
+    assert.equal(requests.filter(r => r.options.method === 'POST' && r.url.endsWith('/signatures')).length, 1);
+  });
+}
+
+test('recovering a revocation requires the original terminal event, even when the signature is already revoked', async () => {
+  const key = '1'.repeat(64), original = {key, operation:'revoke', request_hash:'2'.repeat(64)};
+  saved.set(`pmai:treatment:1:${scope.org_id}:${scope.clinic_id}:1`, JSON.stringify(original));
+  const initial = reviewedTreatment();
+  handler = async () => response(initial); await mount();
+  const result = {state:'committed', signature_id:ids.priorSignature, event_id:ids.event};
+  for (const invalid of ['event', 'actor', 'state', null]) {
+    const body = signedReadback('revoke');
+    if (invalid === 'event') body.terminal_event.id = ids.audit;
+    if (invalid === 'actor') body.terminal_event.actor_id = 2;
+    if (invalid === 'state') { body.state = 'effective'; body.terminal_event = null; }
+    handler = async url => url.includes('/commands/') ? receipt(result, 201)
+      : response(url.endsWith('/treatment/signatures/' + ids.priorSignature) ? body : initial);
+    await click(queryButton);
+    if (invalid) assertUnconfirmed(original);
+  }
+  assert.equal(saved.size, 0); assert.match(output(), /已独立回读签署/);
+  assert.equal(requests.filter(r => r.options.method !== 'GET').length, 0);
+});
+
+for (const [operation, result, missing] of [
+  ['revision.freeze', {revision_id:rev.id, content_hash:rev.content_sha256}, 'content_hash'],
+  ['review', {review_id:ids.review, revision_id:rev.id, decision:'approve'}, 'decision'],
+  ['amend', {base_signature_id:ids.priorSignature, draft_version:2}, 'base_signature_id'],
+]) {
+  test('recovering ' + operation + ' requires its committed outcome before clearing the original request', async () => {
+    const original = {key:'a'.repeat(64), operation, request_hash:'c'.repeat(64)};
+    saved.set(`pmai:treatment:1:${scope.org_id}:${scope.clinic_id}:1`, JSON.stringify(original));
+    await mount();
+    const incomplete = {...result};
+    delete incomplete[missing];
+    handler = async url => url.includes('/commands/') ? receipt({...incomplete, state:'committed'}, 201) : response(data());
+    await click(queryButton);
+    assertUnconfirmed(original);
+    handler = async url => url.includes('/commands/') ? receipt({...result, state:'committed'}, 201) : response(data());
+    await click(queryButton);
+    assert.equal(saved.size, 0);
+    assert.match(output(), /已从服务端核对保存结果/);
+    assert.ok(requests.every(r => r.options.method === 'GET'));
+    assert.ok(requests.filter(r => r.url.includes('/commands/')).every(r => r.url.endsWith('/' + original.key + '?operation=' + operation)));
+  });
+}
+
+test('a verified signature stays unconfirmed until its aggregate reread succeeds', async () => {
+  const original = {key:'a'.repeat(64), operation:'sign', request_hash:'c'.repeat(64)};
+  saved.set(`pmai:treatment:1:${scope.org_id}:${scope.clinic_id}:1`, JSON.stringify(original));
+  const initial = reviewedTreatment();
+  handler = async () => response(initial);
+  await mount();
+  let notifyAggregate, releaseAggregate, checking;
+  const waiting = new Promise(resolve => { notifyAggregate = resolve; });
+  handler = async url => {
+    if (url.includes('/commands/')) return receipt(signResult(), 201);
+    if (url.endsWith('/treatment/signatures/' + ids.signature)) return response(signedReadback());
+    notifyAggregate();
+    return new Promise(resolve => { releaseAggregate = resolve; });
+  };
+  await act(async () => { checking = button(queryButton).props.onClick(); await waiting; });
+  assert.deepEqual(pendingCommand(), original);
+  assert.doesNotMatch(output(), /已独立回读签署|已从服务端核对保存结果/);
+  await act(async () => { releaseAggregate(response({detail:'unavailable'}, 503)); await checking; });
+  assertUnconfirmed(original);
+  handler = async url => url.includes('/commands/') ? receipt(signResult(), 201)
+    : response(url.endsWith('/treatment') ? initial : signedReadback());
+  await click(queryButton);
+  assert.equal(saved.size, 0); assert.match(output(), /已独立回读签署/);
+  assert.ok(requests.every(r => r.options.method === 'GET'));
+});
+
+for (const [problem, operation, label, altered] of [
+  ['a different reviewed revision', 'review', '审核通过', {revision_id:ids.priorRevision}],
+  ['a different review decision', 'review', '审核通过', {decision:'reject'}],
+  ['a different amendment base', 'amend', '创建修订草稿', {base_signature_id:ids.signature}],
+]) {
+  test('direct response for ' + problem + ' keeps the submitted command available for query', async () => {
+    const initial = operation === 'review' ? data() : reviewedTreatment();
+    if (operation === 'amend') initial.draft.amendment_of = null;
+    handler = async () => response(initial);
+    await mount();
+    change('已核对冻结版本', null, true); change('操作原因', '已核对本次范围');
+    const result = operation === 'review'
+      ? {review_id:ids.review, revision_id:rev.id, decision:'approve'}
+      : {base_signature_id:ids.priorSignature, draft_version:2};
+    let original;
+    handler = async (_url, options) => {
+      if (options.method === 'GET') return response(initial);
+      original = pendingCommand();
+      return receipt({...result, ...altered, state:'committed'}, 201);
+    };
+    assert.equal(!!button(label).props.disabled, false);
+    await click(label);
+    assertUnconfirmed(original);
+    handler = async url => url.includes('/commands/') ? receipt({...result, state:'committed'}, 201) : response(initial);
+    await click(queryButton);
+    assert.equal(saved.size, 0); assert.match(output(), /已从服务端核对保存结果/);
+    assert.equal(requests.filter(r => r.options.method !== 'GET').length, 1);
+  });
+}
