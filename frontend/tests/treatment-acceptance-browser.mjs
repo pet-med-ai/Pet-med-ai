@@ -13,9 +13,14 @@ const fixture = JSON.parse(fs.readFileSync(path.join(state, 'accounts.json')));
 const control = action => execFileSync(process.env.PMAI_ACCEPTANCE_PYTHON || 'python', ['scripts/treatment_acceptance.py', '--state', state, 'control', action], { stdio: 'pipe' });
 const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
-const errors = [], checks = [], requests = [];
+const errors = [], checks = [], caseWritePaths = [];
 page.on('pageerror', e => errors.push(String(e)));
-page.on('request', r => { if (r.method() === 'POST' && r.url().endsWith('/signatures')) requests.push(r.url()); });
+page.on('request', request => {
+  const pathname = new URL(request.url()).pathname;
+  if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(request.method()) && pathname.startsWith('/api/v2/organizations/')) {
+    caseWritePaths.push(pathname);
+  }
+});
 const text = '合成验收 café 🐾\n原文 {{literal}}; literal \\n remains';
 const result = { candidate: receipt.candidate, browser: 'Linux Chromium', manual_safari_result: 'PENDING', acceptance: 'NOT_CLOSED', checks };
 
@@ -58,6 +63,36 @@ async function sign() {
 async function readback() {
   await expect(page.locator('[aria-label="独立回读签署"]')).toBeVisible();
 }
+async function rejectWrongPassword(action) {
+  const frozen = page.getByLabel('已核对冻结版本', { exact: true });
+  const revoke = page.getByLabel('已核对待作废签署', { exact: true });
+  const password = page.getByLabel('签署认证密码', { exact: true });
+  const button = page.getByRole('button', { name: action === 'sign' ? '再次认证并确认签署' : '再次认证并作废签署', exact: true });
+  await frozen.check();
+  if (action === 'revoke') await revoke.check();
+  await password.fill('deliberately-invalid-synthetic-password');
+  const writesBefore = caseWritePaths.length;
+  const [proof] = await Promise.all([
+    page.waitForResponse(response => response.request().method() === 'POST' &&
+      new URL(response.url()).pathname === '/api/v2/auth/reauthenticate'),
+    button.click(),
+  ]);
+  assert.equal(proof.status(), 401);
+  assert.equal((await proof.json()).code, 'REAUTHENTICATION_FAILED');
+  await expect(page.getByText('再次认证未通过，本次操作尚未提交。请重新核对并输入当前账号密码。', { exact: true })).toBeVisible();
+  await expect(page.locator('[aria-label="病例详情"] h2').first()).toContainText('#101');
+  await expect(page.locator('[aria-label="冻结版本"]')).toContainText('审核通过');
+  await expect(frozen).not.toBeChecked();
+  if (action === 'revoke') {
+    await expect(revoke).not.toBeChecked();
+    await expect(page.locator('[aria-label="当前有效签署"]')).toBeVisible();
+  }
+  await expect(password).toHaveValue('');
+  await expect(button).toBeDisabled();
+  await expect(page.getByRole('button', { name: '查询原请求', exact: true })).toHaveCount(0);
+  assert.equal(caseWritePaths.length, writesBefore, 'Rejected proof must not send a case mutation');
+  return writesBefore;
+}
 async function prepared(kind, after=0) {
   await expect.poll(() => {
     const events = JSON.parse(fs.readFileSync(path.join(state, 'events.json')));
@@ -67,9 +102,13 @@ async function prepared(kind, after=0) {
 
 try {
   await page.goto(receipt.url);
-  await login(); await openCase(101); await freeze(); await review(); await sign(); await readback();
+  await login(); await openCase(101); await freeze(); await review();
+  const beforeSign = await rejectWrongPassword('sign');
+  await sign(); await readback();
+  assert.equal(caseWritePaths.length, beforeSign + 1);
+  assert.match(caseWritePaths.at(-1), /\/cases\/101\/treatment\/revisions\/[^/]+\/signatures$/);
   assert((await page.locator('[aria-label="独立回读签署"]').textContent()).includes(text));
-  checks.push('save-freeze-review-sign-independent-readback', 'exact-utf8-text');
+  checks.push('save-freeze-review-sign-independent-readback', 'exact-utf8-text', 'sign-wrong-password-retry-readback');
   await logout(); await login('frontdesk'); await openCase(101);
   await expect(page.locator('[aria-label="治疗签署"]')).toHaveCount(0);
   assert(!(await page.locator('[aria-label="病例详情"]').textContent()).includes(text));
@@ -103,7 +142,7 @@ try {
   await page.getByRole('button', { name: '停止等待（保留原请求）', exact: true }).click();
   await logout(); await login(); await openCase(109);
   await page.getByRole('button', { name: '查询原请求', exact: true }).click(); await readback();
-  assert.equal(requests.filter(p => p.includes('/cases/109/')).length, 1);
+  assert.equal(caseWritePaths.filter(p => p.includes('/cases/109/') && p.endsWith('/signatures')).length, 1);
   control('release'); checks.push('lost-response-same-account-query-no-duplicate');
   control('policy-two'); await openCase(107); await freeze(); await review(); await sign();
   await expect(page.getByText('本院要求由另一位已核验医生签署。', { exact: true })).toBeVisible();
@@ -115,12 +154,16 @@ try {
   await freeze(text + '\n修订'); await review(); await sign(); await readback();
   await expect(page.getByText(/已由新签署替代/)).toBeVisible();
   await page.getByLabel('操作原因', { exact: true }).fill('合成作废');
+  const beforeRevoke = await rejectWrongPassword('revoke');
   await page.getByLabel('已核对待作废签署', { exact: true }).check();
   await page.getByLabel('签署认证密码', { exact: true }).fill(fixture.password);
   await page.getByRole('button', { name: '再次认证并作废签署', exact: true }).click();
   await expect(page.getByText(/ · 已作废 · /)).toBeVisible();
+  await expect(page.locator('[aria-label="独立回读签署"]')).toContainText('revoked');
+  assert.equal(caseWritePaths.length, beforeRevoke + 1);
+  assert.match(caseWritePaths.at(-1), /\/cases\/101\/treatment\/signatures\/[^/]+\/revocations$/);
   await freeze(text + '\n作废后新签署'); await review(); await sign(); await readback();
-  checks.push('amend-revoke-resign-history');
+  checks.push('amend-revoke-resign-history', 'revoke-wrong-password-retry-readback');
   await logout(); await login(); await openCase(101);
   for (const kind of ['late-200', 'late-401']) {
     control(kind);

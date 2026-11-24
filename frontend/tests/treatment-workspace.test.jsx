@@ -282,3 +282,150 @@ test('session expiry keeps the editable diagnosis and goal text including traili
   assert.ok(values.includes('第一项\n\n'));
   assert.ok(values.includes('保留 {{literal}} 🐾\n  \n'));
 });
+
+const reauthMessage = '再次认证未通过，本次操作尚未提交。请重新核对并输入当前账号密码。';
+const signButton = '再次认证并确认签署';
+const revokeButton = '再次认证并作废签署';
+
+function reviewedTreatment() {
+  const prior = { ...rev, id: 'prior-revision', revision_no: 1 };
+  const active = { id: 'active-signature', revision_id: prior.id, clinician_snapshot: { display_name: '合成医生' }, signed_at: '2026-11-09T00:00:00Z' };
+  return data({
+    plan: { id:'p', head_revision_id:rev.id, active_signature_id:active.id },
+    revisions: [{ ...rev, revision_no:2, amendment_of:active.id }, prior], signatures:[active],
+    draft: { draft_version:1, amendment_of:active.id, content },
+    reviews: [{ id:'review', revision_id:rev.id, decision:'approve', clinician_snapshot:{ display_name:'合成医生' } }],
+  });
+}
+function acknowledgeTreatment(password) {
+  change('已核对冻结版本', null, true);
+  change('已核对待作废签署', null, true);
+  change('操作原因', '合成复核');
+  change('签署认证密码', password);
+}
+
+for (const [action, label, target] of [
+  ['sign', signButton, '/treatment/revisions/revision1/signatures'],
+  ['revoke', revokeButton, '/treatment/signatures/active-signature/revocations'],
+]) {
+  test('wrong reauthentication password permits explicit retry for ' + action, async t => {
+    const original = reviewedTreatment();
+    handler = async () => response(original);
+    await mount();
+    const random = t.mock.method(globalThis.crypto, 'getRandomValues');
+    acknowledgeTreatment('incorrect-password');
+    handler = async () => response({code:'REAUTHENTICATION_FAILED'}, 401);
+    const start = requests.length;
+    await click(label);
+    assert.deepEqual(requests.slice(start).map(r => r.url), ['/api/v2/auth/reauthenticate']);
+    assert.equal(JSON.parse(requests.at(-1).options.body).action, action);
+    assert.equal(requests.at(-1).options.headers['Idempotency-Key'], undefined);
+    assert.equal(random.mock.callCount(), 0);
+    assert.equal(saved.size, 0);
+    assert.match(output(), new RegExp(reauthMessage));
+    assert.doesNotMatch(output(), /未保存原文 · 只读保留|待核对请求|已独立回读签署|incorrect-password/);
+    for (const title of ['已核对冻结版本', '已核对待作废签署']) {
+      assert.equal(renderer.root.findByProps({'aria-label':title}).props.checked, false);
+    }
+    assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.value, '');
+    assert.equal(renderer.root.findByProps({'aria-label':'治疗评估'}).props.value, content.assessment);
+    assert.equal(button(label).props.disabled, true);
+
+    const signatureId = action === 'sign' ? 'new-signature' : 'active-signature';
+    const signature = { ...original.signatures[0], id:signatureId, revision_id:action === 'sign' ? rev.id : 'prior-revision' };
+    const final = { ...original, plan:{...original.plan, active_signature_id:action === 'sign' ? signatureId : null},
+      signatures: action === 'sign' ? [...original.signatures, signature] : original.signatures,
+      events:[{signature_id:'active-signature', event:action === 'sign' ? 'superseded' : 'revoked'}] };
+    handler = async (url, options) => {
+      if (url.endsWith('/auth/reauthenticate')) return response({challenge_id:'fresh-proof'});
+      if (url.endsWith(target)) {
+        assert.equal(JSON.parse(options.body).challenge_id, 'fresh-proof');
+        assert.match(options.headers['Idempotency-Key'], /^[a-f0-9]{64}$/);
+        return response({state:'committed', signature_id:signatureId}, 201);
+      }
+      if (url.endsWith('/treatment/signatures/' + signatureId)) {
+        return response({state:action === 'sign' ? 'effective' : 'revoked', signature, revision:{content}});
+      }
+      return response(final);
+    };
+    change('签署认证密码', 'correct-password');
+    assert.equal(button(label).props.disabled, true);
+    change(action === 'sign' ? '已核对冻结版本' : '已核对待作废签署', null, true);
+    assert.equal(button(label).props.disabled, false);
+    const retry = requests.length;
+    await click(label);
+    assert.deepEqual(requests.slice(retry).map(r => [r.options.method, r.url]), [
+      ['POST','/api/v2/auth/reauthenticate'],
+      ['POST','/api/v2/organizations/' + scope.org_id + '/clinics/' + scope.clinic_id + '/cases/1' + target],
+      ['GET','/api/v2/organizations/' + scope.org_id + '/clinics/' + scope.clinic_id + '/cases/1/treatment/signatures/' + signatureId],
+      ['GET','/api/v2/organizations/' + scope.org_id + '/clinics/' + scope.clinic_id + '/cases/1/treatment'],
+    ]);
+    assert.match(output(), /已独立回读签署/);
+    assert.equal(saved.size, 0);
+  });
+}
+
+for (const [kind, denied] of [
+  ['expired session', () => response({code:'SESSION_EXPIRED'}, 401)],
+  ['generic denial', () => response({detail:'credentials expired'}, 401)],
+  ['non-JSON denial', () => ({ok:false, status:401, json:async () => { throw new SyntaxError('not JSON'); }})],
+  ['receipt-shaped denial', () => response({state:'committed', challenge_id:'untrusted-proof'}, 401)],
+  ['contradictory denial', () => response({code:'REAUTHENTICATION_FAILED', state:'failed'}, 401)],
+]) {
+  test('reauthentication fails closed for ' + kind, async () => {
+    handler = async () => response(reviewedTreatment());
+    await mount(); acknowledgeTreatment('synthetic-password');
+    handler = denied;
+    const start = requests.length;
+    await click(signButton);
+    assert.deepEqual(requests.slice(start).map(r => r.url), ['/api/v2/auth/reauthenticate']);
+    assert.match(output(), /未保存原文 · 只读保留/);
+    assert.match(output(), /重新登录，再打开本病例/);
+    assert.doesNotMatch(output(), /再次认证未通过|再查询原请求|synthetic-password/);
+    assert.equal(saved.size, 0);
+  });
+}
+
+test('an invalid or unsuccessful challenge cannot start a treatment command', async () => {
+  handler = async () => response(reviewedTreatment());
+  await mount();
+  for (const result of [response({}), response({challenge_id:'  '}),
+    response({state:'pending', challenge_id:'untrusted'}, 202), response({state:'committed', challenge_id:'untrusted'}, 200),
+    response({state:'committed', challenge_id:'untrusted'}, 409)]) {
+    acknowledgeTreatment('password');
+    handler = async () => result;
+    const start = requests.length;
+    await click(signButton);
+    assert.deepEqual(requests.slice(start).map(r => r.url), ['/api/v2/auth/reauthenticate']);
+    assert.equal(saved.size, 0);
+    assert.equal(button(signButton).props.disabled, true);
+  }
+});
+
+test('the reauthentication rejection code on a business command still expires the session', async () => {
+  handler = async () => response(reviewedTreatment());
+  await mount(); acknowledgeTreatment('password');
+  handler = async url => url.endsWith('/auth/reauthenticate')
+    ? response({challenge_id:'fresh-proof'}) : response({code:'REAUTHENTICATION_FAILED'}, 401);
+  await click(signButton);
+  assert.match(output(), /未保存原文 · 只读保留/);
+  assert.doesNotMatch(output(), /再次认证未通过/);
+  assert.match(output(), /同一账号重新登录，再查询原请求/);
+  assert.equal(saved.size, 1); // The command was already attempted with this key.
+});
+
+test('a late wrong-password response cannot affect the clinician now viewing a different case', async () => {
+  handler = async () => response(reviewedTreatment());
+  await mount(); acknowledgeTreatment('old-case-password');
+  let release, pending;
+  handler = () => new Promise(resolve => { release = resolve; });
+  act(() => { pending = button(signButton).props.onClick(); });
+  handler = async () => response(reviewedTreatment());
+  await act(async () => { renderer.update(<TreatmentWorkspace token="synthetic-token" scope={scope} caseId={2} />); });
+  acknowledgeTreatment('new-case-password');
+  await act(async () => { release(response({code:'REAUTHENTICATION_FAILED'}, 401)); await pending; });
+  assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.value, 'new-case-password');
+  assert.equal(button(signButton).props.disabled, false);
+  assert.doesNotMatch(output(), /再次认证未通过|未保存原文 · 只读保留/);
+  assert.equal(saved.size, 0);
+});
