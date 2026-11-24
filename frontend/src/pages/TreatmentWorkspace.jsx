@@ -9,10 +9,29 @@ const empty = () => ({ schema: 'treatment-content-v1', diagnoses: [], assessment
 const newKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), x => x.toString(16).padStart(2, '0')).join('');
 const draftPrecondition = aggregate => aggregate.draft ? aggregate.draft_etag : '*';
 const textStyle = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
-function ContentView({ content }) {
+function selectableListText(text) {
+  // The final empty line needs a line box for native selection to include its newline.
+  return text.endsWith('\n') ? <>{text}<br aria-hidden="true" /></> : text;
+}
+function ContentView({ content, localLists }) {
   return <dl style={textStyle}>
-    <dt>诊断</dt><dd>{content.diagnoses.map(x => x.label).join('\n')}</dd>
-    <dt>评估</dt><dd>{content.assessment}</dd><dt>治疗目标</dt><dd>{content.treatment.goals.join('\n')}</dd>
+    <dt>诊断</dt><dd>{typeof localLists?.diagnoses === 'string' ? selectableListText(localLists.diagnoses)
+      : <ol className="treatment-content-items" aria-label="诊断条目">
+        {content.diagnoses.map(({ label, code_system, code }, index) => <li key={index}>
+          <span>{selectableListText(label)}</span>
+          {(typeof code_system === 'string' || typeof code === 'string') && <dl className="treatment-diagnosis-codes">
+            {typeof code_system === 'string' && <><dt>编码体系</dt><dd>{selectableListText(code_system)}</dd></>}
+            {typeof code === 'string' && <><dt>编码</dt><dd>{selectableListText(code)}</dd></>}
+          </dl>}
+        </li>)}
+      </ol>}</dd>
+    <dt>评估</dt><dd>{content.assessment}</dd>
+    <dt>治疗目标</dt><dd>{typeof localLists?.goals === 'string' ? selectableListText(localLists.goals)
+      : <ol className="treatment-content-items" aria-label="治疗目标条目">
+        {content.treatment.goals.map((goal, index) => <li key={index}>
+          {goal === '' ? <br aria-hidden="true" /> : selectableListText(goal)}
+        </li>)}
+      </ol>}</dd>
     <dt>治疗措施</dt><dd>{content.treatment.management_text}</dd>
     <dt>监测</dt><dd>{content.treatment.monitoring_text}</dd><dt>复查</dt><dd>{content.treatment.followup_text}</dd>
   </dl>;
@@ -206,7 +225,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     {message && <p role="status">{message}</p>}{busy && <p role="status">正在核对……</p>}
     {pending && <aside><p>待核对请求：{pending.key}</p>{busy && <button onClick={() => { task(); setBusy(false); setPassword(''); setChecked(false); setRevokeChecked(false); setMessage('已停止等待，原请求仍需查询或取消。'); }}>停止等待（保留原请求）</button>}<button disabled={busy || expired || !data} onClick={() => recover()}>查询原请求</button>{' '}
       <button disabled={busy || expired || !data} onClick={() => recover(true)}>取消原请求</button></aside>}
-    {expired ? <section><h3>未保存原文 · 只读保留</h3><ContentView content={currentContent(true)} /></section> : <>
+    {expired ? <section><h3>未保存原文 · 只读保留</h3><ContentView content={currentContent(true)} localLists={listEdits} /></section> : <>
       <button disabled={busy} onClick={() => refresh()}>重新读取治疗记录</button>
       {data && <>
         <p>审核账号：{data.profile?.display_name || '当前账号无已核验医生档案'} · {data.policy.review_policy === 'two_person' ? '另一位医生签署' : '允许同一医生审核签署'}</p>

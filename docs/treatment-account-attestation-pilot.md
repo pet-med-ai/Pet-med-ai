@@ -129,12 +129,22 @@ Use Enter for separate diagnoses or goals. Drafts with coded diagnoses or
 stored multiline items display those lists one item per box. Moving a diagnosis
 keeps its code. Renaming it clears the old code when the draft is saved.
 
+When checking a frozen revision, the currently signed plan or an independent
+signature readback, read each numbered diagnosis or treatment goal as one
+stored item. A line break inside an item belongs to that item. Each diagnosis
+shows its recorded coding system and code separately when present, including
+when another diagnosis has the same name. Select a single name, code or goal
+to copy its exact text. Copying a whole list uses the browser's plain-text
+formatting for numbering and empty items.
+
 If the password check for signing or revoking returns `REAUTHENTICATION_FAILED`
 with HTTP 401, the case stays open. The password and acknowledgements are cleared.
 Check the intended action again, enter the current account password, and submit.
 The failed password check creates no signature or revocation request.
 
 When the session expires, raw unsaved text remains copyable and read-only.
+For a diagnosis or goal list edited in a single text box, select the whole field
+to copy its lines together, including any trailing blank lines.
 The page clears the previous acknowledgements and credentials. Copy any text you
 need before leaving, then sign in to the same account and reopen the case. If
 a command was already sent, query its original request. A different account cannot recover the

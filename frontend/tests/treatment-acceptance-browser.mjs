@@ -1,5 +1,6 @@
 // Real frontend + v2 API + fresh PostgreSQL. Linux Chromium is not native Safari.
 import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -210,6 +211,108 @@ async function prepared(kind, after=0) {
   }).toBeGreaterThan(after);
 }
 
+async function checkExpiredClipboard(values) {
+  const heading = page.getByRole('heading', { name: '未保存原文 · 只读保留', exact: true });
+  const expired = page.locator('[aria-label="治疗签署"] > section').filter({ has: heading });
+  await expect(expired).toBeVisible();
+  const origin = new URL(receipt.url);
+  assert.equal(origin.hostname, '127.0.0.1');
+  const context = page.context();
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: origin.origin });
+  try {
+    for (const [term, expected] of Object.entries(values)) {
+      const field = expired.getByText(term, { exact: true }).locator('xpath=following-sibling::*[1][self::dd]');
+      assert.equal(await field.textContent(), expected, term + ' original');
+      await page.evaluate(() => navigator.clipboard.writeText('等待本次原生复制'));
+      const selected = await field.evaluate(element => {
+        const range = document.createRange();
+        range.selectNodeContents(element);
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        return selection.toString();
+      });
+      await page.keyboard.press('Control+c');
+      assert.equal(selected, expected, term + ' native selection');
+      await expect.poll(() => page.evaluate(() => navigator.clipboard.readText()), { message: term + ' native copy' }).toBe(expected);
+    }
+  } finally {
+    await context.clearPermissions();
+  }
+}
+
+async function checkSignedListItems() {
+  const label = '合成同名诊断\r\n 第二行 🐾 ';
+  const diagnoses = [
+    { label, code_system: '合成体系 A', code: ' A / 01 ' },
+    { label, code_system: null, code: '独立编码 B' },
+    { label: '只有体系', code_system: '合成体系 C', code: null },
+    { label: '无编码', code_system: null, code: null },
+    { label: '明确保存的空值', code_system: '', code: '' },
+  ];
+  const goals = ['目标甲\r\n目标乙', '目标甲', '目标乙', '', ' \u3000\t', ' {{保留}} 🐾 '];
+  const content = { schema: 'treatment-content-v1', diagnoses, assessment: text,
+    treatment: { goals, management_text: text, monitoring_text: '', followup_text: '' },
+    linked_orders: [], provenance: { ai_generation_ids: [], voice_transcript_revision_ids: [] } };
+
+  async function checkSection(name) {
+    const section = page.locator(`[aria-label="${name}"]`);
+    const diagnosisRows = section.getByRole('list', { name: '诊断条目', exact: true }).locator(':scope > li');
+    const goalRows = section.getByRole('list', { name: '治疗目标条目', exact: true }).locator(':scope > li');
+    await expect(diagnosisRows).toHaveCount(diagnoses.length);
+    await expect(goalRows).toHaveCount(goals.length);
+    await expect(diagnosisRows.first().locator(':scope > span').first()).toHaveCSS('white-space', /^(pre|pre-wrap|break-spaces)$/);
+    await expect(goalRows.first()).toHaveCSS('white-space', /^(pre|pre-wrap|break-spaces)$/);
+    const displayed = await diagnosisRows.evaluateAll(rows => rows.map(row => ({
+      label: row.querySelector(':scope > span').textContent,
+      coding: [...row.querySelectorAll('dt')].map(term => [term.textContent, term.nextElementSibling.textContent]),
+    })));
+    assert.deepEqual(displayed, diagnoses.map(item => ({
+      label: item.label,
+      coding: [['编码体系', item.code_system], ['编码', item.code]].filter(([, value]) => value !== null),
+    })), name);
+    assert.deepEqual(await goalRows.allTextContents(), goals, name);
+  }
+
+  // #110 was only visited for the discard check. Seed pre-existing structured data via the synthetic doctor's API.
+  const treatmentURL = new URL(`/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/110/treatment`, receipt.url);
+  assert.equal(treatmentURL.hostname, '127.0.0.1');
+  const [initial] = await Promise.all([
+    page.waitForResponse(r => r.url() === treatmentURL.href && r.request().method() === 'GET'),
+    openCase(110),
+  ]);
+  assert.equal(initial.status(), 200);
+  assert.equal((await initial.json()).draft, null);
+  const authorization = await initial.request().headerValue('authorization');
+  assert.ok(authorization?.startsWith('Bearer '), 'Synthetic doctor session required');
+  const saved = await page.request.patch(treatmentURL.href + '/draft', {
+    headers: { Authorization: authorization, 'If-None-Match': '*', 'Idempotency-Key': randomBytes(32).toString('hex') },
+    data: { content }, maxRedirects: 0, maxRetries: 0,
+  });
+  assert.equal(saved.status(), 201);
+  assert.equal((await saved.json()).state, 'committed');
+  const writesBefore = caseWritePaths.length;
+  await page.getByRole('button', { name: '重新读取治疗记录', exact: true }).click();
+  await page.getByRole('button', { name: '冻结版本供核对', exact: true }).click();
+  await checkSection('冻结版本');
+  await review();
+  const [signed] = await Promise.all([
+    page.waitForResponse(r => r.url().startsWith(treatmentURL.href + '/signatures/') && r.request().method() === 'GET'),
+    sign(),
+  ]);
+  assert.equal(signed.status(), 200);
+  const record = await signed.json();
+  assert.equal(record.state, 'effective');
+  assert.deepEqual(record.revision.content, content);
+  assert.deepEqual(JSON.parse(record.revision.canonical_utf8).content, content);
+  await checkSection('当前有效签署');
+  await checkSection('独立回读签署');
+  const revisionsPath = treatmentURL.pathname + '/revisions';
+  assert.deepEqual(caseWritePaths.slice(writesBefore),
+    [revisionsPath, revisionsPath + '/' + record.revision.id + '/reviews', revisionsPath + '/' + record.revision.id + '/signatures']);
+  checks.push('frozen-signed-readback-preserve-list-items-and-diagnosis-coding');
+}
+
 try {
   await page.goto(receipt.url);
   await login();
@@ -244,11 +347,21 @@ try {
   await page.getByLabel('已核对冻结版本', { exact: true }).check(); await page.getByLabel('操作原因', { exact: true }).fill('旧来源失效');
   await page.getByRole('button', { name: '审核通过', exact: true }).click();
   await expect(page.getByText('病例、诊断资料或签署规则已变化。请重新读取并冻结新版本。', { exact: true })).toBeVisible();
+  const writesBeforeExpiry = caseWritePaths.length;
+  const expiredLists = { 诊断: '合成诊断甲 🐾\n\n合成诊断乙  \n\n', 治疗目标: '合成目标甲　\n\n合成目标乙 {{literal}}\n\n' };
+  await page.getByLabel('治疗诊断', { exact: true }).fill(expiredLists.诊断);
+  await page.getByLabel('治疗目标', { exact: true }).fill(expiredLists.治疗目标);
   await page.getByLabel('治疗评估', { exact: true }).fill(text + '\n未保存');
-  control('expire'); await page.getByRole('button', { name: '重新读取治疗记录', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '未保存原文 · 只读保留', exact: true })).toBeVisible();
+  control('expire');
+  const [expiredResponse] = await Promise.all([
+    page.waitForResponse(r => r.request().method() === 'GET' && new URL(r.url()).pathname === `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/108/treatment`),
+    page.getByRole('button', { name: '重新读取治疗记录', exact: true }).click(),
+  ]);
+  assert.equal(expiredResponse.status(), 401);
+  await checkExpiredClipboard(expiredLists);
   assert((await page.locator('[aria-label="治疗签署"]').textContent()).includes(text + '\n未保存'));
-  checks.push('stale-draft-and-diagnostic-source', '401-copyable-original');
+  assert.equal(caseWritePaths.length, writesBeforeExpiry);
+  checks.push('stale-draft-and-diagnostic-source', '401-copyable-original', '401-native-copy-diagnosis-goals-trailing-blank-lines');
   await logout(); await login(); await openCase(109); await freeze(); await review();
   control('lose-sign-response'); await sign(); await prepared('lose-sign-response');
   await page.getByRole('button', { name: '停止等待（保留原请求）', exact: true }).click();
@@ -288,6 +401,7 @@ try {
     checks.push(kind + '-account-case-isolation');
     await logout(); await login(); await openCase(101);
   }
+  await checkSignedListItems();
   assert.deepEqual(errors, []);
   result.status = 'PASS';
 } catch (error) {

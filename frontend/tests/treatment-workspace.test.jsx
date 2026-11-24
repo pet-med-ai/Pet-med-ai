@@ -14,14 +14,14 @@ const ids = {
   audit: '3708b584-295b-4691-a6b4-6422cf410007', event: '3708b584-295b-4691-a6b4-6422cf410008',
 };
 const caseScope = {org_id:scope.org_id, clinic_id:scope.clinic_id, case_id:1, plan_id:ids.plan};
-function frozenRevision(id, revision_no) {
+function frozenRevision(id, revision_no, revisionContent = content) {
   const source_manifest = {case:{patient_name:'合成犬',clinical_epoch:1},diagnostic_reports:[]};
   const created_at = '2026-11-09T00:00:00Z';
   const envelope = {schema:'pmai-treatment-revision-v1', canonicalization:'pmai-canonical-json-v1', ...caseScope,
-    revision_id:id, draft_version:1, content, source_manifest, created_by:1, created_at};
+    revision_id:id, draft_version:1, content:revisionContent, source_manifest, created_by:1, created_at};
   const canonical_utf8 = JSON.stringify(envelope, (_, value) => value && typeof value === 'object' && !Array.isArray(value)
     ? Object.fromEntries(Object.keys(value).sort().map(key => [key, value[key]])) : value);
-  return {id, ...caseScope, revision_no, draft_version:1, content, source_manifest, created_at, created_by:1, origin:'clinical',
+  return {id, ...caseScope, revision_no, draft_version:1, content:revisionContent, source_manifest, created_at, created_by:1, origin:'clinical',
     canonical_utf8, content_sha256:createHash('sha256').update(canonical_utf8, 'utf8').digest('hex')};
 }
 const rev = frozenRevision(ids.revision, 2);
@@ -44,8 +44,7 @@ const draftResult = version => ({
 const signResult = () => ({
   state:'committed', signature_id:ids.signature, revision_id:rev.id, assurance:'account_attestation',
 });
-function signedReadback(action = 'sign', state = action === 'sign' ? 'effective' : 'revoked') {
-  const revision = action === 'sign' ? rev : priorRevision;
+function signedReadback(action = 'sign', state = action === 'sign' ? 'effective' : 'revoked', revision = action === 'sign' ? rev : priorRevision) {
   const id = action === 'sign' ? ids.signature : ids.priorSignature;
   const signature = {...caseScope, id, revision_id:revision.id, content_hash:revision.content_sha256, assurance:'account_attestation',
     review_id:ids.review, signer_id:1, signed_at:'2026-11-09T00:01:00Z', clinician_snapshot:{display_name:'合成医生'},
@@ -322,7 +321,7 @@ test('session expiry keeps the editable diagnosis and goal text including traili
   change('治疗目标', '保留 {{literal}} 🐾\n  \n');
   handler = async () => response({ code: 'SESSION_EXPIRED' }, 401);
   await click('重新读取治疗记录');
-  const values = renderer.root.findAllByType('dd').map(node => node.children.join(''));
+  const values = renderer.root.findAllByType('dd').map(directText);
   assert.ok(values.includes('第一项\n\n'));
   assert.ok(values.includes('保留 {{literal}} 🐾\n  \n'));
 });
@@ -330,6 +329,157 @@ test('session expiry keeps the editable diagnosis and goal text including traili
 const reauthMessage = '再次认证未通过，本次操作尚未提交。请重新核对并输入当前账号密码。';
 const signButton = '再次认证并确认签署';
 const revokeButton = '再次认证并作废签署';
+
+function displayContent(tag) {
+  const raw = '  ' + tag + ' café 🐾\r\n{{原文}} \\n  ';
+  return { ...content, assessment: raw,
+    diagnoses: [
+      { label: raw, code_system: '合成体系', code: ' A-01 ' },
+      { label: raw, code_system: null, code: 'B-02' },
+      { label: '仅有体系', code_system: '本院', code: null },
+      { label: '空编码字段', code: '' },
+      { label: '未编码' },
+    ],
+    treatment: { goals: ['相同', raw, '', ' \t ', '相同', '\\n', '\n'],
+      management_text: raw + '治疗', monitoring_text: raw + '监测', followup_text: raw + '复查' },
+  };
+}
+
+function directText(node) {
+  return node.children.filter(child => typeof child === 'string').join('');
+}
+
+function assertContentView(section, expected) {
+  function items(label) {
+    const lists = section.findAllByType('ol').filter(list => list.props['aria-label'] === label);
+    assert.equal(lists.length, 1, 'expected a single ordered list for ' + label);
+    return lists[0].children.map(item => {
+      assert.equal(item.type, 'li');
+      return item;
+    });
+  }
+  const diagnosisRows = items('诊断条目').map(item => ({
+    label: directText(item.findByType('span')),
+    fields: item.findAllByType('dt').map(term => {
+      const siblings = term.parent.children;
+      const value = siblings[siblings.indexOf(term) + 1];
+      assert.equal(value.type, 'dd');
+      return [directText(term), directText(value)];
+    }),
+  }));
+  assert.deepEqual(diagnosisRows, expected.diagnoses.map(row => ({
+    label: row.label,
+    fields: [['编码体系', row.code_system], ['编码', row.code]].filter(([, value]) => value != null),
+  })));
+  const goals = items('治疗目标条目');
+  assert.deepEqual(goals.map(directText), expected.treatment.goals);
+  for (const [index, value] of expected.treatment.goals.entries()) {
+    if (value !== '') continue;
+    const children = goals[index].children;
+    assert.equal(children.length, 1, 'an empty goal needs one selectable line without placeholder text');
+    assert.equal(children[0].type, 'br');
+    assert.equal(String(children[0].props['aria-hidden']), 'true');
+  }
+  for (const [label, raw] of [['评估', expected.assessment], ['治疗措施', expected.treatment.management_text],
+    ['监测', expected.treatment.monitoring_text], ['复查', expected.treatment.followup_text]]) {
+    const term = section.findAllByType('dt').find(node => node.children.join('') === label);
+    const value = term.parent.children[term.parent.children.indexOf(term) + 1];
+    assert.equal(value.type, 'dd');
+    assert.equal(directText(value), raw);
+  }
+}
+
+test('read-only treatment content preserves coded rows and raw text in the frozen version', async () => {
+  const frozen = frozenRevision(ids.revision, 2, displayContent('冻结版本'));
+  handler = async () => response(data({ revisions: [frozen], allowed_actions: {edit:false, review:false, sign:false} }));
+  await mount();
+  assertContentView(renderer.root.findByProps({'aria-label':'冻结版本'}), frozen.content);
+  assert.equal(renderer.root.findByType('fieldset').props.disabled, true);
+  assert.equal(button(signButton).props.disabled, true);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+});
+
+test('read-only treatment content displays the active signed revision even with a newer frozen version', async () => {
+  const signed = frozenRevision(ids.priorRevision, 1, displayContent('有效签署'));
+  const active = signedReadback('revoke', 'effective', signed).signature;
+  handler = async () => response(data({
+    plan: {id:ids.plan, head_revision_id:rev.id, active_signature_id:active.id},
+    revisions: [rev, signed], signatures: [active],
+  }));
+  await mount();
+  assertContentView(renderer.root.findByProps({'aria-label':'当前有效签署'}), signed.content);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+});
+
+test('read-only treatment content comes from the independently verified signature readback', async () => {
+  const signed = frozenRevision(ids.revision, 2, displayContent('独立回读'));
+  const independent = signedReadback('sign', 'superseded', signed);
+  const successor = {...frozenRevision(ids.priorRevision, 3, displayContent('随后签署的修订')),
+    predecessor_id:signed.id, amendment_of:independent.signature.id};
+  const active = {...signedReadback('revoke', 'effective', successor).signature,
+    review_id:'3708b584-295b-4691-a6b4-6422cf410009', audit_event_id:'3708b584-295b-4691-a6b4-6422cf410010',
+    signed_at:'2026-11-09T00:02:00Z'};
+  independent.terminal_event.successor_signature_id = active.id;
+  const aggregate = data({
+    plan: {id:ids.plan, head_revision_id:successor.id, active_signature_id:active.id},
+    revisions: [successor, signed], signatures: [active, independent.signature], events:[independent.terminal_event],
+  });
+  const original = {key:'a'.repeat(64), operation:'sign', request_hash:'b'.repeat(64)};
+  saved.set('pmai:treatment:1:' + scope.org_id + ':' + scope.clinic_id + ':1', JSON.stringify(original));
+  const path = '/organizations/' + scope.org_id + '/clinics/' + scope.clinic_id + '/cases/1';
+  handler = async url => {
+    if (url.endsWith('/commands/' + original.key + '?operation=sign')) return receipt(signResult(), 201);
+    if (url.endsWith('/treatment/signatures/' + ids.signature)) return response(independent);
+    return response(aggregate);
+  };
+  await mount();
+  assert.equal(renderer.root.findAllByProps({'aria-label':'独立回读签署'}).length, 0);
+  await click('查询原请求');
+  assertContentView(renderer.root.findByProps({'aria-label':'独立回读签署'}), signed.content);
+  assert.deepEqual(requests.map(r => [r.options.method, r.url]), [
+    '/treatment', '/commands/' + original.key + '?operation=sign',
+    '/treatment/signatures/' + ids.signature, '/treatment',
+  ].map(suffix => ['GET', '/api/v2' + path + suffix]));
+  assert.equal(saved.size, 0);
+});
+
+test('read-only treatment content after expiry preserves untouched codes and removes coding from a renamed row', async () => {
+  const draft = displayContent('失效前原文');
+  handler = async () => response(data({draft: {draft_version:1, content:draft}}));
+  await mount();
+  const renamed = '新名称\n不继承编码 \\n ';
+  change('治疗诊断 2', renamed);
+  change('治疗目标 3', '本页修改\n\n');
+  handler = async () => response({code:'SESSION_EXPIRED'}, 401);
+  await click('重新读取治疗记录');
+  const expired = renderer.root.findAllByType('h3').find(h => h.children.join('') === '未保存原文 · 只读保留').parent;
+  assertContentView(expired, {...draft,
+    diagnoses: draft.diagnoses.map((row, index) => index === 1 ? {label:renamed} : row),
+    treatment: {...draft.treatment, goals:draft.treatment.goals.map((goal, index) => index === 2 ? '本页修改\n\n' : goal)},
+  });
+  assert.equal(renderer.root.findAllByType('textarea').length, 0);
+  assert.equal(button(signButton), undefined);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET', 'GET']);
+});
+
+test('read-only treatment content keeps the final line break available to native selection after expiry', async () => {
+  await mount();
+  const diagnoses = '原文 {{诊断}}\n第二项\n\n';
+  const goals = '原文 {{目标}}\n字面量 \\n';
+  change('治疗诊断', diagnoses);
+  change('治疗目标', goals);
+  handler = async () => response({code:'SESSION_EXPIRED'}, 401);
+  await click('重新读取治疗记录');
+  const values = renderer.root.findAllByType('dd');
+  const diagnosisValue = values.find(node => directText(node) === diagnoses);
+  const goalValue = values.find(node => directText(node) === goals);
+  assert.ok(diagnosisValue && goalValue, 'the original textarea values must remain verbatim');
+  const tail = diagnosisValue.children.at(-1);
+  assert.equal(tail.type, 'br', 'keep the trailing empty line selectable without adding text');
+  assert.equal(String(tail.props['aria-hidden']), 'true');
+  assert.equal(goalValue.findAllByType('br').length, 0);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET', 'GET']);
+});
 
 function reviewedTreatment() {
   const prior = priorRevision;
