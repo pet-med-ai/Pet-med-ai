@@ -7,6 +7,10 @@
 .treatment-workspace button:disabled { opacity: .5; cursor: default; }
 .treatment-workspace dt { font-weight: 600; margin-top: 12px; }
 .treatment-workspace dd { margin-left: 0; }
+.treatment-content-items { margin: 0; padding-inline-start: 2.25em; }
+.treatment-content-items > li { min-height: 1.6em; }
+.treatment-diagnosis-codes { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: .75em; margin: 0; font-size: .92em; }
+.treatment-workspace .treatment-diagnosis-codes dt { margin: 0; }
 .treatment-workspace aside, .treatment-workspace [role=status] { padding: 12px; background: #edf4f8; border-radius: 6px; overflow-wrap: anywhere; }
 .treatment-workspace section[aria-label="当前有效签署"] { padding: 16px; background: #eaf5ef; border: 1px solid #b6d5c3; border-radius: 8px; }
 .treatment-workspace section[aria-label="冻结版本"] { padding: 16px; margin-top: 16px; border: 1px solid #b9cbd6; border-radius: 8px; }
