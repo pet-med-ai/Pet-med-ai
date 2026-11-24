@@ -73,6 +73,8 @@
 
 ## 本地和 CI 验证
 
+可选的离线后端配置预检使用已安装 `backend/requirements.txt` 的 Python 环境。配置好环境变量后运行 `python scripts/check_pilot_config.py read_pilot`。只将模式名传给脚本。它检查当前模式、PostgreSQL URL 中的运行账号及会话密钥长度，全程不连接数据库。退出码 0 表示这三项匹配，1 表示配置有误，2 表示用法错误或缺少后端依赖，3 表示账号依赖间接配置、无法离线确认。实际权限、表结构和应用可用性需单独验证。
+
 ```bash
 # 已存在的专用 PostgreSQL 测试服务：测试会另建随机 pmai_scope_test_* 数据库并销毁。
 # PMAI_TEST_POSTGRES_ADMIN_URL 只绑定到测试管理员，不能指向业务库或生产管理员。

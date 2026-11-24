@@ -196,6 +196,8 @@ behavior remain available. This document is not evidence of deployment.
 
 ## Reproducible validation
 
+In a Python environment with `backend/requirements.txt` installed, the optional offline backend configuration check is `python scripts/check_pilot_config.py treatment_pilot`. Supply only the mode on the command line. It checks the configured pilot, PostgreSQL URL user and token secret length without connecting. Exit 0 means those three settings match, 1 invalid configuration, 2 invalid invocation or unavailable backend dependencies, and 3 an indeterminate role. Database privileges, schema and service availability require separate verification.
+
 ```sh
 PMAI_POSTGRES_TEST_PATTERN=test_treatment_postgres.py python scripts/run_multiclinic_tests.py
 # Requires PMAI_TEST_POSTGRES_ADMIN_URL for a disposable test server;
