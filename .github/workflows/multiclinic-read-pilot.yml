@@ -29,6 +29,8 @@ jobs:
         with:
           python-version: "3.11"
       - run: pip install -r requirements.txt -r backend/requirements.txt
+      - name: Check offline pilot configuration with synthetic settings
+        run: python -I -B tests/test_pilot_config.py -v
       - name: Real migrations, restricted runtime role, revocation and resumable backfill
         env:
           PMAI_TEST_POSTGRES_ADMIN_URL: postgresql+psycopg2://postgres:synthetic-ci-only@127.0.0.1:5432/postgres

@@ -120,12 +120,25 @@ review/signing of the older frozen version. Reauthentication occurs immediately
 before sign/revoke; the password is cleared afterwards. A signature response is
 followed by a separate GET before the UI reports confirmed success.
 
+If another clinician saves while you are editing, rereading the treatment record
+keeps your local text and checks the version you started from. When the versions
+differ, copy the changes you need, then choose **放弃本页修改并载入服务器草稿**.
+Reapply your changes to the newly loaded draft before saving.
+
+Use Enter for separate diagnoses or goals. Drafts with coded diagnoses or
+stored multiline items display those lists one item per box. Moving a diagnosis
+keeps its code. Renaming it clears the old code when the draft is saved.
+
 On 401, raw unsaved text remains copyable and read-only; old preview acknowledgement
 and credentials are invalidated. Exit and re-login to the same account, reopen the
 case, and query the original request. A different account cannot recover the
 previous account's partition. Case/clinic/account navigation aborts outstanding
 work and ignores late responses. “Stop waiting” retains the original request key;
 it does not claim the request was cancelled or unsaved.
+
+To reopen a known case, select its clinic, enter the case number and choose
+**按号查看**. The case can be on any list page. If both views are available, use
+the clinical view for treatment or the demographics view for basic details.
 
 Native Mac/Safari acceptance is still required for this **new** increment:
 
@@ -195,6 +208,8 @@ Only after target checks, select `PMAI_MULTICLINIC_MODE=treatment_pilot`,
 behavior remain available. This document is not evidence of deployment.
 
 ## Reproducible validation
+
+In a Python environment with `backend/requirements.txt` installed, the optional offline backend configuration check is `python scripts/check_pilot_config.py treatment_pilot`. Supply only the mode on the command line. It checks the configured pilot, PostgreSQL URL user and token secret length without connecting. Exit 0 means those three settings match, 1 invalid configuration, 2 invalid invocation or unavailable backend dependencies, and 3 an indeterminate role. Database privileges, schema and service availability require separate verification.
 
 ```sh
 PMAI_POSTGRES_TEST_PATTERN=test_treatment_postgres.py python scripts/run_multiclinic_tests.py
