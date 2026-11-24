@@ -142,6 +142,13 @@ previous account's partition. Case/clinic/account navigation aborts outstanding
 work and ignores late responses. “Stop waiting” retains the original request key;
 it does not claim the request was cancelled or unsaved.
 
+If a save, review or signing response is incomplete or identifies another request,
+the page keeps the original request pending. Choose **查询原请求** to read its
+status using the same account and case. A lookup can return `not_observed`
+before a command arrives. The original key stays available for a later lookup
+or explicit cancellation. Signing and revocation also require an independent
+read of the matching signature before the page confirms the result.
+
 To reopen a known case, select its clinic, enter the case number and choose
 **按号查看**. The case can be on any list page. If both views are available, use
 the clinical view for treatment or the demographics view for basic details.

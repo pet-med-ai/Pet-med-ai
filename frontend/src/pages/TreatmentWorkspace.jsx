@@ -1,18 +1,11 @@
 import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import './TreatmentWorkspace.css';
 import TreatmentDraftList, { draftListItems } from './TreatmentDraftList';
+import { matchesTreatmentReceipt, matchesTreatmentSignature, requestHash } from './treatmentReceipts';
+export { canonical, requestHash } from './treatmentReceipts';
 
 const base = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 const empty = () => ({ schema: 'treatment-content-v1', diagnoses: [], assessment: '', treatment: { goals: [], management_text: '', monitoring_text: '', followup_text: '' }, linked_orders: [], provenance: { ai_generation_ids: [], voice_transcript_revision_ids: [] } });
-export function canonical(value) {
-  if (Array.isArray(value)) return '[' + value.map(canonical).join(',') + ']';
-  if (value !== null && typeof value === 'object') return '{' + Object.keys(value).sort().map(k => JSON.stringify(k) + ':' + canonical(value[k])).join(',') + '}';
-  return JSON.stringify(value);
-}
-export async function requestHash(value) {
-  const data = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(canonical(value)));
-  return Array.from(new Uint8Array(data), x => x.toString(16).padStart(2, '0')).join('');
-}
 const newKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), x => x.toString(16).padStart(2, '0')).join('');
 const draftPrecondition = aggregate => aggregate.draft ? aggregate.draft_etag : '*';
 const textStyle = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
@@ -65,7 +58,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       catch { setMessage('浏览器未保留恢复标识，请保持当前标签页。'); }
     }
   }
-  async function request(suffix, t, method = 'GET', body, headers = {}) {
+  async function request(suffix, t, method = 'GET', body, headers = {}, receipt = false) {
     const response = await fetch(base + '/api/v2' + suffix, { method, signal: t.signal, cache: 'no-store', credentials: 'omit',
       headers: { Authorization: `Bearer ${token}`, ...(body === undefined ? {} : { 'Content-Type': 'application/json' }), ...headers },
       ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -76,7 +69,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     const result = response.status === 401 ? await response.json().catch(() => null) : await response.json();
     if (!t.current()) throw Object.assign(new Error('stale'), { stale: true });
     // Only business endpoints return terminal command receipts with a 4xx status.
-    if (response.status === 401 || (!response.ok && (suffix === '/auth/reauthenticate' || !result?.state))) {
+    if (response.status === 401 || (!response.ok && !receipt)) {
       const rejectedPassword = response.status === 401 && suffix === '/auth/reauthenticate'
         && result?.code === 'REAUTHENTICATION_FAILED' && !Object.hasOwn(result, 'state') && !Object.hasOwn(result, 'challenge_id');
       throw Object.assign(new Error(result?.code || result?.detail || '读取失败'), { status: response.status, code: result?.code, rejectedPassword });
@@ -99,7 +92,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
         ? '请退出后使用同一账号重新登录，再查询原请求。'
         : '请退出后重新登录，再打开本病例。';
       setMessage('登录已失效。原文仅供复制保留；原预览、勾选和认证已失效。' + next);
-    } else setMessage(errors[error.code] || (pendingRef.current ? '结果尚未确认，请查询原请求；不要重复提交。' : String(error.message)));
+    } else setMessage(pendingRef.current ? '结果尚未确认，请查询原请求；不要重复提交。' : errors[error.code] || String(error.message));
   }
   async function load(t, replaceDraft = true, committedDraftETag = null) {
     const g = (await request(path + '/treatment', t)).body;
@@ -141,23 +134,29 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       treatment: { ...content.treatment, goals: draftListItems(content.treatment.goals, listEdits.goals, false, keepPlaceholders) },
     };
   }
-  async function reconcile(out, t) {
+  async function reconcile(response, t, source, submitted = null) {
     if (!t.current()) return;
+    const original = pendingRef.current;
+    if (!matchesTreatmentReceipt(response, original, source, submitted)) throw new Error('无法核对原请求的回执。');
+    const out = response.body;
     if (out.state === 'pending' || out.state === 'not_observed') { setMessage('结果仍待核对。未观察到结果不表示未保存；可继续查询或取消原请求。'); return; }
     if (out.state !== 'committed') {
-      if (pendingRef.current?.operation === 'draft.save' && out.code === 'VERSION_MISMATCH' && dirty) setRejectedDraft(true);
+      if (original.operation === 'draft.save' && out.code === 'VERSION_MISMATCH' && dirty) setRejectedDraft(true);
       remember(null); setMessage(errors[out.code] || out.code || '操作未完成，请重新读取后核对。'); await load(t, !dirty); return;
     }
-    if (out.signature_id) {
-      // Success requires an independent authorized GET of the frozen signature.
-      const frozen = (await request(path + '/treatment/signatures/' + out.signature_id, t)).body;
-      setVerified(frozen);
+    let verifiedSignature = null;
+    if (original.operation === 'sign' || original.operation === 'revoke') {
+      const readback = await request(path + '/treatment/signatures/' + out.signature_id, t);
+      const expected = { org_id: scope.org_id, clinic_id: scope.clinic_id, case_id: caseId, actor_id: data.actor_id };
+      if (!await matchesTreatmentSignature(readback, out, expected, submitted?.proof)) throw new Error('无法独立核对签署结果。');
+      if (!t.current()) return;
+      verifiedSignature = readback.body;
     }
     // A newer draft may already exist by the time this save's receipt is read.
-    const savedDraftETag = pendingRef.current?.operation === 'draft.save' ? out.draft_etag : null;
+    const savedDraftETag = original.operation === 'draft.save' ? out.draft_etag : null;
     await load(t, !dirty, savedDraftETag);
     if (!t.current()) return;
-    remember(null); setMessage('已从服务端核对保存结果。');
+    setVerified(verifiedSignature); remember(null); setMessage('已从服务端核对保存结果。');
   }
   async function submit(operation, target, suffix, body, method = 'POST', proof = null) {
     if (busy || expired || pendingRef.current || !data || (operation === 'draft.save' && draftConflict)) return;
@@ -179,9 +178,8 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       remember({ key, operation, request_hash });
       setChecked(false); setRevokeChecked(false); setPassword('');
       const headers = { 'Idempotency-Key': key, [precondition === '*' ? 'If-None-Match' : 'If-Match']: precondition };
-      const out = await request(path + '/treatment' + suffix, t, method, body, headers);
-      if (!out.body.state) { remember(null); throw new Error('服务返回了无法核对的结果。'); }
-      await reconcile(out.body, t);
+      const out = await request(path + '/treatment' + suffix, t, method, body, headers, true);
+      await reconcile(out, t, 'submit', { target, decision: body.decision, baseSignatureId: body.base_signature_id, proof });
     } catch (e) { failed(e, t); }
     finally { if (t.current()) { setBusy(false); setPassword(''); } }
   }
@@ -190,8 +188,8 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     const t = task(); setBusy(true);
     try {
       const suffix = path + '/commands/' + pending.key + (cancel ? '/cancel' : '?operation=' + pending.operation);
-      const out = await request(suffix, t, cancel ? 'POST' : 'GET', cancel ? { operation: pending.operation, request_hash: pending.request_hash, reason: reason || '用户取消原请求' } : undefined);
-      await reconcile(out.body, t);
+      const out = await request(suffix, t, cancel ? 'POST' : 'GET', cancel ? { operation: pending.operation, request_hash: pending.request_hash, reason: reason || '用户取消原请求' } : undefined, {}, true);
+      await reconcile(out, t, cancel ? 'cancel' : 'lookup');
     } catch (e) { failed(e, t); } finally { if (t.current()) setBusy(false); }
   }
   const rev = data?.revisions.find(r => r.id === data.plan?.head_revision_id);

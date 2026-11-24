@@ -37,13 +37,77 @@ async function openCase(id) {
   if (await page.locator('[aria-label="治疗签署"]').count()) await expect(page.getByRole('button', { name: '重新读取治疗记录', exact: true })).toBeEnabled();
 }
 async function logout() { await page.getByRole('button', { name: '退出登录', exact: true }).click(); await expect(page.getByRole('button', { name: '登录', exact: true })).toBeEnabled(); }
-async function freeze(content=text) {
+const saveDraft = () => page.getByRole('button', { name: '保存治疗草稿', exact: true }).click();
+async function freeze(content=text, save=saveDraft) {
   await page.getByLabel('治疗诊断', { exact: true }).fill('合成诊断，仅软件验收');
   await page.getByLabel('治疗评估', { exact: true }).fill(content);
   await page.getByLabel('治疗措施', { exact: true }).fill(content);
-  await page.getByRole('button', { name: '保存治疗草稿', exact: true }).click();
+  await save();
   await page.getByRole('button', { name: '冻结版本供核对', exact: true }).click();
   await expect(page.getByLabel('已核对冻结版本', { exact: true })).toBeEnabled();
+}
+async function saveWithForeignReceipt() {
+  const casePath = `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/101`;
+  const draftPath = casePath + '/treatment/draft';
+  const draftURL = new URL(draftPath, receipt.url).href;
+  const writesBefore = caseWritePaths.length;
+  const lookups = [];
+  function observeLookup(request) {
+    const url = new URL(request.url());
+    if (request.method() === 'GET' && url.pathname.startsWith(casePath + '/commands/')) lookups.push(url.href);
+  }
+  page.on('request', observeLookup);
+  let committed;
+  // Forward the existing first save once. Change only the committed response delivered to the page.
+  await page.route(draftURL, async route => {
+    const original = await route.fetch({ maxRedirects: 0, maxRetries: 0 });
+    committed = await original.json();
+    const foreignKey = committed.idempotency_key === '0'.repeat(64) ? '1'.repeat(64) : '0'.repeat(64);
+    await route.fulfill({ response: original, json: { ...committed, idempotency_key: foreignKey } });
+  }, { times: 1 });
+  const [delivered] = await Promise.all([
+    page.waitForResponse(response => response.url() === draftURL && response.request().method() === 'PATCH'),
+    saveDraft(),
+  ]);
+  const key = delivered.request().headers()['idempotency-key'];
+  const submitted = delivered.request().postDataJSON().content;
+  assert.match(key, /^[0-9a-f]{64}$/);
+  assert.equal(delivered.status(), 201);
+  assert.equal(committed.state, 'committed');
+  assert.equal(committed.operation, 'draft.save');
+  assert.equal(committed.idempotency_key, key);
+  const altered = await delivered.json();
+  assert.notEqual(altered.idempotency_key, key);
+  assert.deepEqual({ ...altered, idempotency_key: key }, committed);
+
+  const lookup = page.getByRole('button', { name: '查询原请求', exact: true });
+  const freezeButton = page.getByRole('button', { name: '冻结版本供核对', exact: true });
+  await expect(lookup).toBeEnabled();
+  await expect(page.getByText('待核对请求：' + key, { exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '保存治疗草稿', exact: true })).toBeDisabled();
+  await expect(freezeButton).toBeDisabled();
+  assert.deepEqual(lookups, []);
+  const lookupURL = new URL(casePath + '/commands/' + key + '?operation=draft.save', receipt.url).href;
+  const aggregateURL = new URL(casePath + '/treatment', receipt.url).href;
+  const [original, aggregate] = await Promise.all([
+    page.waitForResponse(response => response.url() === lookupURL && response.request().method() === 'GET'),
+    page.waitForResponse(response => response.url() === aggregateURL && response.request().method() === 'GET'),
+    lookup.click(),
+  ]);
+  assert.equal(original.status(), 201);
+  assert.deepEqual(await original.json(), committed);
+  assert.equal(aggregate.status(), 200);
+  const recovered = await aggregate.json();
+  assert.equal(recovered.draft_etag, committed.draft_etag);
+  assert.equal(recovered.draft.draft_version, committed.draft_version);
+  assert.deepEqual(recovered.draft.content, submitted);
+  await expect(lookup).toHaveCount(0);
+  await expect(page.getByLabel('治疗评估', { exact: true })).toHaveValue(submitted.assessment);
+  await expect(freezeButton).toBeEnabled();
+  assert.deepEqual(lookups, [lookupURL]);
+  assert.deepEqual(caseWritePaths.slice(writesBefore), [draftPath]);
+  page.off('request', observeLookup);
+  checks.push('foreign-draft-receipt-original-key-recovery-no-repeat-write');
 }
 async function review() {
   await page.getByLabel('已核对冻结版本', { exact: true }).check();
@@ -150,7 +214,7 @@ try {
   await page.goto(receipt.url);
   await login();
   await checkDiscardOnCaseSwitch();
-  await openCase(101); await freeze(); await review();
+  await openCase(101); await freeze(text, saveWithForeignReceipt); await review();
   const beforeSign = await rejectWrongPassword('sign');
   await sign(); await readback();
   assert.equal(caseWritePaths.length, beforeSign + 1);
