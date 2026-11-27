@@ -164,6 +164,17 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     setListEdits(previous => ({ ...previous, [field]: value }));
     markEdited();
   }
+  function acknowledgeRevocation(confirmed) {
+    setRevokeChecked(confirmed);
+    if (!confirmed) setPassword('');
+  }
+  function editReason(value) {
+    setReason(value);
+    if (revokeChecked && value !== reason) {
+      acknowledgeRevocation(false);
+      setMessage('作废原因已修改，请重新核对并输入当前账号密码。');
+    }
+  }
   function currentContent(keepPlaceholders = false) {
     return { ...content,
       diagnoses: draftListItems(content.diagnoses, listEdits.diagnoses, true, keepPlaceholders),
@@ -287,12 +298,12 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
           <p style={textStyle}>内容校验值：{rev.content_sha256}</p>
           {review && <p>审核：{review.clinician_snapshot.display_name} · {({ approve: '审核通过', request_revision: '要求修订', reject: '审核拒绝' })[review.decision]} · {review.reason}</p>}
           <label><input aria-label="已核对冻结版本" type="checkbox" checked={checked} disabled={cannotConfirmRevision} onChange={e => setChecked(e.target.checked)} />我已核对病例、完整原文、来源资料及本次操作</label>
-          <p><label>审核／修订／作废原因<input aria-label="操作原因" value={reason} disabled={locked} onChange={e => setReason(e.target.value)} /></label></p>
+          <p><label>审核／修订／作废原因<input aria-label="操作原因" value={reason} disabled={locked} onChange={e => editReason(e.target.value)} /></label></p>
           {!review && ['approve','request_revision','reject'].map((decision,i) => <button key={decision} disabled={cannotConfirmRevision || !checked || !reason.trim() || !data.allowed_actions.review} onClick={() => submit('review',rev.id,`/revisions/${rev.id}/reviews`,{ decision, reason })}>{['审核通过','要求修订','审核拒绝'][i]}</button>)}
           <p><label>再次输入当前账号密码<input aria-label="签署认证密码" type="password" autoComplete="off" value={password} disabled={locked} onChange={e => setPassword(e.target.value)} /></label></p>
           <button disabled={cannotConfirmRevision || !checked || !password || !data.allowed_actions.sign || review?.decision !== 'approve' || data.signatures.some(s => s.revision_id === rev.id)} onClick={() => submit('sign',rev.id,`/revisions/${rev.id}/signatures`,{ review_id: review.id, content_hash: rev.content_sha256 },'POST',{ revision_id: rev.id, hash: rev.content_sha256 })}>再次认证并确认签署</button>
         </section>}
-        {active && <section><p><label><input type="checkbox" aria-label="已核对待作废签署" checked={revokeChecked} disabled={locked} onChange={e => setRevokeChecked(e.target.checked)} />我已核对当前有效签署（版本 {activeRevision?.revision_no}）及作废原因</label></p><p><button disabled={!canEdit || !reason.trim() || data.draft?.amendment_of === active.id} onClick={() => submit('amend','amendments','/amendments',{ base_signature_id: active.id, reason })}>创建修订草稿</button>{' '}
+        {active && <section><p><label><input type="checkbox" aria-label="已核对待作废签署" checked={revokeChecked} disabled={locked || !reason.trim()} onChange={e => acknowledgeRevocation(e.target.checked)} />我已核对当前有效签署（版本 {activeRevision?.revision_no}）及作废原因</label></p><p><button disabled={!canEdit || !reason.trim() || data.draft?.amendment_of === active.id} onClick={() => submit('amend','amendments','/amendments',{ base_signature_id: active.id, reason })}>创建修订草稿</button>{' '}
           <button disabled={locked || !revokeChecked || !password || !reason.trim() || !data.allowed_actions.sign} onClick={() => submit('revoke',active.id,`/signatures/${active.id}/revocations`,{ reason },'POST',{ revision_id: active.revision_id, hash: active.content_hash, signature_id: active.id })}>再次认证并作废签署</button></p></section>}
         <h3>签署历史</h3>
         {data.signatures.map(signature => {

@@ -314,6 +314,52 @@ async function checkSignedListItems() {
   return record.signature.id;
 }
 
+async function revokeAfterReasonEdit(tab, signatureId, reason) {
+  const input = tab.getByLabel('操作原因', { exact: true });
+  const confirm = tab.getByLabel('已核对待作废签署', { exact: true });
+  const password = tab.getByLabel('签署认证密码', { exact: true });
+  const submit = tab.getByRole('button', { name: '再次认证并作废签署', exact: true });
+  const signaturePath = `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/110/treatment/signatures/${signatureId}`;
+  const mutations = [];
+  const observe = req => {
+    if (['POST', 'PATCH', 'PUT', 'DELETE'].includes(req.method())) mutations.push([req.method(), new URL(req.url()).pathname]);
+  };
+  tab.on('request', observe);
+  try {
+    await expect(confirm).toBeDisabled();
+    await input.fill('合成病例：尚待更正的原因');
+    await confirm.check();
+    await password.fill(fixture.password);
+    await expect(submit).toBeEnabled();
+    await input.fill(reason);
+    await expect(confirm).not.toBeChecked();
+    await expect(password).toHaveValue('');
+    await expect(submit).toBeDisabled();
+    await confirm.check();
+    await expect(submit).toBeDisabled();
+    await password.fill(fixture.password);
+    const writesBeforeSubmit = mutations.length;
+    assert.equal(writesBeforeSubmit, 0);
+
+    const [readback] = await Promise.all([
+      tab.waitForResponse(r => new URL(r.url()).pathname === signaturePath && r.request().method() === 'GET'),
+      submit.click(),
+    ]);
+    assert.equal(readback.status(), 200);
+    const { state, terminal_event: event } = await readback.json();
+    assert.equal(state, 'revoked');
+    assert.equal(event.signature_id, signatureId);
+    assert.equal(event.reason, reason);
+    await expect(tab.locator('[aria-label="独立回读签署"]')).toContainText(signatureId + ' · revoked');
+    assert.deepEqual(mutations, [['POST', '/api/v2/auth/reauthenticate'], ['POST', signaturePath + '/revocations']]);
+    result.revocation_reason_edit = { case_id: 110, signature_id: signatureId, readback_reason: event.reason,
+      mutations_before_submit: writesBeforeSubmit, mutations };
+    checks.push('edited-revocation-reason-requires-new-acknowledgement-and-password');
+  } finally {
+    tab.off('request', observe);
+  }
+}
+
 async function checkReadbackAfterExternalRevocation(signatureId) {
   // The original doctor's page stays open with its confirmed effective readback.
   const oldPanel = page.locator('[aria-label="独立回读签署"]');
@@ -325,11 +371,7 @@ async function checkReadbackAfterExternalRevocation(signatureId) {
     await other.goto(receipt.url);
     await login('doctor-b', other);
     await openCase(110, other);
-    await other.getByLabel('操作原因', { exact: true }).fill(reason);
-    await other.getByLabel('已核对待作废签署', { exact: true }).check();
-    await other.getByLabel('签署认证密码', { exact: true }).fill(fixture.password);
-    await other.getByRole('button', { name: '再次认证并作废签署', exact: true }).click();
-    await expect(other.locator('[aria-label="独立回读签署"]')).toContainText(signatureId + ' · revoked');
+    await revokeAfterReasonEdit(other, signatureId, reason);
   } finally {
     await other.close();
   }
