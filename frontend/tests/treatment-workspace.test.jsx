@@ -553,6 +553,54 @@ function historyRows() {
   return renderer.root.findAllByType('p').map(directText).filter(text => /^版本 \d+ · /.test(text));
 }
 
+function revocationHistoryDetails() {
+  const text = node => typeof node === 'string' ? node : node.children.map(text).join('');
+  const summaries = renderer.root.findAllByType('summary').filter(node => text(node).includes('作废记录'));
+  return Object.fromEntries(summaries.map(summary => {
+    const detail = summary.parent;
+    assert.equal(detail.type, 'details');
+    const fields = detail.findAllByType('dt').map(term => {
+      const siblings = term.parent.children;
+      const value = siblings[siblings.indexOf(term) + 1];
+      assert.equal(value.type, 'dd');
+      return [text(term), text(value)];
+    });
+    return [text(summary), Object.fromEntries(fields)];
+  }));
+}
+
+test('revoked versions display their own event actor, time and original reason in read-only history', async () => {
+  const first = signedReadback('revoke', 'revoked', priorRevision);
+  const second = signedReadback('sign', 'revoked', rev);
+  const event1 = {...first.terminal_event, actor_id:7, created_at:'2026-11-10T13:57:13+08:00', reason:'前一版本的原因'};
+  const event2 = {...second.terminal_event, id:'3708b584-295b-4691-a6b4-6422cf410099', actor_id:11,
+    created_at:'2026-11-11T14:07:33.123456+08:00', reason:' 甲 <乙> & café 🐾\n{{第二行}} \\n  '};
+  handler = async () => response(data({
+    actor_id:5, signatures:[first.signature, second.signature], revisions:[rev, priorRevision], events:[event2, event1],
+  }));
+  await mount();
+  assert.deepEqual(revocationHistoryDetails(), {
+    '查看版本 1 的作废记录': {'作废账号 ID':'7', '作废时间':event1.created_at, '作废原因':event1.reason},
+    '查看版本 2 的作废记录': {'作废账号 ID':'11', '作废时间':event2.created_at, '作废原因':event2.reason},
+  });
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+  handler = async () => response({detail:'无权读取'}, 403);
+  await click('重新读取治疗记录');
+  assert.deepEqual(revocationHistoryDetails(), {});
+  assert.doesNotMatch(output(), /前一版本的原因/);
+});
+
+test('incomplete revocation events do not borrow the original signer, signing time or a synthetic reason', async () => {
+  const signed = signedReadback('sign','revoked');
+  const aggregate = signatureAggregate(signed);
+  aggregate.events = [{id:ids.event, signature_id:signed.signature.id, event:'revoked'}];
+  handler = async () => response(aggregate);
+  await mount();
+  assert.deepEqual(revocationHistoryDetails(), {
+    '查看版本 2 的作废记录': {'作废账号 ID':'未提供','作废时间':'未提供','作废原因':'未提供'},
+  });
+});
+
 function assertSignatureAwaitingRead() {
   assert.equal(renderer.root.findAllByProps({'aria-label':'当前有效签署'}).length, 0);
   assert.equal(renderer.root.findAllByProps({'aria-label':'独立回读签署'}).length, 0);
@@ -573,6 +621,7 @@ function assertLatestSignatureHistory(state) {
     assert.equal(rows.length, 2);
     assert.ok(rows.some(row => /^版本 2 · .* · 已由新签署替代 · 院内账号确认$/.test(row)));
     assert.ok(rows.some(row => /^版本 3 · .* · 有效 · 院内账号确认$/.test(row)));
+    assert.deepEqual(revocationHistoryDetails(), {});
   }
 }
 
@@ -700,6 +749,7 @@ for (const state of ['revoked', 'superseded', 'missing', 'inactive pointer', 're
       if (state === 'inactive pointer' || state === 'revoked with active pointer') {
         assert.equal(rows.length, 1);
         assert.match(rows[0], /^版本 2 · .* · 状态待核对 · 院内账号确认$/);
+        assert.deepEqual(revocationHistoryDetails(), {});
       } else {
         assert.deepEqual(rows, []);
       }

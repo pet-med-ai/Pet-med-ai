@@ -140,6 +140,13 @@ confirmed even when the signature is no longer effective.
 If the current signature and its history disagree, the page shows **状态待核对**
 and pauses editing and signing. Reread the treatment record to check again.
 
+In **签署历史**, each signed version lists its original signer and signing time.
+For a revoked version, expand **查看版本 … 的作废记录** to see the account ID
+that revoked that signature, the revocation time and the recorded reason.
+These fields come from the matching revocation event in the loaded case record.
+Opening or closing the details sends no request. An unavailable field displays
+**未提供**.
+
 If another clinician saves while you are editing, rereading the treatment record
 keeps your local text and checks the version you started from. When the versions
 differ, copy the changes you need, then choose **放弃本页修改并载入服务器草稿**.

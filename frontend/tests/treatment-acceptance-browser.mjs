@@ -318,13 +318,14 @@ async function checkReadbackAfterExternalRevocation(signatureId) {
   // The original doctor's page stays open with its confirmed effective readback.
   const oldPanel = page.locator('[aria-label="独立回读签署"]');
   await expect(oldPanel).toContainText(signatureId + ' · effective');
+  const reason = '合成病例：独立会话作废复核';
   const other = await browser.newPage();
   other.on('pageerror', error => errors.push(String(error)));
   try {
     await other.goto(receipt.url);
     await login('doctor-b', other);
     await openCase(110, other);
-    await other.getByLabel('操作原因', { exact: true }).fill('合成病例：独立会话作废复核');
+    await other.getByLabel('操作原因', { exact: true }).fill(reason);
     await other.getByLabel('已核对待作废签署', { exact: true }).check();
     await other.getByLabel('签署认证密码', { exact: true }).fill(fixture.password);
     await other.getByRole('button', { name: '再次认证并作废签署', exact: true }).click();
@@ -340,7 +341,9 @@ async function checkReadbackAfterExternalRevocation(signatureId) {
   const currentPanel = page.locator('[aria-label="当前有效签署"]');
   const warning = page.getByText('签署状态待核对，请重新读取治疗记录。', { exact: true });
   const requests = [];
+  let allRequestCount = 0;
   const observe = req => {
+    allRequestCount++;
     const pathname = new URL(req.url()).pathname;
     if (pathname.startsWith('/api/v2/')) requests.push({ method: req.method(), path: pathname });
   };
@@ -373,19 +376,47 @@ async function checkReadbackAfterExternalRevocation(signatureId) {
     assert.equal(response.status(), 200);
     const record = await response.json();
     assert.equal(record.plan.active_signature_id, null);
-    assert.ok(record.events.some(event => event.signature_id === signatureId && event.event === 'revoked'));
+    const event = record.events.find(event => event.signature_id === signatureId && event.event === 'revoked');
+    assert.ok(event);
     await expect(page.getByText(/ · 已作废 · /)).toBeVisible();
     await expect(warning).toHaveCount(0);
     await expect(currentPanel).toHaveCount(0);
     await expect(oldPanel).toHaveCount(0);
+    const signature = record.signatures.find(s => s.id === signatureId);
+    assert.equal(signature.signer_id, 1);
+    assert.equal(record.actor_id, 1);
+    assert.equal(event.actor_id, 2);
+    assert.equal(event.reason, reason);
+    assert.ok(Number.isFinite(Date.parse(event.created_at)));
+    const revision = record.revisions.find(r => r.id === signature.revision_id);
+    const summary = page.getByText(`查看版本 ${revision.revision_no} 的作废记录`, { exact: true });
+    const details = page.locator('details').filter({ has: summary });
+    const beforeDetails = allRequestCount;
+    await expect(details).toHaveJSProperty('open', false);
+    await summary.click();
+    await expect(details.locator('dl')).toBeVisible();
+    const displayed = await details.locator('dt').evaluateAll(terms =>
+      Object.fromEntries(terms.map(term => [term.textContent, term.nextElementSibling.textContent])));
+    assert.deepEqual(displayed, {
+      '作废账号 ID': String(event.actor_id), '作废时间': event.created_at, '作废原因': event.reason,
+    });
+    await summary.click();
+    await expect(details).toHaveJSProperty('open', false);
+    assert.equal(allRequestCount, beforeDetails);
     assert.deepEqual(requests, [{ method: 'GET', path }, { method: 'GET', path }]);
     assert.equal(caseWritePaths.length, writesBefore);
     result.refresh_after_injected_503 = {
       case_id: 110, account: 'doctor-a', requests,
       response_statuses: [unavailable.status(), response.status()], case_writes: caseWritePaths.length - writesBefore,
     };
+    result.revocation_history_details = {
+      case_id: 110, signature_id: signatureId, revision_no: revision.revision_no,
+      signer_id: signature.signer_id, revocation_actor_id: event.actor_id, created_at: event.created_at,
+      reason: event.reason, additional_requests: allRequestCount - beforeDetails,
+    };
     checks.push('manual-refresh-clears-readback-after-another-clinician-revokes',
-      'failed-aggregate-refresh-withholds-effective-status-until-retry');
+      'failed-aggregate-refresh-withholds-effective-status-until-retry',
+      'revocation-history-discloses-actor-time-and-reason-without-requests');
   } finally {
     page.off('request', observe);
   }
