@@ -10,6 +10,11 @@ import subprocess
 import tarfile
 import tempfile
 
+if __package__:
+    from .treatment_acceptance_provenance import checkout_revision
+else:
+    from treatment_acceptance_provenance import checkout_revision
+
 ROOT = Path(__file__).resolve().parents[1]
 GIT = ["git", "--no-replace-objects", "-C", str(ROOT)]
 PATHS = [
@@ -17,6 +22,7 @@ PATHS = [
     "frontend/public", "frontend/package.json", "frontend/package-lock.json",
     "frontend/vite.config.js", "scripts/treatment_acceptance.py",
     "scripts/treatment_acceptance_support.py", "scripts/treatment_acceptance_drill.py",
+    "scripts/treatment_acceptance_provenance.py",
     "scripts/treatment_acceptance_mac.command", "docs/treatment-acceptance-mac-card.md",
 ]
 
@@ -55,7 +61,7 @@ def add_file(archive, name, mode, data):
     archive.addfile(entry, io.BytesIO(data))
 
 
-def write_kit(output, commit, tree):
+def write_kit(output, revision):
     files = {}
     with (
         subprocess.Popen([*GIT, "cat-file", "--batch"], stdin=subprocess.PIPE, stdout=subprocess.PIPE) as blobs,
@@ -63,11 +69,11 @@ def write_kit(output, commit, tree):
         gzip.GzipFile(filename="", mode="wb", compresslevel=9, fileobj=raw, mtime=0) as compressed,
         tarfile.open(fileobj=compressed, mode="w", format=tarfile.PAX_FORMAT, encoding="utf-8") as archive,
     ):
-        for name, mode, oid in runtime_files(tree):
+        for name, mode, oid in runtime_files(revision["tree"]):
             data = read_blob(blobs, oid)
             files[name] = hashlib.sha256(data).hexdigest()
             add_file(archive, name, mode, data)
-        manifest = {"format": "pmai-treatment-kit-v1", "commit": commit, "tree": tree, "files": files}
+        manifest = {"format": "pmai-treatment-kit-v1", **revision, "files": files}
         add_file(archive, "acceptance-manifest.json", 0o644, json.dumps(manifest, ensure_ascii=False, indent=2).encode())
     if blobs.returncode:
         raise subprocess.CalledProcessError(blobs.returncode, blobs.args)
@@ -80,17 +86,16 @@ def main():
     args = parser.parse_args()
     if subprocess.check_output([*GIT, "status", "--porcelain"]).strip():
         raise SystemExit("Package only a clean, committed candidate")
-    commit = subprocess.check_output([*GIT, "rev-parse", "HEAD"]).decode().strip()
-    tree = subprocess.check_output([*GIT, "rev-parse", commit + "^{tree}"]).decode().strip()
+    revision = checkout_revision(GIT)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(dir=args.output.parent) as tmp:
         staged = Path(tmp) / "kit.tar.gz"
-        count = write_kit(staged, commit, tree)
+        count = write_kit(staged, revision)
         size = staged.stat().st_size
         with staged.open("rb") as stream:
             digest = hashlib.file_digest(stream, "sha256").hexdigest()
         staged.replace(args.output)
-    print(json.dumps({"commit": commit, "tree": tree, "files": count, "sha256": digest, "bytes": size}))
+    print(json.dumps({**revision, "files": count, "sha256": digest, "bytes": size}))
 
 
 if __name__ == "__main__":
