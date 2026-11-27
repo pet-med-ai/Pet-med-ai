@@ -256,7 +256,9 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   const eventsBySignature = new Map(data?.events.map(e => [e.signature_id, e]));
   const signaturesById = new Map(data?.signatures.map(s => [s.id, s]));
   const states = new Map(data?.signatures.map(s => [s.id, signatureState(activeId, s.id, eventsBySignature.get(s.id))]));
-  const active = recordCurrent && states.get(activeId) === 'effective' ? signaturesById.get(activeId) : null;
+  const signaturePending = pending?.operation === 'sign' || pending?.operation === 'revoke';
+  const effectiveStatusKnown = recordCurrent && !signaturePending;
+  const active = effectiveStatusKnown && states.get(activeId) === 'effective' ? signaturesById.get(activeId) : null;
   const activeRevision = revisionsById.get(active?.revision_id);
   const uncertainStatus = (!!activeId && states.get(activeId) !== 'effective') || [...states.values()].includes('unknown');
   // Discard fetches a new draft and replaces local edits only after a successful read.
@@ -275,7 +277,9 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       <button disabled={busy} onClick={() => refresh()}>重新读取治疗记录</button>
       {data && <>
         <p>审核账号：{data.profile?.display_name || '当前账号无已核验医生档案'} · {data.policy.review_policy === 'two_person' ? '另一位医生签署' : '允许同一医生审核签署'}</p>
-        {(uncertainStatus || (!recordCurrent && !busy)) && <p role="alert">签署状态待核对，请重新读取治疗记录。</p>}
+        {signaturePending
+          ? <p role="alert">签署结果待核对，请查询原请求。</p>
+          : (uncertainStatus || (!recordCurrent && !busy)) && <p role="alert">签署状态待核对，请重新读取治疗记录。</p>}
         {data.policy.required_assurance === 'certificate_signature' && <p role="alert">本院要求证书签名，当前不能签署。</p>}
         {active && <section aria-label="当前有效签署"><h3>当前有效签署 · 版本 {activeRevision?.revision_no}</h3><p>{active.clinician_snapshot.display_name} · {active.signed_at} · 已确认签署 · 院内账号确认</p>{activeRevision && <ContentView content={activeRevision.content} />}</section>}
         <fieldset disabled={!canEdit || (!!active && data.draft?.amendment_of !== active.id)}><legend>治疗草稿</legend>
@@ -308,7 +312,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
         <h3>签署历史</h3>
         {data.signatures.map(signature => {
           const version = revisionsById.get(signature.revision_id)?.revision_no;
-          const state = !recordCurrent && signature.id === activeId ? 'unknown' : states.get(signature.id);
+          const state = !effectiveStatusKnown && signature.id === activeId ? 'unknown' : states.get(signature.id);
           const event = eventsBySignature.get(signature.id);
           const successorId = event?.successor_signature_id;
           const successor = successorId && successorId !== signature.id ? signaturesById.get(successorId) : null;
