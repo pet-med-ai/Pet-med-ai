@@ -47,10 +47,25 @@ class BoundaryTests(unittest.TestCase):
             manifest = {"commit": "a" * 40, "tree": "b" * 40, "files": {"runtime.py": hashlib.sha256(b"original").hexdigest()}}
             (path / "acceptance-manifest.json").write_text(json.dumps(manifest))
             with patch.object(support, "ROOT", path):
-                self.assertEqual(support.identity()["packaged_files_verified"], 1)
+                legacy = support.identity()
+                self.assertIsNone(legacy["parents"])
+                self.assertEqual(legacy["packaged_files_verified"], 1)
                 (path / "runtime.py").write_text("changed")
                 with self.assertRaisesRegex(RuntimeError, "Candidate file changed"):
                     support.identity()
+
+    def test_manifest_parent_ids_must_match_the_candidate_object_format(self):
+        with tempfile.TemporaryDirectory() as tmp, patch.object(support, "ROOT", Path(tmp)):
+            path = Path(tmp) / "acceptance-manifest.json"
+            manifest = {"format": "pmai-treatment-kit-v1", "commit": "a" * 64, "tree": "b" * 64, "files": {}}
+            parent = "c" * 64
+            path.write_text(json.dumps({**manifest, "parents": [parent]}))
+            self.assertEqual(support.identity()["parents"], [parent])
+            for invalid in (None, parent, [None], [parent.upper()], ["g" * 64], ["c" * 40]):
+                with self.subTest(invalid=invalid):
+                    path.write_text(json.dumps({**manifest, "parents": invalid}))
+                    with self.assertRaises(RuntimeError):
+                        support.identity()
 
     def test_constraint_equivalence_keeps_changed_values_distinct(self):
         original = "CHECK (x = ANY ((ARRAY['active'::character varying, 'revoked'::character varying])::text[]))"
@@ -71,14 +86,19 @@ class PackageTests(unittest.TestCase):
         self.repo = self.tmp / "original"
         self.repo.mkdir()
         self.git("init", "-q")
+        self.git("config", "user.name", "Fixture")
+        self.git("config", "user.email", "fixture@example.invalid")
+        self.git("config", "commit.gpgsign", "false")
         self.contents = {
             "backend/合成病例.txt": b"frozen text\n",
             "scripts/treatment_acceptance_mac.command": b"#!/bin/sh\n",
+            "scripts/treatment_acceptance_provenance.py": (ROOT / "scripts/treatment_acceptance_provenance.py").read_bytes(),
         }
         for path, contents in self.contents.items():
             (self.repo / path).parent.mkdir(parents=True, exist_ok=True)
             (self.repo / path).write_bytes(contents)
         (self.repo / "scripts/treatment_acceptance_mac.command").chmod(0o755)
+        (self.repo / ".gitignore").write_text("__pycache__/\n")
         (self.repo / ".gitattributes").write_text("*.txt text eol=crlf\n")
         (self.repo / "backend/.env.local").write_text("synthetic-only")
         (self.repo / "backend/example.sqlite3").write_bytes(b"fixture")
@@ -91,9 +111,8 @@ class PackageTests(unittest.TestCase):
     def git(self, *args):
         return subprocess.run(["git", "-C", self.repo, *args], check=True, capture_output=True).stdout.decode().strip()
 
-    def commit(self, message):
-        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
-                 "-c", "commit.gpgsign=false", "commit", "-qm", message)
+    def commit(self, message, *args):
+        self.git("commit", "-qm", message, *args)
 
     def package(self, repo, name, *, umask=0o022, check=True):
         return subprocess.run([sys.executable, repo / self.packager, self.tmp / name],
@@ -123,6 +142,9 @@ class PackageTests(unittest.TestCase):
         output = self.tmp / "exact.tar.gz"
         receipt = json.loads(self.package(self.clone, output.name).stdout)
         self.assertEqual(receipt["files"], len(self.contents))
+        self.assertEqual(receipt["parents"], [])
+        with patch.object(support, "ROOT", self.clone):
+            self.assertEqual(support.identity()["parents"], [])
         with tarfile.open(output) as archive:
             manifest_name = self.prefix + "acceptance-manifest.json"
             self.assertCountEqual(archive.getnames(), [self.prefix + n for n in self.contents] + [manifest_name])
@@ -130,12 +152,46 @@ class PackageTests(unittest.TestCase):
             self.assertEqual(manifest["format"], "pmai-treatment-kit-v1")
             self.assertEqual(manifest["commit"], self.git("rev-parse", "HEAD"))
             self.assertEqual(manifest["tree"], self.git("rev-parse", "HEAD^{tree}"))
+            self.assertEqual(manifest["parents"], [])
             self.assertEqual(set(manifest["files"]), set(self.contents))
             for path, expected in self.contents.items():
                 member = archive.getmember(self.prefix + path)
                 self.assertEqual(archive.extractfile(member).read(), expected)
                 self.assertEqual(manifest["files"][path], hashlib.sha256(expected).hexdigest())
                 self.assertEqual(member.mode, 0o755 if path == command else 0o644)
+
+    def test_shallow_merge_preserves_both_parents_in_order_through_offline_kit(self):
+        self.git("checkout", "-qb", "other-parent")
+        self.commit("side history", "--allow-empty")
+        second = self.git("rev-parse", "HEAD")
+        self.git("checkout", "-q", "-")
+        self.commit("main history", "--allow-empty")
+        first = self.git("rev-parse", "HEAD")
+        self.git("merge", "-q", "--no-ff", "-m", "merge history\n\nparent " + "f" * 40, "other-parent")
+        commit = self.git("rev-parse", "HEAD")
+        shallow = self.tmp / "shallow"
+        self.git("clone", "-q", "--depth=1", self.repo.as_uri(), str(shallow))
+        self.assertNotEqual(subprocess.run(["git", "-C", shallow, "cat-file", "-e", first], capture_output=True).returncode, 0)
+        with patch.object(support, "ROOT", shallow):
+            checkout = support.identity()
+        output = self.tmp / "merge.tar.gz"
+        summary = json.loads(self.package(shallow, output.name).stdout)
+        with tarfile.open(output) as archive:
+            archive.extractall(self.tmp, filter="data")
+        with patch.object(support, "ROOT", self.tmp / self.prefix):
+            offline = support.identity()
+        for identity in (checkout, summary, offline):
+            self.assertEqual(identity["commit"], commit)
+            self.assertEqual(identity["parents"], [first, second])
+
+    def test_replace_ref_cannot_change_reported_parents(self):
+        first = self.git("rev-parse", "HEAD")
+        self.commit("successor", "--allow-empty")
+        self.git("replace", "HEAD", first)
+        with patch.object(support, "ROOT", self.repo):
+            self.assertEqual(support.identity()["parents"], [first])
+        summary = json.loads(self.package(self.repo, "replaced.tar.gz").stdout)
+        self.assertEqual(summary["parents"], [first])
 
     def test_dirty_checkout_cannot_replace_existing_archive(self):
         output = self.tmp / "existing.tar.gz"

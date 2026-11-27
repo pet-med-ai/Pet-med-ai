@@ -17,6 +17,11 @@ from uuid import uuid4
 import sqlalchemy as sa
 from sqlalchemy.engine import URL
 
+if __package__:
+    from .treatment_acceptance_provenance import checkout_revision
+else:
+    from treatment_acceptance_provenance import checkout_revision
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 BASELINE = "8d70d10f3c76d1b9df04214accb17894ec3c2394"
@@ -75,10 +80,24 @@ def identity():
             path = (ROOT / name).resolve()
             check(path.is_relative_to(ROOT), "Unsafe manifest path")
             check(path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() == expected, f"Candidate file changed: {name}")
-        return {"commit": info["commit"], "tree": info["tree"], "baseline": BASELINE, "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(), "packaged_files_verified": len(info["files"]), "dirty": False}
-    def git(*args):
-        return subprocess.check_output(["git", "-C", str(ROOT), *args], text=True).strip()
-    return {"commit": git("rev-parse", "HEAD"), "tree": git("rev-parse", "HEAD^{tree}"), "baseline": BASELINE, "dirty": bool(git("status", "--porcelain")), "diff_sha256": hashlib.sha256(git("diff", "HEAD").encode()).hexdigest()}
+        parents = info.get("parents")
+        if "parents" in info:
+            check(isinstance(parents, list) and all(
+                isinstance(oid, str) and len(oid) == len(info["commit"])
+                and re.fullmatch(r"(?:[0-9a-f]{40}|[0-9a-f]{64})", oid)
+                for oid in parents
+            ), "Invalid candidate parents in manifest")
+        return {
+            "commit": info["commit"], "tree": info["tree"], "parents": parents, "baseline": BASELINE,
+            "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest(),
+            "packaged_files_verified": len(info["files"]), "dirty": False,
+        }
+
+    git = ["git", "--no-replace-objects", "-C", str(ROOT)]
+    revision = checkout_revision(git)
+    dirty = subprocess.check_output([*git, "status", "--porcelain"]).strip()
+    diff = subprocess.check_output([*git, "diff", revision["commit"]], text=True).strip()
+    return {**revision, "baseline": BASELINE, "dirty": bool(dirty), "diff_sha256": hashlib.sha256(diff.encode()).hexdigest()}
 
 
 class Cluster:
