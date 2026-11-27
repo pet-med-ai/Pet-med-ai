@@ -1,5 +1,6 @@
 """Boundary checks for the fresh-target acceptance tooling (not old PR72 replay)."""
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import nullcontext
 import hashlib
 import json
 import os
@@ -8,13 +9,15 @@ import secrets
 import sys
 import tempfile
 import time
+from types import SimpleNamespace
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 from treatment_acceptance import Controls, hosted_app
 import treatment_acceptance_support as support
+import treatment_acceptance_drill as drill
 from treatment_acceptance_drill import Flow
 
 
@@ -52,6 +55,95 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual(support.normalize_constraint(original), support.normalize_constraint(restored))
         self.assertNotEqual(support.normalize_constraint(original), support.normalize_constraint(restored.replace("revoked", "admin")))
         self.assertEqual(support.normalize_constraint("CHECK (amount > 1)"), "CHECK (amount > 1)")
+
+
+class RestoreFingerprintTests(unittest.TestCase):
+    """Exercise the real receipt and file writer, replacing the database operations."""
+
+    def setUp(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        self.state = Path(directory.name)
+        self.pre = {"tables": {"cases": {"rows": 1}}, "sequences": {}, "catalog": {}}
+        self.post = {"tables": {"cases": {"rows": 2}, "signatures": {"rows": 1}}, "sequences": {}, "catalog": {}}
+        self.restored_pre = self.pre
+        self.restored_post = self.post
+        source_readings = iter([self.pre, self.post])
+
+        def cluster(path, *args):
+            return nullcontext(SimpleNamespace(engine=lambda: path.name))
+
+        def fingerprint(engine):
+            if engine == "source":
+                return next(source_readings)
+            return {"restore-pre": self.restored_pre, "restore-post": self.restored_post}[engine]
+
+        self.restore = Mock()
+        self.expand = Mock(return_value={})
+        operations = patch.multiple(
+            drill, Cluster=cluster, fingerprint=fingerprint, backup=Mock(return_value={}),
+            restore=self.restore, seed_legacy=Mock(return_value={}), expand_and_seed=self.expand,
+            exercise=Mock(return_value={}), verify_restored=Mock(return_value={}),
+        )
+        operations.start()
+        self.addCleanup(operations.stop)
+
+    def run_drill(self):
+        return drill.run_drill(self.state, "/unused", {"commit": "a" * 40, "tree": "b" * 40})
+
+    def assert_file_evidence(self, record, name, expected):
+        raw = (self.state / name).read_bytes()
+        self.assertEqual(json.loads(raw), expected)
+        self.assertEqual(record, {"file": name, "sha256": hashlib.sha256(raw).hexdigest()})
+
+    def assert_pair(self, receipt, phase, source, restored, matches):
+        key, prefix = {
+            "pre": ("pre_migration_restore", "pre-"),
+            "post": ("post_migration_restore", ""),
+        }[phase]
+        entry = receipt[key]
+        self.assertIs(entry["fingerprint_match"], matches)
+        self.assertEqual(entry["tables"], len(source["tables"]))
+        self.assert_file_evidence(entry["fingerprints"]["source"], prefix + "source-fingerprint.json", source)
+        self.assert_file_evidence(entry["fingerprints"]["restored"], prefix + "restored-fingerprint.json", restored)
+
+    def failed_receipt(self, message):
+        with self.assertRaisesRegex(RuntimeError, message):
+            self.run_drill()
+        receipt = json.loads((self.state / "drill-receipt.json").read_bytes())
+        self.assertEqual(receipt["status"], "FAILED")
+        return receipt
+
+    def test_both_stage_receipts_bind_independent_source_and_restored_files(self):
+        result = self.run_drill()
+        persisted = json.loads((self.state / "drill-receipt.json").read_bytes())
+        self.assertEqual(persisted, result)
+        self.assertEqual(result["status"], "PASS")
+        self.assert_pair(result, "pre", self.pre, self.pre, True)
+        self.assert_pair(result, "post", self.post, self.post, True)
+
+    def test_pre_restore_mismatch_preserves_both_original_fingerprints(self):
+        self.restored_pre = {"tables": {"cases": {"rows": 0}}, "sequences": {}, "catalog": {}}
+        receipt = self.failed_receipt("Pre-migration restore fingerprint differs")
+        self.assert_pair(receipt, "pre", self.pre, self.restored_pre, False)
+        self.expand.assert_not_called()
+        self.assertNotIn("post_migration_restore", receipt)
+
+    def test_post_restore_mismatch_preserves_pre_and_post_evidence(self):
+        self.restored_post = self.pre
+        receipt = self.failed_receipt("Post-signing restore fingerprint differs")
+        self.assert_pair(receipt, "pre", self.pre, self.pre, True)
+        self.assert_pair(receipt, "post", self.post, self.restored_post, False)
+
+    def test_failed_restore_retains_only_the_measured_source_for_that_stage(self):
+        self.restore.side_effect = [None, RuntimeError("synthetic restore failed")]
+        receipt = self.failed_receipt("synthetic restore failed")
+        self.assert_pair(receipt, "pre", self.pre, self.pre, True)
+        post = receipt["post_migration_restore"]
+        self.assertNotIn("fingerprint_match", post)
+        self.assertEqual(set(post["fingerprints"]), {"source"})
+        self.assert_file_evidence(post["fingerprints"]["source"], "source-fingerprint.json", self.post)
+        self.assertFalse((self.state / "restored-fingerprint.json").exists())
 
 
 @unittest.skipUnless(os.getenv("PMAI_ACCEPTANCE_POSTGRES_BIN"), "requires local PostgreSQL 17 tools, never an existing DB URL")
