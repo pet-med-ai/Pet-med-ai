@@ -147,6 +147,12 @@ These fields come from the matching revocation event in the loaded case record.
 Opening or closing the details sends no request. An unavailable field displays
 **未提供**.
 
+For a superseded signature, expand **查看版本 … 的替代记录** to see the
+revision that directly replaced it. For example, if version 2 replaced
+version 1 and was later revoked, version 1 still shows **接替版本：版本 2**.
+The page follows the replacement recorded for that signature in the loaded
+case. If it cannot resolve the replacement version, it shows **未提供**.
+
 If another clinician saves while you are editing, rereading the treatment record
 keeps your local text and checks the version you started from. When the versions
 differ, copy the changes you need, then choose **放弃本页修改并载入服务器草稿**.

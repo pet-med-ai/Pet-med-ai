@@ -553,9 +553,9 @@ function historyRows() {
   return renderer.root.findAllByType('p').map(directText).filter(text => /^版本 \d+ · /.test(text));
 }
 
-function revocationHistoryDetails() {
+function historyDetails(label) {
   const text = node => typeof node === 'string' ? node : node.children.map(text).join('');
-  const summaries = renderer.root.findAllByType('summary').filter(node => text(node).includes('作废记录'));
+  const summaries = renderer.root.findAllByType('summary').filter(node => text(node).includes(label));
   return Object.fromEntries(summaries.map(summary => {
     const detail = summary.parent;
     assert.equal(detail.type, 'details');
@@ -568,6 +568,56 @@ function revocationHistoryDetails() {
     return [text(summary), Object.fromEntries(fields)];
   }));
 }
+
+const revocationHistoryDetails = () => historyDetails('作废记录');
+
+test('superseded history identifies each immediate successor even after that replacement is superseded or revoked', async () => {
+  const first = signedReadback('revoke', 'superseded', priorRevision);
+  const middle = signedReadback('sign', 'superseded', frozenRevision(ids.revision, 5));
+  const lastRevision = frozenRevision('3708b584-295b-4691-a6b4-6422cf410010', 9);
+  const last = {...signedReadback('sign', 'revoked', lastRevision).signature, id:'3708b584-295b-4691-a6b4-6422cf410011'};
+  handler = async () => response(data({
+    plan:{id:ids.plan, head_revision_id:lastRevision.id, active_signature_id:null},
+    signatures:[middle.signature, last, first.signature],
+    revisions:[lastRevision, first.revision, middle.revision],
+    events:[
+      {...middle.terminal_event, successor_signature_id:last.id},
+      {event:'revoked', signature_id:last.id, reason:'末版已作废'},
+      {...first.terminal_event, successor_signature_id:middle.signature.id},
+    ],
+  }));
+  await mount();
+  assert.deepEqual(historyDetails('替代记录'), {
+    '查看版本 1 的替代记录': {'接替版本':'版本 5'},
+    '查看版本 5 的替代记录': {'接替版本':'版本 9'},
+  });
+  assert.equal(revocationHistoryDetails()['查看版本 9 的作废记录']['作废原因'], '末版已作废');
+  assert.equal(renderer.root.findAllByProps({'aria-label':'当前有效签署'}).length, 0);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+});
+
+test('incomplete or self-referential replacement history cannot borrow a current version or lose its original row', async () => {
+  const signed = signedReadback('sign', 'superseded');
+  const aggregate = signatureAggregate(signed);
+  const [event] = aggregate.events;
+  const [original, replacement] = aggregate.signatures;
+  handler = async () => response(aggregate);
+  await mount();
+  const missing = {'查看版本 2 的替代记录': {'接替版本':'未提供'}};
+  for (const reference of [{}, {successor_signature_id:null}, {successor_signature_id:'missing'}, {successor_signature_id:original.id}]) {
+    aggregate.events = [{event:'superseded', signature_id:original.id, ...reference}];
+    await click('重新读取治疗记录');
+    assert.deepEqual(historyDetails('替代记录'), missing);
+  }
+  aggregate.events = [event];
+  aggregate.revisions = [signed.revision];
+  await click('重新读取治疗记录');
+  assert.deepEqual(historyDetails('替代记录'), missing);
+  aggregate.revisions = [frozenRevision(replacement.revision_id, 3)];
+  await click('重新读取治疗记录');
+  assert.deepEqual(historyDetails('替代记录'), {'查看替代记录': {'接替版本':'版本 3'}});
+  assert.deepEqual(requests.map(r => r.options.method), Array(7).fill('GET'));
+});
 
 test('revoked versions display their own event actor, time and original reason in read-only history', async () => {
   const first = signedReadback('revoke', 'revoked', priorRevision);
