@@ -6,7 +6,10 @@ import json
 import os
 from pathlib import Path
 import secrets
+import shutil
+import subprocess
 import sys
+import tarfile
 import tempfile
 import time
 from types import SimpleNamespace
@@ -55,6 +58,106 @@ class BoundaryTests(unittest.TestCase):
         self.assertEqual(support.normalize_constraint(original), support.normalize_constraint(restored))
         self.assertNotEqual(support.normalize_constraint(original), support.normalize_constraint(restored.replace("revoked", "admin")))
         self.assertEqual(support.normalize_constraint("CHECK (amount > 1)"), "CHECK (amount > 1)")
+
+
+class PackageTests(unittest.TestCase):
+    packager = Path("scripts/package_treatment_acceptance.py")
+    prefix = "PMAI-treatment-acceptance/"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.tmp = Path(tmp.name)
+        self.repo = self.tmp / "original"
+        self.repo.mkdir()
+        self.git("init", "-q")
+        self.contents = {
+            "backend/合成病例.txt": b"frozen text\n",
+            "scripts/treatment_acceptance_mac.command": b"#!/bin/sh\n",
+        }
+        for path, contents in self.contents.items():
+            (self.repo / path).parent.mkdir(parents=True, exist_ok=True)
+            (self.repo / path).write_bytes(contents)
+        (self.repo / "scripts/treatment_acceptance_mac.command").chmod(0o755)
+        (self.repo / ".gitattributes").write_text("*.txt text eol=crlf\n")
+        (self.repo / "backend/.env.local").write_text("synthetic-only")
+        (self.repo / "backend/example.sqlite3").write_bytes(b"fixture")
+        shutil.copyfile(ROOT / self.packager, self.repo / self.packager)
+        self.git("add", "-f", "--", ".")
+        self.commit("synthetic fixture")
+        self.clone = self.tmp / "clone"
+        self.git("clone", "-q", "--no-local", str(self.repo), str(self.clone))
+
+    def git(self, *args):
+        return subprocess.run(["git", "-C", self.repo, *args], check=True, capture_output=True).stdout.decode().strip()
+
+    def commit(self, message):
+        self.git("-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid",
+                 "-c", "commit.gpgsign=false", "commit", "-qm", message)
+
+    def package(self, repo, name, *, umask=0o022, check=True):
+        return subprocess.run([sys.executable, repo / self.packager, self.tmp / name],
+                              capture_output=True, text=True, check=check, umask=umask)
+
+    def test_same_commit_produces_identical_archives_across_checkouts(self):
+        second_clone = self.tmp / "second-checkout"
+        self.git("clone", "-q", "--no-local", str(self.repo), str(second_clone))
+        for path in self.contents:
+            os.utime(second_clone / path, (1000000, 1000000))
+        first = self.tmp / "local-kit.tar.gz"
+        second = self.tmp / "ci-kit.tar.gz"
+        left = json.loads(self.package(self.clone, first.name).stdout)
+        right = json.loads(self.package(second_clone, second.name, umask=0o077).stdout)
+        self.assertEqual(first.read_bytes(), second.read_bytes())
+        self.assertEqual(left, right)
+        self.assertEqual(left["sha256"], hashlib.sha256(first.read_bytes()).hexdigest())
+        self.assertEqual(left["bytes"], first.stat().st_size)
+
+    def test_manifest_and_members_use_git_blob_bytes_and_execution_modes(self):
+        command = "scripts/treatment_acceptance_mac.command"
+        label = "backend/合成病例.txt"
+        subprocess.run(["git", "-C", self.clone, "config", "core.filemode", "false"], check=True)
+        (self.clone / command).chmod(0o600)
+        (self.clone / label).chmod(0o755)
+        self.assertEqual((self.clone / label).read_bytes(), b"frozen text\r\n")
+        output = self.tmp / "exact.tar.gz"
+        receipt = json.loads(self.package(self.clone, output.name).stdout)
+        self.assertEqual(receipt["files"], len(self.contents))
+        with tarfile.open(output) as archive:
+            manifest_name = self.prefix + "acceptance-manifest.json"
+            self.assertCountEqual(archive.getnames(), [self.prefix + n for n in self.contents] + [manifest_name])
+            manifest = json.loads(archive.extractfile(manifest_name).read())
+            self.assertEqual(manifest["format"], "pmai-treatment-kit-v1")
+            self.assertEqual(manifest["commit"], self.git("rev-parse", "HEAD"))
+            self.assertEqual(manifest["tree"], self.git("rev-parse", "HEAD^{tree}"))
+            self.assertEqual(set(manifest["files"]), set(self.contents))
+            for path, expected in self.contents.items():
+                member = archive.getmember(self.prefix + path)
+                self.assertEqual(archive.extractfile(member).read(), expected)
+                self.assertEqual(manifest["files"][path], hashlib.sha256(expected).hexdigest())
+                self.assertEqual(member.mode, 0o755 if path == command else 0o644)
+
+    def test_dirty_checkout_cannot_replace_existing_archive(self):
+        output = self.tmp / "existing.tar.gz"
+        output.write_bytes(b"previous archive")
+        (self.clone / "backend/合成病例.txt").write_bytes(b"unsaved\n")
+        self.assertNotEqual(self.package(self.clone, output.name, check=False).returncode, 0)
+        self.assertEqual(output.read_bytes(), b"previous archive")
+
+    def test_unsupported_tracked_symlink_leaves_only_previous_archive(self):
+        link = self.repo / "backend/链接.txt"
+        link.symlink_to("合成病例.txt")
+        self.git("add", "-f", "--", "backend/链接.txt")
+        self.commit("track an unsupported symbolic link")
+        self.assertEqual(self.git("status", "--porcelain"), "")
+        outdir = self.tmp / "output"
+        outdir.mkdir()
+        output = outdir / "kit.tar.gz"
+        output.write_bytes(b"previous archive")
+        result = self.package(self.repo, output.relative_to(self.tmp), check=False)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(output.read_bytes(), b"previous archive")
+        self.assertEqual(list(outdir.iterdir()), [output])
 
 
 class RestoreFingerprintTests(unittest.TestCase):
