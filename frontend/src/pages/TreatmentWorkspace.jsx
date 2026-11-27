@@ -61,6 +61,7 @@ const errors = {
 export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef }) {
   const path = `/organizations/${scope.org_id}/clinics/${scope.clinic_id}/cases/${caseId}`;
   const [data, setData] = useState(null), [content, setContent] = useState(empty);
+  const [recordCurrent, setRecordCurrent] = useState(false);
   const [listEdits, setListEdits] = useState({});
   const [editBase, setEditBase] = useState(null), [rejectedDraft, setRejectedDraft] = useState(false);
   const dirty = editBase !== null;
@@ -128,10 +129,12 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     } else setMessage(pendingRef.current ? '结果尚未确认，请查询原请求；不要重复提交。' : errors[error.code] || String(error.message));
   }
   async function load(t, replaceDraft = true, committedDraftETag = null) {
+    if (!t.current()) return;
+    setRecordCurrent(false); setVerified(null); setChecked(false); setRevokeChecked(false); setPassword('');
     const g = (await request(path + '/treatment', t)).body;
     if (!t.current()) return;
     const partition = `pmai:treatment:${g.actor_id}:${scope.org_id}:${scope.clinic_id}:${caseId}`;
-    storage.current = partition; setData(g); setExpired(false); setChecked(false); setRevokeChecked(false); setPassword('');
+    storage.current = partition; setData(g); setRecordCurrent(true); setExpired(false);
     if (replaceDraft || (committedDraftETag && committedDraftETag === draftPrecondition(g))) {
       setListEdits({}); setContent(g.draft?.content || empty()); setEditBase(null); setRejectedDraft(false);
     }
@@ -143,7 +146,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     return g;
   }
   async function refresh(discardEdits = false) {
-    const t = task(); setBusy(true); setMessage(''); setVerified(null);
+    const t = task(); setBusy(true); setMessage('');
     try { await load(t, !dirty || discardEdits); } catch (e) { failed(e, t); } finally { if (t.current()) setBusy(false); }
   }
   useEffect(() => {
@@ -198,7 +201,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     }
   }
   async function submit(operation, target, suffix, body, method = 'POST', proof = null) {
-    if (busy || expired || pendingRef.current || !data || (operation === 'draft.save' && draftConflict)) return;
+    if (locked || pendingRef.current || !data || (operation === 'draft.save' && draftConflict)) return;
     const t = task(); setBusy(true); setMessage(''); setVerified(null);
     const precondition = operation === 'draft.save' ? (editBase ?? draftPrecondition(data)) : data.etag;
     try {
@@ -240,10 +243,12 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   const review = data?.reviews.find(r => r.revision_id === rev?.id);
   const activeId = data?.plan?.active_signature_id;
   const states = new Map(data?.signatures.map(s => [s.id, signatureState(data, s.id)]));
-  const active = states.get(activeId) === 'effective' ? data.signatures.find(s => s.id === activeId) : null;
+  const active = recordCurrent && states.get(activeId) === 'effective' ? data.signatures.find(s => s.id === activeId) : null;
   const activeRevision = data?.revisions.find(r => r.id === active?.revision_id);
-  const uncertainStatus = (!!activeId && !active) || [...states.values()].includes('unknown');
-  const locked = busy || expired || !!pending || uncertainStatus;
+  const uncertainStatus = (!!activeId && states.get(activeId) !== 'effective') || [...states.values()].includes('unknown');
+  // Discard fetches a new draft and replaces local edits only after a successful read.
+  const discardLocked = busy || expired || !!pending || uncertainStatus;
+  const locked = discardLocked || !recordCurrent;
   const canEdit = data?.allowed_actions.edit && !locked;
   const cannotConfirmRevision = locked || dirty || staleDraft || staleSource || rev?.origin !== 'clinical';
   return <section className="treatment-workspace" aria-label="治疗签署" style={{ marginTop: 32, padding: 20, border: '1px solid #a7bac9', borderRadius: 12 }}>
@@ -257,7 +262,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       <button disabled={busy} onClick={() => refresh()}>重新读取治疗记录</button>
       {data && <>
         <p>审核账号：{data.profile?.display_name || '当前账号无已核验医生档案'} · {data.policy.review_policy === 'two_person' ? '另一位医生签署' : '允许同一医生审核签署'}</p>
-        {uncertainStatus && <p role="alert">签署状态待核对，请重新读取治疗记录。</p>}
+        {(uncertainStatus || (!recordCurrent && !busy)) && <p role="alert">签署状态待核对，请重新读取治疗记录。</p>}
         {data.policy.required_assurance === 'certificate_signature' && <p role="alert">本院要求证书签名，当前不能签署。</p>}
         {active && <section aria-label="当前有效签署"><h3>当前有效签署 · 版本 {activeRevision?.revision_no}</h3><p>{active.clinician_snapshot.display_name} · {active.signed_at} · 已确认签署 · 院内账号确认</p>{activeRevision && <ContentView content={activeRevision.content} />}</section>}
         <fieldset disabled={!canEdit || (!!active && data.draft?.amendment_of !== active.id)}><legend>治疗草稿</legend>
@@ -269,7 +274,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
         </fieldset>
         <button disabled={!canEdit || dirty || !data.draft || (!!active && data.draft.amendment_of !== active.id)} onClick={() => submit('revision.freeze','revisions','/revisions',{ draft_version: data.draft.draft_version, expected_source_epoch: data.source_epoch })}>冻结版本供核对</button>
         {draftConflict ? <section aria-label="草稿版本冲突"><p role="alert">服务端治疗草稿已更新。本页保留你的原文，请先复制需要保留的修改，再载入服务器草稿。</p>
-          <button disabled={locked} onClick={() => refresh(true)}>放弃本页修改并载入服务器草稿</button></section>
+          <button disabled={discardLocked} onClick={() => refresh(true)}>放弃本页修改并载入服务器草稿</button></section>
           : dirty && <p>有尚未保存的修改。保存后才能冻结和签署。</p>}
         {rev && <section aria-label="冻结版本"><h3>冻结版本 {rev.revision_no} · {rev.origin === 'legacy_import' ? '历史原文，未经签署' : '待核对治疗内容'}</h3>
           <ContentView content={rev.content} />
@@ -287,7 +292,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
         </section>}
         {active && <section><p><label><input type="checkbox" aria-label="已核对待作废签署" checked={revokeChecked} disabled={locked} onChange={e => setRevokeChecked(e.target.checked)} />我已核对当前有效签署（版本 {activeRevision?.revision_no}）及作废原因</label></p><p><button disabled={!canEdit || !reason.trim() || data.draft?.amendment_of === active.id} onClick={() => submit('amend','amendments','/amendments',{ base_signature_id: active.id, reason })}>创建修订草稿</button>{' '}
           <button disabled={locked || !revokeChecked || !password || !reason.trim() || !data.allowed_actions.sign} onClick={() => submit('revoke',active.id,`/signatures/${active.id}/revocations`,{ reason },'POST',{ revision_id: active.revision_id, hash: active.content_hash, signature_id: active.id })}>再次认证并作废签署</button></p></section>}
-        <h3>签署历史</h3>{data.signatures.map(s => <p key={s.id}>版本 {data.revisions.find(r => r.id === s.revision_id)?.revision_no} · {s.clinician_snapshot.display_name} · {s.signed_at} · {signatureLabels[states.get(s.id)]} · 院内账号确认</p>)}
+        <h3>签署历史</h3>{data.signatures.map(s => <p key={s.id}>版本 {data.revisions.find(r => r.id === s.revision_id)?.revision_no} · {s.clinician_snapshot.display_name} · {s.signed_at} · {signatureLabels[!recordCurrent && s.id === activeId ? 'unknown' : states.get(s.id)]} · 院内账号确认</p>)}
       </>}
     </>}
     {verified && <aside aria-label="独立回读签署"><p>已独立回读签署：{verified.signature.id} · {verified.state} · 院内账号确认</p><ContentView content={verified.revision.content} /></aside>}

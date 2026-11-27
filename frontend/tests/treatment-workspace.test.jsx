@@ -245,6 +245,7 @@ test('a concurrent change found by refresh preserves the local draft until expli
   await click(discardDraft);
   assert.equal(assessment(), local);
   assert.equal(button('保存治疗草稿').props.disabled, true);
+  assert.equal(button(discardDraft).props.disabled, false);
   handler = async () => response(storedDraft(3, '最新院内草稿'));
   await click(discardDraft);
   assert.equal(assessment(), '最新院内草稿');
@@ -552,6 +553,13 @@ function historyRows() {
   return renderer.root.findAllByType('p').map(directText).filter(text => /^版本 \d+ · /.test(text));
 }
 
+function assertSignatureAwaitingRead() {
+  assert.equal(renderer.root.findAllByProps({'aria-label':'当前有效签署'}).length, 0);
+  assert.equal(renderer.root.findAllByProps({'aria-label':'独立回读签署'}).length, 0);
+  assert.equal(historyRows().length, 1);
+  assert.match(historyRows()[0], / · 状态待核对 · 院内账号确认$/);
+}
+
 function assertLatestSignatureHistory(state) {
   const active = renderer.root.findAllByProps({'aria-label':'当前有效签署'});
   const rows = historyRows();
@@ -588,13 +596,61 @@ for (const state of ['revoked', 'superseded']) {
     let finish, refresh;
     handler = () => new Promise(resolve => { finish = resolve; });
     await act(async () => { refresh = button('重新读取治疗记录').props.onClick(); });
-    const shownWhileReading = renderer.root.findAllByProps({'aria-label':'独立回读签署'}).length;
+    assertSignatureAwaitingRead();
     await act(async () => { finish(response(signatureAggregate(latest))); await refresh; });
     assertLatestSignatureHistory(state);
     assert.equal(renderer.root.findAllByProps({'aria-label':'独立回读签署'}).length, 0);
-    assert.equal(shownWhileReading, 0);
     assert.deepEqual(requests.slice(before).map(r => [r.options.method, r.url.split('/cases/1/')[1]]), [['GET', 'treatment']]);
     assert.ok(requests.every(r => r.options.method === 'GET'));
+    assert.equal(saved.size, 0);
+  });
+}
+
+for (const [failure, next] of [['503', 'effective'], ['disconnect', 'revoked']]) {
+  test('a ' + failure + ' on refresh keeps signature actions paused until a successful reread finds ' + next, async () => {
+    const signed = signedReadback();
+    handler = async () => response(signatureAggregate(signed));
+    await mount();
+    change('操作原因', '合成复核');
+    change('已核对待作废签署', null, true);
+    change('签署认证密码', 'synthetic');
+    assert.equal(button(revokeButton).props.disabled, false);
+
+    handler = async () => {
+      if (failure === 'disconnect') throw new TypeError('synthetic disconnect');
+      return response({detail:'unavailable'}, 503);
+    };
+    await click('重新读取治疗记录');
+    assertSignatureAwaitingRead();
+    assert.match(output(), /签署状态待核对，请重新读取治疗记录。/);
+    assert.equal(button('重新读取治疗记录').props.disabled, false);
+    assert.equal(button('创建修订草稿'), undefined);
+    assert.equal(button(revokeButton), undefined);
+    assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.value, '');
+    assert.equal(acknowledgement().disabled, true);
+    assert.equal(renderer.root.findByType('fieldset').props.disabled, true);
+    assert.equal(button('冻结版本供核对').props.disabled, true);
+    await click('保存治疗草稿'); // Exercise the command guard even if a stale caller bypasses the fieldset.
+
+    handler = async () => response(signatureAggregate(signedReadback('sign', next)));
+    await click('重新读取治疗记录');
+    assert.doesNotMatch(output(), /签署状态待核对/);
+    if (next === 'revoked') {
+      assertLatestSignatureHistory('revoked');
+      assert.equal(button(revokeButton), undefined);
+    } else {
+      assert.equal(renderer.root.findAllByProps({'aria-label':'当前有效签署'}).length, 1);
+      assert.match(historyRows()[0], / · 有效 · 院内账号确认$/);
+      assert.equal(renderer.root.findByProps({'aria-label':'已核对待作废签署'}).props.checked, false);
+      assert.equal(button(revokeButton).props.disabled, true);
+      change('已核对待作废签署', null, true);
+      change('操作原因', '重新核对');
+      change('签署认证密码', 'synthetic');
+      assert.equal(button(revokeButton).props.disabled, false);
+    }
+    assert.deepEqual(requests.map(r => [r.options.method, r.url.split('/cases/1/')[1]]), [
+      ['GET','treatment'], ['GET','treatment'], ['GET','treatment'],
+    ]);
     assert.equal(saved.size, 0);
   });
 }
@@ -1039,6 +1095,8 @@ test('a verified signature stays unconfirmed until its aggregate reread succeeds
   assert.doesNotMatch(output(), /已独立回读签署|已从服务端核对保存结果/);
   await act(async () => { releaseAggregate(response({detail:'unavailable'}, 503)); await checking; });
   assertUnconfirmed(original);
+  assertSignatureAwaitingRead();
+  assert.equal(button(cancelButton).props.disabled, false);
   handler = async url => url.includes('/commands/') ? receipt(signResult(), 201)
     : response(url.endsWith('/treatment') ? signatureAggregate(signedReadback()) : signedReadback());
   await click(queryButton);

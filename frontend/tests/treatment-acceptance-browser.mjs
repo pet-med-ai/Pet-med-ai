@@ -335,19 +335,60 @@ async function checkReadbackAfterExternalRevocation(signatureId) {
 
   const writesBefore = caseWritePaths.length;
   const path = `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/110/treatment`;
-  const [response] = await Promise.all([
-    page.waitForResponse(r => new URL(r.url()).pathname === path && r.request().method() === 'GET'),
-    page.getByRole('button', { name: '重新读取治疗记录', exact: true }).click(),
-  ]);
-  assert.equal(response.status(), 200);
-  const record = await response.json();
-  assert.equal(record.plan.active_signature_id, null);
-  assert.ok(record.events.some(event => event.signature_id === signatureId && event.event === 'revoked'));
-  await expect(page.getByText(/ · 已作废 · /)).toBeVisible();
-  await expect(page.locator('[aria-label="当前有效签署"]')).toHaveCount(0);
-  await expect(oldPanel).toHaveCount(0);
-  assert.equal(caseWritePaths.length, writesBefore);
-  checks.push('manual-refresh-clears-readback-after-another-clinician-revokes');
+  const url = new URL(path, receipt.url).href;
+  const refresh = page.getByRole('button', { name: '重新读取治疗记录', exact: true });
+  const currentPanel = page.locator('[aria-label="当前有效签署"]');
+  const warning = page.getByText('签署状态待核对，请重新读取治疗记录。', { exact: true });
+  const requests = [];
+  const observe = req => {
+    const pathname = new URL(req.url()).pathname;
+    if (pathname.startsWith('/api/v2/')) requests.push({ method: req.method(), path: pathname });
+  };
+  async function reread() {
+    const [response] = await Promise.all([
+      page.waitForResponse(r => r.url() === url && r.request().method() === 'GET'),
+      refresh.click(),
+    ]);
+    return response;
+  }
+  // Doctor B has already revoked on the real API. Inject one unavailable GET on doctor A's page only.
+  const injected = { detail: '合成验收：本次读取暂不可用' };
+  await page.route(url, route => route.request().method() === 'GET'
+    ? route.fulfill({ status: 503, json: injected }) : route.fallback(), { times: 1 });
+  page.on('request', observe);
+  try {
+    const unavailable = await reread();
+    assert.equal(unavailable.status(), 503);
+    assert.deepEqual(await unavailable.json(), injected);
+    await expect(warning).toBeVisible();
+    await expect(currentPanel).toHaveCount(0);
+    await expect(oldPanel).toHaveCount(0);
+    await expect(page.getByText(/ · 有效 · /)).toHaveCount(0);
+    await expect(page.getByText(/ · 状态待核对 · /)).toBeVisible();
+    await expect(page.getByRole('button', { name: /^(创建修订草稿|再次认证并作废签署)$/, disabled: false })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '保存治疗草稿', exact: true })).toBeDisabled();
+    await expect(refresh).toBeEnabled();
+
+    const response = await reread();
+    assert.equal(response.status(), 200);
+    const record = await response.json();
+    assert.equal(record.plan.active_signature_id, null);
+    assert.ok(record.events.some(event => event.signature_id === signatureId && event.event === 'revoked'));
+    await expect(page.getByText(/ · 已作废 · /)).toBeVisible();
+    await expect(warning).toHaveCount(0);
+    await expect(currentPanel).toHaveCount(0);
+    await expect(oldPanel).toHaveCount(0);
+    assert.deepEqual(requests, [{ method: 'GET', path }, { method: 'GET', path }]);
+    assert.equal(caseWritePaths.length, writesBefore);
+    result.refresh_after_injected_503 = {
+      case_id: 110, account: 'doctor-a', requests,
+      response_statuses: [unavailable.status(), response.status()], case_writes: caseWritePaths.length - writesBefore,
+    };
+    checks.push('manual-refresh-clears-readback-after-another-clinician-revokes',
+      'failed-aggregate-refresh-withholds-effective-status-until-retry');
+  } finally {
+    page.off('request', observe);
+  }
 }
 
 async function checkRefreezeAfterSourceChange() {
