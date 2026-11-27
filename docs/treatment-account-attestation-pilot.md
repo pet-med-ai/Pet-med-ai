@@ -278,3 +278,18 @@ for a byte-for-byte match. For a completed drill, also check the overall
 completed before the error. If a phase has only its source measurement, the
 restore comparison is pending. Earlier artifacts may report the pre-migration
 match in the receipt without including the two files for independent comparison.
+
+### Rebuilding the treatment source kit
+
+Check out the exact PR head in a clean working tree. Using the same Python and
+zlib versions as the reference build, write the archive outside the checkout:
+
+```sh
+python scripts/package_treatment_acceptance.py ../rebuilt-treatment-kit.tar.gz
+```
+
+The command prints the commit, tree, file count and SHA-256 of the finished
+archive. For a CI comparison, extract `treatment-kit.tar.gz` from the GitHub
+Actions artifact for that commit and compare it with the rebuilt file using
+`cmp`. A zero exit status confirms byte-for-byte equality. The manifest inside
+the kit also records the SHA-256 of each included source file.
