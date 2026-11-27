@@ -257,3 +257,24 @@ source/draft changes, two-person review, cross-scope access, unsigned legacy imp
 and append-only history. UI tests exercise auth/navigation/late-result/retention
 boundaries. CI also retains the existing clinic, legacy browser and frozen PR72
 checks. Native Safari and live certificate/provider tests are not automated here.
+
+### Verifying the restore evidence offline
+
+Open the treatment artifact for the candidate commit and check that
+`treatment-restore/drill-receipt.json` names the same commit and tree.
+The `pre_migration_restore` and `post_migration_restore` entries name the
+source and restored fingerprints under `fingerprints`. From the extracted
+`treatment-restore` directory, run:
+
+```sh
+sha256sum *fingerprint.json
+cmp pre-source-fingerprint.json pre-restored-fingerprint.json
+cmp source-fingerprint.json restored-fingerprint.json
+```
+
+Match each file's SHA-256 to its entry in the receipt. Each `cmp` exits 0
+for a byte-for-byte match. For a completed drill, also check the overall
+`status` and `cleanup`. A failed drill may retain just the measurements
+completed before the error. If a phase has only its source measurement, the
+restore comparison is pending. Earlier artifacts may report the pre-migration
+match in the receipt without including the two files for independent comparison.

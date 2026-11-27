@@ -1,5 +1,6 @@
 """Independent pre/post migration backup and restore rehearsal on fresh clusters."""
 import copy
+import hashlib
 import json
 from pathlib import Path
 import secrets
@@ -168,6 +169,13 @@ def verify_restored(cluster, fixture, evidence):
     return {"independent_signature_readbacks": len(evidence["signatures"]), "exact_utf8_text": True, "original_receipt": True, "cancel_tombstone": True, "unsigned_import": True, "rls_and_roles": True, "immutable_history": True, "check_constraints_enforced": True}
 
 
+def record_fingerprint(cluster, path, phase, side):
+    snapshot = fingerprint(cluster.engine())
+    write_json(path, snapshot)
+    phase["fingerprints"][side] = {"file": path.name, "sha256": hashlib.sha256(path.read_bytes()).hexdigest()}
+    return snapshot
+
+
 def run_drill(state, pg_bin, candidate):
     state = Path(state)
     result = {"candidate": candidate, "synthetic_only": True, "manual_safari_result": "PENDING", "acceptance": "NOT_CLOSED", "status": "RUNNING", "cleanup": False}
@@ -176,23 +184,29 @@ def run_drill(state, pg_bin, candidate):
     try:
         with Cluster(state / "source", pg_bin) as source:
             fixture = seed_legacy(source)
-            pre = fingerprint(source.engine())
+            pre_restore = {"schema": "0009_diag_data", "fingerprints": {}}
+            result["pre_migration_restore"] = pre_restore
+            pre = record_fingerprint(source, state / "pre-source-fingerprint.json", pre_restore, "source")
+            pre_restore["tables"] = len(pre["tables"])
             result["pre_migration_backup"] = backup(source, state / "before-migration.dump")
             with Cluster(state / "restore-pre", pg_bin, "pmai_restore_bootstrap") as target:
                 restore(target, state / "before-migration.dump")
-                check(fingerprint(target.engine()) == pre, "Pre-migration restore fingerprint differs")
-                result["pre_migration_restore"] = {"fingerprint_match": True, "tables": len(pre["tables"]), "schema": "0009_diag_data"}
+                restored = record_fingerprint(target, state / "pre-restored-fingerprint.json", pre_restore, "restored")
+                pre_restore["fingerprint_match"] = restored == pre
+                check(pre_restore["fingerprint_match"], "Pre-migration restore fingerprint differs")
             result["migration"] = expand_and_seed(source, fixture)
             evidence = exercise(source, fixture)
-            before = fingerprint(source.engine())
+            post_restore = {"schema": "mc02_treatment_store", "fingerprints": {}}
+            result["post_migration_restore"] = post_restore
+            before = record_fingerprint(source, state / "source-fingerprint.json", post_restore, "source")
+            post_restore["tables"] = len(before["tables"])
             result["post_migration_backup"] = backup(source, state / "after-signing.dump")
             with Cluster(state / "restore-post", pg_bin, "pmai_restore_bootstrap") as target:
                 restore(target, state / "after-signing.dump")
-                restored = fingerprint(target.engine())
-                write_json(state / "source-fingerprint.json", before)
-                write_json(state / "restored-fingerprint.json", restored)
-                check(restored == before, "Post-signing restore fingerprint differs")
-                result["post_migration_restore"] = {"fingerprint_match": True, "tables": len(before["tables"]), "schema": "mc02_treatment_store", "verification": verify_restored(target, fixture, evidence)}
+                restored = record_fingerprint(target, state / "restored-fingerprint.json", post_restore, "restored")
+                post_restore["fingerprint_match"] = restored == before
+                check(post_restore["fingerprint_match"], "Post-signing restore fingerprint differs")
+                post_restore["verification"] = verify_restored(target, fixture, evidence)
             result["status"] = "PASS"
     except BaseException as exc:
         result["status"] = "FAILED"
