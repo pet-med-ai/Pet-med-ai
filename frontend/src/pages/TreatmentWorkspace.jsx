@@ -292,7 +292,23 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
         </section>}
         {active && <section><p><label><input type="checkbox" aria-label="已核对待作废签署" checked={revokeChecked} disabled={locked} onChange={e => setRevokeChecked(e.target.checked)} />我已核对当前有效签署（版本 {activeRevision?.revision_no}）及作废原因</label></p><p><button disabled={!canEdit || !reason.trim() || data.draft?.amendment_of === active.id} onClick={() => submit('amend','amendments','/amendments',{ base_signature_id: active.id, reason })}>创建修订草稿</button>{' '}
           <button disabled={locked || !revokeChecked || !password || !reason.trim() || !data.allowed_actions.sign} onClick={() => submit('revoke',active.id,`/signatures/${active.id}/revocations`,{ reason },'POST',{ revision_id: active.revision_id, hash: active.content_hash, signature_id: active.id })}>再次认证并作废签署</button></p></section>}
-        <h3>签署历史</h3>{data.signatures.map(s => <p key={s.id}>版本 {data.revisions.find(r => r.id === s.revision_id)?.revision_no} · {s.clinician_snapshot.display_name} · {s.signed_at} · {signatureLabels[!recordCurrent && s.id === activeId ? 'unknown' : states.get(s.id)]} · 院内账号确认</p>)}
+        <h3>签署历史</h3>
+        {data.signatures.map(signature => {
+          const version = data.revisions.find(r => r.id === signature.revision_id)?.revision_no;
+          const state = !recordCurrent && signature.id === activeId ? 'unknown' : states.get(signature.id);
+          const revocation = state === 'revoked' && data.events.find(e => e.signature_id === signature.id && e.event === 'revoked');
+          return <div key={signature.id}>
+            <p>版本 {version} · {signature.clinician_snapshot.display_name} · {signature.signed_at} · {signatureLabels[state]} · 院内账号确认</p>
+            {revocation && <details>
+              <summary>{version == null ? '查看作废记录' : `查看版本 ${version} 的作废记录`}</summary>
+              <dl style={textStyle}>
+                <dt>作废账号 ID</dt><dd>{revocation.actor_id ?? '未提供'}</dd>
+                <dt>作废时间</dt><dd>{revocation.created_at ?? '未提供'}</dd>
+                <dt>作废原因</dt><dd>{revocation.reason ?? '未提供'}</dd>
+              </dl>
+            </details>}
+          </div>;
+        })}
       </>}
     </>}
     {verified && <aside aria-label="独立回读签署"><p>已独立回读签署：{verified.signature.id} · {verified.state} · 院内账号确认</p><ContentView content={verified.revision.content} /></aside>}
