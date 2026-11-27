@@ -125,6 +125,12 @@ version and its reason, enter the current account password and submit. Editing
 the reason after checking it clears both the acknowledgement and the entered
 password. Unchecking the acknowledgement also clears the password.
 
+While a signing or revocation request is unresolved, the current signature card
+is hidden and the previously effective history entry shows **状态待核对**.
+Recorded revocations and replacements remain visible. If the response is lost,
+select **查询原请求** to check the result. After signing back in, use the same
+account and open the same case in the same tab to recover the request.
+
 When you open or reread a frozen clinical revision, the workbench compares the
 case and signing-policy versions in its source snapshot with the current record.
 If either version has changed, you can still read the frozen text. Freeze the

@@ -869,6 +869,55 @@ function acknowledgeTreatment(password) {
   change('签署认证密码', password);
 }
 
+for (const [operation, submit] of [['sign', signButton], ['revoke', revokeButton]]) {
+  test('an unresolved ' + operation + ' withdraws the effective signature until the original outcome is confirmed', async () => {
+    const aggregate = reviewedTreatment();
+    handler = async () => response(aggregate);
+    await mount();
+    acknowledgeTreatment('synthetic');
+    assert.equal(button(submit).props.disabled, false);
+    handler = async url => {
+      if (url.endsWith('/auth/reauthenticate')) return response({challenge_id:'synthetic-proof'});
+      throw new TypeError('synthetic connection loss');
+    };
+    await click(submit);
+    const original = pendingCommand();
+    assert.equal(original.operation, operation);
+    assertSignatureAwaitingRead();
+    assert.match(output(), /签署结果待核对，请查询原请求。/);
+
+    handler = async url => url.includes('/commands/')
+      ? response({state:'not_observed', idempotency_key:original.key, operation}, 202)
+      : response(aggregate);
+    await click('重新读取治疗记录');
+    await click('查询原请求');
+    assertSignatureAwaitingRead();
+    assertUnconfirmed(original);
+
+    handler = async url => url.includes('/commands/')
+      ? receipt({state:'cancelled', code:'COMMAND_CANCELLED'}, 409) : response(aggregate);
+    await click('查询原请求');
+    assert.equal(saved.size, 0);
+    assert.equal(renderer.root.findAllByProps({'aria-label':'当前有效签署'}).length, 1);
+    assert.match(historyRows()[0], / · 有效 · 院内账号确认$/);
+    assert.doesNotMatch(output(), /签署结果待核对/);
+    assert.deepEqual(requests.filter(r => r.options.method !== 'GET').map(r => r.url.split('/').at(-1)),
+      ['reauthenticate', operation === 'sign' ? 'signatures' : 'revocations']);
+  });
+}
+
+test('an unresolved amendment leaves the current signature and its terminal history readable', async () => {
+  const aggregate = signatureAggregate(signedReadback('sign', 'superseded'));
+  saved.set(`pmai:treatment:1:${scope.org_id}:${scope.clinic_id}:1`,
+    JSON.stringify({key:'a'.repeat(64), operation:'amend', request_hash:'b'.repeat(64)}));
+  handler = async () => response(aggregate);
+  await mount();
+  assertLatestSignatureHistory('superseded');
+  assert.doesNotMatch(output(), /签署结果待核对/);
+  assert.equal(button('查询原请求').props.disabled, false);
+  assert.ok(requests.every(r => r.options.method === 'GET'));
+});
+
 test('a revocation requires a nonblank reason to acknowledge and withdrawing that acknowledgement clears the password', async () => {
   handler = async () => response(reviewedTreatment());
   await mount();

@@ -204,11 +204,12 @@ async function checkDiscardOnCaseSwitch() {
   assert.equal(caseWritePaths.length, writesBefore, 'Navigating and discarding must send no case mutation');
   checks.push('dirty-case-switch-cancel-preserves-confirm-discards-without-write');
 }
-async function prepared(kind, after=0) {
+async function prepared(kind, caseId) {
   await expect.poll(() => {
     const events = JSON.parse(fs.readFileSync(path.join(state, 'events.json')));
-    return events.filter(e => e.event === 'response_prepared' && e.kind === kind).length;
-  }).toBeGreaterThan(after);
+    return events.some(e => e.event === 'response_prepared' && e.kind === kind
+      && (caseId == null || e.path.includes('/cases/' + caseId + '/')));
+  }).toBe(true);
 }
 
 async function checkExpiredClipboard(values) {
@@ -608,7 +609,7 @@ try {
   assert.equal(caseWritePaths.length, writesBeforeExpiry);
   checks.push('stale-draft-and-diagnostic-source', '401-copyable-original', '401-native-copy-diagnosis-goals-trailing-blank-lines');
   await logout(); await login(); await openCase(109); await freeze(); await review();
-  control('lose-sign-response'); await sign(); await prepared('lose-sign-response');
+  control('lose-sign-response'); await sign(); await prepared('lose-sign-response', 109);
   await page.getByRole('button', { name: '停止等待（保留原请求）', exact: true }).click();
   await logout(); await login(); await openCase(109);
   await page.getByRole('button', { name: '查询原请求', exact: true }).click(); await readback();
@@ -621,8 +622,27 @@ try {
   control('policy-self'); await openCase(101);
   await page.getByLabel('操作原因', { exact: true }).fill('合成修订');
   await page.getByRole('button', { name: '创建修订草稿', exact: true }).click();
-  await freeze(text + '\n修订'); await review(); await sign(); await readback();
+  await freeze(text + '\n修订'); await review();
+  const activeCard = page.getByRole('region', { name: '当前有效签署' });
+  await expect(activeCard).toBeVisible();
+  const beforeReplacement = caseWritePaths.length;
+  control('lose-sign-response');
+  try {
+    await sign(); await prepared('lose-sign-response', 101);
+    await expect(page.getByText('签署结果待核对，请查询原请求。', { exact: true })).toBeVisible();
+    await expect(activeCard).toHaveCount(0);
+    await expect(page.getByText(/ · 状态待核对 · /)).toBeVisible();
+    await page.getByRole('button', { name: '停止等待（保留原请求）', exact: true }).click();
+    await page.getByRole('button', { name: '查询原请求', exact: true }).click();
+    await readback();
+    assert.equal(caseWritePaths.length, beforeReplacement + 1);
+    assert.match(caseWritePaths.at(-1), /\/cases\/101\/treatment\/revisions\/[^/]+\/signatures$/);
+  } finally {
+    control('release');
+  }
+  await expect(activeCard).toBeVisible();
   await expect(page.getByText(/已由新签署替代/)).toBeVisible();
+  checks.push('pending-replacement-signature-withdraws-old-effective-status');
   await page.getByLabel('操作原因', { exact: true }).fill('合成作废');
   const beforeRevoke = await rejectWrongPassword('revoke');
   await page.getByLabel('已核对待作废签署', { exact: true }).check();
