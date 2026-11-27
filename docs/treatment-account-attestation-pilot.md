@@ -120,6 +120,14 @@ review/signing of the older frozen version. Reauthentication occurs immediately
 before sign/revoke; the password is cleared afterwards. A signature response is
 followed by a separate GET before the UI reports confirmed success.
 
+Choosing **重新读取治疗记录** clears the previous independent signature readback
+while the page fetches the latest treatment record. If another clinician has
+revoked or replaced the signature between the independent readback and that
+fetch, check **签署历史** for its updated status. The original command can be
+confirmed even when the signature is no longer effective.
+If the current signature and its history disagree, the page shows **状态待核对**
+and pauses editing and signing. Reread the treatment record to check again.
+
 If another clinician saves while you are editing, rereading the treatment record
 keeps your local text and checks the version you started from. When the versions
 differ, copy the changes you need, then choose **放弃本页修改并载入服务器草稿**.

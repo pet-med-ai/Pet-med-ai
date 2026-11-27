@@ -25,17 +25,17 @@ page.on('request', request => {
 const text = '合成验收 café 🐾\n原文 {{literal}}; literal \\n remains';
 const result = { candidate: receipt.candidate, browser: 'Linux Chromium', manual_safari_result: 'PENDING', acceptance: 'NOT_CLOSED', checks };
 
-async function login(name='doctor-a') {
-  await page.getByLabel('邮箱', { exact: true }).fill(name + '@example.invalid');
-  await page.getByLabel('密码', { exact: true }).fill(fixture.password);
-  await page.getByRole('button', { name: '登录', exact: true }).click();
-  await expect(page.getByRole('button', { name: '退出登录', exact: true })).toBeVisible();
+async function login(name='doctor-a', tab=page) {
+  await tab.getByLabel('邮箱', { exact: true }).fill(name + '@example.invalid');
+  await tab.getByLabel('密码', { exact: true }).fill(fixture.password);
+  await tab.getByRole('button', { name: '登录', exact: true }).click();
+  await expect(tab.getByRole('button', { name: '退出登录', exact: true })).toBeVisible();
 }
-async function openCase(id) {
-  await page.getByLabel('机构／院区', { exact: true }).selectOption(fixture.org + '/' + fixture.clinic);
-  await page.getByRole('row').filter({ has: page.getByRole('cell', { name: '#' + id, exact: true }) }).getByRole('button', { name: '查看', exact: true }).click();
-  await expect(page.locator('[aria-label="病例详情"] h2').first()).toContainText('#' + id);
-  if (await page.locator('[aria-label="治疗签署"]').count()) await expect(page.getByRole('button', { name: '重新读取治疗记录', exact: true })).toBeEnabled();
+async function openCase(id, tab=page) {
+  await tab.getByLabel('机构／院区', { exact: true }).selectOption(fixture.org + '/' + fixture.clinic);
+  await tab.getByRole('row').filter({ has: tab.getByRole('cell', { name: '#' + id, exact: true }) }).getByRole('button', { name: '查看', exact: true }).click();
+  await expect(tab.locator('[aria-label="病例详情"] h2').first()).toContainText('#' + id);
+  if (await tab.locator('[aria-label="治疗签署"]').count()) await expect(tab.getByRole('button', { name: '重新读取治疗记录', exact: true })).toBeEnabled();
 }
 async function logout() { await page.getByRole('button', { name: '退出登录', exact: true }).click(); await expect(page.getByRole('button', { name: '登录', exact: true })).toBeEnabled(); }
 const saveDraft = () => page.getByRole('button', { name: '保存治疗草稿', exact: true }).click();
@@ -311,6 +311,43 @@ async function checkSignedListItems() {
   assert.deepEqual(caseWritePaths.slice(writesBefore),
     [revisionsPath, revisionsPath + '/' + record.revision.id + '/reviews', revisionsPath + '/' + record.revision.id + '/signatures']);
   checks.push('frozen-signed-readback-preserve-list-items-and-diagnosis-coding');
+  return record.signature.id;
+}
+
+async function checkReadbackAfterExternalRevocation(signatureId) {
+  // The original doctor's page stays open with its confirmed effective readback.
+  const oldPanel = page.locator('[aria-label="独立回读签署"]');
+  await expect(oldPanel).toContainText(signatureId + ' · effective');
+  const other = await browser.newPage();
+  other.on('pageerror', error => errors.push(String(error)));
+  try {
+    await other.goto(receipt.url);
+    await login('doctor-b', other);
+    await openCase(110, other);
+    await other.getByLabel('操作原因', { exact: true }).fill('合成病例：独立会话作废复核');
+    await other.getByLabel('已核对待作废签署', { exact: true }).check();
+    await other.getByLabel('签署认证密码', { exact: true }).fill(fixture.password);
+    await other.getByRole('button', { name: '再次认证并作废签署', exact: true }).click();
+    await expect(other.locator('[aria-label="独立回读签署"]')).toContainText(signatureId + ' · revoked');
+  } finally {
+    await other.close();
+  }
+
+  const writesBefore = caseWritePaths.length;
+  const path = `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/110/treatment`;
+  const [response] = await Promise.all([
+    page.waitForResponse(r => new URL(r.url()).pathname === path && r.request().method() === 'GET'),
+    page.getByRole('button', { name: '重新读取治疗记录', exact: true }).click(),
+  ]);
+  assert.equal(response.status(), 200);
+  const record = await response.json();
+  assert.equal(record.plan.active_signature_id, null);
+  assert.ok(record.events.some(event => event.signature_id === signatureId && event.event === 'revoked'));
+  await expect(page.getByText(/ · 已作废 · /)).toBeVisible();
+  await expect(page.locator('[aria-label="当前有效签署"]')).toHaveCount(0);
+  await expect(oldPanel).toHaveCount(0);
+  assert.equal(caseWritePaths.length, writesBefore);
+  checks.push('manual-refresh-clears-readback-after-another-clinician-revokes');
 }
 
 try {
@@ -401,7 +438,8 @@ try {
     checks.push(kind + '-account-case-isolation');
     await logout(); await login(); await openCase(101);
   }
-  await checkSignedListItems();
+  const signedId = await checkSignedListItems();
+  await checkReadbackAfterExternalRevocation(signedId);
   assert.deepEqual(errors, []);
   result.status = 'PASS';
 } catch (error) {
