@@ -443,6 +443,141 @@ test('read-only treatment content comes from the independently verified signatur
   assert.equal(saved.size, 0);
 });
 
+// The aggregate is a separate server observation. Its terminal event and active pointer
+// may already have advanced after the independent signature GET returned.
+function signatureAggregate(record) {
+  const { signature, revision, terminal_event: event } = record;
+  const current = data({
+    plan: {id:ids.plan, head_revision_id:revision.id, active_signature_id:event ? null : signature.id},
+    signatures: [signature], revisions: [revision], events: event ? [event] : [],
+  });
+  if (record.state === 'superseded') {
+    const amended = frozenRevision(ids.priorRevision, revision.revision_no + 1, {...content, assessment:'另一位医生签署的新原文'});
+    const replacement = {...signedReadback('revoke', 'effective', amended).signature,
+      clinician_snapshot:{display_name:'另一位合成医生'}, signer_id:2};
+    current.plan = {...current.plan, head_revision_id:amended.id, active_signature_id:replacement.id};
+    current.revisions.push(amended);
+    current.signatures.push(replacement);
+    current.events = [{...event, successor_signature_id:replacement.id}];
+  }
+  return current;
+}
+
+function assertVerifiedSignature(record) {
+  const panel = renderer.root.findByProps({'aria-label':'独立回读签署'});
+  assert.equal(directText(panel.findByType('p')), '已独立回读签署：' + record.signature.id + ' · ' + record.state + ' · 院内账号确认');
+}
+
+function historyRows() {
+  return renderer.root.findAllByType('p').map(directText).filter(text => /^版本 \d+ · /.test(text));
+}
+
+function assertLatestSignatureHistory(state) {
+  const active = renderer.root.findAllByProps({'aria-label':'当前有效签署'});
+  const rows = historyRows();
+  if (state === 'revoked') {
+    assert.equal(active.length, 0);
+    assert.equal(rows.length, 1);
+    assert.match(rows[0], /^版本 2 · .* · 已作废 · 院内账号确认$/);
+  } else {
+    assert.equal(active.length, 1);
+    assert.match(directText(active[0].findByType('h3')), /版本 3/);
+    assert.equal(rows.length, 2);
+    assert.ok(rows.some(row => /^版本 2 · .* · 已由新签署替代 · 院内账号确认$/.test(row)));
+    assert.ok(rows.some(row => /^版本 3 · .* · 有效 · 院内账号确认$/.test(row)));
+  }
+}
+
+for (const state of ['revoked', 'superseded']) {
+  test('manual refresh retires the old independent readback when another clinician changes it to ' + state, async () => {
+    const readback = signedReadback();
+    const latest = signedReadback('sign', state);
+    latest.terminal_event.actor_id = 2;
+    const key = 'a'.repeat(64);
+    saved.set('pmai:treatment:1:' + scope.org_id + ':' + scope.clinic_id + ':1',
+      JSON.stringify({key, operation:'sign', request_hash:'b'.repeat(64)}));
+    handler = async url => {
+      if (url.includes('/commands/')) return receipt(signResult(), 201);
+      if (url.endsWith('/signatures/' + ids.signature)) return response(readback);
+      return response(signatureAggregate(readback));
+    };
+    await mount();
+    await click('查询原请求');
+    assertVerifiedSignature(readback);
+    const before = requests.length;
+    let finish, refresh;
+    handler = () => new Promise(resolve => { finish = resolve; });
+    await act(async () => { refresh = button('重新读取治疗记录').props.onClick(); });
+    const shownWhileReading = renderer.root.findAllByProps({'aria-label':'独立回读签署'}).length;
+    await act(async () => { finish(response(signatureAggregate(latest))); await refresh; });
+    assertLatestSignatureHistory(state);
+    assert.equal(renderer.root.findAllByProps({'aria-label':'独立回读签署'}).length, 0);
+    assert.equal(shownWhileReading, 0);
+    assert.deepEqual(requests.slice(before).map(r => [r.options.method, r.url.split('/cases/1/')[1]]), [['GET', 'treatment']]);
+    assert.ok(requests.every(r => r.options.method === 'GET'));
+    assert.equal(saved.size, 0);
+  });
+}
+
+for (const state of ['revoked', 'superseded', 'missing', 'inactive pointer', 'revoked with active pointer', 'missing with active pointer']) {
+  test('sign receipt completes without displaying stale effective state when latest aggregate is ' + state, async () => {
+    handler = async () => response(data({reviews:reviewedTreatment().reviews}));
+    await mount();
+    change('已核对冻结版本', null, true);
+    change('签署认证密码', 'synthetic-password');
+    assert.equal(button(signButton).props.disabled, false);
+    const effective = signedReadback();
+    let latest = data();
+    if (state === 'inactive pointer') {
+      latest = signatureAggregate(effective);
+      latest.plan.active_signature_id = null;
+    } else if (state === 'revoked with active pointer') {
+      latest = signatureAggregate(signedReadback('sign', 'revoked'));
+      latest.plan.active_signature_id = effective.signature.id;
+    } else if (state === 'missing with active pointer') {
+      latest.plan.active_signature_id = effective.signature.id;
+    } else if (state !== 'missing') {
+      const record = signedReadback('sign', state);
+      record.terminal_event.actor_id = 2;
+      latest = signatureAggregate(record);
+    }
+    handler = async (url, options) => {
+      if (url.endsWith('/auth/reauthenticate')) return response({challenge_id:'synthetic-challenge'});
+      if (options.method === 'POST') return receipt(signResult(), 201);
+      return response(url.endsWith('/signatures/' + ids.signature) ? effective : latest);
+    };
+    const before = requests.length;
+    await click(signButton);
+    assert.deepEqual(requests.slice(before).map(r => [r.options.method, r.url.replace(/^.*\/cases\/1\/|^.*\/api\/v2\//,'')]), [
+      ['POST','auth/reauthenticate'], ['POST','treatment/revisions/' + rev.id + '/signatures'],
+      ['GET','treatment/signatures/' + ids.signature], ['GET','treatment'],
+    ]);
+    assert.equal(saved.size, 0);
+    assert.doesNotMatch(output(), /待核对请求/);
+    if (state === 'revoked' || state === 'superseded') {
+      assertLatestSignatureHistory(state);
+    } else {
+      assert.equal(renderer.root.findAllByProps({'aria-label':'当前有效签署'}).length, 0);
+      assert.equal(button(revokeButton), undefined);
+      assert.equal(button('创建修订草稿'), undefined);
+      const rows = historyRows();
+      if (state === 'inactive pointer' || state === 'revoked with active pointer') {
+        assert.equal(rows.length, 1);
+        assert.match(rows[0], /^版本 2 · .* · 状态待核对 · 院内账号确认$/);
+      } else {
+        assert.deepEqual(rows, []);
+      }
+      if (state !== 'missing') {
+        assert.equal(renderer.root.findByType('fieldset').props.disabled, true);
+        assert.equal(button('冻结版本供核对').props.disabled, true);
+        assert.match(output(), /状态待核对/);
+      }
+    }
+    assert.match(output(), /最新治疗记录未确认同一签署状态/);
+    assert.equal(renderer.root.findAllByProps({'aria-label':'独立回读签署'}).length, 0);
+  });
+}
+
 test('read-only treatment content after expiry preserves untouched codes and removes coding from a renamed row', async () => {
   const draft = displayContent('失效前原文');
   handler = async () => response(data({draft: {draft_version:1, content:draft}}));
@@ -555,7 +690,7 @@ for (const [action, label, target] of [
       ['GET','/api/v2/organizations/' + scope.org_id + '/clinics/' + scope.clinic_id + '/cases/1/treatment/signatures/' + signatureId],
       ['GET','/api/v2/organizations/' + scope.org_id + '/clinics/' + scope.clinic_id + '/cases/1/treatment'],
     ]);
-    assert.match(output(), /已独立回读签署/);
+    assertVerifiedSignature(readback);
     assert.equal(saved.size, 0);
   });
 }
@@ -752,12 +887,12 @@ for (const [problem, receiptChanges, modifyReadback] of [
     const verified = signedReadback('sign', 'superseded');
     verified.terminal_event.successor_signature_id = ids.priorSignature;
     handler = async url => url.includes('/commands/') ? receipt(signResult(), 201)
-      : response(url.endsWith('/treatment/signatures/' + ids.signature) ? verified : initial);
+      : response(url.endsWith('/treatment/signatures/' + ids.signature) ? verified : signatureAggregate(verified));
     await click(queryButton);
     assert.deepEqual(requests.slice(start).map(r => [r.options.method, r.url.split('/cases/1/')[1]]), [
       ['GET', 'commands/' + original.key + '?operation=sign'], ['GET', 'treatment/signatures/' + ids.signature], ['GET', 'treatment'],
     ]);
-    assert.equal(saved.size, 0); assert.match(output(), /已独立回读签署/);
+    assert.equal(saved.size, 0); assertVerifiedSignature(verified);
     assert.equal(requests.filter(r => r.options.method === 'POST' && r.url.endsWith('/signatures')).length, 1);
   });
 }
@@ -774,11 +909,11 @@ test('recovering a revocation requires the original terminal event, even when th
     if (invalid === 'actor') body.terminal_event.actor_id = 2;
     if (invalid === 'state') { body.state = 'effective'; body.terminal_event = null; }
     handler = async url => url.includes('/commands/') ? receipt(result, 201)
-      : response(url.endsWith('/treatment/signatures/' + ids.priorSignature) ? body : initial);
+      : response(url.endsWith('/treatment/signatures/' + ids.priorSignature) ? body : signatureAggregate(body));
     await click(queryButton);
     if (invalid) assertUnconfirmed(original);
   }
-  assert.equal(saved.size, 0); assert.match(output(), /已独立回读签署/);
+  assert.equal(saved.size, 0); assertVerifiedSignature(signedReadback('revoke'));
   assert.equal(requests.filter(r => r.options.method !== 'GET').length, 0);
 });
 
@@ -825,9 +960,9 @@ test('a verified signature stays unconfirmed until its aggregate reread succeeds
   await act(async () => { releaseAggregate(response({detail:'unavailable'}, 503)); await checking; });
   assertUnconfirmed(original);
   handler = async url => url.includes('/commands/') ? receipt(signResult(), 201)
-    : response(url.endsWith('/treatment') ? initial : signedReadback());
+    : response(url.endsWith('/treatment') ? signatureAggregate(signedReadback()) : signedReadback());
   await click(queryButton);
-  assert.equal(saved.size, 0); assert.match(output(), /已独立回读签署/);
+  assert.equal(saved.size, 0); assertVerifiedSignature(signedReadback());
   assert.ok(requests.every(r => r.options.method === 'GET'));
 });
 

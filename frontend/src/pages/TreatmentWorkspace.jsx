@@ -8,6 +8,19 @@ const base = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 const empty = () => ({ schema: 'treatment-content-v1', diagnoses: [], assessment: '', treatment: { goals: [], management_text: '', monitoring_text: '', followup_text: '' }, linked_orders: [], provenance: { ai_generation_ids: [], voice_transcript_revision_ids: [] } });
 const newKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), x => x.toString(16).padStart(2, '0')).join('');
 const draftPrecondition = aggregate => aggregate.draft ? aggregate.draft_etag : '*';
+const signatureLabels = { effective: '有效', revoked: '已作废', superseded: '已由新签署替代', unknown: '状态待核对' };
+function signatureState(aggregate, id) {
+  const active = aggregate.plan?.active_signature_id === id;
+  const event = aggregate.events.find(e => e.signature_id === id);
+  if (active && !event) return 'effective';
+  if (!active && (event?.event === 'revoked' || event?.event === 'superseded')) return event.event;
+  return 'unknown';
+}
+function readbackStillCurrent(aggregate, readback) {
+  const { id, revision_id } = readback.signature;
+  return aggregate.signatures.some(s => s.id === id && s.revision_id === revision_id)
+    && signatureState(aggregate, id) === readback.state;
+}
 const textStyle = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
 function selectableListText(text) {
   // The final empty line needs a line box for native selection to include its newline.
@@ -60,7 +73,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     dirty,
     refreshWhenIdle() {
       if (busy || expired || pendingRef.current) return;
-      setVerified(null); setReason('');
+      setReason('');
       return refresh();
     },
   }));
@@ -126,9 +139,10 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
         if (saved && /^[0-9a-f]{64}$/.test(saved.key) && /^[0-9a-f]{64}$/.test(saved.request_hash) && ['draft.save','revision.freeze','review','sign','amend','revoke'].includes(saved.operation)) remember(saved);
       } catch { /* No clinical state is restored from storage. */ }
     }
+    return g;
   }
   async function refresh(discardEdits = false) {
-    const t = task(); setBusy(true); setMessage('');
+    const t = task(); setBusy(true); setMessage(''); setVerified(null);
     try { await load(t, !dirty || discardEdits); } catch (e) { failed(e, t); } finally { if (t.current()) setBusy(false); }
   }
   useEffect(() => {
@@ -173,9 +187,14 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     }
     // A newer draft may already exist by the time this save's receipt is read.
     const savedDraftETag = original.operation === 'draft.save' ? out.draft_etag : null;
-    await load(t, !dirty, savedDraftETag);
+    const aggregate = await load(t, !dirty, savedDraftETag);
     if (!t.current()) return;
-    setVerified(verifiedSignature); remember(null); setMessage('已从服务端核对保存结果。');
+    remember(null);
+    if (verifiedSignature && !readbackStillCurrent(aggregate, verifiedSignature)) {
+      setVerified(null); setMessage('已独立回读签署。最新治疗记录未确认同一签署状态，请核对当前签署和签署历史。');
+    } else {
+      setVerified(verifiedSignature); setMessage('已从服务端核对保存结果。');
+    }
   }
   async function submit(operation, target, suffix, body, method = 'POST', proof = null) {
     if (busy || expired || pendingRef.current || !data || (operation === 'draft.save' && draftConflict)) return;
@@ -214,9 +233,12 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   const rev = data?.revisions.find(r => r.id === data.plan?.head_revision_id);
   const staleDraft = rev && rev.draft_version !== data?.draft?.draft_version;
   const review = data?.reviews.find(r => r.revision_id === rev?.id);
-  const active = data?.signatures.find(s => s.id === data.plan?.active_signature_id);
+  const activeId = data?.plan?.active_signature_id;
+  const states = new Map(data?.signatures.map(s => [s.id, signatureState(data, s.id)]));
+  const active = states.get(activeId) === 'effective' ? data.signatures.find(s => s.id === activeId) : null;
   const activeRevision = data?.revisions.find(r => r.id === active?.revision_id);
-  const locked = busy || expired || !!pending;
+  const uncertainStatus = (!!activeId && !active) || [...states.values()].includes('unknown');
+  const locked = busy || expired || !!pending || uncertainStatus;
   const canEdit = data?.allowed_actions.edit && !locked;
   return <section className="treatment-workspace" aria-label="治疗签署" style={{ marginTop: 32, padding: 20, border: '1px solid #a7bac9', borderRadius: 12 }}>
     <h2>治疗记录与院内账号确认</h2>
@@ -229,6 +251,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       <button disabled={busy} onClick={() => refresh()}>重新读取治疗记录</button>
       {data && <>
         <p>审核账号：{data.profile?.display_name || '当前账号无已核验医生档案'} · {data.policy.review_policy === 'two_person' ? '另一位医生签署' : '允许同一医生审核签署'}</p>
+        {uncertainStatus && <p role="alert">签署状态待核对，请重新读取治疗记录。</p>}
         {data.policy.required_assurance === 'certificate_signature' && <p role="alert">本院要求证书签名，当前不能签署。</p>}
         {active && <section aria-label="当前有效签署"><h3>当前有效签署 · 版本 {activeRevision?.revision_no}</h3><p>{active.clinician_snapshot.display_name} · {active.signed_at} · 已确认签署 · 院内账号确认</p>{activeRevision && <ContentView content={activeRevision.content} />}</section>}
         <fieldset disabled={!canEdit || (!!active && data.draft?.amendment_of !== active.id)}><legend>治疗草稿</legend>
@@ -257,7 +280,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
         </section>}
         {active && <section><p><label><input type="checkbox" aria-label="已核对待作废签署" checked={revokeChecked} disabled={locked} onChange={e => setRevokeChecked(e.target.checked)} />我已核对当前有效签署（版本 {activeRevision?.revision_no}）及作废原因</label></p><p><button disabled={!canEdit || !reason.trim() || data.draft?.amendment_of === active.id} onClick={() => submit('amend','amendments','/amendments',{ base_signature_id: active.id, reason })}>创建修订草稿</button>{' '}
           <button disabled={locked || !revokeChecked || !password || !reason.trim() || !data.allowed_actions.sign} onClick={() => submit('revoke',active.id,`/signatures/${active.id}/revocations`,{ reason },'POST',{ revision_id: active.revision_id, hash: active.content_hash, signature_id: active.id })}>再次认证并作废签署</button></p></section>}
-        <h3>签署历史</h3>{data.signatures.map(s => <p key={s.id}>版本 {data.revisions.find(r => r.id === s.revision_id)?.revision_no} · {s.clinician_snapshot.display_name} · {s.signed_at} · {({ revoked:'已作废',superseded:'已由新签署替代' })[data.events.find(e => e.signature_id === s.id)?.event] || '有效'} · 院内账号确认</p>)}
+        <h3>签署历史</h3>{data.signatures.map(s => <p key={s.id}>版本 {data.revisions.find(r => r.id === s.revision_id)?.revision_no} · {s.clinician_snapshot.display_name} · {s.signed_at} · {signatureLabels[states.get(s.id)]} · 院内账号确认</p>)}
       </>}
     </>}
     {verified && <aside aria-label="独立回读签署"><p>已独立回读签署：{verified.signature.id} · {verified.state} · 院内账号确认</p><ContentView content={verified.revision.content} /></aside>}
