@@ -128,7 +128,12 @@ keeps its recorded status. The server also checks the full snapshot when you
 review or sign, including changes made since the last read.
 
 Choosing **重新读取治疗记录** clears the previous independent signature readback
-while the page fetches the latest treatment record. If another clinician has
+and withdraws the current signature card as soon as the read starts. The last
+effective history entry shows **状态待核对** until the latest record arrives.
+If the connection drops or the service is temporarily unavailable, new
+treatment actions stay paused. Local draft text and any
+pending command are retained. Use **重新读取治疗记录** to retry the read or
+**查询原请求** to check a pending command. If another clinician has
 revoked or replaced the signature between the independent readback and that
 fetch, check **签署历史** for its updated status. The original command can be
 confirmed even when the signature is no longer effective.
