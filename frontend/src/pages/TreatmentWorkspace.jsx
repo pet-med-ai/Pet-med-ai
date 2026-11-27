@@ -8,6 +8,7 @@ const base = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
 const empty = () => ({ schema: 'treatment-content-v1', diagnoses: [], assessment: '', treatment: { goals: [], management_text: '', monitoring_text: '', followup_text: '' }, linked_orders: [], provenance: { ai_generation_ids: [], voice_transcript_revision_ids: [] } });
 const newKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), x => x.toString(16).padStart(2, '0')).join('');
 const draftPrecondition = aggregate => aggregate.draft ? aggregate.draft_etag : '*';
+const versionsDiffer = (frozen, current) => frozen != null && current != null && frozen !== current;
 const signatureLabels = { effective: '有效', revoked: '已作废', superseded: '已由新签署替代', unknown: '状态待核对' };
 function signatureState(aggregate, id) {
   const active = aggregate.plan?.active_signature_id === id;
@@ -232,6 +233,10 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   }
   const rev = data?.revisions.find(r => r.id === data.plan?.head_revision_id);
   const staleDraft = rev && rev.draft_version !== data?.draft?.draft_version;
+  const staleSource = rev?.origin === 'clinical' && (
+    versionsDiffer(rev.source_manifest.case?.clinical_epoch, data.source_epoch)
+    || versionsDiffer(rev.source_manifest.policy?.version, data.policy.version)
+  );
   const review = data?.reviews.find(r => r.revision_id === rev?.id);
   const activeId = data?.plan?.active_signature_id;
   const states = new Map(data?.signatures.map(s => [s.id, signatureState(data, s.id)]));
@@ -240,6 +245,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   const uncertainStatus = (!!activeId && !active) || [...states.values()].includes('unknown');
   const locked = busy || expired || !!pending || uncertainStatus;
   const canEdit = data?.allowed_actions.edit && !locked;
+  const cannotConfirmRevision = locked || dirty || staleDraft || staleSource || rev?.origin !== 'clinical';
   return <section className="treatment-workspace" aria-label="治疗签署" style={{ marginTop: 32, padding: 20, border: '1px solid #a7bac9', borderRadius: 12 }}>
     <h2>治疗记录与院内账号确认</h2>
     <p>{scope.org_name}／{scope.clinic_name} · 病例 #{caseId}</p>
@@ -270,13 +276,14 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
           <p>来源病例：{rev.source_manifest.case?.patient_name || "历史病例"} · 资料版本 {rev.source_manifest.case?.clinical_epoch || "历史快照"} · 诊断报告 {rev.source_manifest.diagnostic_reports?.length || 0} 份</p>
           <details><summary>查看冻结来源资料</summary><pre style={textStyle}>{JSON.stringify(rev.source_manifest, null, 2)}</pre></details>
           {staleDraft && <p>草稿已修改，此冻结版本不能继续审核或签署。</p>}
+          {staleSource && <p role="alert">冻结后病例资料或签署规则已变化，请重新冻结版本后再审核或签署。</p>}
           <p style={textStyle}>内容校验值：{rev.content_sha256}</p>
           {review && <p>审核：{review.clinician_snapshot.display_name} · {({ approve: '审核通过', request_revision: '要求修订', reject: '审核拒绝' })[review.decision]} · {review.reason}</p>}
-          <label><input aria-label="已核对冻结版本" type="checkbox" checked={checked} disabled={locked || dirty || staleDraft || rev.origin !== 'clinical'} onChange={e => setChecked(e.target.checked)} />我已核对病例、完整原文、来源资料及本次操作</label>
+          <label><input aria-label="已核对冻结版本" type="checkbox" checked={checked} disabled={cannotConfirmRevision} onChange={e => setChecked(e.target.checked)} />我已核对病例、完整原文、来源资料及本次操作</label>
           <p><label>审核／修订／作废原因<input aria-label="操作原因" value={reason} disabled={locked} onChange={e => setReason(e.target.value)} /></label></p>
-          {!review && ['approve','request_revision','reject'].map((decision,i) => <button key={decision} disabled={locked || dirty || staleDraft || !checked || !reason.trim() || !data.allowed_actions.review} onClick={() => submit('review',rev.id,`/revisions/${rev.id}/reviews`,{ decision, reason })}>{['审核通过','要求修订','审核拒绝'][i]}</button>)}
+          {!review && ['approve','request_revision','reject'].map((decision,i) => <button key={decision} disabled={cannotConfirmRevision || !checked || !reason.trim() || !data.allowed_actions.review} onClick={() => submit('review',rev.id,`/revisions/${rev.id}/reviews`,{ decision, reason })}>{['审核通过','要求修订','审核拒绝'][i]}</button>)}
           <p><label>再次输入当前账号密码<input aria-label="签署认证密码" type="password" autoComplete="off" value={password} disabled={locked} onChange={e => setPassword(e.target.value)} /></label></p>
-          <button disabled={locked || dirty || staleDraft || !checked || !password || !data.allowed_actions.sign || review?.decision !== 'approve' || data.signatures.some(s => s.revision_id === rev.id)} onClick={() => submit('sign',rev.id,`/revisions/${rev.id}/signatures`,{ review_id: review.id, content_hash: rev.content_sha256 },'POST',{ revision_id: rev.id, hash: rev.content_sha256 })}>再次认证并确认签署</button>
+          <button disabled={cannotConfirmRevision || !checked || !password || !data.allowed_actions.sign || review?.decision !== 'approve' || data.signatures.some(s => s.revision_id === rev.id)} onClick={() => submit('sign',rev.id,`/revisions/${rev.id}/signatures`,{ review_id: review.id, content_hash: rev.content_sha256 },'POST',{ revision_id: rev.id, hash: rev.content_sha256 })}>再次认证并确认签署</button>
         </section>}
         {active && <section><p><label><input type="checkbox" aria-label="已核对待作废签署" checked={revokeChecked} disabled={locked} onChange={e => setRevokeChecked(e.target.checked)} />我已核对当前有效签署（版本 {activeRevision?.revision_no}）及作废原因</label></p><p><button disabled={!canEdit || !reason.trim() || data.draft?.amendment_of === active.id} onClick={() => submit('amend','amendments','/amendments',{ base_signature_id: active.id, reason })}>创建修订草稿</button>{' '}
           <button disabled={locked || !revokeChecked || !password || !reason.trim() || !data.allowed_actions.sign} onClick={() => submit('revoke',active.id,`/signatures/${active.id}/revocations`,{ reason },'POST',{ revision_id: active.revision_id, hash: active.content_hash, signature_id: active.id })}>再次认证并作废签署</button></p></section>}

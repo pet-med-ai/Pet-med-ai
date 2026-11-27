@@ -350,6 +350,62 @@ async function checkReadbackAfterExternalRevocation(signatureId) {
   checks.push('manual-refresh-clears-readback-after-another-clinician-revokes');
 }
 
+async function checkRefreezeAfterSourceChange() {
+  const path = `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/108/treatment`;
+  const aggregateResponse = r => new URL(r.url()).pathname === path && r.request().method() === 'GET';
+  const approval = page.getByRole('button', { name: '审核通过', exact: true });
+  const acknowledgement = page.getByLabel('已核对冻结版本', { exact: true });
+  const freezeButton = page.getByRole('button', { name: '冻结版本供核对', exact: true });
+  const warning = page.getByText('冻结后病例资料或签署规则已变化，请重新冻结版本后再审核或签署。', { exact: true });
+  const writesBefore = caseWritePaths.length;
+
+  control('source-change');
+  // The clinician has not refreshed yet. The server still fences the first stale review.
+  await acknowledgement.check();
+  await page.getByLabel('操作原因', { exact: true }).fill('旧来源失效');
+  const [rejection, reread] = await Promise.all([
+    page.waitForResponse(r => r.url().endsWith('/reviews') && r.request().method() === 'POST'),
+    page.waitForResponse(aggregateResponse),
+    approval.click(),
+  ]);
+  assert.equal(rejection.status(), 409);
+  assert.equal((await rejection.json()).code, 'SOURCE_CHANGED');
+  await expect(page.getByText('病例、诊断资料或签署规则已变化。请重新读取并冻结新版本。', { exact: true })).toBeVisible();
+  assert.equal(reread.status(), 200);
+  const stale = await reread.json();
+  const old = stale.revisions.find(r => r.id === stale.plan.head_revision_id);
+  assert.ok(stale.source_epoch > old.source_manifest.case.clinical_epoch);
+  await expect(warning).toBeVisible();
+  await expect(acknowledgement).not.toBeChecked();
+  await expect(acknowledgement).toBeDisabled();
+  for (const name of ['审核通过', '要求修订', '审核拒绝']) {
+    await expect(page.getByRole('button', { name, exact: true })).toBeDisabled();
+  }
+  await expect(freezeButton).toBeEnabled();
+
+  const [frozen, updated] = await Promise.all([
+    page.waitForResponse(r => new URL(r.url()).pathname === path + '/revisions' && r.request().method() === 'POST'),
+    page.waitForResponse(aggregateResponse),
+    freezeButton.click(),
+  ]);
+  assert.equal(frozen.status(), 201);
+  assert.equal(frozen.request().postDataJSON().expected_source_epoch, stale.source_epoch);
+  assert.equal(updated.status(), 200);
+  const latest = await updated.json();
+  const current = latest.revisions.find(r => r.id === latest.plan.head_revision_id);
+  assert.equal(current.id, (await frozen.json()).revision_id);
+  assert.notEqual(current.id, old.id);
+  assert.equal(current.source_manifest.case.clinical_epoch, stale.source_epoch);
+  assert.deepEqual(current.content, old.content);
+  await expect(warning).toHaveCount(0);
+  await expect(acknowledgement).not.toBeChecked();
+  await acknowledgement.check();
+  await page.getByLabel('操作原因', { exact: true }).fill('核对更新后的病例资料');
+  await expect(approval).toBeEnabled();
+  assert.deepEqual(caseWritePaths.slice(writesBefore), [path + '/revisions/' + old.id + '/reviews', path + '/revisions']);
+  checks.push('reread-stale-source-blocks-review-until-new-revision');
+}
+
 try {
   await page.goto(receipt.url);
   await login();
@@ -380,10 +436,7 @@ try {
   await expect(page.getByText('草稿已修改，此冻结版本不能继续审核或签署。', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: '冻结版本供核对', exact: true }).click();
   await expect(page.getByLabel('已核对冻结版本', { exact: true })).toBeEnabled();
-  control('source-change');
-  await page.getByLabel('已核对冻结版本', { exact: true }).check(); await page.getByLabel('操作原因', { exact: true }).fill('旧来源失效');
-  await page.getByRole('button', { name: '审核通过', exact: true }).click();
-  await expect(page.getByText('病例、诊断资料或签署规则已变化。请重新读取并冻结新版本。', { exact: true })).toBeVisible();
+  await checkRefreezeAfterSourceChange();
   const writesBeforeExpiry = caseWritePaths.length;
   const expiredLists = { 诊断: '合成诊断甲 🐾\n\n合成诊断乙  \n\n', 治疗目标: '合成目标甲　\n\n合成目标乙 {{literal}}\n\n' };
   await page.getByLabel('治疗诊断', { exact: true }).fill(expiredLists.诊断);

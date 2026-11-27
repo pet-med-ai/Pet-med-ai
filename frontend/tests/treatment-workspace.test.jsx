@@ -14,8 +14,8 @@ const ids = {
   audit: '3708b584-295b-4691-a6b4-6422cf410007', event: '3708b584-295b-4691-a6b4-6422cf410008',
 };
 const caseScope = {org_id:scope.org_id, clinic_id:scope.clinic_id, case_id:1, plan_id:ids.plan};
-function frozenRevision(id, revision_no, revisionContent = content) {
-  const source_manifest = {case:{patient_name:'合成犬',clinical_epoch:1},diagnostic_reports:[]};
+function frozenRevision(id, revision_no, revisionContent = content,
+  source_manifest = {case:{patient_name:'合成犬',clinical_epoch:1},diagnostic_reports:[]}) {
   const created_at = '2026-11-09T00:00:00Z';
   const envelope = {schema:'pmai-treatment-revision-v1', canonicalization:'pmai-canonical-json-v1', ...caseScope,
     revision_id:id, draft_version:1, content:revisionContent, source_manifest, created_by:1, created_at};
@@ -111,6 +111,86 @@ test('a saved changed draft blocks signing its previous frozen version',async()=
  handler=async()=>response(data({draft:{draft_version:2,content}}));await mount();
  assert.match(output(),/草稿已修改，此冻结版本不能继续审核或签署/);
  assert.equal(renderer.root.findByProps({'aria-label':'已核对冻结版本'}).props.disabled,true);
+});
+
+const staleSourceWarning = '冻结后病例资料或签署规则已变化，请重新冻结版本后再审核或签署。';
+const acknowledgement = () => renderer.root.findByProps({'aria-label':'已核对冻结版本'}).props;
+
+test('an updated case epoch fences the old review and permits a fresh freeze using the current epoch', async () => {
+  const newSource = {...rev.source_manifest, case:{...rev.source_manifest.case, clinical_epoch:2}};
+  const replacement = frozenRevision('3708b584-295b-4691-a6b4-6422cf410010', 3, content, newSource);
+  let record = data({source_epoch:2});
+  handler = async (url, options) => {
+    if (options.method === 'GET') return response(record);
+    assert.ok(url.endsWith('/treatment/revisions'));
+    assert.deepEqual(JSON.parse(options.body), {draft_version:1, expected_source_epoch:2});
+    record = {...record, plan:{...record.plan, head_revision_id:replacement.id}, revisions:[rev, replacement]};
+    return receipt({state:'committed', revision_id:replacement.id, content_hash:replacement.content_sha256}, 201);
+  };
+  await mount();
+  assert.ok(output().includes(staleSourceWarning));
+  assert.match(output(), /café 🐾/);
+  assert.equal(acknowledgement().disabled, true);
+  for (const action of ['审核通过','要求修订','审核拒绝','再次认证并确认签署']) assert.equal(button(action).props.disabled, true);
+  assert.equal(renderer.root.findByType('fieldset').props.disabled, false);
+  assert.equal(button('冻结版本供核对').props.disabled, false);
+  await click('冻结版本供核对');
+  assert.deepEqual(requests.map(r => r.options.method), ['GET','POST','GET']);
+  assert.equal(output().includes(staleSourceWarning), false);
+  assert.equal(acknowledgement().disabled, false);
+  assert.equal(acknowledgement().checked, false);
+  change('已核对冻结版本', null, true);
+  change('操作原因', '已核对最新来源');
+  assert.equal(button('审核通过').props.disabled, false);
+});
+
+test('rereading a later signing-policy version retires the approval even when the rules and case epoch look unchanged', async () => {
+  const policy = {...data().policy, version:3};
+  const approved = frozenRevision(rev.id, rev.revision_no, content, {...rev.source_manifest, policy});
+  const review = {id:ids.review, revision_id:approved.id, decision:'approve', reason:'核对', clinician_snapshot:{display_name:'合成医生'}};
+  let record = data({policy, revisions:[approved], reviews:[review]});
+  handler = async () => response(record);
+  await mount();
+  change('已核对冻结版本', null, true);
+  change('签署认证密码', 'synthetic');
+  assert.equal(button('再次认证并确认签署').props.disabled, false);
+  record = {...record, policy:{...policy, version:4}};
+  await click('重新读取治疗记录');
+  assert.ok(output().includes(staleSourceWarning));
+  assert.equal(acknowledgement().checked, false);
+  assert.equal(acknowledgement().disabled, true);
+  assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.value, '');
+  assert.equal(button('再次认证并确认签署').props.disabled, true);
+  assert.equal(button('冻结版本供核对').props.disabled, false);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET','GET']);
+});
+
+test('a stale source preserves the effective signed record and its separate revocation acknowledgement', async () => {
+  const signed = signedReadback('sign', 'effective', priorRevision);
+  handler = async () => response(data({
+    plan:{...data().plan, active_signature_id:signed.signature.id},
+    source_epoch:2, revisions:[priorRevision,rev], signatures:[signed.signature],
+  }));
+  await mount();
+  assert.ok(output().includes(staleSourceWarning));
+  assert.equal(acknowledgement().disabled, true);
+  const active = renderer.root.findByProps({'aria-label':'当前有效签署'});
+  assert.ok(active.findAllByType('dd').some(node => node.children.includes(content.assessment)));
+  change('操作原因','合成作废原因');
+  change('签署认证密码','synthetic');
+  assert.equal(button('再次认证并作废签署').props.disabled, true);
+  change('已核对待作废签署', null, true);
+  assert.equal(button('再次认证并作废签署').props.disabled, false);
+});
+
+test('older snapshots without policy-version evidence keep the existing clinical review flow', async () => {
+  handler = async () => response(data({policy:{...data().policy, version:9}}));
+  await mount();
+  assert.equal(output().includes(staleSourceWarning), false);
+  assert.equal(acknowledgement().disabled, false);
+  change('已核对冻结版本', null, true);
+  change('操作原因', '已核对历史快照');
+  assert.equal(button('审核通过').props.disabled, false);
 });
 
 test('revocation has a separate acknowledgement of the effective signed version',async()=>{

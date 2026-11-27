@@ -120,6 +120,13 @@ review/signing of the older frozen version. Reauthentication occurs immediately
 before sign/revoke; the password is cleared afterwards. A signature response is
 followed by a separate GET before the UI reports confirmed success.
 
+When you open or reread a frozen clinical revision, the workbench compares the
+case and signing-policy versions in its source snapshot with the current record.
+If either version has changed, you can still read the frozen text. Freeze the
+draft again to review and sign against the updated source. An existing signature
+keeps its recorded status. The server also checks the full snapshot when you
+review or sign, including changes made since the last read.
+
 Choosing **重新读取治疗记录** clears the previous independent signature readback
 while the page fetches the latest treatment record. If another clinician has
 revoked or replaced the signature between the independent readback and that
