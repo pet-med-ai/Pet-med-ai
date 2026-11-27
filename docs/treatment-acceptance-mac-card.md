@@ -64,7 +64,7 @@ CLI 回执和代理响应记录只证明测试条件，**不能代替 Safari 界
 | 401 原文保留 | doctor-a 在 #108 写入尚未保存的文本，运行 `bash scripts/treatment_acceptance_mac.command control expire`，点击“重新读取治疗记录”；原文只读且可复制，旧勾选/密码失效。退出前先复制未保存原文 |
 | 丢响应与原请求 | #109 保存→冻结→审核后，运行 `bash scripts/treatment_acceptance_mac.command control lose-sign-response`，再签署。点击“停止等待（保留原请求）”；同一标签页退出并用同账号重登、打开 #109、查询原请求，必须独立回读且只新增一次签署。最后运行 `… control release`。换账号不能恢复原账号的请求 |
 | 双医生 | 运行 `bash scripts/treatment_acceptance_mac.command control policy-two`；doctor-a 在 #107 重新保存、冻结、审核；同人签署被拒绝，doctor-b 登录后核对并签署成功。此规则作用于合成机构A全部院区，会使之前冻结但未签署的来源失效。完成后 `… control policy-self` |
-| 修订／作废／再签 | 在 #110 形成首次签署，填原因→创建修订草稿→修改保存→重新冻结审核签署；旧签署显示被替代。再勾选待作废签署、填原因和密码作废；历史仍在，草稿原文仍在。重新冻结、审核、认证可形成新签署 |
+| 修订／作废／再签 | 在 #110 形成首次签署，填原因→创建修订草稿→修改保存→重新冻结审核签署。旧签署显示被替代。填写作废原因，勾选核对待作废签署和原因，再输入密码作废。历史与草稿原文保留。重新冻结、审核、认证可形成新签署 |
 | 迟到 200 | 运行 `bash scripts/treatment_acceptance_mac.command control late-200`，再“查看”某病例使响应被暂扣；退出并换 doctor-b，打开 #103；执行 `… control release`，旧病例不得填回 |
 | 迟到 401 | 同上换成 `… control late-401`。换账号/病例后释放，不应清掉新账号内容。401 是明确的测试注入；不是医院实际会话事故 |
 

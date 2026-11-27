@@ -742,8 +742,8 @@ for (const [failure, next] of [['503', 'effective'], ['disconnect', 'revoked']])
       assert.match(historyRows()[0], / · 有效 · 院内账号确认$/);
       assert.equal(renderer.root.findByProps({'aria-label':'已核对待作废签署'}).props.checked, false);
       assert.equal(button(revokeButton).props.disabled, true);
-      change('已核对待作废签署', null, true);
       change('操作原因', '重新核对');
+      change('已核对待作废签署', null, true);
       change('签署认证密码', 'synthetic');
       assert.equal(button(revokeButton).props.disabled, false);
     }
@@ -864,10 +864,49 @@ function reviewedTreatment() {
 }
 function acknowledgeTreatment(password) {
   change('已核对冻结版本', null, true);
-  change('已核对待作废签署', null, true);
   change('操作原因', '合成复核');
+  change('已核对待作废签署', null, true);
   change('签署认证密码', password);
 }
+
+test('a revocation requires a nonblank reason to acknowledge and withdrawing that acknowledgement clears the password', async () => {
+  handler = async () => response(reviewedTreatment());
+  await mount();
+  const revokeCheck = () => renderer.root.findByProps({'aria-label':'已核对待作废签署'}).props;
+  assert.equal(revokeCheck().disabled, true);
+  change('操作原因', '   ');
+  assert.equal(revokeCheck().disabled, true);
+  change('操作原因', '合成复核');
+  assert.equal(revokeCheck().disabled, false);
+  change('已核对待作废签署', null, true);
+  change('签署认证密码', 'synthetic');
+  assert.equal(button(revokeButton).props.disabled, false);
+  change('已核对待作废签署', null, false);
+  assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.value, '');
+  assert.equal(renderer.root.findByProps({'aria-label':'操作原因'}).props.value, '合成复核');
+  change('已核对待作废签署', null, true);
+  assert.equal(button(revokeButton).props.disabled, true);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+});
+
+test('editing the exact acknowledged reason invalidates revocation even if the original text is restored', async () => {
+  handler = async () => response(reviewedTreatment());
+  await mount();
+  acknowledgeTreatment('synthetic');
+  assert.equal(button(revokeButton).props.disabled, false);
+  change('操作原因', '合成复核 ');
+  assert.equal(renderer.root.findByProps({'aria-label':'已核对待作废签署'}).props.checked, false);
+  assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.value, '');
+  assert.equal(button(revokeButton).props.disabled, true);
+  assert.equal(acknowledgement().checked, true);
+  change('操作原因', '合成复核');
+  change('签署认证密码', 'synthetic');
+  assert.equal(button(revokeButton).props.disabled, true);
+  change('已核对待作废签署', null, true);
+  assert.equal(button(revokeButton).props.disabled, false);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+  assert.equal(saved.size, 0);
+});
 
 for (const [action, label, target] of [
   ['sign', signButton, '/treatment/revisions/' + rev.id + '/signatures'],

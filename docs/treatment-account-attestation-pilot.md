@@ -120,6 +120,11 @@ review/signing of the older frozen version. Reauthentication occurs immediately
 before sign/revoke; the password is cleared afterwards. A signature response is
 followed by a separate GET before the UI reports confirmed success.
 
+To revoke a signature, enter the reason first, then check the effective signed
+version and its reason, enter the current account password and submit. Editing
+the reason after checking it clears both the acknowledgement and the entered
+password. Unchecking the acknowledgement also clears the password.
+
 When you open or reread a frozen clinical revision, the workbench compares the
 case and signing-policy versions in its source snapshot with the current record.
 If either version has changed, you can still read the frozen text. Freeze the
