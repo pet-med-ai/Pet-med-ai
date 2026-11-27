@@ -10,9 +10,8 @@ const newKey = () => Array.from(crypto.getRandomValues(new Uint8Array(32)), x =>
 const draftPrecondition = aggregate => aggregate.draft ? aggregate.draft_etag : '*';
 const versionsDiffer = (frozen, current) => frozen != null && current != null && frozen !== current;
 const signatureLabels = { effective: '有效', revoked: '已作废', superseded: '已由新签署替代', unknown: '状态待核对' };
-function signatureState(aggregate, id) {
-  const active = aggregate.plan?.active_signature_id === id;
-  const event = aggregate.events.find(e => e.signature_id === id);
+function signatureState(activeId, id, event) {
+  const active = activeId === id;
   if (active && !event) return 'effective';
   if (!active && (event?.event === 'revoked' || event?.event === 'superseded')) return event.event;
   return 'unknown';
@@ -20,7 +19,7 @@ function signatureState(aggregate, id) {
 function readbackStillCurrent(aggregate, readback) {
   const { id, revision_id } = readback.signature;
   return aggregate.signatures.some(s => s.id === id && s.revision_id === revision_id)
-    && signatureState(aggregate, id) === readback.state;
+    && signatureState(aggregate.plan?.active_signature_id, id, aggregate.events.find(e => e.signature_id === id)) === readback.state;
 }
 const textStyle = { whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' };
 function selectableListText(text) {
@@ -234,7 +233,8 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       await reconcile(out, t, cancel ? 'cancel' : 'lookup');
     } catch (e) { failed(e, t); } finally { if (t.current()) setBusy(false); }
   }
-  const rev = data?.revisions.find(r => r.id === data.plan?.head_revision_id);
+  const revisionsById = new Map(data?.revisions.map(r => [r.id, r]));
+  const rev = revisionsById.get(data?.plan?.head_revision_id);
   const staleDraft = rev && rev.draft_version !== data?.draft?.draft_version;
   const staleSource = rev?.origin === 'clinical' && (
     versionsDiffer(rev.source_manifest.case?.clinical_epoch, data.source_epoch)
@@ -242,9 +242,11 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   );
   const review = data?.reviews.find(r => r.revision_id === rev?.id);
   const activeId = data?.plan?.active_signature_id;
-  const states = new Map(data?.signatures.map(s => [s.id, signatureState(data, s.id)]));
-  const active = recordCurrent && states.get(activeId) === 'effective' ? data.signatures.find(s => s.id === activeId) : null;
-  const activeRevision = data?.revisions.find(r => r.id === active?.revision_id);
+  const eventsBySignature = new Map(data?.events.map(e => [e.signature_id, e]));
+  const signaturesById = new Map(data?.signatures.map(s => [s.id, s]));
+  const states = new Map(data?.signatures.map(s => [s.id, signatureState(activeId, s.id, eventsBySignature.get(s.id))]));
+  const active = recordCurrent && states.get(activeId) === 'effective' ? signaturesById.get(activeId) : null;
+  const activeRevision = revisionsById.get(active?.revision_id);
   const uncertainStatus = (!!activeId && states.get(activeId) !== 'effective') || [...states.values()].includes('unknown');
   // Discard fetches a new draft and replaces local edits only after a successful read.
   const discardLocked = busy || expired || !!pending || uncertainStatus;
@@ -294,18 +296,25 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
           <button disabled={locked || !revokeChecked || !password || !reason.trim() || !data.allowed_actions.sign} onClick={() => submit('revoke',active.id,`/signatures/${active.id}/revocations`,{ reason },'POST',{ revision_id: active.revision_id, hash: active.content_hash, signature_id: active.id })}>再次认证并作废签署</button></p></section>}
         <h3>签署历史</h3>
         {data.signatures.map(signature => {
-          const version = data.revisions.find(r => r.id === signature.revision_id)?.revision_no;
+          const version = revisionsById.get(signature.revision_id)?.revision_no;
           const state = !recordCurrent && signature.id === activeId ? 'unknown' : states.get(signature.id);
-          const revocation = state === 'revoked' && data.events.find(e => e.signature_id === signature.id && e.event === 'revoked');
+          const event = eventsBySignature.get(signature.id);
+          const successorId = event?.successor_signature_id;
+          const successor = successorId && successorId !== signature.id ? signaturesById.get(successorId) : null;
+          const successorVersion = successor && revisionsById.get(successor.revision_id)?.revision_no;
           return <div key={signature.id}>
             <p>版本 {version} · {signature.clinician_snapshot.display_name} · {signature.signed_at} · {signatureLabels[state]} · 院内账号确认</p>
-            {revocation && <details>
+            {state === 'revoked' && <details>
               <summary>{version == null ? '查看作废记录' : `查看版本 ${version} 的作废记录`}</summary>
               <dl style={textStyle}>
-                <dt>作废账号 ID</dt><dd>{revocation.actor_id ?? '未提供'}</dd>
-                <dt>作废时间</dt><dd>{revocation.created_at ?? '未提供'}</dd>
-                <dt>作废原因</dt><dd>{revocation.reason ?? '未提供'}</dd>
+                <dt>作废账号 ID</dt><dd>{event.actor_id ?? '未提供'}</dd>
+                <dt>作废时间</dt><dd>{event.created_at ?? '未提供'}</dd>
+                <dt>作废原因</dt><dd>{event.reason ?? '未提供'}</dd>
               </dl>
+            </details>}
+            {state === 'superseded' && <details>
+              <summary>{version == null ? '查看替代记录' : `查看版本 ${version} 的替代记录`}</summary>
+              <dl><dt>接替版本</dt><dd>{successorVersion == null ? '未提供' : `版本 ${successorVersion}`}</dd></dl>
             </details>}
           </div>;
         })}

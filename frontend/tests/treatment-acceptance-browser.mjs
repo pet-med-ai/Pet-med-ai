@@ -422,6 +422,47 @@ async function checkReadbackAfterExternalRevocation(signatureId) {
   }
 }
 
+async function checkSupersessionHistory(record) {
+  assert.equal(record.scope.case_id, 101);
+  const replacement = record.events.find(event => event.event === 'superseded');
+  assert.ok(replacement, 'The first signature must have a recorded successor');
+  const revocation = record.events.find(event => event.event === 'revoked' && event.signature_id === replacement.successor_signature_id);
+  assert.ok(revocation, 'The direct successor must already be revoked');
+  function signedVersion(id, state) {
+    const signature = record.signatures.find(s => s.id === id);
+    assert.ok(signature);
+    const revision = record.revisions.find(r => r.id === signature.revision_id);
+    assert.ok(revision);
+    return { signature_id: id, revision_no: revision.revision_no, state };
+  }
+  const predecessor = signedVersion(replacement.signature_id, replacement.event);
+  const successor = signedVersion(revocation.signature_id, revocation.event);
+  const current = signedVersion(record.plan.active_signature_id, 'effective');
+  assert.equal(record.events.some(event => event.signature_id === current.signature_id), false);
+  assert.ok(predecessor.revision_no < successor.revision_no && successor.revision_no < current.revision_no);
+  await expect(page.locator('[aria-label="独立回读签署"]')).toContainText(current.signature_id + ' · effective');
+
+  const summary = page.getByText(`查看版本 ${predecessor.revision_no} 的替代记录`, { exact: true });
+  const details = page.locator('details').filter({ has: summary });
+  await expect(details).toHaveJSProperty('open', false);
+  let additionalRequests = 0;
+  const countRequest = () => { additionalRequests++; };
+  page.on('request', countRequest);
+  try {
+    await summary.click();
+    await expect(details.locator('dl')).toBeVisible();
+    const term = details.locator('dt').filter({ hasText: /^接替版本$/ });
+    await expect(term.locator('xpath=following-sibling::*[1][self::dd]')).toHaveText(`版本 ${successor.revision_no}`);
+    await summary.click();
+    await expect(details).toHaveJSProperty('open', false);
+    assert.equal(additionalRequests, 0);
+  } finally {
+    page.off('request', countRequest);
+  }
+  result.supersession_history_details = { case_id: record.scope.case_id, predecessor, successor, current, additional_requests: additionalRequests };
+  checks.push('superseded-history-shows-direct-successor-after-revocation-and-resigning');
+}
+
 async function checkRefreezeAfterSourceChange() {
   const path = `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/108/treatment`;
   const aggregateResponse = r => new URL(r.url()).pathname === path && r.request().method() === 'GET';
@@ -549,7 +590,15 @@ try {
   await expect(page.locator('[aria-label="独立回读签署"]')).toContainText('revoked');
   assert.equal(caseWritePaths.length, beforeRevoke + 1);
   assert.match(caseWritePaths.at(-1), /\/cases\/101\/treatment\/signatures\/[^/]+\/revocations$/);
-  await freeze(text + '\n作废后新签署'); await review(); await sign(); await readback();
+  await freeze(text + '\n作废后新签署'); await review();
+  const aggregatePath = `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/101/treatment`;
+  const [afterResigning] = await Promise.all([
+    page.waitForResponse(r => new URL(r.url()).pathname === aggregatePath && r.request().method() === 'GET'),
+    sign(),
+  ]);
+  assert.equal(afterResigning.status(), 200);
+  await readback();
+  await checkSupersessionHistory(await afterResigning.json());
   checks.push('amend-revoke-resign-history', 'revoke-wrong-password-retry-readback');
   await logout(); await login(); await openCase(101);
   for (const kind of ['late-200', 'late-401']) {
