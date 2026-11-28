@@ -1,7 +1,7 @@
 import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import './TreatmentWorkspace.css';
 import TreatmentDraftList, { draftListItems } from './TreatmentDraftList';
-import { matchesTreatmentReceipt, matchesTreatmentSignature, requestHash } from './treatmentReceipts';
+import { matchesSignedRevision, matchesTreatmentReceipt, matchesTreatmentSignature, requestHash } from './treatmentReceipts';
 export { canonical, requestHash } from './treatmentReceipts';
 
 const base = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
@@ -319,7 +319,8 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
           <button disabled={locked || !revokeChecked || !password || !reason.trim() || !data.allowed_actions.sign} onClick={() => submit('revoke',active.id,`/signatures/${active.id}/revocations`,{ reason },'POST',{ revision_id: active.revision_id, hash: active.content_hash, signature_id: active.id })}>再次认证并作废签署</button></p></section>}
         <h3>签署历史</h3>
         {data.signatures.map(signature => {
-          const version = revisionsById.get(signature.revision_id)?.revision_no;
+          const signedRevision = revisionsById.get(signature.revision_id);
+          const version = signedRevision?.revision_no;
           const state = !effectiveStatusKnown && signature.id === activeId ? 'unknown' : states.get(signature.id);
           const event = eventsBySignature.get(signature.id);
           const successorId = event?.successor_signature_id;
@@ -327,6 +328,14 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
           const successorVersion = successor && revisionsById.get(successor.revision_id)?.revision_no;
           return <div key={signature.id}>
             <p>版本 {version} · {signature.clinician_snapshot.display_name} · {signature.signed_at} · {signatureLabels[state]} · 院内账号确认</p>
+            {(state === 'revoked' || state === 'superseded') && (
+              Number.isSafeInteger(version) && version > 0 && matchesSignedRevision(signature, signedRevision)
+                ? <details>
+                    <summary>查看版本 {version} 的签署原文</summary>
+                    <ContentView content={signedRevision.content} />
+                  </details>
+                : <p>历史签署原文暂不可核对。</p>
+            )}
             {state === 'revoked' && <details>
               <summary>{version == null ? '查看作废记录' : `查看版本 ${version} 的作废记录`}</summary>
               <dl style={textStyle}>

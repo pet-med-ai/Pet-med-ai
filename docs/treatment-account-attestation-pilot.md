@@ -155,6 +155,13 @@ If the current signature and its history disagree, the page shows **状态待核
 and pauses editing and signing. Reread the treatment record to check again.
 
 In **签署历史**, each signed version lists its original signer and signing time.
+For a revoked or superseded version, expand **查看版本 … 的签署原文** to read
+that version's diagnoses, assessment, goals, treatment, monitoring and follow-up.
+The page matches the signature to a numbered frozen revision by its ID and
+stored content hash in the loaded case record. If the match or the text is
+unavailable, it shows **历史签署原文暂不可核对。** Opening or closing the text
+sends no request and preserves the selected action and its password field.
+
 For a revoked version, expand **查看版本 … 的作废记录** to see the account ID
 that revoked that signature, the revocation time and the recorded reason.
 These fields come from the matching revocation event in the loaded case record.
