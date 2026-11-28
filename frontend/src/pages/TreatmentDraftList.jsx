@@ -6,7 +6,10 @@ const newItem = (text, diagnosis) => diagnosis ? { label: text, code_system: nul
 export function draftListItems(items, edit, diagnosis, keepPlaceholders = false) {
   if (edit === undefined) return items;
   if (typeof edit === 'string') {
-    return edit.split('\n').filter(text => keepPlaceholders || text.length > 0).map(text => newItem(text, diagnosis));
+    const lines = edit.split('\n').filter(text => keepPlaceholders || text.length > 0);
+    // Keep the original row shape if an edit was undone, including absent optional diagnosis codes.
+    if (lines.length === items.length && lines.every((text, index) => text === labelOf(items[index]))) return items;
+    return lines.map(text => newItem(text, diagnosis));
   }
   return edit.flatMap(({ text, source }) => {
     // An existing value, including a previously stored blank goal, round-trips exactly.

@@ -78,10 +78,11 @@ test('late 401 cannot invalidate a newer case',async()=>{
  handler=async()=>response(data({revisions:[]}));await act(async()=>renderer.update(<TreatmentWorkspace token="s" scope={scope} caseId={2}/>));
  await act(async()=>release(response({code:'SESSION_EXPIRED'},401)));assert.doesNotMatch(output(),/未保存原文 · 只读保留/);assert.match(output(),/合成医生/);});
 test('lost response stores only scoped key/hash and queries without a second write',async()=>{
- await mount();handler=async(url,options)=>{if(options.method==='PATCH')throw new TypeError('synthetic disconnect');return response(data());};
+ await mount();const edited = content.assessment + ' 修改';change('治疗评估',edited);
+ handler=async(url,options)=>{if(options.method==='PATCH')throw new TypeError('synthetic disconnect');return response(data());};
  await click('保存治疗草稿');assert.equal(requests.filter(r=>r.options.method==='PATCH').length,1);assert.equal(saved.size,1);
  const [key,value]=[...saved.entries()][0];assert.match(key,/pmai:treatment:1:/);assert.doesNotMatch(value,/café|token|password|management_text/);
- handler=async url=>url.includes('/commands/')?receipt(draftResult(2),201):response(storedDraft(2,content.assessment));
+ handler=async url=>url.includes('/commands/')?receipt(draftResult(2),201):response(storedDraft(2,edited));
  await click('查询原请求');assert.equal(requests.filter(r=>r.options.method==='PATCH').length,1);assert.equal(saved.size,0);assert.match(output(),/已从服务端核对保存结果/);});
 test('signature success needs independent readback; lost GET keeps original key',async()=>{
  const reviewed=data({reviews:[{id:ids.review,revision_id:rev.id,decision:'approve',reason:'核对',clinician_snapshot:{display_name:'合成医生'}}]});
@@ -101,7 +102,7 @@ test('certificate requirement cannot downgrade to account attestation',async()=>
  handler=async()=>response(data({policy:{review_policy:'self_allowed',required_assurance:'certificate_signature'},allowed_actions:{edit:true,review:true,sign:false}}));await mount();assert.match(output(),/本院要求证书签名，当前不能签署/);assert.equal(button('再次认证并确认签署').props.disabled,true);});
 
 test('stop waiting keeps original key and makes recovery available',async()=>{
- await mount();let release;handler=()=>new Promise(resolve=>{release=resolve;});let sending;
+ await mount();change('治疗评估','待发送的修改');let release;handler=()=>new Promise(resolve=>{release=resolve;});let sending;
  await act(async()=>{sending=button('保存治疗草稿').props.onClick();await new Promise(resolve=>setTimeout(resolve,15));});
  assert.equal(saved.size,1);await click('停止等待（保留原请求）');assert.equal(button('查询原请求').props.disabled,false);
  await act(async()=>{release(receipt(draftResult(2),201));await sending;});
@@ -330,6 +331,117 @@ async function checkDraftPatch(expected) {
   assert.deepEqual(JSON.parse(patches[0].options.body), { content: expected });
   assert.equal(button('冻结版本供核对').props.disabled, false);
 }
+
+test('unchanged draft save preserves a live signing confirmation on a direct click', async t => {
+  handler = async () => response(data({reviews:reviewedTreatment().reviews}));
+  await mount();
+  change('已核对冻结版本', null, true);
+  change('签署认证密码', 'synthetic-password');
+  assert.equal(button(signButton).props.disabled, false);
+  assert.equal(button('保存治疗草稿').props.disabled, true);
+  const storageWrite = t.mock.method(global.sessionStorage, 'setItem');
+  await click('保存治疗草稿');
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+  assert.equal(storageWrite.mock.callCount(), 0);
+  assert.equal(acknowledgement().checked, true);
+  assert.equal(inputValue('签署认证密码'), 'synthetic-password');
+  assert.equal(button(signButton).props.disabled, false);
+});
+
+test('unchanged draft save resolves a reverted edit locally and requires fresh signing confirmation', async t => {
+  const workspaceRef = React.createRef();
+  handler = async () => response(data({reviews:reviewedTreatment().reviews}));
+  await mount({workspaceRef});
+  change('已核对冻结版本', null, true);
+  change('签署认证密码', 'original-password');
+  change('治疗评估', content.assessment + ' 修改');
+  change('治疗评估', content.assessment);
+  assert.equal(workspaceRef.current.dirty, true);
+  assert.equal(acknowledgement().disabled, true);
+  assert.equal(button('保存治疗草稿').props.disabled, false);
+  const storageWrite = t.mock.method(global.sessionStorage, 'setItem');
+  await click('保存治疗草稿');
+  assert.equal(workspaceRef.current.dirty, false);
+  assert.equal(button('保存治疗草稿').props.disabled, true);
+  assert.equal(acknowledgement().disabled, false);
+  assert.equal(acknowledgement().checked, false);
+  assert.equal(inputValue('签署认证密码'), '');
+  assert.equal(button(signButton).props.disabled, true);
+  change('已核对冻结版本', null, true);
+  change('签署认证密码', 'fresh-password');
+  assert.equal(button(signButton).props.disabled, false);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+  assert.equal(storageWrite.mock.callCount(), 0);
+});
+
+test('unchanged draft save clears empty separators and preserves legacy label-only diagnoses', async () => {
+  const original = {...content, diagnoses:[{label:'旧诊断'}, {label:'同名', code:null}],
+    treatment:{...content.treatment, goals:['复查']}};
+  handler = async () => response(data({draft:{draft_version:1, content:original}}));
+  await mount();
+  change('治疗诊断', '改名\n同名');
+  change('治疗诊断', '\n旧诊断\n\n同名\n');
+  change('治疗目标', '复查\n\n');
+  assert.equal(inputValue('治疗诊断'), '\n旧诊断\n\n同名\n');
+  assert.equal(button('保存治疗草稿').props.disabled, false);
+  await click('保存治疗草稿');
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+  assert.equal(inputValue('治疗诊断'), '旧诊断\n同名');
+  assert.equal(inputValue('治疗目标'), '复查');
+  assert.equal(button('保存治疗草稿').props.disabled, true);
+  assert.equal(button('冻结版本供核对').props.disabled, false);
+  change('治疗评估', '其他修改');
+  await checkDraftPatch({...original, assessment:'其他修改'});
+});
+
+test('unchanged draft save keeps a version conflict when local text already matches the latest draft', async () => {
+  const workspaceRef = React.createRef();
+  await mount({workspaceRef});
+  const latest = content.assessment + ' 修改';
+  change('治疗评估', latest);
+  handler = async () => response(storedDraft(2, latest));
+  await click('重新读取治疗记录');
+  assert.equal(button('保存治疗草稿').props.disabled, true);
+  await click('保存治疗草稿');
+  assert.equal(workspaceRef.current.dirty, true);
+  assert.equal(assessment(), latest);
+  assert.equal(button('冻结版本供核对').props.disabled, true);
+  assert.equal(button(discardDraft).props.disabled, false);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET', 'GET']);
+  assert.equal(saved.size, 0);
+});
+
+test('unchanged draft save can create an untouched first draft under If-None-Match', async () => {
+  handler = async () => response(data({draft:null, draft_etag:null, plan:null, revisions:[]}));
+  await mount();
+  assert.equal(button('保存治疗草稿').props.disabled, false);
+  handler = async () => receipt({state:'pending'}, 202);
+  await click('保存治疗草稿');
+  assert.equal(draftWrites().length, 1);
+  assert.equal(draftWrites()[0].options.headers['If-None-Match'], '*');
+  assert.equal(draftWrites()[0].options.headers['If-Match'], undefined);
+});
+
+for (const [difference, changed] of [
+  ['Unicode composition', content.assessment.normalize('NFD')],
+  ['a trailing space', content.assessment + ' '],
+]) {
+  test('unchanged draft save distinguishes ' + difference, async () => {
+    await mount();
+    change('治疗评估', changed);
+    await checkDraftPatch({...content, assessment:changed});
+  });
+}
+
+test('unchanged draft save distinguishes reordered codes when diagnosis labels are identical', async () => {
+  const first = {label:'同名', code_system:'local', code:'A'};
+  const second = {...first, code:'B'};
+  const original = {...content, diagnoses:[first, second]};
+  handler = async () => response(data({draft:{draft_version:1, content:original}}));
+  await mount();
+  await act(async () => renderer.root.findByProps({'aria-label':'上移诊断 2'}).props.onClick());
+  await checkDraftPatch({...original, diagnoses:[second, first]});
+});
 
 test('discarding a conflict replaces an unsaved multiline list with the newer coded rows', async () => {
   await mount();

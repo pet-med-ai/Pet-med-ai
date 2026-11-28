@@ -179,6 +179,14 @@ keeps your local text and checks the version you started from. When the versions
 differ, copy the changes you need, then choose **放弃本页修改并载入服务器草稿**.
 Reapply your changes to the newly loaded draft before saving.
 
+The Save button is disabled when an existing draft has no edits. If you edit
+the draft and then restore its original content, select **保存治疗草稿** to
+finish editing. The workbench compares the full draft with the last version
+it read. An exact match clears the local edits without a request or a new
+draft version, so an existing approval remains usable after a fresh
+acknowledgement. A difference in stored whitespace, item order or diagnosis
+codes counts as a change.
+
 Use Enter for separate diagnoses or goals. Drafts with coded diagnoses or
 stored multiline items display those lists one item per box. Moving a diagnosis
 keeps its code. Renaming it clears the old code when the draft is saved.

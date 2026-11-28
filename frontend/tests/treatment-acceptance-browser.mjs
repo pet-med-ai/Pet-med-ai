@@ -128,6 +128,63 @@ async function sign() {
 async function readback() {
   await expect(page.locator('[aria-label="独立回读签署"]')).toBeVisible();
 }
+async function checkUnchangedApprovedDraft() {
+  const path = `/api/v2/organizations/${fixture.org}/clinics/${fixture.clinic}/cases/101/treatment`;
+  const treatmentRead = response => response.request().method() === 'GET' && new URL(response.url()).pathname === path;
+  const [reviewed] = await Promise.all([page.waitForResponse(treatmentRead), review()]);
+  assert.equal(reviewed.status(), 200);
+  const before = await reviewed.json();
+  const revision = before.revisions.find(r => r.id === before.plan.head_revision_id);
+  const approval = before.reviews.find(r => r.revision_id === revision.id);
+  assert.equal(approval.decision, 'approve');
+  assert.equal(revision.draft_version, before.draft.draft_version);
+
+  const save = page.getByRole('button', { name: '保存治疗草稿', exact: true });
+  const assessment = page.getByLabel('治疗评估', { exact: true });
+  const acknowledgement = page.getByLabel('已核对冻结版本', { exact: true });
+  const password = page.getByLabel('签署认证密码', { exact: true });
+  const signButton = page.getByRole('button', { name: '再次认证并确认签署', exact: true });
+  const writesBefore = caseWritePaths.length;
+  let additionalRequests = 0;
+  const countRequest = () => { additionalRequests++; };
+  page.on('request', countRequest);
+  try {
+    await expect(save).toBeDisabled();
+    await acknowledgement.check();
+    await password.fill('synthetic-confirmation-only');
+    await expect(signButton).toBeEnabled();
+    const original = before.draft.content.assessment;
+    await expect(assessment).toHaveValue(original);
+    await assessment.fill(original + '\n临时编辑');
+    await assessment.fill(original);
+    await save.click();
+    await expect(page.getByText('草稿内容与已读取的版本一致，无需重复保存。', { exact: true })).toBeVisible();
+    await expect(save).toBeDisabled();
+    await expect(acknowledgement).toBeEnabled();
+    await expect(acknowledgement).not.toBeChecked();
+    await expect(password).toHaveValue('');
+    await expect(signButton).toBeDisabled();
+    assert.equal(additionalRequests, 0);
+    assert.equal(caseWritePaths.length, writesBefore);
+  } finally {
+    page.off('request', countRequest);
+  }
+
+  // Reread separately to verify the persisted draft and approval after the request-free save.
+  const [reread] = await Promise.all([page.waitForResponse(treatmentRead),
+    page.getByRole('button', { name: '重新读取治疗记录', exact: true }).click()]);
+  assert.equal(reread.status(), 200);
+  const after = await reread.json();
+  assert.equal(after.draft.draft_version, before.draft.draft_version);
+  assert.equal(after.draft_etag, before.draft_etag);
+  assert.equal(after.plan.head_revision_id, revision.id);
+  assert.deepEqual(after.reviews.find(r => r.revision_id === revision.id), approval);
+  await expect(acknowledgement).toBeEnabled();
+  result.unchanged_approved_draft = { case_id: 101, draft_version: after.draft.draft_version,
+    draft_etag: after.draft_etag, revision_id: revision.id, review_id: approval.id,
+    additional_requests: additionalRequests, case_writes: caseWritePaths.length - writesBefore };
+  checks.push('reverted-draft-preserves-approval-without-repeat-save');
+}
 async function checkConfirmationSwitch() {
   const frozen = page.getByLabel('已核对冻结版本', { exact: true });
   const revoke = page.getByLabel('已核对待作废签署', { exact: true });
@@ -632,7 +689,7 @@ try {
   await page.goto(receipt.url);
   await login();
   await checkDiscardOnCaseSwitch();
-  await openCase(101); await freeze(text, saveWithForeignReceipt); await review();
+  await openCase(101); await freeze(text, saveWithForeignReceipt); await checkUnchangedApprovedDraft();
   const beforeSign = await rejectWrongPassword('sign');
   await sign(); await readback();
   assert.equal(caseWritePaths.length, beforeSign + 1);

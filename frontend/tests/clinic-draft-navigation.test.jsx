@@ -26,7 +26,7 @@ async function draftReceipt(options, id, state) {
   const operation = 'draft.save';
   const request_hash = await requestHash({
     actor_id: 7, scope: { org_id: 'org', clinic_id: 'A', case_id: id }, operation,
-    target: 'draft', precondition: options.headers['If-Match'], body: JSON.parse(options.body),
+    target: 'draft', precondition: options.headers['If-Match'] ?? options.headers['If-None-Match'], body: JSON.parse(options.body),
   });
   const receipt = { state, operation, request_hash, idempotency_key: options.headers['Idempotency-Key'] };
   if (state === 'committed') {
@@ -63,7 +63,7 @@ async function lookup(id) {
   typeNumber(id);
   await act(async () => { await submitNumber(); });
 }
-async function openChart() {
+async function openChart(expectedAssessment = '服务端草稿 101') {
   await act(async () => { renderer = TestRenderer.create(<ClinicReadPilot />); });
   act(() => {
     renderer.root.findByProps({type:'email'}).props.onChange({target:{value:'doctor@example.invalid'}});
@@ -75,7 +75,7 @@ async function openChart() {
   await select('机构／院区', 'org/A');
   await act(async () => { await rowClick(101); });
   // A missing build flag would unmount this component and fail every case.
-  assert.equal(editor(), '服务端草稿 101');
+  assert.equal(editor(), expectedAssessment);
 }
 beforeEach(() => {
   oldFetch = global.fetch; oldWindow = global.window; oldStorage = global.sessionStorage;
@@ -209,8 +209,9 @@ test('confirmed draft save and readback clears the guard for the next case', asy
   assert.deepEqual(writeCalls().map(c => c.method), ['PATCH']);
 });
 
-test('a pending original key is neither cancelled nor resubmitted when leaving and reopening the case', async () => {
-  await openChart();
+test('a pending first draft is neither cancelled nor resubmitted when leaving and reopening the case', async () => {
+  onTreatment = id => response(id === 101 ? {...aggregate(id), plan:null, draft:null, draft_etag:null} : aggregate(id));
+  await openChart('');
   onSave = pendingSave;
   await click('保存治疗草稿');
   assert.ok(button('查询原请求')); assert.equal(stored.size, 1);
