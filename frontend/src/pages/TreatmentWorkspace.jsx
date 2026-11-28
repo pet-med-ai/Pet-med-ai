@@ -66,8 +66,9 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   const dirty = editBase !== null;
   const draftConflict = dirty && (rejectedDraft || (data && editBase !== draftPrecondition(data)));
   const [busy, setBusy] = useState(false), [expired, setExpired] = useState(false);
-  const [revokeChecked, setRevokeChecked] = useState(false);
-  const [checked, setChecked] = useState(false), [password, setPassword] = useState(''), [reason, setReason] = useState('');
+  const [confirmation, setConfirmation] = useState(null);
+  const revisionChecked = confirmation === 'revision', revokeChecked = confirmation === 'revoke';
+  const [password, setPassword] = useState(''), [reason, setReason] = useState('');
   const [message, setMessage] = useState(''), [pending, setPending] = useState(null), [verified, setVerified] = useState(null);
   const work = useRef({ epoch: 0, controller: null }), storage = useRef(null), pendingRef = useRef(null);
   useImperativeHandle(workspaceRef, () => ({
@@ -111,7 +112,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   }
   function failed(error, t) {
     if (!t.current() || error.stale || error.name === 'AbortError') return;
-    setChecked(false); setRevokeChecked(false); setPassword(''); setVerified(null);
+    changeConfirmation(null); setVerified(null);
     if (error.aggregateDenied) {
       setData(null); setContent(empty()); setListEdits({}); setEditBase(null); setRejectedDraft(false); setReason('');
       setMessage(error.message);
@@ -129,7 +130,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   }
   async function load(t, replaceDraft = true, committedDraftETag = null) {
     if (!t.current()) return;
-    setRecordCurrent(false); setVerified(null); setChecked(false); setRevokeChecked(false); setPassword('');
+    setRecordCurrent(false); setVerified(null); changeConfirmation(null);
     const g = (await request(path + '/treatment', t)).body;
     if (!t.current()) return;
     const partition = `pmai:treatment:${g.actor_id}:${scope.org_id}:${scope.clinic_id}:${caseId}`;
@@ -150,28 +151,28 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   }
   useEffect(() => {
     setListEdits({});
-    storage.current = null; pendingRef.current = null; setPending(null); setData(null); setContent(empty()); setEditBase(null); setRejectedDraft(false); setVerified(null); setExpired(false); setChecked(false); setRevokeChecked(false); setPassword('');
+    storage.current = null; pendingRef.current = null; setPending(null); setData(null); setContent(empty()); setEditBase(null); setRejectedDraft(false); setVerified(null); setExpired(false); changeConfirmation(null);
     const t = task(); setBusy(true);
     load(t).catch(e => failed(e, t)).finally(() => { if (t.current()) setBusy(false); });
     return () => { work.current.epoch++; work.current.controller?.abort(); };
   }, [token, path]);
   function markEdited() {
     setEditBase(current => current ?? draftPrecondition(data));
-    setChecked(false); setRevokeChecked(false); setPassword(''); setVerified(null);
+    changeConfirmation(null); setVerified(null);
   }
   function edit(next) { setContent(next); markEdited(); }
   function editList(field, value) {
     setListEdits(previous => ({ ...previous, [field]: value }));
     markEdited();
   }
-  function acknowledgeRevocation(confirmed) {
-    setRevokeChecked(confirmed);
-    if (!confirmed) setPassword('');
+  function changeConfirmation(next) {
+    setConfirmation(next);
+    setPassword('');
   }
   function editReason(value) {
     setReason(value);
     if (revokeChecked && value !== reason) {
-      acknowledgeRevocation(false);
+      changeConfirmation(null);
       setMessage('作废原因已修改，请重新核对并输入当前账号密码。');
     }
   }
@@ -212,6 +213,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   }
   async function submit(operation, target, suffix, body, method = 'POST', proof = null) {
     if (locked || pendingRef.current || !data || (operation === 'draft.save' && draftConflict)) return;
+    if (proof && (!password || !(operation === 'sign' ? revisionChecked : revokeChecked))) return;
     const t = task(); setBusy(true); setMessage(''); setVerified(null);
     const precondition = operation === 'draft.save' ? (editBase ?? draftPrecondition(data)) : data.etag;
     try {
@@ -228,7 +230,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       const request_hash = await requestHash({ actor_id: data.actor_id, scope: { org_id: scope.org_id, clinic_id: scope.clinic_id, case_id: caseId }, operation, target, precondition, body });
       if (!t.current()) return;
       remember({ key, operation, request_hash });
-      setChecked(false); setRevokeChecked(false); setPassword('');
+      changeConfirmation(null);
       const headers = { 'Idempotency-Key': key, [precondition === '*' ? 'If-None-Match' : 'If-Match']: precondition };
       const out = await request(path + '/treatment' + suffix, t, method, body, headers, true);
       await reconcile(out, t, 'submit', { target, decision: body.decision, baseSignatureId: body.base_signature_id, proof });
@@ -266,12 +268,16 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   const locked = discardLocked || !recordCurrent;
   const canEdit = data?.allowed_actions.edit && !locked;
   const cannotConfirmRevision = locked || dirty || staleDraft || staleSource || rev?.origin !== 'clinical';
+  const passwordField = <p><label>再次输入当前账号密码
+    <input aria-label="签署认证密码" type="password" autoComplete="off" value={password}
+      disabled={locked || !confirmation || !data?.allowed_actions.sign} onChange={e => setPassword(e.target.value)} />
+  </label></p>;
   return <section className="treatment-workspace" aria-label="治疗签署" style={{ marginTop: 32, padding: 20, border: '1px solid #a7bac9', borderRadius: 12 }}>
     <h2>治疗记录与院内账号确认</h2>
     <p>{scope.org_name}／{scope.clinic_name} · 病例 #{caseId}</p>
     <p>医生审核后以院内账号确认签署。此入口不执行处方、不调用证书签名服务。</p>
     {message && <p role="status">{message}</p>}{busy && <p role="status">正在核对……</p>}
-    {pending && <aside><p>待核对请求：{pending.key}</p>{busy && <button onClick={() => { task(); setBusy(false); setPassword(''); setChecked(false); setRevokeChecked(false); setMessage('已停止等待，原请求仍需查询或取消。'); }}>停止等待（保留原请求）</button>}<button disabled={busy || expired || !data} onClick={() => recover()}>查询原请求</button>{' '}
+    {pending && <aside><p>待核对请求：{pending.key}</p>{busy && <button onClick={() => { task(); setBusy(false); changeConfirmation(null); setMessage('已停止等待，原请求仍需查询或取消。'); }}>停止等待（保留原请求）</button>}<button disabled={busy || expired || !data} onClick={() => recover()}>查询原请求</button>{' '}
       <button disabled={busy || expired || !data} onClick={() => recover(true)}>取消原请求</button></aside>}
     {expired ? <section><h3>未保存原文 · 只读保留</h3><ContentView content={currentContent(true)} localLists={listEdits} /></section> : <>
       <button disabled={busy} onClick={() => refresh()}>重新读取治疗记录</button>
@@ -301,13 +307,15 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
           {staleSource && <p role="alert">冻结后病例资料或签署规则已变化，请重新冻结版本后再审核或签署。</p>}
           <p style={textStyle}>内容校验值：{rev.content_sha256}</p>
           {review && <p>审核：{review.clinician_snapshot.display_name} · {({ approve: '审核通过', request_revision: '要求修订', reject: '审核拒绝' })[review.decision]} · {review.reason}</p>}
-          <label><input aria-label="已核对冻结版本" type="checkbox" checked={checked} disabled={cannotConfirmRevision} onChange={e => setChecked(e.target.checked)} />我已核对病例、完整原文、来源资料及本次操作</label>
+          <label><input aria-label="已核对冻结版本" type="checkbox" checked={revisionChecked} disabled={cannotConfirmRevision} onChange={e => changeConfirmation(e.target.checked ? 'revision' : null)} />我已核对病例、完整原文、来源资料及本次操作</label>
           <p><label>审核／修订／作废原因<input aria-label="操作原因" value={reason} disabled={locked} onChange={e => editReason(e.target.value)} /></label></p>
-          {!review && ['approve','request_revision','reject'].map((decision,i) => <button key={decision} disabled={cannotConfirmRevision || !checked || !reason.trim() || !data.allowed_actions.review} onClick={() => submit('review',rev.id,`/revisions/${rev.id}/reviews`,{ decision, reason })}>{['审核通过','要求修订','审核拒绝'][i]}</button>)}
-          <p><label>再次输入当前账号密码<input aria-label="签署认证密码" type="password" autoComplete="off" value={password} disabled={locked} onChange={e => setPassword(e.target.value)} /></label></p>
-          <button disabled={cannotConfirmRevision || !checked || !password || !data.allowed_actions.sign || review?.decision !== 'approve' || data.signatures.some(s => s.revision_id === rev.id)} onClick={() => submit('sign',rev.id,`/revisions/${rev.id}/signatures`,{ review_id: review.id, content_hash: rev.content_sha256 },'POST',{ revision_id: rev.id, hash: rev.content_sha256 })}>再次认证并确认签署</button>
+          {!review && ['approve','request_revision','reject'].map((decision,i) => <button key={decision} disabled={cannotConfirmRevision || !revisionChecked || !reason.trim() || !data.allowed_actions.review} onClick={() => submit('review',rev.id,`/revisions/${rev.id}/reviews`,{ decision, reason })}>{['审核通过','要求修订','审核拒绝'][i]}</button>)}
+          {!revokeChecked && passwordField}
+          <button disabled={cannotConfirmRevision || !revisionChecked || !password || !data.allowed_actions.sign || review?.decision !== 'approve' || data.signatures.some(s => s.revision_id === rev.id)} onClick={() => submit('sign',rev.id,`/revisions/${rev.id}/signatures`,{ review_id: review.id, content_hash: rev.content_sha256 },'POST',{ revision_id: rev.id, hash: rev.content_sha256 })}>再次认证并确认签署</button>
         </section>}
-        {active && <section><p><label><input type="checkbox" aria-label="已核对待作废签署" checked={revokeChecked} disabled={locked || !reason.trim()} onChange={e => acknowledgeRevocation(e.target.checked)} />我已核对当前有效签署（版本 {activeRevision?.revision_no}）及作废原因</label></p><p><button disabled={!canEdit || !reason.trim() || data.draft?.amendment_of === active.id} onClick={() => submit('amend','amendments','/amendments',{ base_signature_id: active.id, reason })}>创建修订草稿</button>{' '}
+        {active && <section><p><label><input type="checkbox" aria-label="已核对待作废签署" checked={revokeChecked} disabled={locked || !reason.trim()} onChange={e => changeConfirmation(e.target.checked ? 'revoke' : null)} />我已核对当前有效签署（版本 {activeRevision?.revision_no}）及作废原因</label></p>
+          {revokeChecked && passwordField}
+          <p><button disabled={!canEdit || !reason.trim() || data.draft?.amendment_of === active.id} onClick={() => submit('amend','amendments','/amendments',{ base_signature_id: active.id, reason })}>创建修订草稿</button>{' '}
           <button disabled={locked || !revokeChecked || !password || !reason.trim() || !data.allowed_actions.sign} onClick={() => submit('revoke',active.id,`/signatures/${active.id}/revocations`,{ reason },'POST',{ revision_id: active.revision_id, hash: active.content_hash, signature_id: active.id })}>再次认证并作废签署</button></p></section>}
         <h3>签署历史</h3>
         {data.signatures.map(signature => {

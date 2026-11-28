@@ -128,13 +128,52 @@ async function sign() {
 async function readback() {
   await expect(page.locator('[aria-label="独立回读签署"]')).toBeVisible();
 }
+async function checkConfirmationSwitch() {
+  const frozen = page.getByLabel('已核对冻结版本', { exact: true });
+  const revoke = page.getByLabel('已核对待作废签署', { exact: true });
+  const password = page.getByLabel('签署认证密码', { exact: true });
+  const signButton = page.getByRole('button', { name: '再次认证并确认签署', exact: true });
+  const revokeButton = page.getByRole('button', { name: '再次认证并作废签署', exact: true });
+  const writesBefore = caseWritePaths.length;
+  let reauthRequests = 0;
+  const observe = request => {
+    if (new URL(request.url()).pathname === '/api/v2/auth/reauthenticate') reauthRequests++;
+  };
+  page.on('request', observe);
+  try {
+    await page.getByLabel('操作原因', { exact: true }).fill('合成操作切换核对');
+    await expect(password).toBeDisabled();
+    for (const [selected, other, submit, otherSubmit] of [
+      [frozen, revoke, signButton, revokeButton],
+      [revoke, frozen, revokeButton, signButton],
+      [frozen, revoke, signButton, revokeButton],
+    ]) {
+      await selected.check();
+      await expect(other).not.toBeChecked();
+      await expect(password).toHaveValue('');
+      await expect(submit).toBeDisabled();
+      await expect(otherSubmit).toBeDisabled();
+      await password.fill('synthetic-confirmation-only');
+      await expect(submit).toBeEnabled();
+      await expect(otherSubmit).toBeDisabled();
+    }
+    await frozen.uncheck();
+    await expect(password).toHaveValue('');
+    await expect(password).toBeDisabled();
+    assert.equal(reauthRequests, 0);
+    assert.equal(caseWritePaths.length, writesBefore);
+    result.confirmation_switch = { case_id: 101, actions: ['sign', 'revoke', 'sign'],
+      reauthentication_requests: reauthRequests, case_writes: caseWritePaths.length - writesBefore };
+  } finally {
+    page.off('request', observe);
+  }
+}
 async function rejectWrongPassword(action) {
   const frozen = page.getByLabel('已核对冻结版本', { exact: true });
   const revoke = page.getByLabel('已核对待作废签署', { exact: true });
   const password = page.getByLabel('签署认证密码', { exact: true });
   const button = page.getByRole('button', { name: action === 'sign' ? '再次认证并确认签署' : '再次认证并作废签署', exact: true });
-  await frozen.check();
-  if (action === 'revoke') await revoke.check();
+  await (action === 'revoke' ? revoke : frozen).check();
   await password.fill('deliberately-invalid-synthetic-password');
   const writesBefore = caseWritePaths.length;
   const [proof] = await Promise.all([
@@ -625,6 +664,7 @@ try {
   await freeze(text + '\n修订'); await review();
   const activeCard = page.getByRole('region', { name: '当前有效签署' });
   await expect(activeCard).toBeVisible();
+  await checkConfirmationSwitch();
   const beforeReplacement = caseWritePaths.length;
   control('lose-sign-response');
   try {
