@@ -1,7 +1,7 @@
 import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
 import './TreatmentWorkspace.css';
 import TreatmentDraftList, { draftListItems } from './TreatmentDraftList';
-import { matchesSignedRevision, matchesTreatmentReceipt, matchesTreatmentSignature, requestHash } from './treatmentReceipts';
+import { canonical, matchesSignedRevision, matchesTreatmentReceipt, matchesTreatmentSignature, requestHash } from './treatmentReceipts';
 export { canonical, requestHash } from './treatmentReceipts';
 
 const base = (import.meta.env.VITE_API_BASE || '').replace(/\/$/, '');
@@ -128,6 +128,11 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       setMessage('登录已失效。原文仅供复制保留；原预览、勾选和认证已失效。' + next);
     } else setMessage(pendingRef.current ? '结果尚未确认，请查询原请求；不要重复提交。' : errors[error.code] || String(error.message));
   }
+  function replaceLocalDraft(draft) {
+    setListEdits({});
+    setContent(draft?.content || empty());
+    setEditBase(null); setRejectedDraft(false);
+  }
   async function load(t, replaceDraft = true, committedDraftETag = null) {
     if (!t.current()) return;
     setRecordCurrent(false); setVerified(null); changeConfirmation(null);
@@ -136,7 +141,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     const partition = `pmai:treatment:${g.actor_id}:${scope.org_id}:${scope.clinic_id}:${caseId}`;
     storage.current = partition; setData(g); setRecordCurrent(true); setExpired(false);
     if (replaceDraft || (committedDraftETag && committedDraftETag === draftPrecondition(g))) {
-      setListEdits({}); setContent(g.draft?.content || empty()); setEditBase(null); setRejectedDraft(false);
+      replaceLocalDraft(g.draft);
     }
     if (!pendingRef.current) {
       try { const saved = JSON.parse(sessionStorage.getItem(partition) || 'null');
@@ -182,6 +187,16 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
       treatment: { ...content.treatment, goals: draftListItems(content.treatment.goals, listEdits.goals, false, keepPlaceholders) },
     };
   }
+  function saveDraft() {
+    if (!canSaveDraft || pendingRef.current) return;
+    const next = currentContent();
+    if (data.draft && canonical(next) === canonical(data.draft.content)) {
+      replaceLocalDraft(data.draft);
+      setMessage('草稿内容与已读取的版本一致，无需重复保存。');
+      return;
+    }
+    return submit('draft.save', 'draft', '/draft', { content: next }, 'PATCH');
+  }
   async function reconcile(response, t, source, submitted = null) {
     if (!t.current()) return;
     const original = pendingRef.current;
@@ -212,7 +227,7 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
     }
   }
   async function submit(operation, target, suffix, body, method = 'POST', proof = null) {
-    if (locked || pendingRef.current || !data || (operation === 'draft.save' && draftConflict)) return;
+    if (locked || pendingRef.current || !data) return;
     if (proof && (!password || !(operation === 'sign' ? revisionChecked : revokeChecked))) return;
     const t = task(); setBusy(true); setMessage(''); setVerified(null);
     const precondition = operation === 'draft.save' ? (editBase ?? draftPrecondition(data)) : data.etag;
@@ -267,6 +282,8 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
   const discardLocked = busy || expired || !!pending || uncertainStatus;
   const locked = discardLocked || !recordCurrent;
   const canEdit = data?.allowed_actions.edit && !locked;
+  const draftEditable = canEdit && (!active || data.draft?.amendment_of === active.id);
+  const canSaveDraft = draftEditable && !draftConflict && (dirty || !data.draft);
   const cannotConfirmRevision = locked || dirty || staleDraft || staleSource || rev?.origin !== 'clinical';
   const passwordField = <p><label>再次输入当前账号密码
     <input aria-label="签署认证密码" type="password" autoComplete="off" value={password}
@@ -288,14 +305,14 @@ export default function TreatmentWorkspace({ token, scope, caseId, workspaceRef 
           : (uncertainStatus || (!recordCurrent && !busy)) && <p role="alert">签署状态待核对，请重新读取治疗记录。</p>}
         {data.policy.required_assurance === 'certificate_signature' && <p role="alert">本院要求证书签名，当前不能签署。</p>}
         {active && <section aria-label="当前有效签署"><h3>当前有效签署 · 版本 {activeRevision?.revision_no}</h3><p>{active.clinician_snapshot.display_name} · {active.signed_at} · 已确认签署 · 院内账号确认</p>{activeRevision && <ContentView content={activeRevision.content} />}</section>}
-        <fieldset disabled={!canEdit || (!!active && data.draft?.amendment_of !== active.id)}><legend>治疗草稿</legend>
+        <fieldset disabled={!draftEditable}><legend>治疗草稿</legend>
           <TreatmentDraftList diagnosis items={content.diagnoses} edit={listEdits.diagnoses} onChange={value => editList('diagnoses', value)} />
           <p><label>评估原文<textarea aria-label="治疗评估" value={content.assessment} onChange={e => edit({ ...content, assessment: e.target.value })} /></label></p>
           <TreatmentDraftList items={content.treatment.goals} edit={listEdits.goals} onChange={value => editList('goals', value)} />
           {[["management_text",'治疗措施'],['monitoring_text','监测安排'],['followup_text','复查安排']].map(([key,label]) => <p key={key}><label>{label}<textarea aria-label={label} value={content.treatment[key]} onChange={e => edit({ ...content, treatment: { ...content.treatment, [key]: e.target.value } })} /></label></p>)}
-          <button disabled={!!draftConflict} onClick={() => submit('draft.save','draft','/draft',{ content: currentContent() },'PATCH')}>保存治疗草稿</button>
+          <button disabled={!canSaveDraft} onClick={saveDraft}>保存治疗草稿</button>
         </fieldset>
-        <button disabled={!canEdit || dirty || !data.draft || (!!active && data.draft.amendment_of !== active.id)} onClick={() => submit('revision.freeze','revisions','/revisions',{ draft_version: data.draft.draft_version, expected_source_epoch: data.source_epoch })}>冻结版本供核对</button>
+        <button disabled={!draftEditable || dirty || !data.draft} onClick={() => submit('revision.freeze','revisions','/revisions',{ draft_version: data.draft.draft_version, expected_source_epoch: data.source_epoch })}>冻结版本供核对</button>
         {draftConflict ? <section aria-label="草稿版本冲突"><p role="alert">服务端治疗草稿已更新。本页保留你的原文，请先复制需要保留的修改，再载入服务器草稿。</p>
           <button disabled={discardLocked} onClick={() => refresh(true)}>放弃本页修改并载入服务器草稿</button></section>
           : dirty && <p>有尚未保存的修改。保存后才能冻结和签署。</p>}
