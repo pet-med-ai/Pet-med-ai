@@ -123,7 +123,10 @@ followed by a separate GET before the UI reports confirmed success.
 To revoke a signature, enter the reason first, then check the effective signed
 version and its reason, enter the current account password and submit. Editing
 the reason after checking it clears both the acknowledgement and the entered
-password. Unchecking the acknowledgement also clears the password.
+password. The workbench accepts one acknowledgement at a time. Switching between
+the frozen revision and the signature to revoke clears the previous selection
+and its password. Unchecking either selection also clears the password. Enter
+the password in the selected action's section after checking its target.
 
 While a signing or revocation request is unresolved, the current signature card
 is hidden and the previously effective history entry shows **状态待核对**.

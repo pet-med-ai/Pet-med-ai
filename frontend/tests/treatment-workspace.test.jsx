@@ -177,9 +177,10 @@ test('a stale source preserves the effective signed record and its separate revo
   const active = renderer.root.findByProps({'aria-label':'当前有效签署'});
   assert.ok(active.findAllByType('dd').some(node => node.children.includes(content.assessment)));
   change('操作原因','合成作废原因');
-  change('签署认证密码','synthetic');
   assert.equal(button('再次认证并作废签署').props.disabled, true);
   change('已核对待作废签署', null, true);
+  assert.equal(button('再次认证并作废签署').props.disabled, true);
+  change('签署认证密码','synthetic');
   assert.equal(button('再次认证并作废签署').props.disabled, false);
 });
 
@@ -197,7 +198,8 @@ test('revocation has a separate acknowledgement of the effective signed version'
  const signature={id:'sig1',revision_id:'old',content_hash:'b'.repeat(64),clinician_snapshot:{display_name:'旧签署医生'},signed_at:'2026-11-09T00:00:00Z'};
  handler=async()=>response(data({plan:{id:'p',head_revision_id:rev.id,active_signature_id:'sig1'},signatures:[signature],revisions:[rev,{...rev,id:'old',revision_no:0,content:{...content,assessment:'当前有效版本的原文'}}]}));
  await mount();assert.match(output(),/当前有效版本的原文/);change('已核对冻结版本',null,true);change('签署认证密码','secret');change('操作原因','synthetic revocation');
- assert.equal(button('再次认证并作废签署').props.disabled,true);change('已核对待作废签署',null,true);assert.equal(button('再次认证并作废签署').props.disabled,false);
+ assert.equal(button('再次认证并作废签署').props.disabled,true);change('已核对待作废签署',null,true);
+ assert.equal(button('再次认证并作废签署').props.disabled,true);change('签署认证密码','another-secret');assert.equal(button('再次认证并作废签署').props.disabled,false);
 });
 
 function storedDraft(version, assessment) {
@@ -862,19 +864,60 @@ function reviewedTreatment() {
     reviews: [{ id:ids.review, revision_id:rev.id, decision:'approve', clinician_snapshot:{ display_name:'合成医生' } }],
   });
 }
-function acknowledgeTreatment(password) {
-  change('已核对冻结版本', null, true);
+const actionCheckbox = { sign:'已核对冻结版本', revoke:'已核对待作废签署' };
+function acknowledgeTreatment(action, password) {
   change('操作原因', '合成复核');
-  change('已核对待作废签署', null, true);
+  change(actionCheckbox[action], null, true);
   change('签署认证密码', password);
 }
+
+for (const [first, second] of [['sign', 'revoke'], ['revoke', 'sign']]) {
+  test('action-bound confirmation requires a new password when switching from ' + first + ' to ' + second, async () => {
+    handler = async () => response(reviewedTreatment());
+    await mount();
+    const buttons = { sign:signButton, revoke:revokeButton };
+    const checked = action => renderer.root.findByProps({'aria-label':actionCheckbox[action]}).props.checked;
+    acknowledgeTreatment(first, 'only-for-first-action');
+    assert.equal(button(buttons[first]).props.disabled, false);
+
+    change(actionCheckbox[second], null, true);
+    assert.equal(checked(first), false);
+    assert.equal(checked(second), true);
+    assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.value, '');
+    assert.equal(button(buttons[first]).props.disabled, true);
+    assert.equal(button(buttons[second]).props.disabled, true);
+    change('签署认证密码', 'only-for-second-action');
+    assert.equal(button(buttons[first]).props.disabled, true);
+    assert.equal(button(buttons[second]).props.disabled, false);
+    assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+    assert.equal(saved.size, 0);
+  });
+}
+
+test('action-bound confirmation clears the signing password when the same revision is unchecked and checked again', async () => {
+  handler = async () => response(reviewedTreatment());
+  await mount();
+  const password = () => renderer.root.findByProps({'aria-label':'签署认证密码'}).props;
+  assert.equal(password().disabled, true);
+  acknowledgeTreatment('sign', 'only-for-this-confirmation');
+  assert.equal(button(signButton).props.disabled, false);
+  change(actionCheckbox.sign, null, false);
+  assert.equal(password().value, '');
+  assert.equal(password().disabled, true);
+  change(actionCheckbox.sign, null, true);
+  assert.equal(password().disabled, false);
+  assert.equal(button(signButton).props.disabled, true);
+  assert.equal(button(revokeButton).props.disabled, true);
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+  assert.equal(saved.size, 0);
+});
 
 for (const [operation, submit] of [['sign', signButton], ['revoke', revokeButton]]) {
   test('an unresolved ' + operation + ' withdraws the effective signature until the original outcome is confirmed', async () => {
     const aggregate = reviewedTreatment();
     handler = async () => response(aggregate);
     await mount();
-    acknowledgeTreatment('synthetic');
+    acknowledgeTreatment(operation, 'synthetic');
     assert.equal(button(submit).props.disabled, false);
     handler = async url => {
       if (url.endsWith('/auth/reauthenticate')) return response({challenge_id:'synthetic-proof'});
@@ -941,17 +984,18 @@ test('a revocation requires a nonblank reason to acknowledge and withdrawing tha
 test('editing the exact acknowledged reason invalidates revocation even if the original text is restored', async () => {
   handler = async () => response(reviewedTreatment());
   await mount();
-  acknowledgeTreatment('synthetic');
+  acknowledgeTreatment('revoke', 'synthetic');
   assert.equal(button(revokeButton).props.disabled, false);
   change('操作原因', '合成复核 ');
   assert.equal(renderer.root.findByProps({'aria-label':'已核对待作废签署'}).props.checked, false);
   assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.value, '');
   assert.equal(button(revokeButton).props.disabled, true);
-  assert.equal(acknowledgement().checked, true);
+  assert.equal(acknowledgement().checked, false);
   change('操作原因', '合成复核');
-  change('签署认证密码', 'synthetic');
-  assert.equal(button(revokeButton).props.disabled, true);
+  assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.disabled, true);
   change('已核对待作废签署', null, true);
+  assert.equal(button(revokeButton).props.disabled, true);
+  change('签署认证密码', 'synthetic');
   assert.equal(button(revokeButton).props.disabled, false);
   assert.deepEqual(requests.map(r => r.options.method), ['GET']);
   assert.equal(saved.size, 0);
@@ -966,7 +1010,7 @@ for (const [action, label, target] of [
     handler = async () => response(original);
     await mount();
     const random = t.mock.method(globalThis.crypto, 'getRandomValues');
-    acknowledgeTreatment('incorrect-password');
+    acknowledgeTreatment(action, 'incorrect-password');
     handler = async () => response({code:'REAUTHENTICATION_FAILED'}, 401);
     const start = requests.length;
     await click(label);
@@ -1002,9 +1046,10 @@ for (const [action, label, target] of [
       }
       return response(final);
     };
-    change('签署认证密码', 'correct-password');
+    assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.disabled, true);
+    change(actionCheckbox[action], null, true);
     assert.equal(button(label).props.disabled, true);
-    change(action === 'sign' ? '已核对冻结版本' : '已核对待作废签署', null, true);
+    change('签署认证密码', 'correct-password');
     assert.equal(button(label).props.disabled, false);
     const retry = requests.length;
     await click(label);
@@ -1028,7 +1073,7 @@ for (const [kind, denied] of [
 ]) {
   test('reauthentication fails closed for ' + kind, async () => {
     handler = async () => response(reviewedTreatment());
-    await mount(); acknowledgeTreatment('synthetic-password');
+    await mount(); acknowledgeTreatment('sign', 'synthetic-password');
     handler = denied;
     const start = requests.length;
     await click(signButton);
@@ -1046,7 +1091,7 @@ test('an invalid or unsuccessful challenge cannot start a treatment command', as
   for (const result of [response({}), response({challenge_id:'  '}),
     response({state:'pending', challenge_id:'untrusted'}, 202), response({state:'committed', challenge_id:'untrusted'}, 200),
     response({state:'committed', challenge_id:'untrusted'}, 409)]) {
-    acknowledgeTreatment('password');
+    acknowledgeTreatment('sign', 'password');
     handler = async () => result;
     const start = requests.length;
     await click(signButton);
@@ -1058,7 +1103,7 @@ test('an invalid or unsuccessful challenge cannot start a treatment command', as
 
 test('the reauthentication rejection code on a business command still expires the session', async () => {
   handler = async () => response(reviewedTreatment());
-  await mount(); acknowledgeTreatment('password');
+  await mount(); acknowledgeTreatment('sign', 'password');
   handler = async url => url.endsWith('/auth/reauthenticate')
     ? response({challenge_id:'fresh-proof'}) : response({code:'REAUTHENTICATION_FAILED'}, 401);
   await click(signButton);
@@ -1070,13 +1115,13 @@ test('the reauthentication rejection code on a business command still expires th
 
 test('a late wrong-password response cannot affect the clinician now viewing a different case', async () => {
   handler = async () => response(reviewedTreatment());
-  await mount(); acknowledgeTreatment('old-case-password');
+  await mount(); acknowledgeTreatment('sign', 'old-case-password');
   let release, pending;
   handler = () => new Promise(resolve => { release = resolve; });
   act(() => { pending = button(signButton).props.onClick(); });
   handler = async () => response(reviewedTreatment());
   await act(async () => { renderer.update(<TreatmentWorkspace token="synthetic-token" scope={scope} caseId={2} />); });
-  acknowledgeTreatment('new-case-password');
+  acknowledgeTreatment('sign', 'new-case-password');
   await act(async () => { release(response({code:'REAUTHENTICATION_FAILED'}, 401)); await pending; });
   assert.equal(renderer.root.findByProps({'aria-label':'签署认证密码'}).props.value, 'new-case-password');
   assert.equal(button(signButton).props.disabled, false);
@@ -1190,7 +1235,7 @@ for (const [problem, receiptChanges, modifyReadback] of [
   test('signature reconciliation rejects ' + problem + ' and later verifies the same original command', async () => {
     const initial = reviewedTreatment();
     handler = async () => response(initial);
-    await mount(); acknowledgeTreatment('test-password');
+    await mount(); acknowledgeTreatment('sign', 'test-password');
     let original;
     handler = async (url, options) => {
       if (url.endsWith('/reauthenticate')) return response({challenge_id:'fresh-proof'});
