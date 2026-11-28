@@ -573,6 +573,78 @@ function historyDetails(label) {
 
 const revocationHistoryDetails = () => historyDetails('作废记录');
 
+function signedTextDisclosures() {
+  const summaries = renderer.root.findAllByType('summary').filter(node => directText(node).endsWith('的签署原文'));
+  return new Map(summaries.map(summary => [directText(summary), summary.parent]));
+}
+
+test('terminal signature history shows the exact signed text for each revision on a read-only visit', async () => {
+  const first = signedReadback('revoke', 'superseded', frozenRevision(ids.priorRevision, 1, displayContent('首次签署')));
+  const second = signedReadback('sign', 'revoked', frozenRevision(ids.revision, 2, displayContent('随后作废')));
+  const current = frozenRevision('3708b584-295b-4691-a6b4-6422cf410010', 3, displayContent('当前有效'));
+  const active = {...signedReadback('sign', 'effective', current).signature, id:'3708b584-295b-4691-a6b4-6422cf410011'};
+  const head = frozenRevision('3708b584-295b-4691-a6b4-6422cf410012', 4, displayContent('新冻结草稿'));
+  // The treatment aggregate supplies revision fields, without the canonical bytes from the signature endpoint.
+  const revisions = [head, current, second.revision, first.revision].map(({canonical_utf8, ...revision}) => revision);
+  handler = async () => response(data({
+    plan:{id:ids.plan, head_revision_id:head.id, active_signature_id:active.id},
+    revisions, signatures:[first.signature, second.signature, active],
+    events:[{...first.terminal_event, successor_signature_id:second.signature.id}, second.terminal_event],
+    allowed_actions:{edit:false, review:false, sign:false},
+  }));
+  await mount();
+  const disclosures = signedTextDisclosures();
+  assert.deepEqual([...disclosures.keys()].sort(), ['查看版本 1 的签署原文', '查看版本 2 的签署原文']);
+  for (const {revision} of [first, second]) {
+    const detail = disclosures.get('查看版本 ' + revision.revision_no + ' 的签署原文');
+    assert.equal(detail.type, 'details');
+    assert.ok(!detail.props.open);
+    assertContentView(detail, revision.content);
+    for (const type of ['button', 'input', 'textarea']) assert.equal(detail.findAllByType(type).length, 0);
+  }
+  assertContentView(renderer.root.findByProps({'aria-label':'当前有效签署'}), current.content);
+  assertContentView(renderer.root.findByProps({'aria-label':'冻结版本'}), head.content);
+  assert.equal(revocationHistoryDetails()['查看版本 2 的作废记录']['作废原因'], second.terminal_event.reason);
+  assert.equal(historyDetails('替代记录')['查看版本 1 的替代记录']['接替版本'], '版本 2');
+  assert.deepEqual(requests.map(r => r.options.method), ['GET']);
+  handler = async () => response({detail:'无权读取'}, 403);
+  await click('重新读取治疗记录');
+  assert.equal(signedTextDisclosures().size, 0);
+  assert.doesNotMatch(output(), /首次签署|随后作废/);
+});
+
+test('terminal signature history with incomplete evidence never substitutes the head or another signed text', async () => {
+  const old = signedReadback('revoke', 'revoked', frozenRevision(ids.priorRevision, 1, displayContent('历史独有内容')));
+  const current = signedReadback('sign', 'effective', rev);
+  let aggregate;
+  handler = async () => response(aggregate);
+  const cases = [
+    ['missing revision', null, old.signature.content_hash],
+    ['missing version number', {...old.revision, revision_no:null}, old.signature.content_hash],
+    ['different hash', old.revision, 'f'.repeat(64)],
+    ['both hashes absent', {...old.revision, content_sha256:null}, null],
+    ['same invalid hash', {...old.revision, content_sha256:'short'}, 'short'],
+    ['unreadable content', {...old.revision, content:{...old.revision.content, diagnoses:null}}, old.signature.content_hash],
+  ];
+  for (const [label, revision, hash] of cases) {
+    aggregate = data({
+      plan:{id:ids.plan, head_revision_id:rev.id, active_signature_id:current.signature.id},
+      revisions:revision ? [rev, revision] : [rev],
+      signatures:[{...old.signature, content_hash:hash}, current.signature], events:[old.terminal_event],
+    });
+    if (!renderer) await mount(); else await click('重新读取治疗记录');
+    assert.equal(signedTextDisclosures().size, 0, label);
+    assert.match(output(), /历史签署原文暂不可核对。/, label);
+    assert.doesNotMatch(output(), /历史独有内容/, label);
+    assertContentView(renderer.root.findByProps({'aria-label':'当前有效签署'}), rev.content);
+  }
+  aggregate = {...aggregate, revisions:[rev, old.revision], signatures:[old.signature, current.signature], events:[]};
+  await click('重新读取治疗记录');
+  assert.ok(historyRows().some(row => row.includes('状态待核对')));
+  assert.equal(signedTextDisclosures().size, 0);
+  assert.deepEqual(requests.map(r => r.options.method), Array(cases.length + 1).fill('GET'));
+});
+
 test('superseded history identifies each immediate successor even after that replacement is superseded or revoked', async () => {
   const first = signedReadback('revoke', 'superseded', priorRevision);
   const middle = signedReadback('sign', 'superseded', frozenRevision(ids.revision, 5));

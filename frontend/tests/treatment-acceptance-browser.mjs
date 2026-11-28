@@ -522,7 +522,6 @@ async function checkSupersessionHistory(record) {
   const current = signedVersion(record.plan.active_signature_id, 'effective');
   assert.equal(record.events.some(event => event.signature_id === current.signature_id), false);
   assert.ok(predecessor.revision_no < successor.revision_no && successor.revision_no < current.revision_no);
-  await expect(page.locator('[aria-label="独立回读签署"]')).toContainText(current.signature_id + ' · effective');
 
   const summary = page.getByText(`查看版本 ${predecessor.revision_no} 的替代记录`, { exact: true });
   const details = page.locator('details').filter({ has: summary });
@@ -537,12 +536,40 @@ async function checkSupersessionHistory(record) {
     await expect(term.locator('xpath=following-sibling::*[1][self::dd]')).toHaveText(`版本 ${successor.revision_no}`);
     await summary.click();
     await expect(details).toHaveJSProperty('open', false);
+    const revoke = page.getByLabel('已核对待作废签署', { exact: true });
+    const password = page.getByLabel('签署认证密码', { exact: true });
+    await page.getByLabel('操作原因', { exact: true }).fill('合成历史原文查阅');
+    await revoke.check();
+    await password.fill('synthetic-history-only');
+    for (const [version, expectedText] of [[predecessor, text], [successor, text + '\n修订']]) {
+      const original = page.getByText(`查看版本 ${version.revision_no} 的签署原文`, { exact: true });
+      const disclosure = page.locator('details').filter({ has: original });
+      await expect(disclosure).toHaveJSProperty('open', false);
+      await original.click();
+      for (const field of ['评估', '治疗措施']) {
+        const label = disclosure.getByText(field, { exact: true });
+        const displayed = label.locator('xpath=following-sibling::*[1][self::dd]');
+        await expect(displayed).toBeVisible();
+        assert.equal(await displayed.textContent(), expectedText);
+      }
+      await original.click();
+      await expect(disclosure).toHaveJSProperty('open', false);
+      await expect(revoke).toBeChecked();
+      await expect(page.getByLabel('已核对冻结版本', { exact: true })).not.toBeChecked();
+      await expect(password).toHaveValue('synthetic-history-only');
+    }
+    await revoke.uncheck();
+    await expect(password).toHaveValue('');
+    await expect(page.getByText(`查看版本 ${current.revision_no} 的签署原文`, { exact: true })).toHaveCount(0);
     assert.equal(additionalRequests, 0);
   } finally {
     page.off('request', countRequest);
   }
-  result.supersession_history_details = { case_id: record.scope.case_id, predecessor, successor, current, additional_requests: additionalRequests };
+  result.supersession_history_details = { case_id: record.scope.case_id, predecessor, successor, current,
+    archived_original_versions: [predecessor.revision_no, successor.revision_no], retained_revocation_confirmation: true,
+    additional_requests: additionalRequests };
   checks.push('superseded-history-shows-direct-successor-after-revocation-and-resigning');
+  checks.push('archived-signed-text-after-reopening-preserves-revocation-confirmation');
 }
 
 async function checkRefreezeAfterSourceChange() {
@@ -700,9 +727,18 @@ try {
   ]);
   assert.equal(afterResigning.status(), 200);
   await readback();
-  await checkSupersessionHistory(await afterResigning.json());
+  const signedRecord = await afterResigning.json();
+  await expect(page.locator('[aria-label="独立回读签署"]')).toContainText(signedRecord.plan.active_signature_id + ' · effective');
+  await logout(); await login();
+  const [reopened] = await Promise.all([
+    page.waitForResponse(response => response.url() === afterResigning.url() && response.request().method() === 'GET'),
+    openCase(101),
+  ]);
+  assert.equal(reopened.status(), 200);
+  const reopenedRecord = await reopened.json();
+  assert.equal(reopenedRecord.plan.active_signature_id, signedRecord.plan.active_signature_id);
+  await checkSupersessionHistory(reopenedRecord);
   checks.push('amend-revoke-resign-history', 'revoke-wrong-password-retry-readback');
-  await logout(); await login(); await openCase(101);
   for (const kind of ['late-200', 'late-401']) {
     control(kind);
     await page.getByRole('row').filter({ has: page.getByRole('cell', { name: '#101', exact: true }) }).getByRole('button', { name: '查看', exact: true }).click();

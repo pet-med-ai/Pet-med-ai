@@ -72,13 +72,19 @@ function displayableContent(content) {
     && ['management_text', 'monitoring_text', 'followup_text'].every(field => typeof treatment[field] === 'string');
 }
 
+// Aggregates carry the frozen revision and its stored hash. Independent readbacks also carry its canonical bytes.
+export function matchesSignedRevision(signature, revision) {
+  return isUUID(revision?.id) && signature.revision_id === revision.id
+    && isHash(signature.content_hash) && signature.content_hash === revision.content_sha256
+    && displayableContent(revision.content);
+}
+
 export async function matchesTreatmentSignature({ status, body }, receipt, scope, proof = null) {
   const { signature, revision, terminal_event: event, state } = body || {};
   const sameCase = row => row?.org_id === scope.org_id && row.clinic_id === scope.clinic_id && row.case_id === scope.case_id;
   if (status !== 200 || !sameCase(signature) || !sameCase(revision) || signature.id !== receipt.signature_id
       || !isUUID(signature.plan_id) || signature.plan_id !== revision.plan_id
-      || signature.assurance !== 'account_attestation' || !isUUID(revision.id) || signature.revision_id !== revision.id
-      || !isHash(signature.content_hash) || revision.content_sha256 !== signature.content_hash) return false;
+      || signature.assurance !== 'account_attestation' || !matchesSignedRevision(signature, revision)) return false;
   if (proof && (proof.revision_id !== revision.id || proof.hash !== signature.content_hash)) return false;
   if (state === 'effective') {
     if (event !== null) return false;
@@ -89,7 +95,7 @@ export async function matchesTreatmentSignature({ status, body }, receipt, scope
   } else if (receipt.operation !== 'revoke' || state !== 'revoked' || event.id !== receipt.event_id
       || event.actor_id !== scope.actor_id || (proof && proof.signature_id !== signature.id)) return false;
 
-  if (!displayableContent(revision.content) || typeof revision.canonical_utf8 !== 'string') return false;
+  if (typeof revision.canonical_utf8 !== 'string') return false;
   // Hash the exact server-frozen bytes. Compare the displayed JSON independent of object key order.
   if (await hashText(revision.canonical_utf8) !== signature.content_hash) return false;
   let frozen;
